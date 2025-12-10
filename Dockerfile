@@ -29,4 +29,4 @@ ENV PORT=3000
 EXPOSE 3000
 
 # Start the server
-CMD ["node", "server.js"]
+CMD ["node", "docker-entrypoint.js"]
