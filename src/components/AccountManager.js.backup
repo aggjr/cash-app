@@ -1,0 +1,230 @@
+import { AccountModal } from './AccountModal.js';
+
+export const AccountManager = (project) => {
+    const container = document.createElement('div');
+    container.className = 'glass-panel';
+    container.style.padding = '2rem';
+    container.style.margin = '2rem';
+    container.style.height = 'calc(100vh - 150px)';
+    container.style.display = 'flex';
+    container.style.flexDirection = 'column';
+
+    const getHeaders = () => {
+        const token = localStorage.getItem('token');
+        return {
+            'Content-Type': 'application/json',
+            'Authorization': `Bearer ${token}`
+        };
+    };
+
+    // Currency formatter
+    const formatCurrency = (value) => {
+        return new Intl.NumberFormat('pt-BR', {
+            style: 'currency',
+            currency: 'BRL'
+        }).format(value || 0);
+    };
+
+    // Date formatter
+    const formatDate = (dateString) => {
+        if (!dateString) return '-';
+        const date = new Date(dateString);
+        return date.toLocaleDateString('pt-BR');
+    };
+
+    // Account type icons and labels
+    const accountTypeInfo = {
+        'caixa': { icon: '💰', label: 'Caixa' },
+        'banco': { icon: '🏦', label: 'Banco' },
+        'cartao': { icon: '💳', label: 'Cartão' },
+        'digital': { icon: '📱', label: 'Digital' },
+        'outros': { icon: '🏪', label: 'Outros' }
+    };
+
+    const getAccountTypeDisplay = (type) => {
+        const info = accountTypeInfo[type] || accountTypeInfo['outros'];
+        return `<span class="account-type-badge">${info.icon} ${info.label}</span>`;
+    };
+
+    const loadAccounts = async () => {
+        try {
+            container.querySelector('.accounts-table-wrapper')?.classList.add('loading');
+
+            const response = await fetch(`http://localhost:3001/api/accounts?projectId=${project.id}`, {
+                headers: getHeaders()
+            });
+            const accounts = await response.json();
+
+            renderAccounts(accounts);
+        } catch (error) {
+            console.error('Error loading accounts:', error);
+            showToast('Erro ao carregar contas', 'error');
+        }
+    };
+
+    const showToast = (message, type = 'info') => {
+        // Simple toast notification
+        const toast = document.createElement('div');
+        toast.className = `toast toast-${type}`;
+        toast.textContent = message;
+        toast.style.cssText = `
+            position: fixed;
+            bottom: 2rem;
+            right: 2rem;
+            padding: 1rem 1.5rem;
+            background: ${type === 'error' ? '#EF4444' : type === 'success' ? '#10B981' : '#3B82F6'};
+            color: white;
+            border-radius: 8px;
+            box-shadow: var(--shadow-lg);
+            z-index: 10000;
+            animation: slideInRight 0.3s ease;
+        `;
+        document.body.appendChild(toast);
+        setTimeout(() => {
+            toast.style.animation = 'slideOutRight 0.3s ease';
+            setTimeout(() => toast.remove(), 300);
+        }, 3000);
+    };
+
+    const createAccount = async () => {
+        const data = await AccountModal.show({
+            account: null,
+            onSave: async (accountData) => {
+                try {
+                    const response = await fetch('http://localhost:3001/api/accounts', {
+                        method: 'POST',
+                        headers: getHeaders(),
+                        body: JSON.stringify({
+                            name: accountData.name,
+                            description: accountData.description,
+                            accountType: accountData.accountType,
+                            initialBalance: accountData.initialBalance,
+                            projectId: project.id
+                        })
+                    });
+
+                    if (response.ok) {
+                        showToast('Conta criada com sucesso!', 'success');
+                        loadAccounts();
+                    } else {
+                        showToast('Erro ao criar conta', 'error');
+                    }
+                } catch (error) {
+                    showToast('Erro de conexão', 'error');
+                }
+            }
+        });
+    };
+
+    const updateAccount = async (account) => {
+        const data = await AccountModal.show({
+            account: account,
+            onSave: async (accountData) => {
+                try {
+                    const response = await fetch(`http://localhost:3001/api/accounts/${account.id}`, {
+                        method: 'PUT',
+                        headers: getHeaders(),
+                        body: JSON.stringify({
+                            name: accountData.name,
+                            description: accountData.description,
+                            accountType: accountData.accountType,
+                            initialBalance: accountData.initialBalance,
+                            active: accountData.active
+                        })
+                    });
+
+                    if (response.ok) {
+                        showToast('Conta atualizada com sucesso!', 'success');
+                        loadAccounts();
+                    } else {
+                        showToast('Erro ao atualizar conta', 'error');
+                    }
+                } catch (error) {
+                    showToast('Erro de conexão', 'error');
+                }
+            }
+        });
+    };
+
+    const deleteAccount = async (id, name) => {
+        // Use native confirm for now
+        if (!confirm(`Tem certeza que deseja excluir a conta "${name}"?`)) return;
+
+        try {
+            const response = await fetch(`http://localhost:3001/api/accounts/${id}`, {
+                method: 'DELETE',
+                headers: getHeaders()
+            });
+
+            if (response.ok) {
+                showToast('Conta excluída com sucesso!', 'success');
+                loadAccounts();
+            } else {
+                showToast('Erro ao excluir conta', 'error');
+            }
+        } catch (error) {
+            showToast('Erro de conexão', 'error');
+        }
+    };
+
+    const renderAccounts = (accounts) => {
+        container.innerHTML = `
+            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 2rem;">
+                <h2>💰 Contas</h2>
+                <div style="display: flex; gap: 0.5rem;">
+                                        onmouseover="this.style.transform='scale(1.2)'" 
+                                        onmouseout="this.style.transform='scale(1)'">✏️</button>
+                                    <button class="btn-delete" data-id="${account.id}" style="color: #EF4444; font-size: 1.2rem; background: none; border: none; cursor: pointer; transition: transform 0.2s;" 
+                                        onmouseover="this.style.transform='scale(1.2)'" 
+                                        onmouseout="this.style.transform='scale(1)'">🗑️</button>
+                                </td>
+                            </tr>
+                        `).join('')
+    }
+                        ${
+        accounts.length === 0 ? `
+                            <tr>
+                                <td colspan="7" style="padding: 3rem; text-align: center; color: var(--color-text-muted);">
+                                    <div style="font-size: 3rem; margin-bottom: 1rem;">📭</div>
+                                    <div style="font-size: 1.1rem;">Nenhuma conta cadastrada</div>
+                                    <div style="font-size: 0.9rem; margin-top: 0.5rem;">Clique em "Nova Conta" para começar</div>
+                                </td>
+                            </tr>
+                        ` : ''
+    }
+                    </tbody >
+                </table >
+            </div >
+            
+            <div style="margin-top: 1rem; display: flex; justify-content: space-between; align-items: center; font-size: 0.85rem; color: var(--color-text-muted);">
+                <div>Total: ${accounts.length} conta${accounts.length !== 1 ? 's' : ''}</div>
+                <div>Saldo Total: <span style="font-weight: 600; color: var(--color-primary);">${formatCurrency(accounts.reduce((sum, acc) => sum + (acc.current_balance || 0), 0))}</span></div>
+            </div>
+
+            <button id="btn-fab" style="position: fixed; bottom: 2rem; right: 2rem; width: 56px; height: 56px; border-radius: 50%; background-color: #EF4444; color: white; font-size: 1.8rem; display: flex; align-items: center; justify-content: center; box-shadow: var(--shadow-lg); border: none; cursor: pointer; transition: all 0.3s;" 
+                onmouseover="this.style.transform='scale(1.1) rotate(90deg)'; this.style.boxShadow='0 20px 25px -5px rgba(0, 0, 0, 0.2)'" 
+                onmouseout="this.style.transform='scale(1) rotate(0deg)'; this.style.boxShadow='var(--shadow-lg)'">+</button>
+`;
+
+        container.querySelector('#btn-new-account').addEventListener('click', createAccount);
+        container.querySelector('#btn-fab').addEventListener('click', createAccount);
+
+        container.querySelectorAll('.btn-edit').forEach(btn => {
+            btn.addEventListener('click', () => {
+                const account = accounts.find(a => a.id == btn.dataset.id);
+                updateAccount(account);
+            });
+        });
+
+        container.querySelectorAll('.btn-delete').forEach(btn => {
+            btn.addEventListener('click', () => {
+                const account = accounts.find(a => a.id == btn.dataset.id);
+                deleteAccount(account.id, account.name);
+            });
+        });
+    };
+
+    loadAccounts();
+
+    return container;
+};
