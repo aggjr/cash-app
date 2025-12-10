@@ -4,9 +4,35 @@ Este projeto está pronto para deploy no **Easypanel**. Siga os passos abaixo.
 
 ## 1. Pré-requisitos
 - Um servidor com Easypanel instalado.
-- Este repositório deve estar no GitHub/GitLab (ou outro git provider).
+- Conta no GitHub (ou GitLab).
 
-## 2. Criar Serviço de Banco de Dados
+## 2. Subir Código para o GitHub
+Para que o Easypanel consiga baixar e rodar seu aplicativo, o código precisa estar em um repositório git.
+Como o seu código está local, siga estes passos:
+
+1. **Crie um Repositório** no site do GitHub (botão "New Repository").
+   - Dê um nome (ex: `cash-app`).
+   - Pode ser Público ou Privado (se privado, você precisará configurar um Token no Easypanel).
+
+2. **Copie a URL do Repositório** (ex: `https://github.com/seu-usuario/cash-app.git`).
+
+3. **Envie os arquivos (pelo terminal)**:
+   Se você ainda não conectou:
+   ```bash
+   git remote add origin https://github.com/SEU-USUARIO/SEU-REPO.git
+   git branch -M master
+   git push -u origin master
+   ```
+
+## 2.1. Repositório Privado?
+Se o seu repositório for **Privado**, o Easypanel precisa de uma chave de acesso (Token) em vez da senha.
+1. No GitHub, vá em **Settings** > **Developer settings** > **Personal access tokens** (Tokens (classic)).
+2. Gere um novo token (repo scope).
+3. No Easypanel, ao criar o serviço App, use a URL neste formato:
+   `https://seu-usuario:SEU_TOKEN@github.com/seu-usuario/seu-repo.git`
+   OU, se houver campo para "Git Credentials/Token" no Easypanel, use lá.
+
+## 3. Criar Serviço de Banco de Dados
 1. No seu projeto no Easypanel, clique em **"Create Service"**.
 2. Escolha **"MySQL"**.
 3. Defina o nome como `cash-db` (ou outro de sua preferência).
