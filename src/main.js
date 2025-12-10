@@ -43,7 +43,9 @@ const renderApp = () => {
   const { token } = checkAuth();
 
   // Check if we're on the activation page
-  if (window.location.pathname === '/activate' || window.location.search.includes('token=')) {
+  // We need to account for the base path '/projects/cash' in production
+  const path = window.location.pathname;
+  if (path.endsWith('/activate') || window.location.search.includes('token=')) {
     app.innerHTML = '';
     app.appendChild(ActivateAccount());
     return;
