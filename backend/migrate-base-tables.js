@@ -12,8 +12,11 @@ async function run() {
             CREATE TABLE IF NOT EXISTS tipo_entrada (
                 id INT AUTO_INCREMENT PRIMARY KEY,
                 name VARCHAR(255) NOT NULL,
+                parent_id INT NULL,
+                ordem INT DEFAULT 0,
                 project_id INT,
-                created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+                created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+                FOREIGN KEY (parent_id) REFERENCES tipo_entrada(id) ON DELETE CASCADE
             )
         `);
 
@@ -36,8 +39,11 @@ async function run() {
             CREATE TABLE IF NOT EXISTS tipo_producao_revenda (
                 id INT AUTO_INCREMENT PRIMARY KEY,
                 name VARCHAR(255) NOT NULL,
+                parent_id INT NULL,
+                ordem INT DEFAULT 0,
                 project_id INT,
-                created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+                created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+                FOREIGN KEY (parent_id) REFERENCES tipo_producao_revenda(id) ON DELETE CASCADE
             )
         `);
 
