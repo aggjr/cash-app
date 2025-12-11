@@ -46,6 +46,7 @@ async function migrateUserManagement() {
             { name: 'invited_by', type: 'INT NULL' },
             { name: 'invited_at', type: 'TIMESTAMP DEFAULT CURRENT_TIMESTAMP' },
             { name: 'joined_at', type: 'TIMESTAMP NULL' },
+            { name: 'last_login_at', type: 'TIMESTAMP NULL' },
             { name: 'status', type: "ENUM('pending', 'active', 'inactive') DEFAULT 'active'" }
         ];
 
