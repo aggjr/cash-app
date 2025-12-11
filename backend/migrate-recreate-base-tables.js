@@ -9,10 +9,12 @@ async function run() {
         // Drop existing tables in reverse order (to avoid FK constraints)
         console.log('Dropping existing tables...');
         const tablesToDrop = [
+            'despesas',
             'retiradas',
             'aportes',
             'producao_revenda',
             'entradas',
+            'tipo_despesa',
             'tipo_producao_revenda',
             'tipo_entrada'
         ];
@@ -56,7 +58,22 @@ async function run() {
         `);
         console.log('  ✓ Created tipo_producao_revenda');
 
-        // 3. Create entradas table
+        // 3. Create tipo_despesa table
+        console.log('Creating tipo_despesa table...');
+        await db.query(`
+            CREATE TABLE tipo_despesa (
+                id INT AUTO_INCREMENT PRIMARY KEY,
+                name VARCHAR(255) NOT NULL,
+                parent_id INT NULL,
+                ordem INT DEFAULT 0,
+                project_id INT,
+                created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+                FOREIGN KEY (parent_id) REFERENCES tipo_despesa(id) ON DELETE CASCADE
+            )
+        `);
+        console.log('  ✓ Created tipo_despesa');
+
+        // 4. Create entradas table
         console.log('Creating entradas table...');
         await db.query(`
             CREATE TABLE entradas (
@@ -73,7 +90,7 @@ async function run() {
         `);
         console.log('  ✓ Created entradas');
 
-        // 4. Create producao_revenda table
+        // 5. Create producao_revenda table
         console.log('Creating producao_revenda table...');
         await db.query(`
             CREATE TABLE producao_revenda (
@@ -90,7 +107,29 @@ async function run() {
         `);
         console.log('  ✓ Created producao_revenda');
 
-        // 5. Create aportes table
+        // 6. Create despesas table
+        console.log('Creating despesas table...');
+        await db.query(`
+            CREATE TABLE despesas (
+                id INT PRIMARY KEY AUTO_INCREMENT,
+                data_fato DATE NOT NULL,
+                data_prevista_pagamento DATE NOT NULL,
+                data_real_pagamento DATE NULL,
+                valor DECIMAL(15, 2) NOT NULL,
+                descricao TEXT NULL,
+                tipo_despesa_id INT NOT NULL,
+                company_id INT NOT NULL,
+                account_id INT NOT NULL,
+                project_id INT NOT NULL,
+                active BOOLEAN DEFAULT TRUE,
+                created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+                updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+                FOREIGN KEY (tipo_despesa_id) REFERENCES tipo_despesa(id) ON DELETE RESTRICT
+            )
+        `);
+        console.log('  ✓ Created despesas');
+
+        // 7. Create aportes table
         console.log('Creating aportes table...');
         await db.query(`
             CREATE TABLE aportes (
@@ -105,7 +144,7 @@ async function run() {
         `);
         console.log('  ✓ Created aportes');
 
-        // 6. Create retiradas table
+        // 8. Create retiradas table
         console.log('Creating retiradas table...');
         await db.query(`
             CREATE TABLE retiradas (
