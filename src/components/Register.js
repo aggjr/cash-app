@@ -108,10 +108,27 @@ export const Register = (onRegisterSuccess) => {
                 Dialogs.alert('Cadastro realizado com sucesso! Faça login.', 'Sucesso')
                     .then(() => onRegisterSuccess());
             } else {
-                Dialogs.alert(data.error || 'Falha no cadastro', 'Erro');
+                // Handle error response properly
+                let errorMessage = 'Falha no cadastro';
+
+                if (data.error) {
+                    if (typeof data.error === 'string') {
+                        errorMessage = data.error;
+                    } else if (data.error.message) {
+                        errorMessage = data.error.message;
+                        if (data.error.code) {
+                            errorMessage = `[${data.error.code}] ${errorMessage}`;
+                        }
+                    }
+                } else if (data.message) {
+                    errorMessage = data.message;
+                }
+
+                Dialogs.alert(errorMessage, 'Erro');
             }
         } catch (error) {
-            Dialogs.alert('Erro de conexão', 'Erro');
+            console.error('Registration error:', error);
+            Dialogs.alert('Erro de conexão com o servidor', 'Erro');
         }
     });
 
