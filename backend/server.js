@@ -28,29 +28,33 @@ const PORT = process.env.PORT || 3001;
 app.use(cors());
 app.use(bodyParser.json());
 
-// Routes
-app.use('/api/auth', authRoutes);
-app.use('/api/accounts', accountsRoutes);
-app.use('/api/companies', companiesRoutes);
-app.use('/api/incomes', incomesRoutes);
-app.use('/api/despesas', despesasRoutes);
-app.use('/api/aportes', aportesRoutes);
-app.use('/api/retiradas', retiradasRoutes);
-app.use('/api/transferencias', transferenciasRoutes);
-app.use('/api/projects', projectsRoutes);
-app.use('/api/producao-revenda', producaoRevendaRoutes);
-app.use('/api/extrato', extratoRoutes);
-app.use('/api/fechamento', fechamentoRoutes);
-app.use('/api/consolidadas', consolidadasRoutes);
-app.use('/api/previsao', require('./routes/previsao'));
+// API Router
+const apiRouter = express.Router();
+
+apiRouter.use('/auth', authRoutes);
+apiRouter.use('/accounts', accountsRoutes);
+apiRouter.use('/companies', companiesRoutes);
+apiRouter.use('/incomes', incomesRoutes);
+apiRouter.use('/despesas', despesasRoutes);
+apiRouter.use('/aportes', aportesRoutes);
+apiRouter.use('/retiradas', retiradasRoutes);
+apiRouter.use('/transferencias', transferenciasRoutes);
+apiRouter.use('/projects', projectsRoutes);
+apiRouter.use('/producao-revenda', producaoRevendaRoutes);
+apiRouter.use('/extrato', extratoRoutes);
+apiRouter.use('/fechamento', fechamentoRoutes);
+apiRouter.use('/consolidadas', consolidadasRoutes);
+apiRouter.use('/previsao', require('./routes/previsao'));
 
 // Generic Tree Routes (Protected)
-// We need to validate tableName to prevent SQL injection, which the controller does.
-app.get('/api/:tableName', auth, genericTreeController.getAll);
-app.post('/api/:tableName', auth, genericTreeController.create);
-app.put('/api/:tableName/:id', auth, genericTreeController.update);
-app.delete('/api/:tableName/:id', auth, genericTreeController.delete);
-app.post('/api/:tableName/:id/move', auth, genericTreeController.move);
+apiRouter.get('/:tableName', auth, genericTreeController.getAll);
+apiRouter.post('/:tableName', auth, genericTreeController.create);
+apiRouter.put('/:tableName/:id', auth, genericTreeController.update);
+apiRouter.delete('/:tableName/:id', auth, genericTreeController.delete);
+apiRouter.post('/:tableName/:id/move', auth, genericTreeController.move);
+
+// Mount API routes
+app.use('/api', apiRouter);
 
 // Health Check
 app.get('/health', (req, res) => {
@@ -58,16 +62,15 @@ app.get('/health', (req, res) => {
 });
 
 // Error handling middleware
-// Error handling middleware
 app.use(errorHandler);
 
 // Serve Static Frontend (for deployment)
 const path = require('path');
 // Serve static files from the 'dist' directory (Vite build output)
-app.use('/projects/cash', express.static(path.join(__dirname, '../dist')));
+app.use(express.static(path.join(__dirname, '../dist')));
 
-// SPA Fallback for /projects/cash routes
-app.get('/projects/cash/*', (req, res) => {
+// SPA Fallback - must be after API routes
+app.get('*', (req, res) => {
     res.sendFile(path.join(__dirname, '../dist/index.html'));
 });
 

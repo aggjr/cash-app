@@ -4,5 +4,5 @@ export const getApiBaseUrl = () => {
     }
     // In production, the app is served at /projects/cash
     // so the API is at /projects/cash/api (proxied by Nginx)
-    return '/projects/cash/api';
+    return `${window.location.origin}/api`;
 };
