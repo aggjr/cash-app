@@ -86,13 +86,17 @@ async function run() {
                 id INT AUTO_INCREMENT PRIMARY KEY,
                 project_id INT NOT NULL,
                 tipo_entrada_id INT NOT NULL,
-                account_id INT,
-                description VARCHAR(255),
-                value DECIMAL(15,2) NOT NULL,
-                date DATE NOT NULL,
+                account_id INT NOT NULL,
+                company_id INT NOT NULL,
+                descricao VARCHAR(255),
+                valor DECIMAL(15,2) NOT NULL,
+                data_fato DATE NOT NULL,
+                data_prevista_recebimento DATE,
+                data_real_recebimento DATE,
                 active BOOLEAN DEFAULT TRUE,
                 created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-                FOREIGN KEY (tipo_entrada_id) REFERENCES tipo_entrada(id) ON DELETE RESTRICT
+                FOREIGN KEY (tipo_entrada_id) REFERENCES tipo_entrada(id) ON DELETE RESTRICT,
+                FOREIGN KEY (company_id) REFERENCES empresas(id) ON DELETE RESTRICT
             )
         `);
         console.log('  ✓ Created entradas');
@@ -104,13 +108,15 @@ async function run() {
                 id INT AUTO_INCREMENT PRIMARY KEY,
                 project_id INT NOT NULL,
                 tipo_id INT NOT NULL,
-                account_id INT,
-                description VARCHAR(255),
-                value DECIMAL(15,2) NOT NULL,
-                date DATE NOT NULL,
+                account_id INT NOT NULL,
+                company_id INT NOT NULL,
+                descricao VARCHAR(255),
+                valor DECIMAL(15,2) NOT NULL,
+                data_fato DATE NOT NULL,
                 active BOOLEAN DEFAULT TRUE,
                 created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-                FOREIGN KEY (tipo_id) REFERENCES tipo_producao_revenda(id) ON DELETE RESTRICT
+                FOREIGN KEY (tipo_id) REFERENCES tipo_producao_revenda(id) ON DELETE RESTRICT,
+                FOREIGN KEY (company_id) REFERENCES empresas(id) ON DELETE RESTRICT
             )
         `);
         console.log('  ✓ Created producao_revenda');
@@ -143,12 +149,15 @@ async function run() {
             CREATE TABLE aportes (
                 id INT AUTO_INCREMENT PRIMARY KEY,
                 project_id INT NOT NULL,
-                account_id INT,
-                description VARCHAR(255),
-                value DECIMAL(15,2) NOT NULL,
-                date DATE NOT NULL,
+                account_id INT NOT NULL,
+                company_id INT NOT NULL,
+                descricao VARCHAR(255),
+                valor DECIMAL(15,2) NOT NULL,
+                data_fato DATE NOT NULL,
+                data_real DATE,
                 active BOOLEAN DEFAULT TRUE,
-                created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+                created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+                FOREIGN KEY (company_id) REFERENCES empresas(id) ON DELETE RESTRICT
             )
         `);
         console.log('  ✓ Created aportes');
@@ -159,12 +168,16 @@ async function run() {
             CREATE TABLE retiradas (
                 id INT AUTO_INCREMENT PRIMARY KEY,
                 project_id INT NOT NULL,
-                account_id INT,
-                description VARCHAR(255),
-                value DECIMAL(15,2) NOT NULL,
-                date DATE NOT NULL,
+                account_id INT NOT NULL,
+                company_id INT NOT NULL,
+                descricao VARCHAR(255),
+                valor DECIMAL(15,2) NOT NULL,
+                data_fato DATE NOT NULL,
+                data_prevista DATE,
+                data_real DATE,
                 active BOOLEAN DEFAULT TRUE,
-                created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+                created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+                FOREIGN KEY (company_id) REFERENCES empresas(id) ON DELETE RESTRICT
             )
         `);
         console.log('  ✓ Created retiradas');
