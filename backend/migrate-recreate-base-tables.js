@@ -28,14 +28,16 @@ async function run() {
             }
         }
 
-        // 1. Create tipo_entrada table
+        // 1. Create tipo_entrada table (Tree Structure)
         console.log('\nCreating tipo_entrada table...');
         await db.query(`
             CREATE TABLE tipo_entrada (
                 id INT AUTO_INCREMENT PRIMARY KEY,
-                name VARCHAR(255) NOT NULL,
+                label VARCHAR(255) NOT NULL,
                 parent_id INT NULL,
                 ordem INT DEFAULT 0,
+                expanded BOOLEAN DEFAULT TRUE,
+                active BOOLEAN DEFAULT TRUE,
                 project_id INT,
                 created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
                 FOREIGN KEY (parent_id) REFERENCES tipo_entrada(id) ON DELETE CASCADE
@@ -43,14 +45,16 @@ async function run() {
         `);
         console.log('  ✓ Created tipo_entrada');
 
-        // 2. Create tipo_producao_revenda table
+        // 2. Create tipo_producao_revenda table (Tree Structure)
         console.log('Creating tipo_producao_revenda table...');
         await db.query(`
             CREATE TABLE tipo_producao_revenda (
                 id INT AUTO_INCREMENT PRIMARY KEY,
-                name VARCHAR(255) NOT NULL,
+                label VARCHAR(255) NOT NULL,
                 parent_id INT NULL,
                 ordem INT DEFAULT 0,
+                expanded BOOLEAN DEFAULT TRUE,
+                active BOOLEAN DEFAULT TRUE,
                 project_id INT,
                 created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
                 FOREIGN KEY (parent_id) REFERENCES tipo_producao_revenda(id) ON DELETE CASCADE
@@ -58,14 +62,16 @@ async function run() {
         `);
         console.log('  ✓ Created tipo_producao_revenda');
 
-        // 3. Create tipo_despesa table
+        // 3. Create tipo_despesa table (Tree Structure)
         console.log('Creating tipo_despesa table...');
         await db.query(`
             CREATE TABLE tipo_despesa (
                 id INT AUTO_INCREMENT PRIMARY KEY,
-                name VARCHAR(255) NOT NULL,
+                label VARCHAR(255) NOT NULL,
                 parent_id INT NULL,
                 ordem INT DEFAULT 0,
+                expanded BOOLEAN DEFAULT TRUE,
+                active BOOLEAN DEFAULT TRUE,
                 project_id INT,
                 created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
                 FOREIGN KEY (parent_id) REFERENCES tipo_despesa(id) ON DELETE CASCADE
