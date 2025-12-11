@@ -31,12 +31,12 @@ async function runMigrations() {
 
     // List of migration scripts to run in order
     const migrations = [
-        'migrate-base-tables.js',  // MUST run first to create all base tables
+        'migrate-recreate-base-tables.js',  // MUST run first to recreate all base tables with correct structure
         'migrate-auth.js',
         'migrate-user-management.js',
         'migrate-multi-project-auth.js',
         'migrate-empresas.js',
-        'migrate-accounts.js', // Ensure this runs after companies if it depends on it (it doesn't yet, but good practice)
+        'migrate-accounts.js',
         'update-accounts-schema.js',
         'migrate-entradas.cjs',
         'migrate-despesas.js',
