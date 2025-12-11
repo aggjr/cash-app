@@ -31,6 +31,7 @@ async function runMigrations() {
 
     // List of migration scripts to run in order
     const migrations = [
+        'migrate-base-tables.js',  // MUST run first to create all base tables
         'migrate-auth.js',
         'migrate-user-management.js',
         'migrate-multi-project-auth.js',
