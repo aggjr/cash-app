@@ -90,6 +90,7 @@ async function run() {
                 description VARCHAR(255),
                 value DECIMAL(15,2) NOT NULL,
                 date DATE NOT NULL,
+                active BOOLEAN DEFAULT TRUE,
                 created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
                 FOREIGN KEY (tipo_entrada_id) REFERENCES tipo_entrada(id) ON DELETE RESTRICT
             )
@@ -107,6 +108,7 @@ async function run() {
                 description VARCHAR(255),
                 value DECIMAL(15,2) NOT NULL,
                 date DATE NOT NULL,
+                active BOOLEAN DEFAULT TRUE,
                 created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
                 FOREIGN KEY (tipo_id) REFERENCES tipo_producao_revenda(id) ON DELETE RESTRICT
             )
@@ -145,6 +147,7 @@ async function run() {
                 description VARCHAR(255),
                 value DECIMAL(15,2) NOT NULL,
                 date DATE NOT NULL,
+                active BOOLEAN DEFAULT TRUE,
                 created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
             )
         `);
@@ -160,6 +163,7 @@ async function run() {
                 description VARCHAR(255),
                 value DECIMAL(15,2) NOT NULL,
                 date DATE NOT NULL,
+                active BOOLEAN DEFAULT TRUE,
                 created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
             )
         `);
