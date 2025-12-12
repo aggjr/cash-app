@@ -88,7 +88,7 @@ exports.getProjectsByEmail = async (req, res, next) => {
             FROM project_users pu
             INNER JOIN projects p ON pu.project_id = p.id
             INNER JOIN users u ON pu.user_id = u.id
-            WHERE u.email = ? AND pu.status = 'active'
+            WHERE u.email = ?
             ORDER BY pu.last_login_at DESC, p.name ASC
         `, [email]);
 
@@ -120,7 +120,7 @@ exports.login = async (req, res, next) => {
             FROM users u
             INNER JOIN project_users pu ON u.id = pu.user_id
             INNER JOIN projects p ON pu.project_id = p.id
-            WHERE u.email = ? AND pu.project_id = ? AND pu.status = 'active'
+            WHERE u.email = ? AND pu.project_id = ?
         `, [email, projectId]);
 
         if (result.length === 0) {
