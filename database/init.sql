@@ -215,5 +215,5 @@ CREATE TABLE transferencias (
 );
 
 -- Seed Minimal Data (Optional, ensuring at least one project exists if strictly required)
-INSERT INTO projects (id, name) VALUES (1, 'Novo Teste');
+-- Removed seed project to avoid ID conflicts
 
