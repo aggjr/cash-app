@@ -43,9 +43,8 @@ async function runMigrations() {
         });
     } catch (e) {
         console.error('❌ DB Reset Failed:', e);
-        // Important: Should we crash or continue?
-        // If reset fails, likely migrations will fail too.
-        process.exit(1);
+        console.error('⚠️  Continuing startup (migrations might match existing schema or fail)...');
+        // Do NOT exit, allowing valid startup if DB was already fine or error was transient.
     }
 
     console.log('🚀 Running Migrations (Post-Reset)...');
