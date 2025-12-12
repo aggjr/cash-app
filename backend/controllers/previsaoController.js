@@ -50,13 +50,43 @@ exports.getDailyForecast = async (req, res, next) => {
         // If data_real_pagamento exists, use it. Else use data_prevista_pagamento.
 
         // Helper to get date column based on table context
+        // Logic: IF (RealDate < Today) USE RealDate ELSE USE PrevistaDate
         const getDateCol = (table) => {
-            if (table === 'producao_revenda') return 'data_fato';
-            if (table === 'entradas') return 'COALESCE(data_real_recebimento, data_prevista_recebimento)';
-            if (table === 'saidas') return 'COALESCE(data_real_pagamento, data_prevista_pagamento)';
-            if (table === 'aportes') return 'COALESCE(data_real, data_fato)';
-            if (table === 'retiradas') return 'COALESCE(data_real, data_fato)';
-            return 'data_fato'; // Fallback
+            let realCol = '';
+            let prevCol = '';
+
+            switch (table) {
+                case 'entradas':
+                    realCol = 'data_real_recebimento';
+                    prevCol = 'data_prevista_recebimento';
+                    break;
+                case 'saidas':
+                    realCol = 'data_real_pagamento';
+                    prevCol = 'data_prevista_pagamento';
+                    break;
+                case 'producao_revenda':
+                    realCol = 'data_real_pagamento';
+                    prevCol = 'data_prevista_pagamento'; // Was using data_fato, incorrect for cash flow
+                    break;
+                case 'aportes':
+                    realCol = 'data_real';
+                    prevCol = 'data_fato'; // Using data_fato as projected for Aportes
+                    break;
+                case 'retiradas':
+                    realCol = 'data_real';
+                    prevCol = 'data_prevista'; // Assuming retiradas has data_prevista based on standard, if not fallback to data_fato
+                    // checking init.sql: retiradas has data_prevista.
+                    break;
+                default:
+                    return 'data_fato';
+            }
+
+            // Construct SQL Case
+            // COALESCE(prevCol, realCol) is the fallback if predicted doesn't exist (e.g. rapid entry)
+            return `CASE 
+                        WHEN ${realCol} IS NOT NULL AND ${realCol} < CURDATE() THEN ${realCol} 
+                        ELSE COALESCE(${prevCol}, ${realCol}) 
+                    END`;
         };
 
         // 1.1 Calculate Historic Inflows (active=1)
