@@ -22,6 +22,13 @@ import { ExtratoContaManager } from './components/ExtratoContaManager.js'
 import { ConsolidadasManager } from './components/ConsolidadasManager.js'
 import { PrevisaoFluxoManager } from './components/PrevisaoFluxoManager.js'
 
+console.log('═══════════════════════════════════════');
+console.log('💰 CASH Frontend Starting');
+console.log('⏰ Started at:', new Date().toISOString());
+console.log('🌍 Timezone:', Intl.DateTimeFormat().resolvedOptions().timeZone);
+console.log('🔧 Mode:', import.meta.env.MODE);
+console.log('═══════════════════════════════════════');
+
 // Force logout on startup (page reload)
 localStorage.removeItem('token');
 localStorage.removeItem('user');
