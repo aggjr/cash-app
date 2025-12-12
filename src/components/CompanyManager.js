@@ -93,7 +93,7 @@ export const CompanyManager = (project) => {
                         loadCompanies();
                     } else {
                         const error = await response.json();
-                        showToast(error.error || 'Erro ao criar empresa', 'error');
+                        showToast(error.error?.message || error.error || 'Erro ao criar empresa', 'error');
                     }
                 } catch (error) {
                     showToast('Erro de conexão', 'error');
@@ -123,7 +123,7 @@ export const CompanyManager = (project) => {
                         loadCompanies();
                     } else {
                         const error = await response.json();
-                        showToast(error.error || 'Erro ao atualizar empresa', 'error');
+                        showToast(error.error?.message || error.error || 'Erro ao atualizar empresa', 'error');
                     }
                 } catch (error) {
                     showToast('Erro de conexão', 'error');
