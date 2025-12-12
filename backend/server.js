@@ -86,6 +86,8 @@ loadErrorCatalog().then(() => {
         console.log(`\n========================================`);
         console.log(`🚀 CASH Backend API Server`);
         console.log(`========================================`);
+        console.log(`⏰ Started at: ${new Date().toISOString()}`);
+        console.log(`🌍 Timezone: ${Intl.DateTimeFormat().resolvedOptions().timeZone}`);
         console.log(`📡 Server running on: http://localhost:${PORT}`);
         console.log(`🏥 Health check: http://localhost:${PORT}/health`);
         console.log(`📊 API endpoint: http://localhost:${PORT}/api/tipo-entrada`);
