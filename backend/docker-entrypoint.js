@@ -56,6 +56,7 @@ async function runMigrations() {
 
     // List of migration scripts to run in order
     const migrations = [
+        'emergency-fix-schema.js', // EMERGENCY: Force correct schema
         // 'migrate-recreate-base-tables.js', // Skip, init.sql did this
         // 'migrate-auth.js', // SKIP - Conflicts with init.sql (recreates users table with password NOT NULL)
         // 'migrate-user-management.js', // SKIP - Adds columns that conflict with schema
