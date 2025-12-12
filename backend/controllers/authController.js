@@ -43,8 +43,8 @@ exports.register = async (req, res, next) => {
         // Create new project
         const finalProjectName = projectName || `Projeto de ${name}`;
         const [projectResult] = await connection.query(
-            'INSERT INTO projects (name, owner_id) VALUES (?, ?)',
-            [finalProjectName, userId]
+            'INSERT INTO projects (name) VALUES (?)',
+            [finalProjectName]
         );
         const projectId = projectResult.insertId;
 

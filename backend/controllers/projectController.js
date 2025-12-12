@@ -22,8 +22,8 @@ exports.createProject = async (req, res) => {
         const userId = req.user.id;
 
         const [result] = await db.query(
-            'INSERT INTO projects (name, owner_id) VALUES (?, ?)',
-            [name, userId]
+            'INSERT INTO projects (name) VALUES (?)',
+            [name]
         );
         const projectId = result.insertId;
 
