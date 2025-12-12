@@ -38,6 +38,9 @@ exports.listProducaoRevenda = async (req, res, next) => {
 };
 
 exports.createProducaoRevenda = async (req, res, next) => {
+    console.log('=== CREATE PRODUCAO/REVENDA START ===');
+    console.log('Request body:', JSON.stringify(req.body, null, 2));
+
     let connection;
     try {
         const {
@@ -52,12 +55,26 @@ exports.createProducaoRevenda = async (req, res, next) => {
             projectId
         } = req.body;
 
+        console.log('Extracted fields:', {
+            dataFato,
+            dataPrevistaPagamento,
+            dataRealPagamento,
+            valor,
+            descricao,
+            tipoId,
+            companyId,
+            accountId,
+            projectId
+        });
+
         if (!dataFato || !dataPrevistaPagamento || !valor || !tipoId || !companyId || !accountId || !projectId) {
+            console.log('Validation failed - missing required fields');
             throw new AppError('VAL-002');
         }
 
         const valorDecimal = parseFloat(valor);
         if (isNaN(valorDecimal)) {
+            console.log('Validation failed - invalid valor:', valor);
             throw new AppError('VAL-001', 'Valor inválido.');
         }
 
@@ -71,19 +88,25 @@ exports.createProducaoRevenda = async (req, res, next) => {
             [dataFato, dataPrevistaPagamento, dataRealPagamento || null, valorDecimal, descricao, tipoId, companyId, accountId, projectId]
         );
 
+        console.log('Item created with ID:', result.insertId);
+
         // SUBTRACT from account balance (Cost)
         await connection.query(
             'UPDATE contas SET current_balance = current_balance - ? WHERE id = ?',
             [valorDecimal, accountId]
         );
 
+        console.log('Account balance updated');
+
         await connection.commit();
+        console.log('=== CREATE PRODUCAO/REVENDA SUCCESS ===');
 
         res.status(201).json({
             id: result.insertId,
             message: 'Criado com sucesso'
         });
     } catch (error) {
+        console.error('=== CREATE PRODUCAO/REVENDA ERROR ===', error);
         if (connection) await connection.rollback();
         next(error);
     } finally {
