@@ -20,6 +20,7 @@ const producaoRevendaRoutes = require('./routes/producaoRevenda');
 const extratoRoutes = require('./routes/extrato');
 const fechamentoRoutes = require('./routes/fechamento');
 const consolidadasRoutes = require('./routes/consolidadas');
+const debugRoutes = require('./routes/debug');
 
 const app = express();
 const PORT = process.env.PORT || 3001;
@@ -45,6 +46,7 @@ apiRouter.use('/extrato', extratoRoutes);
 apiRouter.use('/fechamento', fechamentoRoutes);
 apiRouter.use('/consolidadas', consolidadasRoutes);
 apiRouter.use('/previsao', require('./routes/previsao'));
+apiRouter.use('/debug', debugRoutes);
 
 // Generic Tree Routes (Protected)
 apiRouter.get('/:tableName', auth, genericTreeController.getAll);
