@@ -110,8 +110,8 @@ export const ConsolidadasManager = (project) => {
         // Recursive Row Renderer
         const renderRows = (nodes, level = 0) => {
             nodes.forEach(node => {
-                // VISIBILITY RULES
-                const isRoot = ['saidas_root', 'producao_root', 'total_saidas_root', 'entradas_root', 'resultado_final_root'].includes(node.id);
+                // VISIBILITY RULES - updated to include new rows
+                const isRoot = ['saidas_root', 'producao_root', 'total_saidas_root', 'entradas_root', 'resultado_operacional_root', 'aportes_root', 'retiradas_root', 'resultado_final_root'].includes(node.id);
 
                 // If not root and total is essentially zero, check if we should hide it.
                 // User said: "mesmo que estejam com valores zerados" FOR THE ROOTS.
@@ -127,9 +127,14 @@ export const ConsolidadasManager = (project) => {
                 let rowBg = level === 0 ? '#f0f9ff' : '#ffffff';
                 let fontWeight = level === 0 ? '700' : (hasChildren ? '600' : '400');
 
-                // Special Highlights for Totals
-                if (node.id === 'total_saidas_root' || node.id === 'resultado_final_root') {
-                    rowBg = '#e0f2fe'; // Darker blue
+                // Special Highlights for Totals and Final Rows
+                if (node.id === 'total_saidas_root' || node.id === 'resultado_operacional_root') {
+                    rowBg = '#e0f2fe'; // Blue highlight
+                    fontWeight = '800';
+                }
+
+                if (node.id === 'resultado_final_root') {
+                    rowBg = '#dbeafe'; // Lighter blue for final
                     fontWeight = '800';
                 }
 
@@ -144,11 +149,17 @@ export const ConsolidadasManager = (project) => {
                     let color = '#9CA3AF'; // Zero
                     if (Math.abs(val) > 0.001) {
                         // Check type based on ID
-                        if (node.id && (node.id.toString().startsWith('entradas') || node.id.toString().includes('tipo_entrada'))) {
-                            // ENTRADAS: Positive = Green, Negative = Red
+                        if (node.id === 'aportes_root') {
+                            // APORTES: Always green (positive contribution)
+                            color = '#10B981';
+                        } else if (node.id === 'retiradas_root') {
+                            // RETIRADAS: Always red (negative withdrawal)
+                            color = '#EF4444';
+                        } else if (node.id === 'resultado_operacional_root' || node.id === 'resultado_final_root') {
+                            // RESULTADOS: Positive = Green, Negative = Red
                             color = val >= 0 ? '#10B981' : '#EF4444';
-                        } else if (node.id === 'resultado_final_root') {
-                            // RESULTADO: Positive = Green, Negative = Red
+                        } else if (node.id && (node.id.toString().startsWith('entradas') || node.id.toString().includes('tipo_entrada'))) {
+                            // ENTRADAS: Positive = Green, Negative = Red
                             color = val >= 0 ? '#10B981' : '#EF4444';
                         } else {
                             // SAIDAS / PRODUCAO / TOTAL SAIDAS: Positive (Expense) = Red, Negative (Reversal) = Green
@@ -163,9 +174,13 @@ export const ConsolidadasManager = (project) => {
                 let totalColor = '#9CA3AF';
                 if (Math.abs(node.total) > 0.001) {
                     const val = node.total;
-                    if (node.id && (node.id.toString().startsWith('entradas') || node.id.toString().includes('tipo_entrada'))) {
+                    if (node.id === 'aportes_root') {
+                        totalColor = '#10B981'; // Always green
+                    } else if (node.id === 'retiradas_root') {
+                        totalColor = '#EF4444'; // Always red
+                    } else if (node.id === 'resultado_operacional_root' || node.id === 'resultado_final_root') {
                         totalColor = val >= 0 ? '#10B981' : '#EF4444';
-                    } else if (node.id === 'resultado_final_root') {
+                    } else if (node.id && (node.id.toString().startsWith('entradas') || node.id.toString().includes('tipo_entrada'))) {
                         totalColor = val >= 0 ? '#10B981' : '#EF4444';
                     } else {
                         totalColor = val >= 0 ? '#EF4444' : '#10B981';

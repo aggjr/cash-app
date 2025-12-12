@@ -174,28 +174,139 @@ exports.getConsolidatedData = async (req, res) => {
         // 4. ENTRADAS
         const entradasVirtual = createVirtualRoot('entradas_root', 'ENTRADAS', entradasRoots);
 
-        // 5. RESULTADO FINAL (Calculated: Entradas - Total Saídas)
-        const resultadoVideo = {
-            id: 'resultado_final_root',
-            name: 'RESULTADO FINAL',
+        // 5. FETCH APORTES (Non-operational contributions)
+        const aportesDateField = viewType === 'caixa' ? 'data_real' : 'data_fato';
+        let aportesFilter = '';
+        const aportesParams = [projectId];
+
+        if (startMonth) {
+            aportesFilter += ` AND DATE_FORMAT(${aportesDateField}, '%Y-%m') >= ?`;
+            aportesParams.push(startMonth);
+        }
+        if (endMonth) {
+            aportesFilter += ` AND DATE_FORMAT(${aportesDateField}, '%Y-%m') <= ?`;
+            aportesParams.push(endMonth);
+        }
+        if (viewType === 'caixa') {
+            aportesFilter += ` AND ${aportesDateField} IS NOT NULL`;
+        }
+
+        const [aportesData] = await db.execute(`
+            SELECT 
+                DATE_FORMAT(${aportesDateField}, '%Y-%m') AS month_key,
+                SUM(valor) AS total
+            FROM aportes
+            WHERE project_id = ? AND active = 1 ${aportesFilter}
+           GROUP BY month_key
+        `, aportesParams);
+
+        // 6. FETCH RETIRADAS (Non-operational withdrawals)
+        const retiradasDateField = viewType === 'caixa' ? 'data_real' : 'data_fato';
+        let retiradasFilter = '';
+        const retiradasParams = [projectId];
+
+        if (startMonth) {
+            retiradasFilter += ` AND DATE_FORMAT(${retiradasDateField}, '%Y-%m') >= ?`;
+            retiradasParams.push(startMonth);
+        }
+        if (endMonth) {
+            retiradasFilter += ` AND DATE_FORMAT(${retiradasDateField}, '%Y-%m') <= ?`;
+            retiradasParams.push(endMonth);
+        }
+        if (viewType === 'caixa') {
+            retiradasFilter += ` AND ${retiradasDateField} IS NOT NULL`;
+        }
+
+        const [retiradasData] = await db.execute(`
+            SELECT 
+                DATE_FORMAT(${retiradasDateField}, '%Y-%m') AS month_key,
+                SUM(valor) AS total
+            FROM retiradas
+            WHERE project_id = ? AND active = 1 ${retiradasFilter}
+            GROUP BY month_key
+        `, retiradasParams);
+
+        // 7. RESULTADO OPERACIONAL (Entradas - Total Saídas)
+        const resultadoOperacionalVirtual = {
+            id: 'resultado_operacional_root',
+            name: 'RESULTADO OPERACIONAL',
             children: [],
             monthlyTotals: {},
             total: 0,
             isTotal: true
         };
 
-        // Logic: Entradas - Total Saidas
-        // Start with Entradas
+        // Calculate: Entradas - Total Saídas
         for (const [month, value] of Object.entries(entradasVirtual.monthlyTotals)) {
-            resultadoVideo.monthlyTotals[month] = value;
+            resultadoOperacionalVirtual.monthlyTotals[month] = value;
         }
-        resultadoVideo.total = entradasVirtual.total;
+        resultadoOperacionalVirtual.total = entradasVirtual.total;
 
-        // Subtract Total Saidas
         for (const [month, value] of Object.entries(totalSaidasVirtual.monthlyTotals)) {
-            resultadoVideo.monthlyTotals[month] = (resultadoVideo.monthlyTotals[month] || 0) - value;
+            resultadoOperacionalVirtual.monthlyTotals[month] = (resultadoOperacionalVirtual.monthlyTotals[month] || 0) - value;
         }
-        resultadoVideo.total -= totalSaidasVirtual.total;
+        resultadoOperacionalVirtual.total -= totalSaidasVirtual.total;
+
+        // 8. APORTES (formatted as row)
+        const aportesVirtual = {
+            id: 'aportes_root',
+            name: '+ APORTES',
+            children: [],
+            monthlyTotals: {},
+            total: 0,
+            isPositive: true
+        };
+
+        aportesData.forEach(row => {
+            const val = parseFloat(row.total) || 0;
+            aportesVirtual.monthlyTotals[row.month_key] = val;
+            aportesVirtual.total += val;
+        });
+
+        // 9. RETIRADAS (formatted as row)
+        const retiradasVirtual = {
+            id: 'retiradas_root',
+            name: '- RETIRADAS',
+            children: [],
+            monthlyTotals: {},
+            total: 0,
+            isNegative: true
+        };
+
+        retiradasData.forEach(row => {
+            const val = parseFloat(row.total) || 0;
+            retiradasVirtual.monthlyTotals[row.month_key] = val;
+            retiradasVirtual.total += val;
+        });
+
+        // 10. RESULTADO FINAL (Resultado Operacional + Aportes - Retiradas)
+        const resultadoFinalVirtual = {
+            id: 'resultado_final_root',
+            name: '= RESULTADO FINAL',
+            children: [],
+            monthlyTotals: {},
+            total: 0,
+            isTotal: true,
+            isFinal: true
+        };
+
+        // Start with Resultado Operacional
+        for (const [month, value] of Object.entries(resultadoOperacionalVirtual.monthlyTotals)) {
+            resultadoFinalVirtual.monthlyTotals[month] = value;
+        }
+        resultadoFinalVirtual.total = resultadoOperacionalVirtual.total;
+
+        // Add Aportes
+        for (const [month, value] of Object.entries(aportesVirtual.monthlyTotals)) {
+            resultadoFinalVirtual.monthlyTotals[month] = (resultadoFinalVirtual.monthlyTotals[month] || 0) + value;
+        }
+        resultadoFinalVirtual.total += aportesVirtual.total;
+
+        // Subtract Retiradas
+        for (const [month, value] of Object.entries(retiradasVirtual.monthlyTotals)) {
+            resultadoFinalVirtual.monthlyTotals[month] = (resultadoFinalVirtual.monthlyTotals[month] || 0) - value;
+        }
+        resultadoFinalVirtual.total -= retiradasVirtual.total;
 
 
         // Return combined list in order
@@ -204,7 +315,10 @@ exports.getConsolidatedData = async (req, res) => {
             producaoVirtual,
             totalSaidasVirtual,
             entradasVirtual,
-            resultadoVideo
+            resultadoOperacionalVirtual,
+            aportesVirtual,
+            retiradasVirtual,
+            resultadoFinalVirtual
         ]);
 
     } catch (error) {
