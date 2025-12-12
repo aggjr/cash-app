@@ -67,6 +67,9 @@ CREATE TABLE empresas (
 CREATE TABLE contas (
     id INT AUTO_INCREMENT PRIMARY KEY,
     name VARCHAR(255) NOT NULL,
+    description TEXT,
+    account_type VARCHAR(50) DEFAULT 'outros',
+    initial_balance DECIMAL(15,2) DEFAULT 0.00,
     bank_name VARCHAR(255),
     account_number VARCHAR(50),
     company_id INT,
