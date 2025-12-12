@@ -2,7 +2,6 @@ export const getApiBaseUrl = () => {
     if (import.meta.env.DEV) {
         return 'http://localhost:3001/api';
     }
-    // In production, the app is served at /projects/cash
-    // so the API is at /projects/cash/api (proxied by Nginx)
-    return `${window.location.origin}/api`;
+    // Hardcode production API URL for Easypanel deployment
+    return 'https://cash-api.gutoapps.site/api';
 };
