@@ -1,4 +1,4 @@
-const db = require('../config/database');
+const db = require('./config/database');
 
 async function forceSchemaFix() {
     console.log('🚨 EMERGENCY SCHEMA FIX - Forcing correct users table schema');
