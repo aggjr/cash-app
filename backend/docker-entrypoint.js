@@ -52,9 +52,9 @@ async function runMigrations() {
     // List of migration scripts to run in order
     const migrations = [
         // 'migrate-recreate-base-tables.js', // Skip, init.sql did this
-        'migrate-auth.js',
-        'migrate-user-management.js',
-        'migrate-multi-project-auth.js',
+        // 'migrate-auth.js', // SKIP - Conflicts with init.sql (recreates users table with password NOT NULL)
+        // 'migrate-user-management.js', // SKIP - Adds columns that conflict with schema
+        // 'migrate-multi-project-auth.js', // SKIP - Tries to migrate passwords that don't exist
         // 'migrate-empresas.js', // Error: Unknown column description (init.sql handles table creation)
         'migrate-accounts.js',
         'update-accounts-schema.js',
