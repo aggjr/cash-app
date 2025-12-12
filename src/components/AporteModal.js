@@ -52,29 +52,23 @@ export const AporteModal = {
                     <div class="dialog-body">
                         <div style="display: flex; flex-direction: column; gap: 1rem;">
                             
-                            <!-- Dates -->
-                            <div style="display: flex; gap: 1rem;">
-                                <div style="flex: 1;">
-                                    <label style="display:block; margin-bottom:0.5rem; font-weight:500;">Data Fato *</label>
-                                    <input type="date" id="aporte-fato" class="form-input" value="${aporte?.data_fato ? aporte.data_fato.substring(0, 10) : today}">
+                            <!-- PRIMEIRA LINHA: Valor + Datas (menores) -->
+                            <div style="display: flex; gap: 1rem; align-items: flex-end;">
+                                <div style="flex: 2;">
+                                    <label style="display:block; margin-bottom:0.5rem; font-weight:500;">Valor (R$) *</label>
+                                    <input type="number" step="0.01" id="aporte-valor" class="form-input" placeholder="0.00" value="${aporte?.valor || ''}" style="font-size: 1.1rem; font-weight: 600;">
                                 </div>
                                 <div style="flex: 1;">
-                                    <label style="display:block; margin-bottom:0.5rem; font-weight:500;">Data Real</label>
-                                    <input type="date" id="aporte-real" class="form-input" value="${aporte?.data_real ? aporte.data_real.substring(0, 10) : today}">
+                                    <label style="display:block; margin-bottom:0.5rem; font-weight:500; font-size: 0.85rem;">Data Fato *</label>
+                                    <input type="date" id="aporte-fato" class="form-input" value="${aporte?.data_fato ? aporte.data_fato.substring(0, 10) : today}" style="font-size: 0.85rem;">
+                                </div>
+                                <div style="flex: 1;">
+                                    <label style="display:block; margin-bottom:0.5rem; font-weight:500; font-size: 0.85rem;">Data Real</label>
+                                    <input type="date" id="aporte-real" class="form-input" value="${aporte?.data_real ? aporte.data_real.substring(0, 10) : today}" style="font-size: 0.85rem;">
                                 </div>
                             </div>
 
-                            <!-- Value & Description -->
-                            <div>
-                                <label style="display:block; margin-bottom:0.5rem; font-weight:500;">Valor (R$) *</label>
-                                <input type="number" step="0.01" id="aporte-valor" class="form-input" placeholder="0.00" value="${aporte?.valor || ''}">
-                            </div>
-                            <div>
-                                <label style="display:block; margin-bottom:0.5rem; font-weight:500;">Descrição</label>
-                                <input type="text" id="aporte-desc" class="form-input" placeholder="Detalhes..." value="${aporte?.descricao || ''}">
-                            </div>
-
-                            <!-- Entities -->
+                            <!-- SEGUNDA LINHA: Empresa + Conta -->
                             <div style="display: flex; gap: 1rem;">
                                 <div style="flex: 1;">
                                     <label style="display:block; margin-bottom:0.5rem; font-weight:500;">Empresa *</label>
@@ -90,6 +84,12 @@ export const AporteModal = {
                                         ${accounts.map(a => `<option value="${a.id}" ${aporte?.account_id === a.id ? 'selected' : ''}>${a.name}</option>`).join('')}
                                     </select>
                                 </div>
+                            </div>
+
+                            <!-- ÚLTIMA LINHA: Descrição (campo maior) -->
+                            <div>
+                                <label style="display:block; margin-bottom:0.5rem; font-weight:500;">Descrição</label>
+                                <textarea id="aporte-desc" class="form-input" placeholder="Detalhes do aporte..." rows="3" style="resize: vertical; min-height: 70px;">${aporte?.descricao || ''}</textarea>
                             </div>
 
                             ${isEdit ? `
