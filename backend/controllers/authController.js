@@ -58,6 +58,13 @@ exports.register = async (req, res, next) => {
         res.status(201).json({ message: 'Project created successfully' });
     } catch (error) {
         if (connection) await connection.rollback();
+
+        // Handle Double-Click / Race Condition
+        if (error.code === 'ER_DUP_ENTRY' && error.message.includes('project_users.PRIMARY')) {
+            console.warn('Handling duplicate registration request (idempotency)');
+            return res.status(200).json({ message: 'Project created successfully (idempotent)' });
+        }
+
         next(error);
     } finally {
         if (connection) connection.release();
