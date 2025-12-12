@@ -27,6 +27,11 @@ async function waitForDB() {
 }
 
 async function runMigrations() {
+    console.log('\n═══════════════════════════════════════');
+    console.log('🚀 CASH Docker Entrypoint - Starting Migrations');
+    console.log('⏰ Started at:', new Date().toISOString());
+    console.log('🌍 Timezone:', Intl.DateTimeFormat().resolvedOptions().timeZone);
+    console.log('═══════════════════════════════════════\n');
     console.log('🚀 Checking for Database Reset...');
 
     // FORCE DB RESET (As requested by user for this deploy)
