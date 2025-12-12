@@ -75,6 +75,7 @@ exports.register = async (req, res, next) => {
 exports.getProjectsByEmail = async (req, res, next) => {
     try {
         const { email } = req.body;
+        console.log('Searching projects for email:', email);
 
         if (!email) {
             throw new AppError('VAL-002');
@@ -92,6 +93,7 @@ exports.getProjectsByEmail = async (req, res, next) => {
             ORDER BY pu.last_login_at DESC, p.name ASC
         `, [email]);
 
+        console.log(`Found ${projects.length} projects for ${email}`);
         res.json({ projects });
     } catch (error) {
         next(error);

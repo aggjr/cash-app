@@ -86,8 +86,8 @@ export const Register = (onRegisterSuccess) => {
 
     container.querySelector('#register-form').addEventListener('submit', async (e) => {
         e.preventDefault();
-        const name = container.querySelector('#name').value;
-        const email = container.querySelector('#email').value;
+        const name = container.querySelector('#name').value.trim();
+        const email = container.querySelector('#email').value.trim();
         const password = container.querySelector('#password').value;
         const confirmPassword = container.querySelector('#confirm-password').value;
 

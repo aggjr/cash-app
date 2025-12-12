@@ -18,6 +18,7 @@ DROP TABLE IF EXISTS tipo_producao_revenda;
 DROP TABLE IF EXISTS tipo_saida;
 DROP TABLE IF EXISTS tipo_entrada;
 DROP TABLE IF EXISTS users;
+DROP TABLE IF EXISTS project_users;
 DROP TABLE IF EXISTS projects;
 
 SET FOREIGN_KEY_CHECKS = 1;
@@ -37,6 +38,20 @@ CREATE TABLE users (
     project_id INT,
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     FOREIGN KEY (project_id) REFERENCES projects(id) ON DELETE SET NULL
+);
+
+CREATE TABLE project_users (
+    project_id INT NOT NULL,
+    user_id INT NOT NULL,
+    password VARCHAR(255),
+    role ENUM('master', 'user') DEFAULT 'user',
+    last_login_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    status ENUM('active', 'inactive') DEFAULT 'active',
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    password_reset_required TINYINT(1) DEFAULT 0,
+    PRIMARY KEY (project_id, user_id),
+    FOREIGN KEY (project_id) REFERENCES projects(id) ON DELETE CASCADE,
+    FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE
 );
 
 -- 3. Core Entities
