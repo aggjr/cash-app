@@ -49,7 +49,7 @@ exports.createProducaoRevenda = async (req, res, next) => {
             dataRealPagamento,
             valor,
             descricao,
-            tipoId,
+            tipoProducaoRevendaId,
             companyId,
             accountId,
             projectId
@@ -61,13 +61,13 @@ exports.createProducaoRevenda = async (req, res, next) => {
             dataRealPagamento,
             valor,
             descricao,
-            tipoId,
+            tipoProducaoRevendaId,
             companyId,
             accountId,
             projectId
         });
 
-        if (!dataFato || !dataPrevistaPagamento || !valor || !tipoId || !companyId || !accountId || !projectId) {
+        if (!dataFato || !dataPrevistaPagamento || !valor || !tipoProducaoRevendaId || !companyId || !accountId || !projectId) {
             console.log('Validation failed - missing required fields');
             throw new AppError('VAL-002');
         }
@@ -85,7 +85,7 @@ exports.createProducaoRevenda = async (req, res, next) => {
             `INSERT INTO producao_revenda 
             (data_fato, data_prevista_pagamento, data_real_pagamento, valor, descricao, tipo_id, company_id, account_id, project_id) 
             VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)`,
-            [dataFato, dataPrevistaPagamento, dataRealPagamento || null, valorDecimal, descricao, tipoId, companyId, accountId, projectId]
+            [dataFato, dataPrevistaPagamento, dataRealPagamento || null, valorDecimal, descricao, tipoProducaoRevendaId, companyId, accountId, projectId]
         );
 
         console.log('Item created with ID:', result.insertId);
