@@ -58,6 +58,7 @@ async function runMigrations() {
     const migrations = [
         'emergency-fix-schema.js', // EMERGENCY: Force correct schema
         'fix-empresas-schema.js', // FIX: Add description to empresas
+        'cleanup-orphaned-data.js', // CLEANUP: Remove orphaned records
         // 'migrate-recreate-base-tables.js', // Skip, init.sql did this
         // 'migrate-auth.js', // SKIP - Conflicts with init.sql (recreates users table with password NOT NULL)
         // 'migrate-user-management.js', // SKIP - Adds columns that conflict with schema
