@@ -64,19 +64,23 @@ app.get('/health', (req, res) => {
 // Error handling middleware
 app.use(errorHandler);
 
-// Serve Static Frontend (for deployment)
-const path = require('path');
-// Serve static files from the 'dist' directory (Vite build output)
-app.use(express.static(path.join(__dirname, '../dist')));
+// API Root response (for health checks on /)
+app.get('/', (req, res) => {
+    res.json({
+        service: 'CASH Backend API',
+        status: 'running',
+        timestamp: new Date()
+    });
+});
 
-// SPA Fallback - must be after API routes
-app.get('*', (req, res) => {
-    res.sendFile(path.join(__dirname, '../dist/index.html'));
+// 404 for unknown routes (instead of SPA fallback)
+app.use((req, res) => {
+    res.status(404).json({ error: 'Not Found' });
 });
 
 // Start server
 loadErrorCatalog().then(() => {
-    app.listen(PORT, () => {
+    app.listen(PORT, '0.0.0.0', () => {
         console.log(`\n========================================`);
         console.log(`🚀 CASH Backend API Server`);
         console.log(`========================================`);
