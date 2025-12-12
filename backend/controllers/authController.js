@@ -9,6 +9,7 @@ exports.register = async (req, res, next) => {
     let connection;
     try {
         const { name, email, password, projectName } = req.body;
+        console.log('=== REGISTER START ===', { name, email, projectName });
 
         if (!name || !email || !password) {
             throw new AppError('VAL-002');
@@ -20,14 +21,17 @@ exports.register = async (req, res, next) => {
 
         connection = await db.getConnection();
         await connection.beginTransaction();
+        console.log('Transaction started');
 
         // Check if user exists
         const [existing] = await connection.query('SELECT id FROM users WHERE email = ?', [email]);
+        console.log('Checked existing user:', { found: existing.length > 0, existing });
 
         let userId;
         if (existing.length > 0) {
             // User exists - just create new project for them
             userId = existing[0].id;
+            console.log('Using existing user:', userId);
         } else {
             // Create new user
             const [userResult] = await connection.query(
@@ -35,10 +39,12 @@ exports.register = async (req, res, next) => {
                 [name, email]
             );
             userId = userResult.insertId;
+            console.log('Created new user:', userId);
         }
 
         // Hash password
         const hashedPassword = await bcrypt.hash(password, 10);
+        console.log('Password hashed');
 
         // Create new project
         const finalProjectName = projectName || `Projeto de ${name}`;
@@ -47,16 +53,21 @@ exports.register = async (req, res, next) => {
             [finalProjectName]
         );
         const projectId = projectResult.insertId;
+        console.log('Created project:', { projectId, name: finalProjectName });
 
         // Add user as master of the new project WITH PASSWORD
         await connection.query(
             'INSERT INTO project_users (project_id, user_id, password, role) VALUES (?, ?, ?, ?)',
             [projectId, userId, hashedPassword, 'master']
         );
+        console.log('Linked user to project:', { userId, projectId, role: 'master' });
 
         await connection.commit();
+        console.log('Transaction committed successfully');
+        console.log('=== REGISTER SUCCESS ===', { userId, projectId });
         res.status(201).json({ message: 'Project created successfully' });
     } catch (error) {
+        console.error('=== REGISTER ERROR ===', error);
         if (connection) await connection.rollback();
 
         // Handle Double-Click / Race Condition
