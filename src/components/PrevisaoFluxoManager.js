@@ -92,16 +92,18 @@ export const PrevisaoFluxoManager = (project) => {
         const saidasRoot = data.find(n => n.id === 'saidas_root');
         const producaoRoot = data.find(n => n.id === 'producao_root');
         const entradasRoot = data.find(n => n.id === 'entradas_root');
+        const aportesRoot = data.find(n => n.id === 'aportes_root');
+        const retiradasRoot = data.find(n => n.id === 'retiradas_root');
 
         days.forEach(day => {
-            const inVal = (entradasRoot?.dailyTotals[day] || 0);
-            const outVal = (saidasRoot?.dailyTotals[day] || 0) + (producaoRoot?.dailyTotals[day] || 0);
+            // Include Aportes in Inflows
+            const inVal = (entradasRoot?.dailyTotals[day] || 0) + (aportesRoot?.dailyTotals[day] || 0);
+
+            // Include Retiradas in Outflows
+            const outVal = (saidasRoot?.dailyTotals[day] || 0) + (producaoRoot?.dailyTotals[day] || 0) + (retiradasRoot?.dailyTotals[day] || 0);
 
             const initial = runningBalance;
-            const final = initial + inVal - outVal; // Inputs add, Outputs subtract (OutVal is usually positive mag?)
-            // Wait, my controller returns Outflows as POSITIVE Magnitude sums?
-            // Yes: `SUM(valor)` on despesas (positive db values) = Positive Total.
-            // So: Final = Initial + In - Out. Correct.
+            const final = initial + inVal - outVal;
 
             dayBalances[day] = { initial, final };
             runningBalance = final; // Next day starts with this final
@@ -110,14 +112,13 @@ export const PrevisaoFluxoManager = (project) => {
         // Header
         let html = `
             <table style="width: auto; min-width: 50%; border-collapse: separate; border-spacing: 0;">
-                <thead style="position: sticky; top: 0; z-index: 10; background-color: #00425F; color: white;">
+                <thead style="position: sticky; top: 0; z-index: 20; background-color: #00425F; color: white;">
                     <tr>
-                        <th style="padding: 1rem; text-align: left; border-bottom: 2px solid #e5e7eb; min-width: 300px;">TRANSAÇÕES</th>
+                        <th style="position: sticky; left: 0; z-index: 30; background-color: #00425F; padding: 1rem; text-align: left; border-bottom: 2px solid #e5e7eb; min-width: 300px; box-shadow: 2px 0 5px rgba(0,0,0,0.1);">TRANSAÇÕES</th>
                         ${days.map(d => {
             const [y, m, day] = d.split('-');
             return `<th style="padding: 1rem; text-align: right; border-bottom: 2px solid #e5e7eb; min-width: 120px;">${day}/${m}</th>`;
         }).join('')}
-                        <!-- Total Column? Maybe not needed for daily flow -->
                     </tr>
                 </thead>
                 <tbody>
@@ -126,7 +127,7 @@ export const PrevisaoFluxoManager = (project) => {
         // 1. SALDO INICIAL ROW
         html += `
             <tr style="background-color: #e0f2fe;">
-                <td style="padding: 0.5rem 1rem; font-weight: 800; border-bottom: 2px solid #cbd5e1;">Saldo Inicial</td>
+                <td style="position: sticky; left: 0; z-index: 10; background-color: #e0f2fe; padding: 0.5rem 1rem; font-weight: 800; border-bottom: 2px solid #cbd5e1; box-shadow: 2px 0 5px rgba(0,0,0,0.1);">Saldo Inicial</td>
                 ${days.map(d => {
             const val = dayBalances[d].initial;
             const color = val >= 0 ? '#10B981' : '#EF4444';
@@ -139,7 +140,7 @@ export const PrevisaoFluxoManager = (project) => {
         const renderRows = (nodes, level = 0) => {
             nodes.forEach(node => {
                 // Visibility: Always show roots. Hide zero leaves.
-                const isRoot = ['saidas_root', 'producao_root', 'entradas_root'].includes(node.id);
+                const isRoot = ['saidas_root', 'producao_root', 'entradas_root', 'aportes_root', 'retiradas_root'].includes(node.id);
                 if (!isRoot && Math.abs(node.total) < 0.01) return;
 
                 const hasChildren = node.children && node.children.length > 0;
@@ -155,7 +156,11 @@ export const PrevisaoFluxoManager = (project) => {
                     const val = node.dailyTotals[d] || 0;
                     let color = '#9CA3AF';
                     if (Math.abs(val) > 0.001) {
-                        if (node.id && (node.id.toString().startsWith('entradas') || node.id.toString().includes('tipo_entrada'))) {
+                        if (node.id === 'aportes_root') {
+                            color = '#10B981';
+                        } else if (node.id === 'retiradas_root') {
+                            color = '#EF4444';
+                        } else if (node.id && (node.id.toString().startsWith('entradas') || node.id.toString().includes('tipo_entrada'))) {
                             color = val >= 0 ? '#10B981' : '#EF4444';
                         } else {
                             // Expenses
@@ -167,7 +172,7 @@ export const PrevisaoFluxoManager = (project) => {
 
                 html += `
                     <tr class="${rowClass}" data-id="${node.id}" style="background-color: ${bgColor}; cursor: ${hasChildren ? 'pointer' : 'default'};">
-                        <td style="padding: 0.5rem 1rem 0.5rem ${paddingLeft}rem; border-bottom: 1px solid #f3f4f6; font-weight: ${fontWeight}; display: flex; align-items: center; gap: 0.5rem;">
+                        <td style="position: sticky; left: 0; z-index: 10; background-color: ${bgColor}; padding: 0.5rem 1rem 0.5rem ${paddingLeft}rem; border-bottom: 1px solid #f3f4f6; font-weight: ${fontWeight}; display: flex; align-items: center; gap: 0.5rem; box-shadow: 2px 0 5px rgba(0,0,0,0.1);">
                             ${hasChildren ? `<span style="font-size: 0.8rem; transform: rotate(${isExpanded ? '90deg' : '0deg'}); transition: transform 0.2s;">▶</span>` : ''}
                             ${node.name}
                         </td>
@@ -207,7 +212,7 @@ export const PrevisaoFluxoManager = (project) => {
         // 2. SALDO FINAL ROW
         html += `
             <tr style="background-color: #e0f2fe;">
-                <td style="padding: 0.5rem 1rem; font-weight: 800; border-top: 2px solid #cbd5e1;">Saldo Final</td>
+                <td style="position: sticky; left: 0; z-index: 10; background-color: #e0f2fe; padding: 0.5rem 1rem; font-weight: 800; border-top: 2px solid #cbd5e1; box-shadow: 2px 0 5px rgba(0,0,0,0.1);">Saldo Final</td>
                 ${days.map(d => {
             const val = dayBalances[d].final;
             const color = val >= 0 ? '#10B981' : '#EF4444';
@@ -222,7 +227,7 @@ export const PrevisaoFluxoManager = (project) => {
 
         html += `
             <tr style="background-color: #f9fafb;">
-                <td style="padding: 0.5rem 1rem; font-weight: 600; font-size: 0.8rem; color: #6B7280; border-top: 2px solid #cbd5e1;">Dias Relativos</td>
+                <td style="position: sticky; left: 0; z-index: 10; background-color: #f9fafb; padding: 0.5rem 1rem; font-weight: 600; font-size: 0.8rem; color: #6B7280; border-top: 2px solid #cbd5e1; box-shadow: 2px 0 5px rgba(0,0,0,0.1);">Dias Relativos</td>
                 ${days.map(d => {
             const cellDate = new Date(d + 'T00:00:00');
             const diffTime = cellDate - todayDate;
