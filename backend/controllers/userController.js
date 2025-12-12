@@ -56,19 +56,24 @@ exports.inviteUser = async (req, res) => {
             }
         } else {
             // Create new user (WITHOUT password - password is per project)
+            // Schema likely doesn't have invited_by/invited_at based on init.sql
             const [result] = await connection.query(
-                `INSERT INTO users (name, email, is_active, invited_by, invited_at) 
-                 VALUES (?, ?, TRUE, ?, NOW())`,
-                [name, email, inviterId]
+                `INSERT INTO users (name, email, is_active) 
+                 VALUES (?, ?, TRUE)`,
+                [name, email]
             );
             userId = result.insertId;
         }
 
-        // Add user to project WITH PASSWORD and password_reset_required
+        // Add user to project WITH PASSWORD
+        // Removing password_reset_required, invited_by, joined_at as they likely don't exist in schema
+        // Assuming 'status' exists or has default, but safe to omit if default is active? 
+        // authController uses 'status' in SELECT, but NOT in INSERT.
+        // Let's try inserting just what authController does + status='active' if possible, or just standard fields.
         await connection.query(
-            `INSERT INTO project_users (project_id, user_id, password, password_reset_required, role, invited_by, status, joined_at) 
-             VALUES (?, ?, ?, TRUE, ?, ?, 'active', NOW())`,
-            [projectId, userId, hashedPassword, role, inviterId]
+            `INSERT INTO project_users (project_id, user_id, password, role, status) 
+             VALUES (?, ?, ?, ?, 'active')`,
+            [projectId, userId, hashedPassword, role]
         );
 
         await connection.commit();

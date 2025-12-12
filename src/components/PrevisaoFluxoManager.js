@@ -182,18 +182,26 @@ export const PrevisaoFluxoManager = (project) => {
         };
 
         // Render Trees in Order
-        // Order: Saidas, Producao, Entradas
-        // Actually user said: "itens de saída, produção e revenda e entrada"
-        // So Render: Saidas Root, Producao Root, Entradas Root.
+        // Requested Order: 
+        // 1. Aportes (Before Entradas)
+        // 2. Entradas
+        // 3. Saidas
+        // 4. Producao / Revenda
+        // 5. Retiradas (After Producao)
+
         if (data && data.length > 0) {
             // Find roots
-            const s = forecastData.data.find(n => n.id === 'saidas_root');
-            const p = forecastData.data.find(n => n.id === 'producao_root');
-            const e = forecastData.data.find(n => n.id === 'entradas_root');
+            const aportes = forecastData.data.find(n => n.id === 'aportes_root'); // + Flat
+            const entradas = forecastData.data.find(n => n.id === 'entradas_root'); // + Tree
+            const saidas = forecastData.data.find(n => n.id === 'saidas_root'); // - Tree
+            const producao = forecastData.data.find(n => n.id === 'producao_root'); // - Tree
+            const retiradas = forecastData.data.find(n => n.id === 'retiradas_root'); // - Flat
 
-            if (s) renderRows([s]);
-            if (p) renderRows([p]);
-            if (e) renderRows([e]);
+            if (aportes) renderRows([aportes]);
+            if (entradas) renderRows([entradas]); // Group Entradas
+            if (saidas) renderRows([saidas]);
+            if (producao) renderRows([producao]);
+            if (retiradas) renderRows([retiradas]);
         }
 
         // 2. SALDO FINAL ROW

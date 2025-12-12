@@ -54,6 +54,8 @@ exports.getDailyForecast = async (req, res, next) => {
             if (table === 'producao_revenda') return 'data_fato';
             if (table === 'entradas') return 'COALESCE(data_real_recebimento, data_prevista_recebimento)';
             if (table === 'saidas') return 'COALESCE(data_real_pagamento, data_prevista_pagamento)';
+            if (table === 'aportes') return 'COALESCE(data_real, data_fato)';
+            if (table === 'retiradas') return 'COALESCE(data_real, data_fato)';
             return 'data_fato'; // Fallback
         };
 
@@ -86,10 +88,29 @@ exports.getDailyForecast = async (req, res, next) => {
         `, [projectId, startDate]);
         const historicProducao = parseFloat(producaoResult[0].total || 0);
 
-        // 1.3 Get Accounts Initial Balance (If any? Assuming 0 for now as we don't have that field explicitly managed yet)
-        // Actually, if the user created accounts with 0, then `current_balance` is the result of operations.
-        // Let's assume start balance is 0 + operations.
-        let runningBalance = historicInflow - (historicSaidas + historicProducao);
+        // 1.3 Historic Aportes (Add to Balance)
+        const [aportesResult] = await db.execute(`
+            SELECT SUM(valor) as total 
+            FROM aportes 
+            WHERE project_id = ? 
+            AND active = 1 
+            AND ${getDateCol('aportes')} < ?
+        `, [projectId, startDate]);
+        const historicAportes = parseFloat(aportesResult[0].total || 0);
+
+        // 1.4 Historic Retiradas (Subtract from Balance)
+        const [retiradasResult] = await db.execute(`
+            SELECT SUM(valor) as total 
+            FROM retiradas 
+            WHERE project_id = ? 
+            AND active = 1 
+            AND ${getDateCol('retiradas')} < ?
+        `, [projectId, startDate]);
+        const historicRetiradas = parseFloat(retiradasResult[0].total || 0);
+
+        // 1.5 Calculate Running Balance
+        // Balance = (Inflows + Aportes) - (Outflows + Producao + Retiradas)
+        let runningBalance = (historicInflow + historicAportes) - (historicSaidas + historicProducao + historicRetiradas);
 
 
         // --- 2. Fetch Daily Data for Range ---
@@ -162,22 +183,58 @@ exports.getDailyForecast = async (req, res, next) => {
             return rootNodes;
         };
 
-        const entradasRoots = await buildDailyTree('tipo_entrada', 'entradas', 'tipo_entrada_id');
         const saidasRoots = await buildDailyTree('tipo_saida', 'saidas', 'tipo_saida_id');
         const producaoRoots = await buildDailyTree('tipo_producao_revenda', 'producao_revenda', 'tipo_id');
+        const entradasRoots = await buildDailyTree('tipo_entrada', 'entradas', 'tipo_entrada_id');
+
+        // Aportes & Retiradas - Treat them as flat lists or virtual roots since they don't have types?
+        // Actually, they don't have "tipo" table. They are just rows.
+        // We can create a "Virtual Type" for them to reuse the tree structure?
+        // Or just fetch them and format as a Root Node.
+
+        const fetchFlatDaily = async (table, label, id) => {
+            const dateCol = getDateCol(table);
+            const [items] = await db.execute(`
+                SELECT 
+                    id, 
+                    valor, 
+                    ${dateCol} as date_val
+                FROM ${table}
+                WHERE project_id = ? AND active = 1
+                AND ${dateCol} >= ? AND ${dateCol} <= ?
+            `, [projectId, startDate, endDate]);
+
+            const dailyTotals = {};
+            let total = 0;
+            items.forEach(item => {
+                const dateKey = item.date_val instanceof Date ? item.date_val.toISOString().split('T')[0] : item.date_val;
+                const val = parseFloat(item.valor) || 0;
+                dailyTotals[dateKey] = (dailyTotals[dateKey] || 0) + val;
+                total += val;
+            });
+
+            return {
+                id: id,
+                name: label,
+                children: [],
+                dailyTotals,
+                total
+            };
+        };
+
+        const aportesRoot = await fetchFlatDaily('aportes', '+ APORTES', 'aportes_root'); // Green
+        const retiradasRoot = await fetchFlatDaily('retiradas', '- RETIRADAS', 'retiradas_root'); // Red
 
         // --- Helper to Create Virtual Root ---
         const createVirtualRoot = (id, name, children) => {
-            const v = { id, name, children, dailyTotals: {}, total: 0 };
-            if (children) {
-                children.forEach(c => {
-                    for (const [day, val] of Object.entries(c.dailyTotals)) {
-                        v.dailyTotals[day] = (v.dailyTotals[day] || 0) + val;
-                    }
-                    v.total += c.total;
-                });
-            }
-            return v;
+            const node = { id, name, children, dailyTotals: {}, total: 0 };
+            children.forEach(child => {
+                node.total += child.total;
+                for (const [day, val] of Object.entries(child.dailyTotals)) {
+                    node.dailyTotals[day] = (node.dailyTotals[day] || 0) + val;
+                }
+            });
+            return node;
         };
 
         const entradasVirtual = createVirtualRoot('entradas_root', 'ENTRADAS', entradasRoots);
@@ -186,7 +243,13 @@ exports.getDailyForecast = async (req, res, next) => {
 
         res.json({
             initialBalance: runningBalance,
-            data: [saidasVirtual, producaoVirtual, entradasVirtual]
+            data: [
+                aportesRoot,        // Requested First
+                entradasVirtual,
+                saidasVirtual,
+                producaoVirtual,
+                retiradasRoot       // Requested Last
+            ]
         });
 
     } catch (error) {
