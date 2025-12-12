@@ -15,8 +15,6 @@ export const AporteModal = {
                     headers: { 'Authorization': `Bearer ${token}` }
                 }).then(async r => {
                     if (!r.ok) throw new Error(`Companies: ${r.statusText}`);
-                }).then(async r => {
-                    if (!r.ok) throw new Error(`Companies: ${r.statusText}`);
                     return r.json();
                 }),
                 fetch(`${API_BASE_URL}/accounts?projectId=${projectId}`, {
