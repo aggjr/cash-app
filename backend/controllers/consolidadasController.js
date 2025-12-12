@@ -28,12 +28,28 @@ exports.getConsolidatedData = async (req, res) => {
         }
 
         // --- HELPER: Fetch and Aggregation Logic ---
-        const buildTreeForTable = async (typeTable, dataTable, foreignKeyColumn) => {
+        const buildTreeForTable = async (typeTable, dataTable, foreignKeyColumn, tableDateField) => {
             // Fetch Types
             const [types] = await db.execute(
                 `SELECT id, label, parent_id FROM ${typeTable} WHERE project_id = ? ORDER BY label`,
                 [projectId]
             );
+
+            // Build date filter using tableDateField for this specific table
+            let localFilter = '';
+            const queryParams = [projectId];
+
+            if (startMonth) {
+                localFilter += ` AND DATE_FORMAT(d.${tableDateField}, '%Y-%m') >= ?`;
+                queryParams.push(startMonth);
+            }
+            if (endMonth) {
+                localFilter += ` AND DATE_FORMAT(d.${tableDateField}, '%Y-%m') <= ?`;
+                queryParams.push(endMonth);
+            }
+            if (viewType === 'caixa') {
+                localFilter += ` AND d.${tableDateField} IS NOT NULL`;
+            }
 
             // Fetch Data
             const query = `
@@ -41,16 +57,11 @@ exports.getConsolidatedData = async (req, res) => {
                     d.id, 
                     d.valor, 
                     d.${foreignKeyColumn} as type_id, 
-                    DATE_FORMAT(${dateField}, '%Y-%m') as month_key
+                    DATE_FORMAT(d.${tableDateField}, '%Y-%m') as month_key
                 FROM ${dataTable} d
-                WHERE d.project_id = ? AND d.active = 1 ${dateFilter}
+                WHERE d.project_id = ? AND d.active = 1 ${localFilter}
             `;
-            // Reconstruct params for this specific query scope
-            // We use the same logical params array constructed at top, but need to be careful with binding in execute.
-            // Actually, params array is [projectId, start?, end?]
-            // Our query uses `d.project_id = ?` then the date filters.
-            // So passing `params` directly works perfectly.
-            const [items] = await db.execute(query, params);
+            const [items] = await db.execute(query, queryParams);
 
             // Build Map
             const typeMap = new Map();
@@ -105,10 +116,14 @@ exports.getConsolidatedData = async (req, res) => {
             return rootNodes;
         };
 
-        // --- Execute for tables ---
-        const despesasRoots = await buildTreeForTable('tipo_despesa', 'despesas', 'tipo_despesa_id');
-        const producaoRoots = await buildTreeForTable('tipo_producao_revenda', 'producao_revenda', 'tipo_producao_revenda_id');
-        const entradasRoots = await buildTreeForTable('tipo_entrada', 'entradas', 'tipo_entrada_id');
+        // --- Execute for tables (with proper date fields) ---
+        // For caixa: saidas/producao use data_real_pagamento, entradas use data_real_recebimento
+        const saidasDateField = viewType === 'caixa' ? 'data_real_pagamento' : 'data_fato';
+        const entradasDateField = viewType === 'caixa' ? 'data_real_recebimento' : 'data_fato';
+
+        const saidasRoots = await buildTreeForTable('tipo_saida', 'saidas', 'tipo_saida_id', saidasDateField);
+        const producaoRoots = await buildTreeForTable('tipo_producao_revenda', 'producao_revenda', 'tipo_id', 'data_fato');
+        const entradasRoots = await buildTreeForTable('tipo_entrada', 'entradas', 'tipo_entrada_id', entradasDateField);
 
         // --- Helper: Create Virtual Root ---
         const createVirtualRoot = (id, name, children) => {
@@ -132,7 +147,7 @@ exports.getConsolidatedData = async (req, res) => {
         };
 
         // 1. SAÍDAS
-        const saidasVirtual = createVirtualRoot('saidas_root', 'SAÍDAS', despesasRoots);
+        const saidasVirtual = createVirtualRoot('saidas_root', 'SAÍDAS', saidasRoots);
 
         // 2. PRODUÇÃO / REVENDA
         const producaoVirtual = createVirtualRoot('producao_root', 'PRODUÇÃO / REVENDA', producaoRoots);

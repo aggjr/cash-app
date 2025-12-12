@@ -11,7 +11,7 @@ import { UserManager } from './components/UserManager.js'
 import { AccountManager } from './components/AccountManager.js'
 import { CompanyManager } from './components/CompanyManager.js'
 import { IncomeManager } from './components/IncomeManager.js'
-import { DespesaManager } from './components/DespesaManager.js'
+import { SaidaManager } from './components/SaidaManager.js'
 import { ProducaoRevendaManager } from './components/ProducaoRevendaManager.js'
 import { FechamentoContasManager } from './components/FechamentoContasManager.js'
 import { ActivateAccount } from './components/ActivateAccount.js'
@@ -169,7 +169,7 @@ function initAppLogic() {
   // Tree manager configurations
   const treeConfigs = {
     'tipo-entrada': { tableName: 'tipo_entrada', title: 'Tipo Entrada', term: 'Entrada' },
-    'tipo-despesa': { tableName: 'tipo_despesa', title: 'Tipo Despesa', term: 'Despesa' },
+    'tipo-saida': { tableName: 'tipo_saida', title: 'Tipo de Saída', term: 'Saída' },
     'tipo-producao-revenda': { tableName: 'tipo_producao_revenda', title: 'Tipo Produção Revenda', term: 'Produção/Revenda' }
   };
 
@@ -233,12 +233,12 @@ function initAppLogic() {
         } else {
           Dialogs.alert('Selecione um projeto primeiro', 'Aviso');
         }
-      } else if (itemId === 'despesa') {
+      } else if (itemId === 'saida') {
         const { currentProject } = checkAuth();
         if (currentProject) {
           const mainElement = document.querySelector('main');
           mainElement.innerHTML = '';
-          mainElement.appendChild(DespesaManager(currentProject));
+          mainElement.appendChild(SaidaManager(currentProject));
         } else {
           Dialogs.alert('Selecione um projeto primeiro', 'Aviso');
         }

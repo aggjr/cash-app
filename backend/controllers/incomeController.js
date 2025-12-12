@@ -89,6 +89,9 @@ exports.listIncomes = async (req, res, next) => {
         });
 
     } catch (error) {
+        console.error('❌ listIncomes ERROR:', error.message);
+        console.error('SQL State:', error.sqlState);
+        console.error('SQL:', error.sql?.substring(0, 200));
         next(error);
     }
 };
@@ -98,8 +101,8 @@ exports.createIncome = async (req, res, next) => {
     try {
         const {
             dataFato,
-            dataPrevistaPagamento,
-            dataRealPagamento,
+            dataPrevistaRecebimento,
+            dataRealRecebimento,
             valor,
             descricao,
             tipoEntradaId,
@@ -108,7 +111,7 @@ exports.createIncome = async (req, res, next) => {
             projectId
         } = req.body;
 
-        if (!dataFato || !dataPrevistaPagamento || !valor || !tipoEntradaId || !companyId || !accountId || !projectId) {
+        if (!dataFato || !dataPrevistaRecebimento || !valor || !tipoEntradaId || !companyId || !accountId || !projectId) {
             throw new AppError('VAL-002');
         }
 
@@ -122,9 +125,9 @@ exports.createIncome = async (req, res, next) => {
 
         const [result] = await connection.query(
             `INSERT INTO entradas 
-            (data_fato, data_prevista_pagamento, data_real_pagamento, valor, descricao, tipo_entrada_id, company_id, account_id, project_id) 
+            (data_fato, data_prevista_recebimento, data_real_recebimento, valor, descricao, tipo_entrada_id, company_id, account_id, project_id) 
             VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)`,
-            [dataFato, dataPrevistaPagamento, dataRealPagamento || null, valorDecimal, descricao, tipoEntradaId, companyId, accountId, projectId]
+            [dataFato, dataPrevistaRecebimento, dataRealRecebimento || null, valorDecimal, descricao, tipoEntradaId, companyId, accountId, projectId]
         );
 
         // Update account balance
@@ -138,8 +141,8 @@ exports.createIncome = async (req, res, next) => {
         res.status(201).json({
             id: result.insertId,
             data_fato: dataFato,
-            data_prevista_pagamento: dataPrevistaPagamento,
-            data_real_pagamento: dataRealPagamento || null,
+            data_prevista_recebimento: dataPrevistaRecebimento,
+            data_real_recebimento: dataRealRecebimento || null,
             valor: valorDecimal,
             descricao,
             tipo_entrada_id: tipoEntradaId,
@@ -162,8 +165,8 @@ exports.updateIncome = async (req, res, next) => {
         const { id } = req.params;
         const {
             dataFato,
-            dataPrevistaPagamento,
-            dataRealPagamento,
+            dataPrevistaRecebimento,
+            dataRealRecebimento,
             valor,
             descricao,
             tipoEntradaId,
@@ -192,13 +195,13 @@ exports.updateIncome = async (req, res, next) => {
             updates.push('data_fato = ?');
             values.push(dataFato);
         }
-        if (dataPrevistaPagamento !== undefined) {
-            updates.push('data_prevista_pagamento = ?');
-            values.push(dataPrevistaPagamento);
+        if (dataPrevistaRecebimento !== undefined) {
+            updates.push('data_prevista_recebimento = ?');
+            values.push(dataPrevistaRecebimento);
         }
-        if (dataRealPagamento !== undefined) {
-            updates.push('data_real_pagamento = ?');
-            values.push(dataRealPagamento || null);
+        if (dataRealRecebimento !== undefined) {
+            updates.push('data_real_recebimento = ?');
+            values.push(dataRealRecebimento || null);
         }
 
         let newValor = oldIncome[0].valor;
@@ -304,3 +307,4 @@ exports.deleteIncome = async (req, res, next) => {
         if (connection) connection.release();
     }
 };
+

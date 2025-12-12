@@ -12,7 +12,7 @@ async function cleanData() {
 
         console.log('Cleaning transaction tables...');
         try { await connection.query('DELETE FROM entradas'); } catch (e) { }
-        try { await connection.query('DELETE FROM despesas'); } catch (e) { }
+        try { await connection.query('DELETE FROM saidas'); } catch (e) { }
         try { await connection.query('DELETE FROM transacoes_financeiras'); } catch (e) { } // cover generic name if exists
 
         console.log('Cleaning accounts table...');

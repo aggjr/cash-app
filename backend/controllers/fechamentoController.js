@@ -20,7 +20,7 @@ exports.getFechamentoReport = async (req, res) => {
         // --- 1. PRE-PERIOD BALANCE (Historic) ---
         // Sum of all (In - Out) before startDate
         // Inputs: Entradas, Aportes
-        // Outputs: Despesas, Producao, Retiradas
+        // Outputs: Saidas, Producao, Retiradas
 
         const sqlBalance = `
             SELECT 
@@ -29,7 +29,7 @@ exports.getFechamentoReport = async (req, res) => {
             FROM (
                 -- Inputs (Positive)
                 SELECT account_id, valor AS val FROM entradas 
-                WHERE project_id = ? AND data_real_pagamento < ? AND active = 1 AND data_real_pagamento IS NOT NULL
+                WHERE project_id = ? AND data_real_recebimento < ? AND active = 1 AND data_real_recebimento IS NOT NULL
                 UNION ALL
                 SELECT account_id, valor AS val FROM aportes 
                 WHERE project_id = ? AND data_real < ? AND active = 1 AND data_real IS NOT NULL
@@ -37,7 +37,7 @@ exports.getFechamentoReport = async (req, res) => {
                 UNION ALL
                 
                 -- Outputs (Negative)
-                SELECT account_id, -valor AS val FROM despesas 
+                SELECT account_id, -valor AS val FROM saidas 
                 WHERE project_id = ? AND data_real_pagamento < ? AND active = 1 AND data_real_pagamento IS NOT NULL
                 UNION ALL
                 SELECT account_id, -valor AS val FROM producao_revenda 
@@ -89,8 +89,8 @@ exports.getFechamentoReport = async (req, res) => {
                 SUM(val) as monthly_delta
             FROM (
                 -- Inputs
-                SELECT account_id, data_real_pagamento as dt, valor AS val FROM entradas 
-                WHERE project_id = ? AND data_real_pagamento BETWEEN ? AND ? AND active = 1
+                SELECT account_id, data_real_recebimento as dt, valor AS val FROM entradas 
+                WHERE project_id = ? AND data_real_recebimento BETWEEN ? AND ? AND active = 1
                 UNION ALL
                 SELECT account_id, data_real as dt, valor AS val FROM aportes 
                 WHERE project_id = ? AND data_real BETWEEN ? AND ? AND active = 1
@@ -101,7 +101,7 @@ exports.getFechamentoReport = async (req, res) => {
                 UNION ALL
                 
                 -- Outputs
-                SELECT account_id, data_real_pagamento as dt, -valor AS val FROM despesas 
+                SELECT account_id, data_real_pagamento as dt, -valor AS val FROM saidas 
                 WHERE project_id = ? AND data_real_pagamento BETWEEN ? AND ? AND active = 1
                 UNION ALL
                 SELECT account_id, data_real_pagamento as dt, -valor AS val FROM producao_revenda 

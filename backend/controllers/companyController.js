@@ -133,7 +133,7 @@ exports.deleteCompany = async (req, res, next) => {
 
         // Check if company has associated expenses
         const [expenses] = await db.query(
-            'SELECT COUNT(*) as count FROM despesas WHERE company_id = ?',
+            'SELECT COUNT(*) as count FROM saidas WHERE company_id = ?',
             [id]
         );
 

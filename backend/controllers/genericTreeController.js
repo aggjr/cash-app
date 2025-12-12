@@ -1,7 +1,7 @@
 const db = require('../config/database');
 
 // Whitelist of allowed tables for security
-const ALLOWED_TABLES = ['tipo_entrada', 'tipo_despesa', 'tipo_producao_revenda'];
+const ALLOWED_TABLES = ['tipo_entrada', 'tipo_saida', 'tipo_producao_revenda'];
 
 // Validate table name
 const validateTableName = (tableName) => {

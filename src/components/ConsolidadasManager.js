@@ -61,14 +61,26 @@ export const ConsolidadasManager = (project) => {
                 headers: { 'Authorization': `Bearer ${token}` }
             });
 
-            if (!response.ok) throw new Error('Falha ao carregar dados consolidados');
+            if (!response.ok) {
+                const errorData = await response.json().catch(() => ({}));
+                let errorMsg = errorData.error?.message || 'Falha ao carregar dados consolidados';
+                if (errorData.error?.sqlError) {
+                    const sql = errorData.error.sqlError;
+                    errorMsg += ` [SQL: ${sql.sqlCode || 'N/A'} - ${sql.sqlMessage || ''}]`;
+                    console.error('SQL Error Details:', sql);
+                }
+                if (errorData.error?.code) {
+                    errorMsg = `[${errorData.error.code}] ${errorMsg}`;
+                }
+                throw new Error(errorMsg);
+            }
 
             consolidatedData = await response.json();
             if (renderTable) renderTable();
 
         } catch (error) {
             console.error(error);
-            showToast(error.message, 'error');
+            showToast(error.message || 'Erro ao carregar dados', 'error');
         } finally {
             if (overlay) overlay.style.display = 'none';
         }
@@ -238,8 +250,8 @@ export const ConsolidadasManager = (project) => {
                 <input type="month" id="end-month" value="${endMonth}" style="padding: 0.4rem; border: 1px solid #d1d5db; border-radius: 4px; font-family: inherit;">
              </div>
              
-             <button id="btn-refresh" class="btn-primary" style="padding: 0.4rem 1rem;">
-                🔄 Atualizar
+             <button id="btn-refresh" class="btn-primary" title="Pesquisar" style="height: 38px; width: 38px; padding: 0; display: flex; align-items: center; justify-content: center; font-size: 1.2rem;">
+                🔍
              </button>
         </div>
         
@@ -304,6 +316,10 @@ export const ConsolidadasManager = (project) => {
     });
 
     // --- Init ---
+    // Render empty table structure immediately
+    renderTable();
+
+    // Then load data
     loadData();
 
     return container;

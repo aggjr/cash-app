@@ -1,8 +1,8 @@
 import { TreeSelector } from './TreeSelector.js';
 import { getApiBaseUrl } from '../utils/apiConfig.js';
 
-export const DespesaModal = {
-    show({ despesa = null, projectId, onSave, onCancel }) {
+export const SaidaModal = {
+    show({ saida = null, projectId, onSave, onCancel }) {
         return new Promise(async (resolve) => {
             try {
                 const API_BASE_URL = getApiBaseUrl();
@@ -13,7 +13,7 @@ export const DespesaModal = {
                     document.body.appendChild(container);
                 }
 
-                const isEdit = despesa !== null;
+                const isEdit = saida !== null;
                 let hasChanges = false;
 
                 // Mark as dirty helper
@@ -21,20 +21,20 @@ export const DespesaModal = {
 
                 // Fetch data
                 const token = localStorage.getItem('token');
-                let tipoDespesas = [];
+                let tiposaidas = [];
                 let companies = [];
                 let accounts = [];
 
                 try {
                     const [tipoResponse, companyResponse, accountResponse] = await Promise.all([
-                        fetch(`${API_BASE_URL}/tipo_despesa?projectId=${projectId}`, { headers: { 'Authorization': `Bearer ${token}` } }),
+                        fetch(`${API_BASE_URL}/tipo_saida?projectId=${projectId}`, { headers: { 'Authorization': `Bearer ${token}` } }),
                         fetch(`${API_BASE_URL}/companies?projectId=${projectId}`, { headers: { 'Authorization': `Bearer ${token}` } }),
                         fetch(`${API_BASE_URL}/accounts?projectId=${projectId}`, { headers: { 'Authorization': `Bearer ${token}` } })
                     ]);
 
                     if (tipoResponse.ok) {
                         const json = await tipoResponse.json();
-                        tipoDespesas = Array.isArray(json) ? json : [];
+                        tiposaidas = Array.isArray(json) ? json : [];
                     }
                     if (companyResponse.ok) {
                         const json = await companyResponse.json();
@@ -69,57 +69,57 @@ export const DespesaModal = {
                             
                             <!-- Row 1: Dates (Span 2 each) -->
                             <div class="form-group" style="grid-column: span 2;">
-                                <label for="despesa-data-fato">Data do Fato <span class="required">*</span></label>
-                                <input type="date" id="despesa-data-fato" class="form-input" 
-                                    value="${formatDateForInput(despesa?.data_fato)}" required />
+                                <label for="saida-data-fato">Data do Fato <span class="required">*</span></label>
+                                <input type="date" id="saida-data-fato" class="form-input" 
+                                    value="${formatDateForInput(saida?.data_fato)}" required />
                             </div>
 
                             <div class="form-group" style="grid-column: span 2;">
-                                <label for="despesa-data-prevista">Data Prevista <span class="required">*</span></label>
-                                <input type="date" id="despesa-data-prevista" class="form-input" 
-                                    value="${formatDateForInput(despesa?.data_prevista_pagamento)}" required />
+                                <label for="saida-data-prevista">Data Prevista <span class="required">*</span></label>
+                                <input type="date" id="saida-data-prevista" class="form-input" 
+                                    value="${formatDateForInput(saida?.data_prevista_pagamento)}" required />
                             </div>
 
                             <div class="form-group" style="grid-column: span 2;">
-                                <label for="despesa-data-real">Data Real</label>
-                                <input type="date" id="despesa-data-real" class="form-input" 
-                                    value="${formatDateForInput(despesa?.data_real_pagamento)}" />
+                                <label for="saida-data-real">Data Real</label>
+                                <input type="date" id="saida-data-real" class="form-input" 
+                                    value="${formatDateForInput(saida?.data_real_pagamento)}" />
                             </div>
 
                             <!-- Row 2: Company, Account, Value (Span 2 each) -->
                             <div class="form-group" style="grid-column: span 2;">
-                                <label for="despesa-company">Empresa <span class="required">*</span></label>
-                                <select id="despesa-company" class="form-input" required>
+                                <label for="saida-company">Empresa <span class="required">*</span></label>
+                                <select id="saida-company" class="form-input" required>
                                     <option value="">Selecione...</option>
-                                    ${companies.map(c => `<option value="${c.id}" ${despesa?.company_id == c.id ? 'selected' : ''}>${c.name}</option>`).join('')}
+                                    ${companies.map(c => `<option value="${c.id}" ${saida?.company_id == c.id ? 'selected' : ''}>${c.name}</option>`).join('')}
                                 </select>
                             </div>
 
                             <div class="form-group" style="grid-column: span 2;">
-                                <label for="despesa-account">Conta <span class="required">*</span></label>
-                                <select id="despesa-account" class="form-input" required>
+                                <label for="saida-account">Conta <span class="required">*</span></label>
+                                <select id="saida-account" class="form-input" required>
                                     <option value="">Selecione...</option>
-                                    ${accounts.map(a => `<option value="${a.id}" ${despesa?.account_id == a.id ? 'selected' : ''}>${a.name}</option>`).join('')}
+                                    ${accounts.map(a => `<option value="${a.id}" ${saida?.account_id == a.id ? 'selected' : ''}>${a.name}</option>`).join('')}
                                 </select>
                             </div>
 
                             <div class="form-group" style="grid-column: span 2;">
-                                <label for="despesa-valor">Valor (R$) <span class="required">*</span></label>
-                                <input type="text" id="despesa-valor" class="form-input" 
+                                <label for="saida-valor">Valor (R$) <span class="required">*</span></label>
+                                <input type="text" id="saida-valor" class="form-input" 
                                     placeholder="R$ 0,00" required />
                             </div>
 
                             <!-- Row 3: Description (Span 3) and Tree (Span 3) Side-by-Side Symmetrical -->
                             
                             <div class="form-group" style="grid-column: span 3; display: flex; flex-direction: column;">
-                                <label for="despesa-descricao">Descrição</label>
-                                <textarea id="despesa-descricao" class="form-input" placeholder="Opcional" style="resize: none; height: 200px; font-family: inherit;">${despesa?.descricao || ''}</textarea>
+                                <label for="saida-descricao">Descrição</label>
+                                <textarea id="saida-descricao" class="form-input" placeholder="Opcional" style="resize: none; height: 200px; font-family: inherit;">${saida?.descricao || ''}</textarea>
                             </div>
 
                             <div class="form-group" style="grid-column: span 3; display: flex; flex-direction: column;">
                                 <label>Tipo de Saída <span class="required">*</span></label>
                                 <div id="tree-selector-container" style="flex: 1; height: 200px;"></div>
-                                <input type="hidden" id="despesa-tipo-despesa-id" value="${despesa?.tipo_despesa_id || ''}" />
+                                <input type="hidden" id="saida-tipo-saida-id" value="${saida?.tipo_saida_id || ''}" />
                             </div>
 
                         </div>
@@ -137,15 +137,15 @@ export const DespesaModal = {
                 container.appendChild(overlay);
 
                 // Elements
-                const dataFatoInput = modal.querySelector('#despesa-data-fato');
-                const dataPrevistaInput = modal.querySelector('#despesa-data-prevista');
-                const dataRealInput = modal.querySelector('#despesa-data-real');
-                const valorInput = modal.querySelector('#despesa-valor');
-                const tipoDespesaIdInput = modal.querySelector('#despesa-tipo-despesa-id');
+                const dataFatoInput = modal.querySelector('#saida-data-fato');
+                const dataPrevistaInput = modal.querySelector('#saida-data-prevista');
+                const dataRealInput = modal.querySelector('#saida-data-real');
+                const valorInput = modal.querySelector('#saida-valor');
+                const tiposaidaIdInput = modal.querySelector('#saida-tipo-saida-id');
                 const treeContainer = modal.querySelector('#tree-selector-container');
-                const companySelect = modal.querySelector('#despesa-company');
-                const accountSelect = modal.querySelector('#despesa-account');
-                const descricaoInput = modal.querySelector('#despesa-descricao');
+                const companySelect = modal.querySelector('#saida-company');
+                const accountSelect = modal.querySelector('#saida-account');
+                const descricaoInput = modal.querySelector('#saida-descricao');
                 const saveBtn = modal.querySelector('#modal-save');
                 const cancelBtn = modal.querySelector('#modal-cancel');
 
@@ -154,19 +154,19 @@ export const DespesaModal = {
                     if (!dataFatoInput.value) { dataFatoInput.classList.add('input-error'); isValid = false; } else dataFatoInput.classList.remove('input-error');
                     if (!dataPrevistaInput.value) { dataPrevistaInput.classList.add('input-error'); isValid = false; } else dataPrevistaInput.classList.remove('input-error');
                     if (!valorInput.value) { valorInput.classList.add('input-error'); isValid = false; } else valorInput.classList.remove('input-error');
-                    if (!tipoDespesaIdInput.value) { treeContainer.style.border = '1px solid #EF4444'; isValid = false; } else treeContainer.style.border = '1px solid var(--color-border-light)';
+                    if (!tiposaidaIdInput.value) { treeContainer.style.border = '1px solid #EF4444'; isValid = false; } else treeContainer.style.border = '1px solid var(--color-border-light)';
                     if (!companySelect.value) { companySelect.classList.add('input-error'); isValid = false; } else companySelect.classList.remove('input-error');
                     if (!accountSelect.value) { accountSelect.classList.add('input-error'); isValid = false; } else accountSelect.classList.remove('input-error');
                     return isValid;
                 };
 
                 // Initialize Tree Selector
-                const initialTipoId = parseInt(tipoDespesaIdInput.value);
-                TreeSelector.render(treeContainer, tipoDespesas, initialTipoId, (selectedId) => {
+                const initialTipoId = parseInt(tiposaidaIdInput.value);
+                TreeSelector.render(treeContainer, tiposaidas, initialTipoId, (selectedId) => {
                     if (initialTipoId !== selectedId) {
                         hasChanges = true;
                     }
-                    tipoDespesaIdInput.value = selectedId;
+                    tiposaidaIdInput.value = selectedId;
                     validate();
                 });
 
@@ -191,8 +191,8 @@ export const DespesaModal = {
                     return parseFloat(clean) || 0;
                 };
 
-                if (despesa?.valor !== undefined && despesa?.valor !== null) {
-                    valorInput.value = formatFloat(Number(despesa.valor));
+                if (saida?.valor !== undefined && saida?.valor !== null) {
+                    valorInput.value = formatFloat(Number(saida.valor));
                 }
 
                 // On Focus: Show raw value for easy editing
@@ -349,13 +349,13 @@ export const DespesaModal = {
                             dataRealPagamento: dataRealInput.value || null,
                             valor: parseCurrency(valorInput.value),
                             descricao: descricaoInput.value.trim(),
-                            tipoDespesaId: parseInt(tipoDespesaIdInput.value),
+                            tipoSaidaId: parseInt(tiposaidaIdInput.value),
                             companyId: parseInt(companySelect.value),
                             accountId: parseInt(accountSelect.value)
                         };
                         if (isEdit) {
-                            data.id = despesa.id;
-                            data.active = despesa.active !== undefined ? despesa.active : true;
+                            data.id = saida.id;
+                            data.active = saida.active !== undefined ? saida.active : true;
                         }
                         close(data);
                         if (onSave) onSave(data);
@@ -385,3 +385,4 @@ export const DespesaModal = {
         });
     }
 };
+

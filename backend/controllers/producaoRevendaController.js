@@ -24,7 +24,7 @@ exports.listProducaoRevenda = async (req, res, next) => {
                 emp.name as company_name,
                 c.name as account_name
              FROM producao_revenda p
-             INNER JOIN TypeHierarchy th ON p.tipo_producao_revenda_id = th.id
+             INNER JOIN TypeHierarchy th ON p.tipo_id = th.id
              INNER JOIN empresas emp ON p.company_id = emp.id
              INNER JOIN contas c ON p.account_id = c.id
              WHERE p.project_id = ? AND p.active = 1
@@ -46,13 +46,13 @@ exports.createProducaoRevenda = async (req, res, next) => {
             dataRealPagamento,
             valor,
             descricao,
-            tipoProducaoRevendaId,
+            tipoId,
             companyId,
             accountId,
             projectId
         } = req.body;
 
-        if (!dataFato || !dataPrevistaPagamento || !valor || !tipoProducaoRevendaId || !companyId || !accountId || !projectId) {
+        if (!dataFato || !dataPrevistaPagamento || !valor || !tipoId || !companyId || !accountId || !projectId) {
             throw new AppError('VAL-002');
         }
 
@@ -66,9 +66,9 @@ exports.createProducaoRevenda = async (req, res, next) => {
 
         const [result] = await connection.query(
             `INSERT INTO producao_revenda 
-            (data_fato, data_prevista_pagamento, data_real_pagamento, valor, descricao, tipo_producao_revenda_id, company_id, account_id, project_id) 
+            (data_fato, data_prevista_pagamento, data_real_pagamento, valor, descricao, tipo_id, company_id, account_id, project_id) 
             VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)`,
-            [dataFato, dataPrevistaPagamento, dataRealPagamento || null, valorDecimal, descricao, tipoProducaoRevendaId, companyId, accountId, projectId]
+            [dataFato, dataPrevistaPagamento, dataRealPagamento || null, valorDecimal, descricao, tipoId, companyId, accountId, projectId]
         );
 
         // SUBTRACT from account balance (Cost)
@@ -110,7 +110,7 @@ exports.updateProducaoRevenda = async (req, res, next) => {
         }
 
         // Simplified update logic (omitting granular field checks to save space, but functional)
-        // In a full implementation, we'd build the query dynamically like in despesaController
+        // In a full implementation, we'd build the query dynamically like in saidaController
         // For brevity in this fix agent, assuming full payload or handling specifically
         // But let's do it right:
 
@@ -124,7 +124,7 @@ exports.updateProducaoRevenda = async (req, res, next) => {
             dataRealPagamento: 'data_real_pagamento',
             valor: 'valor',
             descricao: 'descricao',
-            tipoProducaoRevendaId: 'tipo_producao_revenda_id',
+            tipoId: 'tipo_id',
             companyId: 'company_id',
             accountId: 'account_id',
             active: 'active'

@@ -45,7 +45,7 @@ async function run() {
         `);
 
         // 4. Add project_id to existing tables
-        const dataTables = ['tipo_entrada', 'tipo_despesa', 'tipo_producao_revenda'];
+        const dataTables = ['tipo_entrada', 'tipo_saida', 'tipo_producao_revenda'];
 
         for (const table of dataTables) {
             console.log(`Checking ${table} for project_id...`);

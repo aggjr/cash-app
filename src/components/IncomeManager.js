@@ -20,8 +20,8 @@ export const IncomeManager = (project) => {
 
     const columns = [
         { key: 'data_fato', label: 'Data Fato', width: '90px', align: 'center', type: 'date' },
-        { key: 'data_prevista_pagamento', label: 'Data Prevista', width: '90px', align: 'center', type: 'date' },
-        { key: 'data_real_pagamento', label: 'Data Real', width: '90px', align: 'center', type: 'date' },
+        { key: 'data_prevista_recebimento', label: 'Data Prevista', width: '90px', align: 'center', type: 'date' },
+        { key: 'data_real_recebimento', label: 'Data Real', width: '90px', align: 'center', type: 'date' },
         { key: 'tipo_entrada_name', label: 'Tipo Entrada', width: '250px', align: 'left', type: 'text' },
         { key: 'descricao', label: 'Descrição', width: 'auto', align: 'left', type: 'text' },
         { key: 'company_name', label: 'Empresa', width: '150px', align: 'left', type: 'text' },
@@ -101,6 +101,22 @@ export const IncomeManager = (project) => {
             const response = await fetch(`${API_BASE_URL}/incomes?${params.toString()}`, {
                 headers: getHeaders()
             });
+
+            if (!response.ok) {
+                const errorData = await response.json().catch(() => ({}));
+                // Build detailed error message
+                let errorMsg = errorData.error?.message || 'Erro desconhecido';
+                if (errorData.error?.sqlError) {
+                    const sql = errorData.error.sqlError;
+                    errorMsg += ` [SQL: ${sql.sqlCode || 'N/A'} - ${sql.sqlMessage || ''}]`;
+                    console.error('SQL Error Details:', sql);
+                }
+                if (errorData.error?.code) {
+                    errorMsg = `[${errorData.error.code}] ${errorMsg}`;
+                }
+                throw new Error(errorMsg);
+            }
+
             const result = await response.json();
 
             if (result.meta) {
@@ -115,7 +131,7 @@ export const IncomeManager = (project) => {
             renderIncomes(incomes);
         } catch (error) {
             console.error('Error loading incomes:', error);
-            showToast('Erro ao carregar entradas', 'error');
+            showToast(error.message || 'Erro ao carregar entradas', 'error');
         } finally {
             container.querySelector('.incomes-table-wrapper')?.classList.remove('loading');
         }
@@ -147,8 +163,8 @@ export const IncomeManager = (project) => {
                         headers: getHeaders(),
                         body: JSON.stringify({
                             dataFato: incomeData.dataFato,
-                            dataPrevistaPagamento: incomeData.dataPrevistaPagamento,
-                            dataRealPagamento: incomeData.dataRealPagamento,
+                            dataPrevistaRecebimento: incomeData.dataPrevistaRecebimento,
+                            dataRealRecebimento: incomeData.dataRealRecebimento,
                             valor: incomeData.valor,
                             descricao: incomeData.descricao,
                             tipoEntradaId: incomeData.tipoEntradaId,
@@ -183,8 +199,8 @@ export const IncomeManager = (project) => {
                         headers: getHeaders(),
                         body: JSON.stringify({
                             dataFato: incomeData.dataFato,
-                            dataPrevistaPagamento: incomeData.dataPrevistaPagamento,
-                            dataRealPagamento: incomeData.dataRealPagamento,
+                            dataPrevistaRecebimento: incomeData.dataPrevistaRecebimento,
+                            dataRealRecebimento: incomeData.dataRealRecebimento,
                             valor: incomeData.valor,
                             descricao: incomeData.descricao,
                             tipoEntradaId: incomeData.tipoEntradaId,
@@ -231,7 +247,7 @@ export const IncomeManager = (project) => {
     };
 
     const getStatusBadge = (income) => {
-        if (income.data_real_pagamento) {
+        if (income.data_real_recebimento) {
             return '<span class="badge-active">✓ Recebido</span>';
         } else {
             return '<span class="badge-inactive">⏳ Pendente</span>';
@@ -453,12 +469,12 @@ export const IncomeManager = (project) => {
             const bgColor = isEven ? '#FFFFFF' : '#F3F4F6';
             let statusColor = '#F59E0B';
             let statusTitle = 'Aguardando Pagamento';
-            if (income.data_real_pagamento) {
+            if (income.data_real_recebimento) {
                 statusColor = '#10B981';
                 statusTitle = 'Recebido';
             } else {
                 const today = new Date().toISOString().split('T')[0];
-                const prev = income.data_prevista_pagamento ? income.data_prevista_pagamento.split('T')[0] : '';
+                const prev = income.data_prevista_recebimento ? income.data_prevista_recebimento.split('T')[0] : '';
                 if (prev && prev < today) {
                     statusColor = '#EF4444';
                     statusTitle = 'Atrasado';
@@ -470,8 +486,8 @@ export const IncomeManager = (project) => {
                                     onmouseover="this.style.background='rgba(218, 177, 119, 0.5)'" 
                                     onmouseout="this.style.background='${bgColor}'">
                                     <td style="padding: 0.25rem 0.5rem; font-size: 0.8rem; text-align: center;">${formatDate(income.data_fato)}</td>
-                                    <td style="padding: 0.25rem 0.5rem; font-size: 0.8rem; text-align: center;">${formatDate(income.data_prevista_pagamento)}</td>
-                                    <td style="padding: 0.25rem 0.5rem; font-size: 0.8rem; text-align: center;">${formatDate(income.data_real_pagamento)}</td>
+                                    <td style="padding: 0.25rem 0.5rem; font-size: 0.8rem; text-align: center;">${formatDate(income.data_prevista_recebimento)}</td>
+                                    <td style="padding: 0.25rem 0.5rem; font-size: 0.8rem; text-align: center;">${formatDate(income.data_real_recebimento)}</td>
                                     <td style="padding: 0.25rem 0.5rem; font-size: 0.8rem; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; max-width: 250px;" title="${income.tipo_entrada_name}">${income.tipo_entrada_name}</td>
                                     <td style="padding: 0.25rem 0.5rem; font-size: 0.8rem; color: #374151;">${income.descricao || '-'}</td>
                                     <td style="padding: 0.25rem 0.5rem; font-size: 0.8rem; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; max-width: 150px;">${income.company_name}</td>
@@ -570,3 +586,4 @@ export const IncomeManager = (project) => {
 
     return container;
 };
+

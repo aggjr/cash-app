@@ -12,7 +12,7 @@ async function debug() {
 
     try {
         console.log('--- CHECKING TABLES SCHEMA ---');
-        const tables = ['entradas', 'tipo_entrada', 'tipo_despesa', 'tipo_producao_revenda'];
+        const tables = ['entradas', 'tipo_entrada', 'tipo_saida', 'tipo_producao_revenda'];
         for (const t of tables) {
             try {
                 const [desc] = await connection.query(`DESCRIBE ${t}`);

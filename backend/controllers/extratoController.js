@@ -13,7 +13,7 @@ exports.getExtrato = async (req, res) => {
             SELECT SUM(val) as balance FROM (
                 -- Inputs (+)
                 SELECT valor AS val FROM entradas 
-                WHERE project_id = ? AND account_id = ? AND data_real_pagamento < ? AND active = 1 AND data_real_pagamento IS NOT NULL
+                WHERE project_id = ? AND account_id = ? AND data_real_recebimento < ? AND active = 1 AND data_real_recebimento IS NOT NULL
                 UNION ALL
                 SELECT valor AS val FROM aportes 
                 WHERE project_id = ? AND account_id = ? AND data_real < ? AND active = 1 AND data_real IS NOT NULL
@@ -24,11 +24,11 @@ exports.getExtrato = async (req, res) => {
                 UNION ALL
                 
                 -- Outputs (-)
-                SELECT -valor AS val FROM despesas 
+                SELECT -valor AS val FROM saidas 
                 WHERE project_id = ? AND account_id = ? AND data_real_pagamento < ? AND active = 1 AND data_real_pagamento IS NOT NULL
                 UNION ALL
                 SELECT -valor AS val FROM producao_revenda 
-                WHERE project_id = ? AND account_id = ? AND data_real_pagamento < ? AND active = 1 AND data_real_pagamento IS NOT NULL
+                WHERE project_id = ? AND account_id = ? AND data_fato < ? AND active = 1 AND data_fato IS NOT NULL
                 UNION ALL
                 SELECT -valor AS val FROM retiradas 
                 WHERE project_id = ? AND account_id = ? AND data_real < ? AND active = 1 AND data_real IS NOT NULL
@@ -56,14 +56,14 @@ exports.getExtrato = async (req, res) => {
         // --- 2. TRANSACTIONS (Within Range) ---
         // Correct Schema: 
         // - tipo_entrada (id, label, parent_id)
-        // - tipo_despesa (id, label, parent_id)
+        // - tipo_saida (id, label, parent_id)
         // - tipo_producao_revenda (id, label, parent_id)
 
         const sqlTransactions = `
             SELECT * FROM (
                 -- ENTRADAS
                 SELECT 
-                    e.data_real_pagamento AS data,
+                    e.data_real_recebimento AS data,
                     CONCAT('ENTRADA', 
                         CASE WHEN tp.id IS NOT NULL THEN CONCAT(' / ', tp.label) ELSE '' END,
                         CASE WHEN tc.id IS NOT NULL THEN CONCAT(' / ', tc.label) ELSE '' END
@@ -75,7 +75,7 @@ exports.getExtrato = async (req, res) => {
                 FROM entradas e
                 LEFT JOIN tipo_entrada tc ON e.tipo_entrada_id = tc.id
                 LEFT JOIN tipo_entrada tp ON tc.parent_id = tp.id
-                WHERE e.project_id = ? AND e.account_id = ? AND e.data_real_pagamento BETWEEN ? AND ? AND e.active = 1
+                WHERE e.project_id = ? AND e.account_id = ? AND e.data_real_recebimento BETWEEN ? AND ? AND e.active = 1
 
                 UNION ALL
 
@@ -105,7 +105,7 @@ exports.getExtrato = async (req, res) => {
 
                 UNION ALL
                 
-                -- DESPESAS
+                -- SAÍDAS
                 SELECT 
                     d.data_real_pagamento AS data,
                     CONCAT('SAÍDA', 
@@ -116,16 +116,16 @@ exports.getExtrato = async (req, res) => {
                     d.descricao,
                     d.valor,
                     'OUT' as direction
-                FROM despesas d
-                LEFT JOIN tipo_despesa tc ON d.tipo_despesa_id = tc.id
-                LEFT JOIN tipo_despesa tp ON tc.parent_id = tp.id
+                FROM saidas d
+                LEFT JOIN tipo_saida tc ON d.tipo_saida_id = tc.id
+                LEFT JOIN tipo_saida tp ON tc.parent_id = tp.id
                 WHERE d.project_id = ? AND d.account_id = ? AND d.data_real_pagamento BETWEEN ? AND ? AND d.active = 1
                 
                 UNION ALL
                 
                 -- PRODUÇÃO/REVENDA
                 SELECT 
-                    p.data_real_pagamento AS data,
+                    p.data_fato AS data,
                     CONCAT('PRODUÇÃO', 
                         CASE WHEN tp.id IS NOT NULL THEN CONCAT(' / ', tp.label) ELSE '' END,
                         CASE WHEN tc.id IS NOT NULL THEN CONCAT(' / ', tc.label) ELSE '' END
@@ -135,9 +135,9 @@ exports.getExtrato = async (req, res) => {
                     p.valor,
                     'OUT' as direction
                 FROM producao_revenda p
-                LEFT JOIN tipo_producao_revenda tc ON p.tipo_producao_revenda_id = tc.id
+                LEFT JOIN tipo_producao_revenda tc ON p.tipo_id = tc.id
                 LEFT JOIN tipo_producao_revenda tp ON tc.parent_id = tp.id
-                WHERE p.project_id = ? AND p.account_id = ? AND p.data_real_pagamento BETWEEN ? AND ? AND p.active = 1
+                WHERE p.project_id = ? AND p.account_id = ? AND p.data_fato BETWEEN ? AND ? AND p.active = 1
                 
                 UNION ALL
                 
@@ -173,7 +173,7 @@ exports.getExtrato = async (req, res) => {
             projectId, accountId, startDate, endDate, // Entrada
             projectId, accountId, startDate, endDate, // Aporte
             projectId, accountId, startDate, endDate, // Transf IN
-            projectId, accountId, startDate, endDate, // Despesa
+            projectId, accountId, startDate, endDate, // Saida
             projectId, accountId, startDate, endDate, // Producao
             projectId, accountId, startDate, endDate, // Retirada
             projectId, accountId, startDate, endDate  // Transf OUT
@@ -191,3 +191,4 @@ exports.getExtrato = async (req, res) => {
         res.status(500).json({ error: 'Internal Server Error' });
     }
 };
+

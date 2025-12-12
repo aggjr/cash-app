@@ -83,12 +83,15 @@ export const PrevisaoFluxoManager = (project) => {
         // We need an array map of day -> { initial, final }
         // starting with forecastData.initialBalance
         const dayBalances = {};
-        let runningBalance = forecastData.initialBalance;
+        const initialBalance = forecastData?.initialBalance || 0;
+        let runningBalance = initialBalance;
 
         // Extract roots for easy access
-        const saidasRoot = forecastData.data.find(n => n.id === 'saidas_root');
-        const producaoRoot = forecastData.data.find(n => n.id === 'producao_root');
-        const entradasRoot = forecastData.data.find(n => n.id === 'entradas_root');
+        // If data is null/loading, these remain undefined, and rows won't render (just headers/footer)
+        const data = forecastData?.data || [];
+        const saidasRoot = data.find(n => n.id === 'saidas_root');
+        const producaoRoot = data.find(n => n.id === 'producao_root');
+        const entradasRoot = data.find(n => n.id === 'entradas_root');
 
         days.forEach(day => {
             const inVal = (entradasRoot?.dailyTotals[day] || 0);
@@ -182,7 +185,7 @@ export const PrevisaoFluxoManager = (project) => {
         // Order: Saidas, Producao, Entradas
         // Actually user said: "itens de saída, produção e revenda e entrada"
         // So Render: Saidas Root, Producao Root, Entradas Root.
-        if (forecastData.data) {
+        if (data && data.length > 0) {
             // Find roots
             const s = forecastData.data.find(n => n.id === 'saidas_root');
             const p = forecastData.data.find(n => n.id === 'producao_root');
@@ -261,8 +264,8 @@ export const PrevisaoFluxoManager = (project) => {
                 <input type="date" id="end-date" value="${endStr}" style="padding: 0.4rem; border: 1px solid #d1d5db; border-radius: 4px; font-family: inherit;">
              </div>
              
-             <button id="btn-refresh" class="btn-primary" style="padding: 0.4rem 1rem;">
-                🔄 Atualizar
+             <button id="btn-refresh" class="btn-primary" title="Pesquisar" style="height: 38px; width: 38px; padding: 0; display: flex; align-items: center; justify-content: center; font-size: 1.2rem;">
+                🔍
              </button>
         </div>
         
@@ -308,6 +311,7 @@ export const PrevisaoFluxoManager = (project) => {
     });
 
     // Init
+    renderTable(); // Render empty structure immediately
     loadData();
 
     return container;

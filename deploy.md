@@ -1,48 +1,51 @@
-# Guia de Deploy - CASH System
+# Guia de Deploy no Easypanel (Painel)
 
-Este guia descreve como colocar o sistema no ar usando Docker.
+Este guia descreve como fazer o deploy da aplicação **CASH** no Easypanel (painel.gutoapps.site).
 
-## Pré-requisitos do Servidor
-- **Docker** e **Docker Compose** instalados.
-- Acesso à internet para baixar as imagens (Node, Nginx, MySQL).
-- Portas liberadas: `80` (HTTP) e `3307` (Opcional, para acesso direto ao banco).
+## Pré-requisitos
+1.  Ter acesso ao painel do Easypanel.
+2.  Ter o código fonte salvo em um repositório Git (GitHub/GitLab).
+3.  Ter um banco de dados MySQL criado no Easypanel (Serviço de Banco de Dados).
 
-## Passo a Passo
+## Estrutura do Projeto
+O projeto está configurado para ser implantado como **dois serviços separados**:
+1.  **Backend (API)**: Node.js
+2.  **Frontend (App)**: React/Vite (Estático via Nginx)
 
-1. **Copiar Arquivos**
-   Copie toda a pasta do projeto para o servidor (exceto `node_modules`).
-   Certifique-se de que os seguintes arquivos estejam presentes:
-   - `docker-compose.yml`
-   - `Dockerfile` (na raiz)
-   - `nginx.conf` (na raiz)
-   - `backend/Dockerfile`
-   - `backend/docker-entrypoint.js`
-   - Código fonte (`src/`, `backend/`, `public/`, etc.)
+## Passo 1: Configurar Backend (API)
 
-2. **Configurar Senhas (Segurança)**
-   Abra o arquivo `docker-compose.yml` e altere as seguintes variáveis:
-   - `MYSQL_ROOT_PASSWORD`: Coloque uma senha forte.
-   - `DB_PASSWORD` (no serviço backend): Coloque a **mesma** senha definida acima.
-   - `JWT_SECRET`: Gere uma string aleatória longa para assinar os tokens.
+1.  No Easypanel, crie um novo **Serviço** do tipo **App** (Source: GitHub).
+2.  Selecione o repositório do projeto.
+3.  **Configurações de Build**:
+    *   **Root Directory (Context)**: `/backend` (ou `./backend`)
+    *   **Dockerfile Path**: `Dockerfile` (O Easypanel buscará dentro da pasta backend)
+4.  **Variáveis de Ambiente (Environment Variables)**:
+    *   `DB_HOST`: (Host do serviço MySQL, geralmente o nome do serviço, ex: `mysql`)
+    *   `DB_USER`: `root` (ou usuário criado)
+    *   `DB_PASSWORD`: (Senha do banco)
+    *   `DB_NAME`: `cash_db`
+    *   `PORT`: `3001`
+5.  **Domínio**: Configure o domínio da API (ex: `cash-api.gutoapps.site`) na aba "Domains" e aponte para a porta `3001`.
+6.  Faça o deploy.
 
-3. **Iniciar o Sistema**
-   Na pasta raiz do projeto no servidor, execute:
-   ```bash
-   docker-compose up -d --build
-   ```
-   *O parâmetro `--build` garante que as imagens sejam recriadas com o código mais recente.*
+## Passo 2: Configurar Frontend (Aplicação)
 
-4. **Verificar Status**
-   Para ver se tudo está rodando:
-   ```bash
-   docker-compose ps
-   ```
-   Para ver os logs (em caso de erro):
-   ```bash
-   docker-compose logs -f
-   ```
+1.  Crie outro **Serviço** do tipo **App** (GitHub).
+2.  Selecione o mesmo repositório.
+3.  **Configurações de Build**:
+    *   **Root Directory (Context)**: `/` (Raiz)
+    *   **Dockerfile Path**: `Dockerfile` (O Dockerfile na raiz constrói o frontend)
+4.  **Variáveis de Ambiente**:
+    *   `VITE_API_URL`: `https://cash-api.gutoapps.site` (A URL completa do seu backend configurado no passo anterior).
+    *   *Nota*: Como o frontend é estático, essa variável deve estar disponível no momento do **BUILD**. Se o Easypanel não injetar no build, você pode precisar ajustar o Dockerfile ou hardcodar a URL no `vite.config.js` antes do commit se preferir.
+5.  **Domínio**: Configure o domínio da aplicação (ex: `cash.gutoapps.site`) na aba "Domains" e aponte para a porta `80`.
+6.  Faça o deploy.
 
-## Notas Importantes
-- **Dados do Banco**: Os dados ficam salvos em um volume Docker chamado `cash_mysql_data`. O container do banco pode ser reiniciado sem perda de dados.
-- **Acesso**: O sistema estará acessível pelo IP do servidor na porta 80 (ex: `http://192.168.1.100`).
-- **Migrações**: O backend executa automaticamente as migrações ao iniciar. Aguarde alguns segundos na primeira execução.
+## Passo 3: Resetar Banco de Dados (Primeiro Deploy)
+
+Após o backend subir, conecte-se ao banco de dados (via PHPMyAdmin ou CLI do Easypanel) e execute o script `database/init.sql` para criar as tabelas.
+
+## Resumo de Arquivos Importantes
+*   `backend/Dockerfile`: Define como o Backend é construído.
+*   `Dockerfile` (na raiz): Define como o Frontend é construído e servido (Nginx).
+*   `nginx.conf` (na raiz): Configuração do servidor web do Frontend.

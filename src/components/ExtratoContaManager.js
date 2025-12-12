@@ -147,6 +147,15 @@ export const ExtratoContaManager = (project) => {
             loadExtrato();
         };
 
+        // Clear grid on change
+        const clearGrid = () => {
+            extratoData = null;
+            renderTable();
+        };
+        accSelect.addEventListener('change', clearGrid);
+        startInput.addEventListener('change', clearGrid);
+        endInput.addEventListener('change', clearGrid);
+
         controls.appendChild(accDiv);
         controls.appendChild(startDiv);
         controls.appendChild(endDiv);
@@ -158,8 +167,6 @@ export const ExtratoContaManager = (project) => {
     const renderTable = () => {
         const existingTable = container.querySelector('.extrato-table-wrapper');
         if (existingTable) existingTable.remove();
-
-        if (!extratoData || !selectedAccountId) return;
 
         const wrapper = document.createElement('div');
         wrapper.className = 'extrato-table-wrapper';
@@ -203,6 +210,24 @@ export const ExtratoContaManager = (project) => {
 
         // --- TBODY ---
         const tbody = document.createElement('tbody');
+
+        // Show empty state if no data or no account selected
+        if (!extratoData || !selectedAccountId) {
+            const trEmpty = document.createElement('tr');
+            trEmpty.innerHTML = `
+                <td colspan="5" style="padding: 3rem; text-align: center; color: var(--color-text-muted);">
+                    <div style="font-size: 3rem; margin-bottom: 1rem;">📭</div>
+                    <div style="font-size: 1.1rem;">${!selectedAccountId ? 'Selecione uma conta para ver o extrato' : 'Nenhuma movimentação encontrada'}</div>
+                    <div style="font-size: 0.9rem; margin-top: 0.5rem;">Clique no botão de pesquisa após selecionar uma conta e período</div>
+                </td>
+            `;
+            tbody.appendChild(trEmpty);
+            table.appendChild(tbody);
+            wrapper.appendChild(table);
+            container.appendChild(wrapper);
+            return;
+        }
+
         let currentBalance = extratoData.initialBalance;
 
         // 1. Initial Balance Row
@@ -342,11 +367,22 @@ export const ExtratoContaManager = (project) => {
                 extratoData = await resp.json();
                 renderTable();
             } else {
-                showToast('Erro ao carregar extrato', 'error');
+                // Parse detailed error
+                const errorData = await resp.json().catch(() => ({}));
+                let errorMsg = errorData.error?.message || 'Erro ao carregar extrato';
+                if (errorData.error?.sqlError) {
+                    const sql = errorData.error.sqlError;
+                    errorMsg += ` [SQL: ${sql.sqlCode || 'N/A'} - ${sql.sqlMessage || ''}]`;
+                    console.error('SQL Error Details:', sql);
+                }
+                if (errorData.error?.code) {
+                    errorMsg = `[${errorData.error.code}] ${errorMsg}`;
+                }
+                showToast(errorMsg, 'error');
             }
         } catch (e) {
             console.error(e);
-            showToast('Erro de conexão', 'error');
+            showToast('Erro de conexão: ' + e.message, 'error');
         }
     };
 
@@ -364,6 +400,9 @@ export const ExtratoContaManager = (project) => {
 
     // Render initial empty controls (will be repopulated after loadAccounts)
     container.appendChild(renderControls());
+
+    // Render empty table structure immediately
+    renderTable();
 
     // Init
     loadAccounts();

@@ -23,6 +23,7 @@ const errorHandler = (err, req, res, next) => {
     let errorCode = 'SYS-001';
     let message = 'Erro interno do servidor.';
     let details = null;
+    let sqlError = null;
 
     if (err.isOperational && err.code) {
         const catalogEntry = errorCache[err.code];
@@ -38,8 +39,22 @@ const errorHandler = (err, req, res, next) => {
         }
         details = err.details;
     } else {
-        // Unexpected errors
+        // Unexpected errors - Include SQL details for debugging
         console.error('Unexpected Error:', err);
+
+        // Extract SQL error details
+        if (err.code) {
+            sqlError = {
+                sqlCode: err.code,
+                sqlState: err.sqlState,
+                sqlMessage: err.sqlMessage || err.message,
+                sql: err.sql?.substring(0, 500) // First 500 chars of SQL for debugging
+            };
+        }
+
+        // Use actual error message instead of generic
+        message = err.message || 'Erro interno do servidor.';
+
         // If it's a known non-operational error (like DB connection)
         if (err.code === 'ECONNREFUSED') {
             errorCode = 'DB-001';
@@ -56,6 +71,8 @@ const errorHandler = (err, req, res, next) => {
             code: errorCode,
             message: message,
             details: details,
+            sqlError: sqlError,
+            stack: process.env.NODE_ENV !== 'production' ? err.stack : undefined,
             timestamp: new Date().toISOString()
         }
     });

@@ -49,7 +49,13 @@ exports.getDailyForecast = async (req, res, next) => {
         // "Fluxo de Caixa" usually implies CASH flow, i.e., when money moves.
         // If data_real_pagamento exists, use it. Else use data_prevista_pagamento.
 
-        const effectiveDateSql = `COALESCE(data_real_pagamento, data_prevista_pagamento)`;
+        // Helper to get date column based on table context
+        const getDateCol = (table) => {
+            if (table === 'producao_revenda') return 'data_fato';
+            if (table === 'entradas') return 'COALESCE(data_real_recebimento, data_prevista_recebimento)';
+            if (table === 'saidas') return 'COALESCE(data_real_pagamento, data_prevista_pagamento)';
+            return 'data_fato'; // Fallback
+        };
 
         // 1.1 Calculate Historic Inflows (active=1)
         const [inflowResult] = await db.execute(`
@@ -57,33 +63,33 @@ exports.getDailyForecast = async (req, res, next) => {
             FROM entradas 
             WHERE project_id = ? 
             AND active = 1 
-            AND ${effectiveDateSql} < ?
+            AND ${getDateCol('entradas')} < ?
         `, [projectId, startDate]);
         const historicInflow = parseFloat(inflowResult[0].total || 0);
 
-        // 1.2 Calculate Historic Outflows (Despesas + Producao)
-        const [despesasResult] = await db.execute(`
+        // 1.2 Calculate Historic Outflows (Saidas + Producao)
+        const [saidasResult] = await db.execute(`
             SELECT SUM(valor) as total 
-            FROM despesas 
+            FROM saidas 
             WHERE project_id = ? 
             AND active = 1 
-            AND ${effectiveDateSql} < ?
+            AND ${getDateCol('saidas')} < ?
         `, [projectId, startDate]);
-        const historicDespesas = parseFloat(despesasResult[0].total || 0);
+        const historicSaidas = parseFloat(saidasResult[0].total || 0);
 
         const [producaoResult] = await db.execute(`
             SELECT SUM(valor) as total 
             FROM producao_revenda 
             WHERE project_id = ? 
             AND active = 1 
-            AND ${effectiveDateSql} < ?
+            AND ${getDateCol('producao_revenda')} < ?
         `, [projectId, startDate]);
         const historicProducao = parseFloat(producaoResult[0].total || 0);
 
         // 1.3 Get Accounts Initial Balance (If any? Assuming 0 for now as we don't have that field explicitly managed yet)
         // Actually, if the user created accounts with 0, then `current_balance` is the result of operations.
         // Let's assume start balance is 0 + operations.
-        let runningBalance = historicInflow - (historicDespesas + historicProducao);
+        let runningBalance = historicInflow - (historicSaidas + historicProducao);
 
 
         // --- 2. Fetch Daily Data for Range ---
@@ -97,17 +103,18 @@ exports.getDailyForecast = async (req, res, next) => {
             );
 
             // Data
+            const dateCol = getDateCol(dataTable);
             const query = `
                 SELECT 
                     d.id, 
                     d.valor, 
                     d.${fkCol} as type_id, 
-                    DATE_FORMAT(${effectiveDateSql}, '%Y-%m-%d') as date_key
+                    DATE_FORMAT(${dateCol}, '%Y-%m-%d') as date_key
                 FROM ${dataTable} d
                 WHERE d.project_id = ? 
                 AND d.active = 1
-                AND ${effectiveDateSql} >= ? 
-                AND ${effectiveDateSql} <= ?
+                AND ${dateCol} >= ? 
+                AND ${dateCol} <= ?
             `;
             const [items] = await db.execute(query, [projectId, startDate, endDate]);
 
@@ -156,8 +163,8 @@ exports.getDailyForecast = async (req, res, next) => {
         };
 
         const entradasRoots = await buildDailyTree('tipo_entrada', 'entradas', 'tipo_entrada_id');
-        const despesasRoots = await buildDailyTree('tipo_despesa', 'despesas', 'tipo_despesa_id');
-        const producaoRoots = await buildDailyTree('tipo_producao_revenda', 'producao_revenda', 'tipo_producao_revenda_id');
+        const saidasRoots = await buildDailyTree('tipo_saida', 'saidas', 'tipo_saida_id');
+        const producaoRoots = await buildDailyTree('tipo_producao_revenda', 'producao_revenda', 'tipo_id');
 
         // --- Helper to Create Virtual Root ---
         const createVirtualRoot = (id, name, children) => {
@@ -174,7 +181,7 @@ exports.getDailyForecast = async (req, res, next) => {
         };
 
         const entradasVirtual = createVirtualRoot('entradas_root', 'ENTRADAS', entradasRoots);
-        const saidasVirtual = createVirtualRoot('saidas_root', 'SAÍDAS', despesasRoots);
+        const saidasVirtual = createVirtualRoot('saidas_root', 'SAÍDAS', saidasRoots);
         const producaoVirtual = createVirtualRoot('producao_root', 'PRODUÇÃO / REVENDA', producaoRoots);
 
         res.json({

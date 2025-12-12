@@ -11,7 +11,7 @@ const { errorHandler, loadErrorCatalog } = require('./middleware/errorMiddleware
 const incomesRoutes = require('./routes/incomes');
 const accountsRoutes = require('./routes/accounts');
 const companiesRoutes = require('./routes/companies');
-const despesasRoutes = require('./routes/despesas');
+const saidasRoutes = require('./routes/saidas');
 const aportesRoutes = require('./routes/aportes');
 const retiradasRoutes = require('./routes/retiradas');
 const transferenciasRoutes = require('./routes/transferencias');
@@ -35,7 +35,7 @@ apiRouter.use('/auth', authRoutes);
 apiRouter.use('/accounts', accountsRoutes);
 apiRouter.use('/companies', companiesRoutes);
 apiRouter.use('/incomes', incomesRoutes);
-apiRouter.use('/despesas', despesasRoutes);
+apiRouter.use('/saidas', saidasRoutes);
 apiRouter.use('/aportes', aportesRoutes);
 apiRouter.use('/retiradas', retiradasRoutes);
 apiRouter.use('/transferencias', transferenciasRoutes);

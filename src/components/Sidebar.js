@@ -9,7 +9,7 @@ export const Sidebar = () => {
         { id: 'contas', label: 'Contas', icon: '💳' },
         { id: 'usuarios', label: 'Usuários', icon: '👥' },
         { id: 'tipo-entrada', label: 'Tipo de Entrada', icon: '📥' },
-        { id: 'tipo-despesa', label: 'Tipo de Saída', icon: '💸' },
+        { id: 'tipo-saida', label: 'Tipo de Saída', icon: '💸' },
         { id: 'tipo-producao-revenda', label: 'Tipo Producao Revenda', icon: '🏭' },
         { id: 'centros-custo', label: 'Centros Custo', icon: '🏢' },
         { id: 'cnpj-tomador', label: 'Cnpj Tomador', icon: '📝' }
@@ -21,7 +21,7 @@ export const Sidebar = () => {
       icon: '⇄',
       children: [
         { id: 'entrada', label: 'Entrada', icon: '💰' },
-        { id: 'despesa', label: 'Saída', icon: '💸' },
+        { id: 'saida', label: 'Saída', icon: '💸' },
         { id: 'producao-revenda', label: 'Produção / Revenda', icon: '🏭' }
       ]
     },

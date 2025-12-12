@@ -2,7 +2,7 @@ require('dotenv').config();
 const db = require('./config/database');
 
 async function run() {
-    const tables = ['tipo_entrada', 'tipo_despesa', 'tipo_producao_revenda'];
+    const tables = ['tipo_entrada', 'tipo_saida', 'tipo_producao_revenda'];
 
     for (const table of tables) {
         try {

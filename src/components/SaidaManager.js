@@ -1,10 +1,10 @@
-import { DespesaModal } from './DespesaModal.js';
+import { SaidaModal } from './SaidaModal.js';
 import { showToast } from '../utils/toast.js';
 import { getApiBaseUrl } from '../utils/apiConfig.js';
 
-console.log('!!! DESPESA MANAGER LOADED - VERSION DEBUG 2.0 !!!');
+console.log('!!! saida MANAGER LOADED - VERSION DEBUG 2.0 !!!');
 
-export const DespesaManager = (project) => {
+export const SaidaManager = (project) => {
     const container = document.createElement('div');
     container.className = 'glass-panel';
     const API_BASE_URL = getApiBaseUrl();
@@ -15,14 +15,14 @@ export const DespesaManager = (project) => {
     container.style.flexDirection = 'column';
 
     // State for filtering
-    let alldespesas = [];
+    let allsaidas = [];
     let activeFilters = {}; // { key: Set }
     let sortConfig = { key: null, direction: 'asc' };
 
-    console.log('DespesaManager initialized with project:', project);
+    console.log('SaidaManager initialized with project:', project);
 
     if (!project || !project.id) {
-        console.error('CRITICAL: DespesaManager initialized without valid project ID!', project);
+        console.error('CRITICAL: SaidaManager initialized without valid project ID!', project);
         showToast('Erro interno: ID do projeto não encontrado.', 'error');
         return container; // Stop execution
     }
@@ -89,7 +89,7 @@ export const DespesaManager = (project) => {
     };
 
     const applyFilters = () => {
-        let filtered = [...alldespesas];
+        let filtered = [...allsaidas];
         const keys = Object.keys(activeFilters);
 
         if (keys.length > 0) {
@@ -153,15 +153,15 @@ export const DespesaManager = (project) => {
         }
 
         filtered = applySort(filtered);
-        renderdespesas(filtered);
+        rendersaidas(filtered);
     };
 
-    const loaddespesas = async () => {
+    const loadsaidas = async () => {
         try {
-            container.querySelector('.despesas-table-wrapper')?.classList.add('loading');
+            container.querySelector('.saidas-table-wrapper')?.classList.add('loading');
 
-            console.log('Fetching despesas for project:', project.id); // DEBUG LOG
-            const response = await fetch(`${API_BASE_URL}/despesas?projectId=${project.id}`, {
+            console.log('Fetching saidas for project:', project.id); // DEBUG LOG
+            const response = await fetch(`${API_BASE_URL}/saidas?projectId=${project.id}`, {
                 headers: getHeaders()
             });
 
@@ -176,41 +176,41 @@ export const DespesaManager = (project) => {
                 throw new Error(fullMsg);
             }
 
-            const despesas = await response.json();
-            alldespesas = despesas;
+            const saidas = await response.json();
+            allsaidas = saidas;
 
             applyFilters();
         } catch (error) {
-            console.error('Error loading despesas:', error);
+            console.error('Error loading saidas:', error);
             showToast(error.message || 'Erro ao carregar saídas', 'error');
         }
     };
 
-    const createdespesa = async () => {
-        const data = await DespesaModal.show({
-            despesa: null,
+    const createsaida = async () => {
+        const data = await SaidaModal.show({
+            saida: null,
             projectId: project.id,
-            onSave: async (despesaData) => {
+            onSave: async (saidaData) => {
                 try {
-                    const response = await fetch(`${API_BASE_URL}/despesas`, {
+                    const response = await fetch(`${API_BASE_URL}/saidas`, {
                         method: 'POST',
                         headers: getHeaders(),
                         body: JSON.stringify({
-                            dataFato: despesaData.dataFato,
-                            dataPrevistaPagamento: despesaData.dataPrevistaPagamento,
-                            dataRealPagamento: despesaData.dataRealPagamento,
-                            valor: despesaData.valor,
-                            descricao: despesaData.descricao,
-                            tipoDespesaId: despesaData.tipoDespesaId,
-                            companyId: despesaData.companyId,
-                            accountId: despesaData.accountId,
+                            dataFato: saidaData.dataFato,
+                            dataPrevistaPagamento: saidaData.dataPrevistaPagamento,
+                            dataRealPagamento: saidaData.dataRealPagamento,
+                            valor: saidaData.valor,
+                            descricao: saidaData.descricao,
+                            tipoSaidaId: saidaData.tipoSaidaId,
+                            companyId: saidaData.companyId,
+                            accountId: saidaData.accountId,
                             projectId: project.id
                         })
                     });
 
                     if (response.ok) {
                         showToast('Saída criada com sucesso!', 'success');
-                        loaddespesas();
+                        loadsaidas();
                     } else {
                         const error = await response.json();
                         const msg = error.error?.message || error.error || 'Erro ao criar saída';
@@ -223,31 +223,31 @@ export const DespesaManager = (project) => {
         });
     };
 
-    const updatedespesa = async (despesa) => {
-        const data = await DespesaModal.show({
-            despesa: despesa,
+    const updatesaida = async (saida) => {
+        const data = await SaidaModal.show({
+            saida: saida,
             projectId: project.id,
-            onSave: async (despesaData) => {
+            onSave: async (saidaData) => {
                 try {
-                    const response = await fetch(`${API_BASE_URL}/despesas/${despesa.id}`, {
+                    const response = await fetch(`${API_BASE_URL}/saidas/${saida.id}`, {
                         method: 'PUT',
                         headers: getHeaders(),
                         body: JSON.stringify({
-                            dataFato: despesaData.dataFato,
-                            dataPrevistaPagamento: despesaData.dataPrevistaPagamento,
-                            dataRealPagamento: despesaData.dataRealPagamento,
-                            valor: despesaData.valor,
-                            descricao: despesaData.descricao,
-                            tipoDespesaId: despesaData.tipoDespesaId,
-                            companyId: despesaData.companyId,
-                            accountId: despesaData.accountId,
-                            active: despesaData.active
+                            dataFato: saidaData.dataFato,
+                            dataPrevistaPagamento: saidaData.dataPrevistaPagamento,
+                            dataRealPagamento: saidaData.dataRealPagamento,
+                            valor: saidaData.valor,
+                            descricao: saidaData.descricao,
+                            tipoSaidaId: saidaData.tipoSaidaId,
+                            companyId: saidaData.companyId,
+                            accountId: saidaData.accountId,
+                            active: saidaData.active
                         })
                     });
 
                     if (response.ok) {
                         showToast('Saída atualizada com sucesso!', 'success');
-                        loaddespesas();
+                        loadsaidas();
                     } else {
                         const error = await response.json();
                         const msg = error.error?.message || error.error || 'Erro ao atualizar saída';
@@ -260,19 +260,19 @@ export const DespesaManager = (project) => {
         });
     };
 
-    const deletedespesa = async (id, description) => {
+    const deletesaida = async (id, description) => {
         const displayText = description || 'esta saída';
         if (!confirm(`Tem certeza que deseja excluir "${displayText}"?`)) return;
 
         try {
-            const response = await fetch(`${API_BASE_URL}/despesas/${id}`, {
+            const response = await fetch(`${API_BASE_URL}/saidas/${id}`, {
                 method: 'DELETE',
                 headers: getHeaders()
             });
 
             if (response.ok) {
                 showToast('Saída excluída com sucesso!', 'success');
-                loaddespesas();
+                loadsaidas();
             } else {
                 const error = await response.json();
                 const msg = error.error?.message || error.error || 'Erro ao excluir saída';
@@ -283,8 +283,8 @@ export const DespesaManager = (project) => {
         }
     };
 
-    const getStatusBadge = (despesa) => {
-        if (despesa.data_real_pagamento) {
+    const getStatusBadge = (saida) => {
+        if (saida.data_real_pagamento) {
             return '<span class="badge-active">✓ Recebido</span>';
         } else {
             return '<span class="badge-inactive">⏳ Pendente</span>';
@@ -301,7 +301,7 @@ export const DespesaManager = (project) => {
 
         // Calculate Uniques for List
         const uniqueValues = new Set();
-        alldespesas.forEach(item => {
+        allsaidas.forEach(item => {
             uniqueValues.add(getValueForCol(item, colKey));
         });
         const sortedValues = Array.from(uniqueValues).sort();
@@ -504,12 +504,12 @@ export const DespesaManager = (project) => {
         }, 100);
     };
 
-    const renderdespesas = (despesas) => {
+    const rendersaidas = (saidas) => {
         const columns = [
             { key: 'data_fato', label: 'Data Fato', width: '90px', align: 'center', type: 'date' },
             { key: 'data_prevista_pagamento', label: 'Data Prevista', width: '90px', align: 'center', type: 'date' },
             { key: 'data_real_pagamento', label: 'Data Real', width: '90px', align: 'center', type: 'date' },
-            { key: 'tipo_despesa_name', label: 'Tipo saída', width: '250px', align: 'left', type: 'text' },
+            { key: 'tipo_saida_name', label: 'Tipo saída', width: '250px', align: 'left', type: 'text' },
             { key: 'descricao', label: 'Descrição', width: 'auto', align: 'left', type: 'text' },
             { key: 'company_name', label: 'Empresa', width: '150px', align: 'left', type: 'text' },
             { key: 'account_name', label: 'Conta', width: '150px', align: 'left', type: 'text' },
@@ -566,26 +566,26 @@ export const DespesaManager = (project) => {
             </div>
 
             <div style="margin-bottom: 1rem;">
-                <button id="btn-new-despesa" class="btn-primary">+ Nova Saída</button>
+                <button id="btn-new-saida" class="btn-primary">+ Nova Saída</button>
             </div>
 
-            <div class="despesas-table-wrapper" style="flex: 1; overflow: auto; border: 1px solid var(--color-border-light); border-radius: 8px; box-shadow: var(--shadow-sm);">
+            <div class="saidas-table-wrapper" style="flex: 1; overflow: auto; border: 1px solid var(--color-border-light); border-radius: 8px; box-shadow: var(--shadow-sm);">
                 <table style="width: 100%; border-collapse: collapse;">
                     <thead class="sticky-header">
                         <tr>${renderHeaders()}</tr>
                     </thead>
                     <tbody>
-                        ${despesas.map((despesa, index) => {
+                        ${saidas.map((saida, index) => {
             const isEven = index % 2 === 0;
             const bgColor = isEven ? '#FFFFFF' : '#F3F4F6';
             let statusColor = '#F59E0B';
             let statusTitle = 'Aguardando Pagamento';
-            if (despesa.data_real_pagamento) {
+            if (saida.data_real_pagamento) {
                 statusColor = '#10B981';
                 statusTitle = 'Recebido';
             } else {
                 const today = new Date().toISOString().split('T')[0];
-                const prev = despesa.data_prevista_pagamento ? despesa.data_prevista_pagamento.split('T')[0] : '';
+                const prev = saida.data_prevista_pagamento ? saida.data_prevista_pagamento.split('T')[0] : '';
                 if (prev && prev < today) {
                     statusColor = '#EF4444';
                     statusTitle = 'Atrasado';
@@ -596,17 +596,17 @@ export const DespesaManager = (project) => {
                                 <tr style="border-bottom: 1px solid var(--color-border-light); background-color: ${bgColor}; transition: background 0.2s;" 
                                     onmouseover="this.style.background='rgba(218, 177, 119, 0.5)'" 
                                     onmouseout="this.style.background='${bgColor}'">
-                                    <td style="padding: 0.25rem 0.5rem; font-size: 0.8rem; text-align: center;">${formatDate(despesa.data_fato)}</td>
-                                    <td style="padding: 0.25rem 0.5rem; font-size: 0.8rem; text-align: center;">${formatDate(despesa.data_prevista_pagamento)}</td>
-                                    <td style="padding: 0.25rem 0.5rem; font-size: 0.8rem; text-align: center;">${formatDate(despesa.data_real_pagamento)}</td>
-                                    <td style="padding: 0.25rem 0.5rem; font-size: 0.8rem; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; max-width: 250px;" title="${despesa.tipo_despesa_name}">${despesa.tipo_despesa_name}</td>
-                                    <td style="padding: 0.25rem 0.5rem; font-size: 0.8rem; color: #374151;">${despesa.descricao || '-'}</td>
-                                    <td style="padding: 0.25rem 0.5rem; font-size: 0.8rem; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; max-width: 150px;">${despesa.company_name}</td>
-                                    <td style="padding: 0.25rem 0.5rem; font-size: 0.8rem; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; max-width: 150px;">${despesa.account_name}</td>
-                                    <td style="padding: 0.25rem 0.5rem; font-size: 0.8rem; text-align: right; font-weight: 600; color: ${parseFloat(despesa.valor) > 0 ? '#EF4444' : '#10B981'};">${formatCurrency(despesa.valor)}</td>
+                                    <td style="padding: 0.25rem 0.5rem; font-size: 0.8rem; text-align: center;">${formatDate(saida.data_fato)}</td>
+                                    <td style="padding: 0.25rem 0.5rem; font-size: 0.8rem; text-align: center;">${formatDate(saida.data_prevista_pagamento)}</td>
+                                    <td style="padding: 0.25rem 0.5rem; font-size: 0.8rem; text-align: center;">${formatDate(saida.data_real_pagamento)}</td>
+                                    <td style="padding: 0.25rem 0.5rem; font-size: 0.8rem; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; max-width: 250px;" title="${saida.tipo_saida_name}">${saida.tipo_saida_name}</td>
+                                    <td style="padding: 0.25rem 0.5rem; font-size: 0.8rem; color: #374151;">${saida.descricao || '-'}</td>
+                                    <td style="padding: 0.25rem 0.5rem; font-size: 0.8rem; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; max-width: 150px;">${saida.company_name}</td>
+                                    <td style="padding: 0.25rem 0.5rem; font-size: 0.8rem; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; max-width: 150px;">${saida.account_name}</td>
+                                    <td style="padding: 0.25rem 0.5rem; font-size: 0.8rem; text-align: right; font-weight: 600; color: ${parseFloat(saida.valor) > 0 ? '#EF4444' : '#10B981'};">${formatCurrency(saida.valor)}</td>
                                     <td style="padding: 0.25rem 0.5rem; text-align: center;">
-                                        <button class="btn-edit" data-id="${despesa.id}" style="color: #10B981; margin-right: 0.25rem; font-size: 1rem; background: none; border: none; cursor: pointer;">✏️</button>
-                                        <button class="btn-delete" data-id="${despesa.id}" style="color: #EF4444; font-size: 1rem; background: none; border: none; cursor: pointer;">🗑️</button>
+                                        <button class="btn-edit" data-id="${saida.id}" style="color: #10B981; margin-right: 0.25rem; font-size: 1rem; background: none; border: none; cursor: pointer;">✏️</button>
+                                        <button class="btn-delete" data-id="${saida.id}" style="color: #EF4444; font-size: 1rem; background: none; border: none; cursor: pointer;">🗑️</button>
                                     </td>
                                     <td style="padding: 0.25rem 0.5rem; text-align: center;">
                                         <div title="${statusTitle}" style="width: 12px; height: 12px; background-color: ${statusColor}; border-radius: 50%; margin: 0 auto; box-shadow: 0 1px 2px rgba(0,0,0,0.1);"></div>
@@ -614,7 +614,7 @@ export const DespesaManager = (project) => {
                                 </tr>
                             `;
         }).join('')}
-                        ${despesas.length === 0 ? `
+                        ${saidas.length === 0 ? `
                             <tr>
                                 <td colspan="10" style="padding: 3rem; text-align: center; color: var(--color-text-muted);">
                                     <div style="font-size: 3rem; margin-bottom: 1rem;">📭</div>
@@ -628,11 +628,11 @@ export const DespesaManager = (project) => {
             </div>
             
             <div style="margin-top: 1rem; display: flex; justify-content: space-between; align-items: center; font-size: 0.85rem; color: var(--color-text-muted);">
-                <div>Total: ${activeFilters && Object.keys(activeFilters).length > 0 ? `Exibindo ${despesas.length} de ${alldespesas.length}` : `${despesas.length} saída(s)`}</div>
+                <div>Total: ${activeFilters && Object.keys(activeFilters).length > 0 ? `Exibindo ${saidas.length} de ${allsaidas.length}` : `${saidas.length} saída(s)`}</div>
                 <div style="display: flex; align-items: center; gap: 0.5rem;">
                     <span>Valor Total:</span>
-                    <span style="font-weight: 700; font-size: 1.4rem; color: ${despesas.reduce((sum, inc) => sum + parseFloat(inc.valor || 0), 0) > 0 ? '#EF4444' : '#10B981'};">
-                        ${formatCurrency(despesas.reduce((sum, inc) => sum + parseFloat(inc.valor || 0), 0))}
+                    <span style="font-weight: 700; font-size: 1.4rem; color: ${saidas.reduce((sum, inc) => sum + parseFloat(inc.valor || 0), 0) > 0 ? '#EF4444' : '#10B981'};">
+                        ${formatCurrency(saidas.reduce((sum, inc) => sum + parseFloat(inc.valor || 0), 0))}
                     </span>
                 </div>
             </div>
@@ -657,30 +657,31 @@ export const DespesaManager = (project) => {
                 } else {
                     sortConfig = { key, direction: dir };
                 }
-                applySort(alldespesas);
-                renderdespesas(alldespesas); // Wait, we should re-apply filters AND sort
+                applySort(allsaidas);
+                rendersaidas(allsaidas); // Wait, we should re-apply filters AND sort
                 applyFilters(); // This calls render
             });
         });
 
-        container.querySelector('#btn-new-despesa').addEventListener('click', createdespesa);
+        container.querySelector('#btn-new-saida').addEventListener('click', createsaida);
 
         container.querySelectorAll('.btn-edit').forEach(btn => {
             btn.addEventListener('click', () => {
-                const despesa = despesas.find(d => d.id == btn.dataset.id);
-                updatedespesa(despesa);
+                const saida = saidas.find(d => d.id == btn.dataset.id);
+                updatesaida(saida);
             });
         });
 
         container.querySelectorAll('.btn-delete').forEach(btn => {
             btn.addEventListener('click', () => {
-                const despesa = despesas.find(d => d.id == btn.dataset.id);
-                deletedespesa(despesa.id, despesa.descricao);
+                const saida = saidas.find(d => d.id == btn.dataset.id);
+                deletesaida(saida.id, saida.descricao);
             });
         });
     };
 
-    loaddespesas();
+    loadsaidas();
 
     return container;
 };
+

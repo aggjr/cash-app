@@ -39,7 +39,7 @@ async function runMigrations() {
         'migrate-accounts.js',
         'update-accounts-schema.js',
         'migrate-entradas.cjs',
-        'migrate-despesas.js',
+        'migrate-saidas.js',
         'migrate-error-catalog.js'
     ];
 

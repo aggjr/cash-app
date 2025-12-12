@@ -77,13 +77,13 @@ export const IncomeModal = {
                             <div class="form-group" style="grid-column: span 2;">
                                 <label for="income-data-prevista">Data Prevista <span class="required">*</span></label>
                                 <input type="date" id="income-data-prevista" class="form-input" 
-                                    value="${formatDateForInput(income?.data_prevista_pagamento)}" required />
+                                    value="${formatDateForInput(income?.data_prevista_recebimento)}" required />
                             </div>
 
                             <div class="form-group" style="grid-column: span 2;">
                                 <label for="income-data-real">Data Real</label>
                                 <input type="date" id="income-data-real" class="form-input" 
-                                    value="${formatDateForInput(income?.data_real_pagamento)}" />
+                                    value="${formatDateForInput(income?.data_real_recebimento)}" />
                             </div>
 
                             <!-- Row 2: Company, Account, Value (Span 2 each) -->
@@ -349,8 +349,8 @@ export const IncomeModal = {
 
                         const data = {
                             dataFato: dataFatoInput.value,
-                            dataPrevistaPagamento: dataPrevistaInput.value,
-                            dataRealPagamento: dataRealInput.value || null,
+                            dataPrevistaRecebimento: dataPrevistaInput.value,
+                            dataRealRecebimento: dataRealInput.value || null,
                             valor: parseCurrency(valorInput.value),
                             descricao: descricaoInput.value.trim(),
                             tipoEntradaId: parseInt(tipoEntradaIdInput.value),
@@ -393,3 +393,4 @@ export const IncomeModal = {
         });
     }
 };
+
