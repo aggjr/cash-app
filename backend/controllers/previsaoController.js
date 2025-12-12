@@ -82,11 +82,8 @@ exports.getDailyForecast = async (req, res, next) => {
             }
 
             // Construct SQL Case
-            // COALESCE(prevCol, realCol) is the fallback if predicted doesn't exist (e.g. rapid entry)
-            return `CASE 
-                        WHEN ${realCol} IS NOT NULL AND ${realCol} < CURDATE() THEN ${realCol} 
-                        ELSE COALESCE(${prevCol}, ${realCol}) 
-                    END`;
+            // Logic: IF RealDate exists, USE IT. ELSE use PrevistaDate.
+            return `COALESCE(${realCol}, ${prevCol})`;
         };
 
         // 1.1 Calculate Historic Inflows (active=1)
