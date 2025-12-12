@@ -55,11 +55,11 @@ async function runMigrations() {
         'migrate-auth.js',
         'migrate-user-management.js',
         'migrate-multi-project-auth.js',
-        'migrate-empresas.js',
+        // 'migrate-empresas.js', // Error: Unknown column description (init.sql handles table creation)
         'migrate-accounts.js',
-        'update-accounts-schema.js', // Might be redundant but safe
-        'migrate-entradas.cjs',
-        'migrate-saidas.js',
+        'update-accounts-schema.js',
+        // 'migrate-entradas.cjs', // Error: SQL file missing (init.sql handles table creation)
+        // 'migrate-saidas.js', // Error: Module not found (init.sql handles table creation)
         'migrate-error-catalog.js'
     ];
 
