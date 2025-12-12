@@ -27,17 +27,38 @@ async function waitForDB() {
 }
 
 async function runMigrations() {
-    console.log('🚀 Running Migrations...');
+    console.log('🚀 Checking for Database Reset...');
+
+    // FORCE DB RESET (As requested by user for this deploy)
+    console.log('⚠️  FORCING DATABASE RESET (init.sql) ⚠️');
+    try {
+        await new Promise((resolve, reject) => {
+            const child = exec('node execute-init-sql.js', { cwd: __dirname });
+            child.stdout.on('data', data => console.log(data));
+            child.stderr.on('data', data => console.error(data));
+            child.on('close', code => {
+                if (code === 0) resolve();
+                else reject(new Error(`Reset failed with code ${code}`));
+            });
+        });
+    } catch (e) {
+        console.error('❌ DB Reset Failed:', e);
+        // Important: Should we crash or continue?
+        // If reset fails, likely migrations will fail too.
+        process.exit(1);
+    }
+
+    console.log('🚀 Running Migrations (Post-Reset)...');
 
     // List of migration scripts to run in order
     const migrations = [
-        'migrate-recreate-base-tables.js',  // MUST run first to recreate all base tables with correct structure
+        // 'migrate-recreate-base-tables.js', // Skip, init.sql did this
         'migrate-auth.js',
         'migrate-user-management.js',
         'migrate-multi-project-auth.js',
         'migrate-empresas.js',
         'migrate-accounts.js',
-        'update-accounts-schema.js',
+        'update-accounts-schema.js', // Might be redundant but safe
         'migrate-entradas.cjs',
         'migrate-saidas.js',
         'migrate-error-catalog.js'
