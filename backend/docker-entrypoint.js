@@ -34,7 +34,9 @@ async function runMigrations() {
     console.log('═══════════════════════════════════════\n');
     console.log('🚀 Checking for Database Reset...');
 
-    // FORCE DB RESET (As requested by user for this deploy)
+    // DATABASE RESET DISABLED - Data will persist between deployments
+    // Uncomment the section below ONLY if you need to completely reset the database
+    /*
     console.log('⚠️  FORCING DATABASE RESET (init.sql) ⚠️');
     try {
         await new Promise((resolve, reject) => {
@@ -51,6 +53,8 @@ async function runMigrations() {
         console.error('⚠️  Continuing startup (migrations might match existing schema or fail)...');
         // Do NOT exit, allowing valid startup if DB was already fine or error was transient.
     }
+    */
+    console.log('✅ Database reset skipped - using existing data');
 
     console.log('🚀 Running Migrations (Post-Reset)...');
 
