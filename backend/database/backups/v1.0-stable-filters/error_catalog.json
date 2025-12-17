@@ -1,0 +1,114 @@
+[
+  {
+    "code": "AUTH-001",
+    "http_status": 401,
+    "message": "Acesso negado. Token não fornecido.",
+    "description": "Missing token",
+    "created_at": "2025-12-07T21:05:21.000Z",
+    "updated_at": "2025-12-07T21:05:21.000Z"
+  },
+  {
+    "code": "AUTH-002",
+    "http_status": 401,
+    "message": "Token inválido ou expirado.",
+    "description": "Invalid token",
+    "created_at": "2025-12-07T21:05:21.000Z",
+    "updated_at": "2025-12-07T21:05:21.000Z"
+  },
+  {
+    "code": "AUTH-003",
+    "http_status": 400,
+    "message": "Credenciais inválidas.",
+    "description": "Login failed",
+    "created_at": "2025-12-07T21:05:21.000Z",
+    "updated_at": "2025-12-07T21:05:21.000Z"
+  },
+  {
+    "code": "AUTH-004",
+    "http_status": 403,
+    "message": "Você não tem permissão para realizar esta ação.",
+    "description": "Forbidden",
+    "created_at": "2025-12-07T21:05:21.000Z",
+    "updated_at": "2025-12-07T21:05:21.000Z"
+  },
+  {
+    "code": "DB-001",
+    "http_status": 500,
+    "message": "Erro de conexão com o banco de dados.",
+    "description": "Database connection error",
+    "created_at": "2025-12-07T21:05:21.000Z",
+    "updated_at": "2025-12-07T21:05:21.000Z"
+  },
+  {
+    "code": "RES-001",
+    "http_status": 404,
+    "message": "Recurso não encontrado.",
+    "description": "Not found",
+    "created_at": "2025-12-07T21:05:21.000Z",
+    "updated_at": "2025-12-07T21:05:21.000Z"
+  },
+  {
+    "code": "RES-002",
+    "http_status": 409,
+    "message": "Este registro já existe.",
+    "description": "Duplicate entry",
+    "created_at": "2025-12-07T21:05:21.000Z",
+    "updated_at": "2025-12-07T21:05:21.000Z"
+  },
+  {
+    "code": "RES-003",
+    "http_status": 400,
+    "message": "Não é possível excluir este registro pois existem dependências.",
+    "description": "Constraint violation",
+    "created_at": "2025-12-07T21:05:21.000Z",
+    "updated_at": "2025-12-07T21:05:21.000Z"
+  },
+  {
+    "code": "SYS-001",
+    "http_status": 500,
+    "message": "Erro interno do servidor.",
+    "description": "Internal server error",
+    "created_at": "2025-12-07T21:05:21.000Z",
+    "updated_at": "2025-12-07T21:05:21.000Z"
+  },
+  {
+    "code": "VAL-001",
+    "http_status": 400,
+    "message": "Dados inválidos.",
+    "description": "Generic validation error",
+    "created_at": "2025-12-07T21:05:21.000Z",
+    "updated_at": "2025-12-07T21:05:21.000Z"
+  },
+  {
+    "code": "VAL-002",
+    "http_status": 400,
+    "message": "Campos obrigatórios ausentes.",
+    "description": "Missing required fields",
+    "created_at": "2025-12-07T21:05:21.000Z",
+    "updated_at": "2025-12-07T21:05:21.000Z"
+  },
+  {
+    "code": "VAL-003",
+    "http_status": 400,
+    "message": "Formato de e-mail inválido.",
+    "description": "Invalid email",
+    "created_at": "2025-12-07T21:05:21.000Z",
+    "updated_at": "2025-12-07T21:05:21.000Z"
+  },
+  {
+    "code": "VAL-004",
+    "http_status": 400,
+    "message": "A senha deve ter no mínimo 8 caracteres.",
+    "description": "Password too short",
+    "created_at": "2025-12-07T21:05:21.000Z",
+    "updated_at": "2025-12-07T21:05:21.000Z"
+  },
+  {
+    "code": "VAL-005",
+    "http_status": 400,
+    "message": "CNPJ inválido.",
+    "description": "Invalid CNPJ",
+    "created_at": "2025-12-07T21:05:21.000Z",
+    "updated_at": "2025-12-07T21:05:21.000Z"
+  }
+]

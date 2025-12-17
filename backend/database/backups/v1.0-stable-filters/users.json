@@ -1,0 +1,26 @@
+[
+  {
+    "id": 3,
+    "name": "Augusto",
+    "email": "agomes@foccusgestao.com.br",
+    "password": "$2b$10$/ps4d.lC6DCpSQB3uAPare3WM7OjU2OHxwC.jyGTf6rzWwawy1MRK",
+    "project_id": null,
+    "created_at": "2025-12-15T13:09:22.000Z"
+  },
+  {
+    "id": 5,
+    "name": "asdf",
+    "email": "test@test.com",
+    "password": "$2b$10$ZdG4QxNgL9ld.8FFLPMiVueB6rnwkfUdDR51LqqIw35qJFxr9lGCm",
+    "project_id": null,
+    "created_at": "2025-12-15T14:23:54.000Z"
+  },
+  {
+    "id": 6,
+    "name": "Test User",
+    "email": "test@example.com",
+    "password": "$2b$10$6O9I5ipwtX0plVlOtPylI.GYcN6ItwCzPIv6dTC6S7RCRBCI0TJmK",
+    "project_id": null,
+    "created_at": "2025-12-15T18:37:59.000Z"
+  }
+]

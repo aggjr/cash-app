@@ -21,6 +21,7 @@ import { TransferenciaManager } from './components/TransferenciaManager.js'
 import { ExtratoContaManager } from './components/ExtratoContaManager.js'
 import { ConsolidadasManager } from './components/ConsolidadasManager.js'
 import { PrevisaoFluxoManager } from './components/PrevisaoFluxoManager.js'
+import { AIConsultant } from './components/AIConsultant.js'
 
 console.log('═══════════════════════════════════════');
 console.log('💰 CASH Frontend Starting');
@@ -72,6 +73,9 @@ const renderApp = () => {
       ${Footer()}
     </div>
   `;
+
+  // Append EVA Consultant
+  app.appendChild(AIConsultant());
 
   initAppLogic();
 };

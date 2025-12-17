@@ -1,0 +1,112 @@
+[
+  {
+    "id": 1,
+    "label": "Consultoria",
+    "parent_id": null,
+    "ordem": 0,
+    "expanded": 1,
+    "active": 1,
+    "project_id": 4,
+    "created_at": "2025-12-15T14:24:21.000Z"
+  },
+  {
+    "id": 2,
+    "label": "Cliente 1",
+    "parent_id": 1,
+    "ordem": 0,
+    "expanded": 1,
+    "active": 1,
+    "project_id": 4,
+    "created_at": "2025-12-15T14:24:28.000Z"
+  },
+  {
+    "id": 3,
+    "label": "Cliente 2",
+    "parent_id": 1,
+    "ordem": 1,
+    "expanded": 1,
+    "active": 1,
+    "project_id": 4,
+    "created_at": "2025-12-15T14:24:34.000Z"
+  },
+  {
+    "id": 4,
+    "label": "Software",
+    "parent_id": null,
+    "ordem": 1,
+    "expanded": 1,
+    "active": 1,
+    "project_id": 4,
+    "created_at": "2025-12-15T14:24:39.000Z"
+  },
+  {
+    "id": 5,
+    "label": "CASH",
+    "parent_id": 4,
+    "ordem": 0,
+    "expanded": 1,
+    "active": 1,
+    "project_id": 4,
+    "created_at": "2025-12-15T14:24:44.000Z"
+  },
+  {
+    "id": 6,
+    "label": "STOCKSPIN",
+    "parent_id": 4,
+    "ordem": 1,
+    "expanded": 1,
+    "active": 1,
+    "project_id": 4,
+    "created_at": "2025-12-15T14:24:50.000Z"
+  },
+  {
+    "id": 7,
+    "label": "Consultoria",
+    "parent_id": null,
+    "ordem": 0,
+    "expanded": 1,
+    "active": 1,
+    "project_id": 5,
+    "created_at": "2025-12-15T19:10:27.000Z"
+  },
+  {
+    "id": 8,
+    "label": "Juri",
+    "parent_id": 7,
+    "ordem": 0,
+    "expanded": 1,
+    "active": 1,
+    "project_id": 5,
+    "created_at": "2025-12-15T19:10:32.000Z"
+  },
+  {
+    "id": 9,
+    "label": "Software",
+    "parent_id": null,
+    "ordem": 1,
+    "expanded": 1,
+    "active": 1,
+    "project_id": 5,
+    "created_at": "2025-12-15T19:10:38.000Z"
+  },
+  {
+    "id": 10,
+    "label": "CASH",
+    "parent_id": 9,
+    "ordem": 0,
+    "expanded": 1,
+    "active": 1,
+    "project_id": 5,
+    "created_at": "2025-12-15T19:10:43.000Z"
+  },
+  {
+    "id": 11,
+    "label": "STOCKSPIN",
+    "parent_id": 9,
+    "ordem": 1,
+    "expanded": 1,
+    "active": 1,
+    "project_id": 5,
+    "created_at": "2025-12-15T19:10:49.000Z"
+  }
+]

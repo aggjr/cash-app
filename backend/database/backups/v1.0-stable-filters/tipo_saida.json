@@ -1,0 +1,52 @@
+[
+  {
+    "id": 1,
+    "label": "Despesas",
+    "parent_id": null,
+    "ordem": 0,
+    "expanded": 1,
+    "active": 1,
+    "project_id": 4,
+    "created_at": "2025-12-15T14:32:01.000Z"
+  },
+  {
+    "id": 2,
+    "label": "Contador",
+    "parent_id": 1,
+    "ordem": 0,
+    "expanded": 1,
+    "active": 1,
+    "project_id": 4,
+    "created_at": "2025-12-15T14:32:07.000Z"
+  },
+  {
+    "id": 3,
+    "label": "Empregada",
+    "parent_id": 1,
+    "ordem": 1,
+    "expanded": 1,
+    "active": 1,
+    "project_id": 4,
+    "created_at": "2025-12-15T14:32:17.000Z"
+  },
+  {
+    "id": 4,
+    "label": "Despesas",
+    "parent_id": null,
+    "ordem": 0,
+    "expanded": 1,
+    "active": 1,
+    "project_id": 5,
+    "created_at": "2025-12-15T19:10:59.000Z"
+  },
+  {
+    "id": 5,
+    "label": "Empregada",
+    "parent_id": 4,
+    "ordem": 0,
+    "expanded": 1,
+    "active": 1,
+    "project_id": 5,
+    "created_at": "2025-12-15T19:11:04.000Z"
+  }
+]
