@@ -139,6 +139,29 @@ function initAppLogic() {
     });
   }
 
+  // EVA Agent Toggle
+  const evaWrapper = document.getElementById('ai-consultant-wrapper');
+  const toggleEvaBtn = document.getElementById('toggle-eva-btn');
+
+  if (evaWrapper) {
+    // Load saved state (default visible)
+    const isEvaVisible = localStorage.getItem('eva_visible') !== 'false';
+    evaWrapper.style.display = isEvaVisible ? 'block' : 'none';
+    if (toggleEvaBtn) {
+      toggleEvaBtn.style.opacity = isEvaVisible ? '1' : '0.5';
+    }
+
+    if (toggleEvaBtn) {
+      toggleEvaBtn.addEventListener('click', (e) => {
+        e.preventDefault();
+        const isHidden = evaWrapper.style.display === 'none';
+        evaWrapper.style.display = isHidden ? 'block' : 'none';
+        toggleEvaBtn.style.opacity = isHidden ? '1' : '0.5';
+        localStorage.setItem('eva_visible', isHidden);
+      });
+    }
+  }
+
   // Theme toggle functionality
   const themeToggle = document.getElementById('theme-toggle');
   const themeIcon = themeToggle ? themeToggle.querySelector('.theme-icon') : null;

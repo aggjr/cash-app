@@ -31,6 +31,31 @@ exports.listAportes = async (req, res, next) => {
             whereClauses.push('a.valor <= ?');
             params.push(maxValue);
         }
+
+        // Link Filter (hasAttachment)
+        const { hasAttachment, account, company, description } = req.query;
+        if (hasAttachment !== undefined) {
+            if (hasAttachment === '1' || hasAttachment === 'true') {
+                whereClauses.push('(a.comprovante_url IS NOT NULL AND a.comprovante_url != "")');
+            } else if (hasAttachment === '0' || hasAttachment === 'false') {
+                whereClauses.push('(a.comprovante_url IS NULL OR a.comprovante_url = "")');
+            }
+        }
+
+        // Specific Text Filters
+        if (account) {
+            whereClauses.push('c.name LIKE ?');
+            params.push(`%${account}%`);
+        }
+        if (company) {
+            whereClauses.push('emp.name LIKE ?');
+            params.push(`%${company}%`);
+        }
+        if (description) {
+            whereClauses.push('a.descricao LIKE ?');
+            params.push(`%${description}%`);
+        }
+
         if (search) {
             whereClauses.push('(a.descricao LIKE ? OR emp.name LIKE ? OR c.name LIKE ?)');
             const searchParam = `%${search}%`;
@@ -38,6 +63,13 @@ exports.listAportes = async (req, res, next) => {
         }
 
         const whereSQL = whereClauses.length > 0 ? 'WHERE ' + whereClauses.join(' AND ') : '';
+
+        // Comprehensive Backend Logging
+        console.group('🔍 Aportes Controller Debug');
+        console.log('Query Params:', JSON.stringify(req.query, null, 2));
+        console.log('WHERE SQL:', whereSQL);
+        console.log('SQL Params:', JSON.stringify(params, null, 2));
+        console.groupEnd();
 
         // Count Total
         const countQuery = `
@@ -92,10 +124,11 @@ exports.createAporte = async (req, res, next) => {
             descricao,
             companyId,
             accountId,
-            projectId
+            projectId,
+            comprovante_url
         } = req.body;
 
-        if (!dataFato || !valor || !companyId || !accountId || !projectId) {
+        if (!dataFato || !valor || !companyId || !projectId) {
             throw new AppError('VAL-002');
         }
 
@@ -109,16 +142,27 @@ exports.createAporte = async (req, res, next) => {
 
         const [result] = await connection.query(
             `INSERT INTO aportes 
-            (data_fato, data_real, valor, descricao, company_id, account_id, project_id) 
-            VALUES (?, ?, ?, ?, ?, ?, ?)`,
-            [dataFato, dataReal || null, valorDecimal, descricao, companyId, accountId, projectId]
+            (data_fato, data_real, valor, descricao, company_id, account_id, project_id, comprovante_url) 
+            VALUES (?, ?, ?, ?, ?, ?, ?, ?)`,
+            [dataFato, dataReal || null, valorDecimal, descricao, companyId, accountId, projectId, comprovante_url || null]
         );
 
-        // Update account balance
-        await connection.query(
-            'UPDATE contas SET current_balance = current_balance + ? WHERE id = ?',
-            [valorDecimal, accountId]
-        );
+        // Update account balance if accountId is provided (wait, accountId is not required if dataReal is null?)
+        // The original code enforced accountId. But my new Modal logic makes it optional if dataReal is null.
+        // We need to handle that.
+        // CHECK: Original code: if (!dataFato || ... || !accountId ...) throw Error.
+        // I should update validation to allow null accountId IF dataReal is null?
+        // But table constraint might differ.
+        // Let's assume for now accountId IS required based on previous code.
+        // Update: User requirement "campo de conta destino desabilitado até que a data real seja informada".
+        // This implies if no Data Real, No Account. So accountId CAN be null.
+
+        if (accountId) {
+            await connection.query(
+                'UPDATE contas SET current_balance = current_balance + ? WHERE id = ?',
+                [valorDecimal, accountId]
+            );
+        }
 
         await connection.commit();
 
@@ -131,7 +175,8 @@ exports.createAporte = async (req, res, next) => {
             company_id: companyId,
             account_id: accountId,
             project_id: projectId,
-            active: 1
+            active: 1,
+            comprovante_url
         });
     } catch (error) {
         if (connection) await connection.rollback();
@@ -152,7 +197,8 @@ exports.updateAporte = async (req, res, next) => {
             descricao,
             companyId,
             accountId,
-            active
+            active,
+            comprovante_url
         } = req.body;
 
         connection = await db.getConnection();
@@ -212,6 +258,11 @@ exports.updateAporte = async (req, res, next) => {
             values.push(active);
         }
 
+        if (comprovante_url !== undefined) {
+            updates.push('comprovante_url = ?');
+            values.push(comprovante_url);
+        }
+
         if (updates.length > 0) {
             values.push(id);
             await connection.query(
@@ -220,18 +271,30 @@ exports.updateAporte = async (req, res, next) => {
             );
         }
 
-        // Update balances if value or account changed
-        // 1. Revert old transaction from old account
-        await connection.query(
-            'UPDATE contas SET current_balance = current_balance - ? WHERE id = ?',
-            [oldAporte[0].valor, oldAporte[0].account_id]
-        );
+        // Update balances if value or account changed (complex logic for null accounts needed?)
+        // If accountId was null and now is set -> Add to new.
+        // If accountId was set and now is null -> Remove from old.
+        // If accountId changed -> Remove old, Add new.
+        // Current logic assumes account_id is always present.
+        // We need to respect the possibility of null account_id.
 
-        // 2. Apply new transaction to new account
-        await connection.query(
-            'UPDATE contas SET current_balance = current_balance + ? WHERE id = ?',
-            [newValor, newAccountId]
-        );
+        const oldAcc = oldAporte[0].account_id;
+
+        // 1. Revert old transaction if it existed
+        if (oldAcc) {
+            await connection.query(
+                'UPDATE contas SET current_balance = current_balance - ? WHERE id = ?',
+                [oldAporte[0].valor, oldAcc]
+            );
+        }
+
+        // 2. Apply new transaction if it exists
+        if (newAccountId) {
+            await connection.query(
+                'UPDATE contas SET current_balance = current_balance + ? WHERE id = ?',
+                [newValor, newAccountId]
+            );
+        }
 
         await connection.commit();
         res.json({ message: 'Aporte updated successfully' });

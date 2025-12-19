@@ -3,7 +3,47 @@ const AppError = require('../utils/AppError');
 
 exports.listTransferencias = async (req, res, next) => {
     try {
-        const { projectId, page = 1, limit = 50, search, startDate, endDate, minValue, maxValue } = req.query;
+        // ========================================
+        // COMPREHENSIVE REQUEST LOGGING
+        // ========================================
+        const fs = require('fs');
+        const { projectId, page = 1, limit = 50, search, minValue, maxValue, exactValue, sortBy, order } = req.query;
+
+        const logData = {
+            timestamp: new Date().toISOString(),
+            allQueryParams: req.query,
+            extracted: {
+                projectId, page, limit, search, minValue, maxValue, exactValue, sortBy, order
+            }
+        };
+
+        try {
+            fs.appendFileSync('transferencias_debug.log', '\n' + JSON.stringify(logData, null, 2) + '\n');
+        } catch (err) {
+            console.error('Error writing to debug log:', err);
+        }
+
+        console.log('\n');
+        console.log('═══════════════════════════════════════════════════════════');
+        console.log('🔵 NEW REQUEST TO /transferencias');
+        console.log('═══════════════════════════════════════════════════════════');
+        console.log('📥 ALL QUERY PARAMETERS:', JSON.stringify(req.query, null, 2));
+        console.log('───────────────────────────────────────────────────────────');
+
+
+
+        console.log('📊 EXTRACTED PARAMETERS:');
+        console.log('  - projectId:', projectId);
+        console.log('  - page:', page);
+        console.log('  - limit:', limit);
+        console.log('  - search:', search);
+        console.log('  - minValue:', minValue);
+        console.log('  - maxValue:', maxValue);
+        console.log('  - exactValue:', exactValue);
+        console.log('  - sortBy:', sortBy);
+        console.log('  - order:', order);
+        console.log('═══════════════════════════════════════════════════════════\n');
+
         if (!projectId) {
             throw new AppError('VAL-002', 'Project ID is required');
         }
@@ -27,26 +67,92 @@ exports.listTransferencias = async (req, res, next) => {
             const term = `%${search}%`;
             queryParams.push(term, term, term);
         }
-        if (startDate) {
-            query += ` AND t.data_fato >= ?`;
-            queryParams.push(startDate);
+
+        // Specific text filters for account names
+        if (req.query.source_account_name) {
+            query += ` AND s.name LIKE ?`;
+            queryParams.push(`%${req.query.source_account_name}%`);
         }
-        if (endDate) {
-            query += ` AND t.data_fato <= ?`;
-            queryParams.push(endDate);
+        if (req.query.destination_account_name) {
+            query += ` AND d.name LIKE ?`;
+            queryParams.push(`%${req.query.destination_account_name}%`);
         }
-        if (minValue) {
-            query += ` AND t.valor >= ?`;
-            queryParams.push(minValue);
+        if (req.query.descricao) {
+            query += ` AND t.descricao LIKE ?`;
+            queryParams.push(`%${req.query.descricao}%`);
         }
-        if (maxValue) {
-            query += ` AND t.valor <= ?`;
-            queryParams.push(maxValue);
+
+        // Date Filters for data_prevista
+        if (req.query.data_previstaStart) {
+            query += ` AND t.data_prevista >= ?`;
+            queryParams.push(req.query.data_previstaStart);
+        }
+        if (req.query.data_previstaEnd) {
+            query += ` AND t.data_prevista <= ?`;
+            queryParams.push(req.query.data_previstaEnd);
+        }
+        if (req.query.data_previstaList) {
+            const dates = Array.isArray(req.query.data_previstaList) ? req.query.data_previstaList : [req.query.data_previstaList];
+            query += ` AND DATE(t.data_prevista) IN (${dates.map(() => '?').join(',')})`;
+            queryParams.push(...dates);
+        }
+
+        // Date Filters for data_real
+        if (req.query.data_realStart) {
+            query += ` AND t.data_real >= ?`;
+            queryParams.push(req.query.data_realStart);
+        }
+        if (req.query.data_realEnd) {
+            query += ` AND t.data_real <= ?`;
+            queryParams.push(req.query.data_realEnd);
+        }
+        if (req.query.data_realList) {
+            const dates = Array.isArray(req.query.data_realList) ? req.query.data_realList : [req.query.data_realList];
+            query += ` AND DATE(t.data_real) IN (${dates.map(() => '?').join(',')})`;
+            queryParams.push(...dates);
+        }
+
+        // Value Filters
+        console.log('💰 BACKEND VALOR FILTER - exactValue:', exactValue, 'minValue:', minValue, 'maxValue:', maxValue);
+
+        if (exactValue) {
+            // Exact match using = operator
+            console.log('  ✅ Adding WHERE clause: valor = ', exactValue);
+            query += ` AND t.valor = ?`;
+            queryParams.push(exactValue);
+        } else {
+            // Range match using >= and <=
+            if (minValue) {
+                console.log('  ✅ Adding WHERE clause: valor >= ', minValue);
+                query += ` AND t.valor >= ?`;
+                queryParams.push(minValue);
+            }
+            if (maxValue) {
+                console.log('  ✅ Adding WHERE clause: valor <= ', maxValue);
+                query += ` AND t.valor <= ?`;
+                queryParams.push(maxValue);
+            }
+        }
+
+        // Attachment Filter
+        console.log('🔍 TRANSFERENCIA MAIN QUERY - hasAttachment:', req.query.hasAttachment);
+        if (req.query.hasAttachment === '1') {
+            console.log('✅ Filtering: WITH attachment');
+            query += ` AND t.comprovante_url IS NOT NULL AND t.comprovante_url != ""`;
+        } else if (req.query.hasAttachment === '0') {
+            console.log('❌ Filtering: WITHOUT attachment');
+            query += ` AND (t.comprovante_url IS NULL OR t.comprovante_url = "")`;
         }
 
         // Sorting
-        query += ` ORDER BY t.data_fato DESC, t.created_at DESC LIMIT ? OFFSET ?`;
+        const validSortColumns = ['data_prevista', 'data_real', 'valor', 'descricao', 'source_account_name', 'destination_account_name'];
+        const sortColumn = validSortColumns.includes(sortBy) ? sortBy : 'data_prevista';
+        const sortOrder = order === 'asc' ? 'ASC' : 'DESC';
+        query += ` ORDER BY t.${sortColumn} ${sortOrder}, t.created_at DESC LIMIT ? OFFSET ?`;
         queryParams.push(parseInt(limit), parseInt(offset));
+
+        console.log('🔍 FINAL SQL QUERY:', query);
+        console.log('📊 QUERY PARAMS:', queryParams);
 
         const [rows] = await db.query(query, queryParams);
 
@@ -58,10 +164,32 @@ exports.listTransferencias = async (req, res, next) => {
             const term = `%${search}%`;
             countParams.push(term, term, term);
         }
-        if (startDate) { whereClause += ` AND t.data_fato >= ?`; countParams.push(startDate); }
-        if (endDate) { whereClause += ` AND t.data_fato <= ?`; countParams.push(endDate); }
+        if (req.query.data_previstaStart) { whereClause += ` AND t.data_prevista >= ?`; countParams.push(req.query.data_previstaStart); }
+        if (req.query.data_previstaEnd) { whereClause += ` AND t.data_prevista <= ?`; countParams.push(req.query.data_previstaEnd); }
+        if (req.query.data_previstaList) {
+            const dates = Array.isArray(req.query.data_previstaList) ? req.query.data_previstaList : [req.query.data_previstaList];
+            whereClause += ` AND DATE(t.data_prevista) IN (${dates.map(() => '?').join(',')})`;
+            countParams.push(...dates);
+        }
+        if (req.query.data_realStart) { whereClause += ` AND t.data_real >= ?`; countParams.push(req.query.data_realStart); }
+        if (req.query.data_realEnd) { whereClause += ` AND t.data_real <= ?`; countParams.push(req.query.data_realEnd); }
+        if (req.query.data_realList) {
+            const dates = Array.isArray(req.query.data_realList) ? req.query.data_realList : [req.query.data_realList];
+            whereClause += ` AND DATE(t.data_real) IN (${dates.map(() => '?').join(',')})`;
+            countParams.push(...dates);
+        }
         if (minValue) { whereClause += ` AND t.valor >= ?`; countParams.push(minValue); }
         if (maxValue) { whereClause += ` AND t.valor <= ?`; countParams.push(maxValue); }
+
+        // Attachment Filter
+        console.log('🔍 TRANSFERENCIA FILTER DEBUG - hasAttachment:', req.query.hasAttachment);
+        if (req.query.hasAttachment === '1') {
+            console.log('✅ Filtering: WITH attachment');
+            whereClause += ` AND t.comprovante_url IS NOT NULL AND t.comprovante_url != ""`;
+        } else if (req.query.hasAttachment === '0') {
+            console.log('❌ Filtering: WITHOUT attachment');
+            whereClause += ` AND (t.comprovante_url IS NULL OR t.comprovante_url = "")`;
+        }
 
         const [countResult] = await db.query(`
             SELECT COUNT(*) as total 
@@ -91,10 +219,10 @@ exports.createTransferencia = async (req, res, next) => {
     try {
         await connection.beginTransaction();
 
-        const { dataFato, dataReal, valor, descricao, sourceAccountId, destinationAccountId, projectId } = req.body;
+        const { dataFato, dataPrevista, dataReal, valor, descricao, sourceAccountId, destinationAccountId, projectId, comprovanteUrl } = req.body;
 
-        if (!dataFato || !valor || !sourceAccountId || !destinationAccountId || !projectId) {
-            throw new AppError('VAL-002', 'Datas, Valor, Contas e Projeto são obrigatórios');
+        if (!dataFato || !dataPrevista || !valor || !sourceAccountId || !destinationAccountId || !projectId) {
+            throw new AppError('VAL-002', 'Data Fato, Data Prevista, Valor, Contas e Projeto são obrigatórios');
         }
 
         if (sourceAccountId === destinationAccountId) {
@@ -103,9 +231,9 @@ exports.createTransferencia = async (req, res, next) => {
 
         // Insert
         const [result] = await connection.query(
-            `INSERT INTO transferencias (data_fato, data_real, valor, descricao, source_account_id, destination_account_id, project_id)
-             VALUES (?, ?, ?, ?, ?, ?, ?)`,
-            [dataFato, dataReal || null, valor, descricao, sourceAccountId, destinationAccountId, projectId]
+            `INSERT INTO transferencias (data_fato, data_prevista, data_real, valor, descricao, source_account_id, destination_account_id, project_id, comprovante_url)
+             VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+            [dataFato, dataPrevista, dataReal || null, valor, descricao, sourceAccountId, destinationAccountId, projectId, comprovanteUrl || null]
         );
 
         const newId = result.insertId;
@@ -145,7 +273,7 @@ exports.updateTransferencia = async (req, res, next) => {
         await connection.beginTransaction();
 
         const { id } = req.params;
-        const { dataFato, dataReal, valor, descricao, sourceAccountId, destinationAccountId, active } = req.body;
+        const { dataFato, dataPrevista, dataReal, valor, descricao, sourceAccountId, destinationAccountId, active, comprovanteUrl } = req.body;
 
         const [oldTransf] = await connection.query('SELECT * FROM transferencias WHERE id = ?', [id]);
         if (oldTransf.length === 0) {
@@ -158,11 +286,13 @@ exports.updateTransferencia = async (req, res, next) => {
         const values = [];
 
         if (dataFato !== undefined) { updates.push('data_fato = ?'); values.push(dataFato); }
+        if (dataPrevista !== undefined) { updates.push('data_prevista = ?'); values.push(dataPrevista); }
         if (dataReal !== undefined) { updates.push('data_real = ?'); values.push(dataReal); }
         if (valor !== undefined) { updates.push('valor = ?'); values.push(valor); }
         if (descricao !== undefined) { updates.push('descricao = ?'); values.push(descricao); }
         if (sourceAccountId !== undefined) { updates.push('source_account_id = ?'); values.push(sourceAccountId); }
         if (destinationAccountId !== undefined) { updates.push('destination_account_id = ?'); values.push(destinationAccountId); }
+        if (comprovanteUrl !== undefined) { updates.push('comprovante_url = ?'); values.push(comprovanteUrl); }
         if (active !== undefined) { updates.push('active = ?'); values.push(active); }
 
         if (updates.length > 0) {

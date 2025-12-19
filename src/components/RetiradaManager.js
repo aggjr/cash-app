@@ -1,65 +1,137 @@
 import { RetiradaModal } from './RetiradaModal.js';
+import { SharedTable } from './SharedTable.js';
 import { showToast } from '../utils/toast.js';
 import { getApiBaseUrl } from '../utils/apiConfig.js';
+import * as filterUtils from '../utils/filterUtils.js'; // Assuming this exists or we inline logic
 
 export const RetiradaManager = (project) => {
     const container = document.createElement('div');
     container.className = 'glass-panel';
     const API_BASE_URL = getApiBaseUrl();
-    container.style.padding = '2rem';
-    container.style.margin = '2rem';
-    container.style.height = 'calc(100vh - 150px)';
+    container.style.padding = '1rem';
+    container.style.margin = '0.5rem';
+    container.style.height = 'calc(100vh - 60px)';
+    container.style.width = 'calc(100% - 1rem)';
     container.style.display = 'flex';
     container.style.flexDirection = 'column';
 
-    // State for filtering & pagination
+    // State
     let retiradas = [];
     let pagination = { page: 1, limit: 50, total: 0, pages: 1 };
     let activeFilters = {};
-
-    // Sort Config
     let sortConfig = { key: 'data_fato', direction: 'desc' };
 
-    // Update Columns to include Data Prevista
+    // Columns
     const columns = [
         { key: 'data_fato', label: 'Data Fato', width: '100px', align: 'center', type: 'date' },
         { key: 'data_prevista', label: 'Data Prevista', width: '100px', align: 'center', type: 'date' },
         { key: 'data_real', label: 'Data Real', width: '100px', align: 'center', type: 'date' },
-        // No Type Column
         { key: 'descricao', label: 'Descrição', width: 'auto', align: 'left', type: 'text' },
         { key: 'company_name', label: 'Empresa', width: '200px', align: 'left', type: 'text' },
         { key: 'account_name', label: 'Conta', width: '200px', align: 'left', type: 'text' },
-        { key: 'valor', label: 'Valor', width: '120px', align: 'right', type: 'currency' },
-        { key: 'actions', label: 'Ações', width: '100px', align: 'center', noFilter: true },
-        { key: 'status', label: '', width: '40px', align: 'center', noFilter: true }
+        {
+            key: 'valor',
+            label: 'Valor',
+            width: '120px',
+            align: 'right',
+            type: 'currency',
+            colorLogic: 'outflow' // Red for negative/outflow
+        },
+        {
+            key: 'link',
+            label: 'Link',
+            width: '60px',
+            align: 'center',
+            type: 'link',
+            noTextSearch: true,
+            render: (item) => {
+                const btn = document.createElement('button');
+                btn.innerHTML = '📎';
+                btn.style.background = 'none';
+                btn.style.border = 'none';
+                btn.style.fontSize = '1.2rem';
+                btn.style.padding = '0';
+
+                if (item.comprovante_url) {
+                    btn.style.cursor = 'pointer';
+                    btn.title = 'Ver Comprovante';
+                    btn.onclick = (e) => {
+                        e.stopPropagation();
+                        // Open in new tab
+                        window.open(`${API_BASE_URL}${item.comprovante_url}`, '_blank');
+                    };
+                } else {
+                    btn.style.cursor = 'default';
+                    btn.style.opacity = '0.3';
+                    btn.title = 'Sem anexo';
+                }
+                return btn;
+            }
+        },
+        {
+            key: 'actions',
+            label: 'Ações',
+            width: '100px',
+            align: 'center',
+            noFilter: true,
+            render: (item) => {
+                const div = document.createElement('div');
+                div.style.display = 'flex';
+                div.style.gap = '0.5rem';
+                div.style.justifyContent = 'center';
+
+                const btnEdit = document.createElement('button');
+                btnEdit.innerHTML = '✏️';
+                btnEdit.style.background = 'none'; btnEdit.style.border = 'none'; btnEdit.style.cursor = 'pointer';
+                btnEdit.onclick = (e) => { e.stopPropagation(); updateRetirada(item); };
+
+                const btnDelete = document.createElement('button');
+                btnDelete.innerHTML = '🗑️';
+                btnDelete.style.background = 'none'; btnDelete.style.border = 'none'; btnDelete.style.cursor = 'pointer';
+                btnDelete.onclick = (e) => { e.stopPropagation(); deleteRetirada(item.id, item.descricao); };
+
+                div.appendChild(btnEdit);
+                div.appendChild(btnDelete);
+                return div;
+            }
+        },
+        {
+            key: 'status',
+            label: '',
+            width: '40px',
+            align: 'center',
+            noFilter: true,
+            render: (item) => {
+                // Status Logic
+                let statusColor = '#F59E0B'; // Pending
+                let statusTitle = 'Pendente';
+                if (item.data_real) {
+                    statusColor = '#10B981'; statusTitle = 'Realizado';
+                } else {
+                    const today = new Date().toISOString().split('T')[0];
+                    const prev = item.data_prevista ? item.data_prevista.split('T')[0] : '';
+                    if (prev && prev < today) { statusColor = '#EF4444'; statusTitle = 'Atrasado'; }
+                }
+                const dot = document.createElement('div');
+                dot.style.width = '10px'; dot.style.height = '10px'; dot.style.borderRadius = '50%';
+                dot.style.backgroundColor = statusColor;
+                dot.style.margin = '0 auto';
+                dot.title = statusTitle;
+                return dot;
+            }
+        }
     ];
 
-    const FILTER_ICON = `<svg viewBox="0 0 24 24" fill="currentColor" class="filter-icon"><path d="M10 18h4v-2h-4v2zM3 6v2h18V6H3zm3 7h12v-2H6v2z"/></svg>`;
+    let sharedTable = null;
 
-    const getHeaders = () => {
-        const token = localStorage.getItem('token');
-        return {
-            'Content-Type': 'application/json',
-            'Authorization': `Bearer ${token}`
-        };
-    };
-
-    const formatCurrency = (value) => {
-        const val = parseFloat(value || 0);
-        // Display as negative
-        return new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(val * -1);
-    };
-
-    const formatDate = (dateString) => {
-        if (!dateString) return '-';
-        const date = dateString.includes('T') ? new Date(dateString) : new Date(dateString + 'T00:00:00');
-        if (isNaN(date.getTime())) return '-';
-        return date.toLocaleDateString('pt-BR');
-    };
+    const getHeaders = () => ({
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${localStorage.getItem('token')}`
+    });
 
     const loadRetiradas = async (page = 1) => {
         try {
-            container.querySelector('.retiradas-table-wrapper')?.classList.add('loading');
+            container.querySelector('#table-container')?.classList.add('loading');
 
             const params = new URLSearchParams({
                 projectId: project.id,
@@ -67,26 +139,85 @@ export const RetiradaManager = (project) => {
                 limit: pagination.limit
             });
 
-            // Map Filters to Query Params
+            if (sortConfig.key) {
+                params.append('sortBy', sortConfig.key);
+                params.append('order', sortConfig.direction);
+            }
+
+            // Filter Mapping (Similar to AporteManager logic)
             Object.keys(activeFilters).forEach(key => {
                 const filter = activeFilters[key];
                 if (!filter) return;
 
                 if (key === 'valor') {
-                    if (filter.min) params.append('minValue', filter.min);
-                    if (filter.max) params.append('maxValue', filter.max);
+                    if (filter.operator && filter.val1) {
+                        if (filter.operator === 'eq') { params.append('minValue', filter.val1); params.append('maxValue', filter.val1); }
+                        else if (filter.operator === 'gt') params.append('minValue', String(Number(filter.val1) + 0.01));
+                        else if (filter.operator === 'gte') params.append('minValue', filter.val1);
+                        else if (filter.operator === 'lt') params.append('maxValue', String(Number(filter.val1) - 0.01));
+                        else if (filter.operator === 'lte') params.append('maxValue', filter.val1);
+                        else if (filter.operator === 'bt' && filter.val2) { params.append('minValue', filter.val1); params.append('maxValue', filter.val2); }
+                    } else if (filter.min || filter.max) {
+                        // Old fallback
+                        if (filter.min) params.append('minValue', filter.min);
+                        if (filter.max) params.append('maxValue', filter.max);
+                    }
                 } else if (key.startsWith('data')) {
-                    if (filter.start) params.append('startDate', filter.start);
-                    if (filter.end) params.append('endDate', filter.end);
+                    // Date Filters
+                    let useAdvanced = false;
+                    if (filter.operator) {
+                        useAdvanced = true;
+                        if (filter.operator === 'eq' && filter.val1) {
+                            params.append(`${key}Start`, filter.val1);
+                            params.append(`${key}End`, filter.val1);
+                        } else if (filter.operator === 'before' && filter.val1) {
+                            params.append(`${key}End`, filter.val1);
+                        } else if (filter.operator === 'after' && filter.val1) {
+                            params.append(`${key}Start`, filter.val1);
+                        } else if (filter.operator === 'between' && filter.val1 && filter.val2) {
+                            params.append(`${key}Start`, filter.val1);
+                            params.append(`${key}End`, filter.val2);
+                        }
+                    } else if (filter.start || filter.end) {
+                        useAdvanced = true;
+                        if (filter.start) params.append(`${key}Start`, filter.start);
+                        if (filter.end) params.append(`${key}End`, filter.end);
+                    }
+
+                    if (!useAdvanced && filter.dateIn && filter.dateIn.length > 0 && !filter.dateIn.includes('__NONE__')) {
+                        filter.dateIn.forEach(d => params.append(`${key}List`, d));
+                    }
+                } else if (key === 'link') {
+                    // Link Filter
+                    if (filter.value === 'true' || filter.value === 'with_link') params.append('hasAttachment', '1');
+                    else if (filter.value === 'false' || filter.value === 'without_link') params.append('hasAttachment', '0');
                 } else {
-                    if (filter.text) params.append('search', filter.text);
+                    // Text Filters
+                    // Handle specific text columns (account, company, description)
+                    // We map them to specific backend params which use LIKE %...%
+                    let textVal = filter.text || filter.val1;
+
+                    if (key === 'account_name' && textVal) params.append('account', textVal);
+                    else if (key === 'company_name' && textVal) params.append('company', textVal);
+                    else if (key === 'descricao' && textVal) params.append('description', textVal);
+
+                    // Generic Search or other text columns
+                    else if (textVal) {
+                        params.append('search', textVal);
+                    }
+
+                    // Checkbox list (textIn)
+                    if (filter.textIn && filter.textIn.length > 0 && !filter.textIn.includes('__NONE__')) {
+                        // Backend support for list filtering on text columns might be limited,
+                        // fallback to search or implement specific logic if needed.
+                        // For now we skip or log warning.
+                    }
                 }
             });
 
-            const response = await fetch(`${API_BASE_URL}/retiradas?${params.toString()}`, {
-                headers: getHeaders()
-            });
+            const response = await fetch(`${API_BASE_URL}/retiradas?${params.toString()}`, { headers: getHeaders() });
             const result = await response.json();
+
 
             if (result.meta) {
                 retiradas = result.data;
@@ -96,281 +227,145 @@ export const RetiradaManager = (project) => {
                 pagination = { page: 1, limit: retiradas.length, total: retiradas.length, pages: 1 };
             }
 
-            renderRetiradas(retiradas);
+            if (sharedTable) {
+                sharedTable.render(retiradas);
+                renderPagination();
+            } else {
+                console.warn('SharedTable not initialized yet');
+            }
+
         } catch (error) {
-            console.error('Error loading retiradas:', error);
+            console.error(error);
             showToast('Erro ao carregar retiradas', 'error');
         } finally {
-            container.querySelector('.retiradas-table-wrapper')?.classList.remove('loading');
+            container.querySelector('#table-container')?.classList.remove('loading');
         }
     };
 
-    const applyFilters = () => {
-        loadRetiradas(1);
+    const renderPagination = () => {
+        const pagContainer = container.querySelector('.pagination-controls');
+        if (!pagContainer) return;
+
+        pagContainer.innerHTML = '';
+
+        const btnPrev = document.createElement('button');
+        btnPrev.className = 'btn-sm';
+        btnPrev.textContent = '◀ Anterior';
+        btnPrev.disabled = pagination.page <= 1;
+        btnPrev.onclick = () => loadRetiradas(pagination.page - 1);
+
+        const label = document.createElement('span');
+        label.textContent = `Página ${pagination.page} de ${pagination.pages}`;
+        label.style.margin = '0 1rem';
+
+        const btnNext = document.createElement('button');
+        btnNext.className = 'btn-sm';
+        btnNext.textContent = 'Próxima ▶';
+        btnNext.disabled = pagination.page >= pagination.pages;
+        btnNext.onclick = () => loadRetiradas(pagination.page + 1);
+
+        pagContainer.appendChild(btnPrev);
+        pagContainer.appendChild(label);
+        pagContainer.appendChild(btnNext);
+
+        // Update Total
+        const totalContainer = container.querySelector('#total-display');
+        if (totalContainer) {
+            const totalVal = retiradas.reduce((sum, item) => sum + parseFloat(item.valor || 0), 0);
+            const color = '#EF4444'; // Always Red for Retiradas
+            totalContainer.innerHTML = `
+                <span style="font-size: 1.1rem; margin-right: 0.5rem;">Total (Página):</span>
+                <span style="font-weight: 700; font-size: 1.1rem; color: ${color};">
+                    ${new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(totalVal)}
+                </span>
+            `;
+        }
     };
 
     const createRetirada = async () => {
-        const data = await RetiradaModal.show({
-            retirada: null,
-            projectId: project.id,
-            onSave: async (retiradaData) => {
-                try {
-                    const response = await fetch(`${API_BASE_URL}/retiradas`, {
-                        method: 'POST',
-                        headers: getHeaders(),
-                        body: JSON.stringify({
-                            dataFato: retiradaData.dataFato,
-                            dataPrevista: retiradaData.dataPrevista,
-                            dataReal: retiradaData.dataReal,
-                            valor: retiradaData.valor,
-                            descricao: retiradaData.descricao,
-                            companyId: retiradaData.companyId,
-                            accountId: retiradaData.accountId,
-                            projectId: project.id
-                        })
-                    });
-
-                    if (response.ok) {
-                        showToast('Retirada criada com sucesso!', 'success');
-                        loadRetiradas();
-                    } else {
-                        const error = await response.json();
-                        showToast(error.error || 'Erro ao criar retirada', 'error');
-                    }
-                } catch (error) {
-                    showToast('Erro de conexão', 'error');
-                }
+        await RetiradaModal.show({
+            retirada: null, projectId: project.id,
+            onSave: async (data) => {
+                const res = await fetch(`${API_BASE_URL}/retiradas`, {
+                    method: 'POST', headers: getHeaders(),
+                    body: JSON.stringify({ ...data, projectId: project.id })
+                });
+                if (res.ok) { showToast('Criado com sucesso!', 'success'); loadRetiradas(); }
+                else { const err = await res.json(); showToast(err.error || 'Erro', 'error'); }
             }
         });
     };
 
-    const updateRetirada = async (retirada) => {
-        const data = await RetiradaModal.show({
-            retirada: retirada,
-            projectId: project.id,
-            onSave: async (retiradaData) => {
-                try {
-                    const response = await fetch(`${API_BASE_URL}/retiradas/${retirada.id}`, {
-                        method: 'PUT',
-                        headers: getHeaders(),
-                        body: JSON.stringify({
-                            dataFato: retiradaData.dataFato,
-                            dataPrevista: retiradaData.dataPrevista,
-                            dataReal: retiradaData.dataReal,
-                            valor: retiradaData.valor,
-                            descricao: retiradaData.descricao,
-                            companyId: retiradaData.companyId,
-                            accountId: retiradaData.accountId,
-                            active: retiradaData.active
-                        })
-                    });
-
-                    if (response.ok) {
-                        showToast('Retirada atualizada com sucesso!', 'success');
-                        loadRetiradas();
-                    } else {
-                        const error = await response.json();
-                        showToast(error.error || 'Erro ao atualizar retirada', 'error');
-                    }
-                } catch (error) {
-                    showToast('Erro de conexão', 'error');
-                }
+    const updateRetirada = async (item) => {
+        await RetiradaModal.show({
+            retirada: item, projectId: project.id,
+            onSave: async (data) => {
+                const res = await fetch(`${API_BASE_URL}/retiradas/${item.id}`, {
+                    method: 'PUT', headers: getHeaders(),
+                    body: JSON.stringify(data)
+                });
+                if (res.ok) { showToast('Atualizado com sucesso!', 'success'); loadRetiradas(); }
+                else { const err = await res.json(); showToast(err.error || 'Erro', 'error'); }
             }
         });
     };
 
-    const deleteRetirada = async (id, description) => {
-        const displayText = description || 'esta retirada';
-        if (!confirm(`Tem certeza que deseja excluir "${displayText}"?`)) return;
-
-        try {
-            const response = await fetch(`${API_BASE_URL}/retiradas/${id}`, {
-                method: 'DELETE',
-                headers: getHeaders()
-            });
-
-            if (response.ok) {
-                showToast('Retirada excluída com sucesso!', 'success');
-                loadRetiradas();
-            } else {
-                const error = await response.json();
-                showToast(error.error || 'Erro ao excluir retirada', 'error');
-            }
-        } catch (error) {
-            showToast('Erro de conexão', 'error');
-        }
+    const deleteRetirada = async (id, title) => {
+        if (!confirm(`Excluir "${title || 'item'}"?`)) return;
+        const res = await fetch(`${API_BASE_URL}/retiradas/${id}`, { method: 'DELETE', headers: getHeaders() });
+        if (res.ok) { showToast('Excluído!', 'success'); loadRetiradas(); }
+        else showToast('Erro ao excluir', 'error');
     };
 
-    const showAdvancedMenu = (colKey, target) => {
-        const existing = document.querySelector('.filter-dropdown');
-        if (existing) existing.remove();
+    // Initialize UI
+    const titleArea = document.createElement('div');
+    titleArea.style.marginBottom = '1rem';
+    titleArea.innerHTML = `<h2>➖ Retiradas</h2>`;
+    container.appendChild(titleArea);
 
-        const colDef = columns.find(c => c.key === colKey);
-        const colType = colDef ? colDef.type : 'text';
+    const btnArea = document.createElement('div');
+    btnArea.style.marginBottom = '1rem';
+    const btnNew = document.createElement('button');
+    btnNew.className = 'btn-primary';
+    btnNew.textContent = '+ Nova Retirada';
+    btnNew.onclick = createRetirada;
+    btnArea.appendChild(btnNew);
+    container.appendChild(btnArea);
 
-        let extraDraft = {};
-        if (activeFilters[colKey]) {
-            extraDraft = { ...activeFilters[colKey] };
-        }
+    const tableContainer = document.createElement('div');
+    tableContainer.id = 'table-container';
+    tableContainer.style.flex = '1';
+    tableContainer.style.overflow = 'hidden';
+    tableContainer.style.display = 'flex';
+    tableContainer.style.flexDirection = 'column';
+    container.appendChild(tableContainer);
 
-        const menu = document.createElement('div');
-        menu.className = 'filter-dropdown animate-float-in';
-        menu.onclick = (e) => e.stopPropagation();
+    // Footer with Total and Pagination
+    const footer = document.createElement('div');
+    footer.style.marginTop = '1rem';
+    footer.style.display = 'flex';
+    footer.style.justifyContent = 'space-between';
+    footer.style.alignItems = 'center';
+    footer.style.padding = '0.5rem';
+    footer.style.borderTop = '1px solid var(--color-border-light)';
 
-        const searchDiv = document.createElement('div');
-        searchDiv.className = 'filter-search';
-        const searchInput = document.createElement('input');
-        searchInput.placeholder = 'Pesquisar...';
-        searchInput.value = extraDraft.text || '';
-        searchInput.onclick = (e) => e.stopPropagation();
-        searchInput.onchange = (e) => extraDraft.text = e.target.value;
-        searchDiv.appendChild(searchInput);
-        menu.appendChild(searchDiv);
+    footer.innerHTML = `
+        <div id="total-display"></div>
+        <div class="pagination-controls" style="display: flex; gap: 0.5rem; align-items: center;"></div>
+    `;
+    container.appendChild(footer);
 
-        const advancedDiv = document.createElement('div');
-        advancedDiv.className = 'filter-advanced';
-        advancedDiv.style.padding = '0.5rem';
-        advancedDiv.style.borderTop = '1px solid var(--color-border-light)';
-
-        if (colType === 'currency' || colType === 'number') {
-            const row = document.createElement('div');
-            row.style.display = 'flex'; row.style.gap = '0.5rem';
-            const minInput = document.createElement('input'); minInput.type = 'number'; minInput.placeholder = 'Mín'; minInput.value = extraDraft.min || '';
-            minInput.onchange = (e) => extraDraft.min = e.target.value;
-            const maxInput = document.createElement('input'); maxInput.type = 'number'; maxInput.placeholder = 'Máx'; maxInput.value = extraDraft.max || '';
-            maxInput.onchange = (e) => extraDraft.max = e.target.value;
-            row.append(minInput, maxInput); advancedDiv.append(row);
-        } else if (colType === 'date') {
-            const row = document.createElement('div'); row.style.display = 'flex'; row.style.flexDirection = 'column'; row.style.gap = '0.5rem';
-            const sInput = document.createElement('input'); sInput.type = 'date'; sInput.value = extraDraft.start || '';
-            sInput.onchange = (e) => extraDraft.start = e.target.value;
-            const eInput = document.createElement('input'); eInput.type = 'date'; eInput.value = extraDraft.end || '';
-            eInput.onchange = (e) => extraDraft.end = e.target.value;
-            row.append(sInput, eInput); advancedDiv.append(row);
-        }
-        menu.appendChild(advancedDiv);
-
-        const actionsDiv = document.createElement('div');
-        actionsDiv.className = 'filter-actions';
-        const btnOnlyClear = document.createElement('button'); btnOnlyClear.className = 'filter-btn'; btnOnlyClear.textContent = 'Limpar';
-        btnOnlyClear.onclick = () => { delete activeFilters[colKey]; applyFilters(); menu.remove(); };
-        const btnApply = document.createElement('button'); btnApply.className = 'filter-btn primary'; btnApply.textContent = 'Filtrar';
-        btnApply.onclick = () => {
-            const isEmpty = !extraDraft.text && !extraDraft.min && !extraDraft.max && !extraDraft.start && !extraDraft.end;
-            if (isEmpty) delete activeFilters[colKey]; else activeFilters[colKey] = extraDraft;
-            applyFilters(); menu.remove();
-        };
-        actionsDiv.append(btnOnlyClear, btnApply);
-        menu.appendChild(actionsDiv);
-
-        document.body.appendChild(menu);
-
-        const rect = target.getBoundingClientRect();
-        let top = rect.bottom + window.scrollY;
-        let left = rect.left + window.scrollX;
-        if (left + 280 > window.innerWidth) left = (rect.right + window.scrollX) - 280;
-        menu.style.position = 'absolute'; menu.style.top = top + 'px'; menu.style.left = left + 'px'; menu.style.zIndex = '10000';
-
-        setTimeout(() => {
-            const close = (e) => { if (!menu.contains(e.target) && !target.contains(e.target)) { menu.remove(); document.removeEventListener('click', close); } };
-            document.addEventListener('click', close);
-        }, 100);
-    };
-
-    const renderRetiradas = (items) => {
-        container.innerHTML = `
-            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 2rem;">
-                <h2>➖ Retiradas</h2>
-                 <div style="display: flex; gap: 0.5rem;">
-                     <a href="#" style="font-size: 0.9rem; color: var(--color-primary);">Movimentações</a>
-                     <span style="color: var(--color-text-muted);">/</span>
-                     <span style="font-size: 0.9rem; color: var(--color-text-muted);">Retiradas</span>
-                </div>
-            </div>
-
-            <div style="margin-bottom: 1rem;">
-                <!-- Updated Button: Blue, + sign -->
-                <button id="btn-new-retirada" class="btn-primary">+ Nova Retirada</button>
-            </div>
-
-            <div class="retiradas-table-wrapper" style="flex: 1; overflow: auto; border: 1px solid var(--color-border-light); border-radius: 8px; box-shadow: var(--shadow-sm);">
-                <table style="width: 100%; border-collapse: collapse;">
-                    <thead class="sticky-header">
-                        <tr>
-                            ${columns.map(col => {
-            const isActive = !!activeFilters[col.key];
-            const iconClass = isActive ? 'filter-icon active' : 'filter-icon';
-            const content = col.noFilter ? col.label : `
-                                    <div style="display:flex; justify-content:space-between; align-items:center;">
-                                        <span>${col.label}</span>
-                                        <div class="filter-trigger" data-key="${col.key}" style="cursor:pointer;">${FILTER_ICON.replace('filter-icon', iconClass)}</div>
-                                    </div>
-                                `;
-            // Updated Header Style to match Despesa (Dark Blue)
-            // Color: #0c4a6e is dark blue used in DespesaManager (visible in viewed code)
-            return `<th style="padding:0.75rem; text-align:${col.align}; border-bottom:2px solid #0c4a6e; background:#0c4a6e; color: white; font-weight:600;">${content}</th>`;
-        }).join('')}
-                        </tr>
-                    </thead>
-                    <tbody>
-                        ${items.map((item, index) => {
-            const isEven = index % 2 === 0;
-            const bgColor = isEven ? '#FFFFFF' : '#F9FAFB';
-
-            // Status Logic (Consistent with Despesa which shows red for overdue/unpaid)
-            let statusColor = '#F59E0B'; // Pending
-            let statusTitle = 'Pendente';
-            // If data_real is present, it's paid/withdrawn -> Green
-            if (item.data_real) {
-                statusColor = '#10B981';
-                statusTitle = 'Realizado';
-            } else {
-                // If data_prevista < today, it's delayed?
-                // Despesa logic: 
-                // if (prev && prev < today) statusColor = '#EF4444';
-                const today = new Date().toISOString().split('T')[0];
-                const prev = item.data_prevista ? item.data_prevista.split('T')[0] : '';
-                if (prev && prev < today) {
-                    statusColor = '#EF4444';
-                    statusTitle = 'Atrasado';
-                }
-            }
-
-            return `
-                                <tr style="background-color:${bgColor}; border-bottom:1px solid #eee;">
-                                    <td style="padding:0.75rem; text-align:center;">${formatDate(item.data_fato)}</td>
-                                    <td style="padding:0.75rem; text-align:center;">${formatDate(item.data_prevista)}</td>
-                                    <td style="padding:0.75rem; text-align:center;">${formatDate(item.data_real)}</td>
-                                    <td style="padding:0.75rem;">${item.descricao || '-'}</td>
-                                    <td style="padding:0.75rem;">${item.company_name}</td>
-                                    <td style="padding:0.75rem;">${item.account_name}</td>
-                                    <td style="padding:0.75rem; text-align:right; font-weight:600; color:#EF4444;">${formatCurrency(item.valor)}</td>
-                                    <td style="padding:0.75rem; text-align:center;">
-                                         <button class="btn-edit" data-id="${item.id}" style="color: #10B981; margin-right: 0.5rem; background:none; border:none; cursor:pointer;">✏️</button>
-                                         <button class="btn-delete" data-id="${item.id}" style="color: #EF4444; background:none; border:none; cursor:pointer;">🗑️</button>
-                                    </td>
-                                    <td style="padding:0.75rem; text-align:center;">
-                                        <div style="width:10px; height:10px; border-radius:50%; background-color:${statusColor};" title="${statusTitle}"></div>
-                                    </td>
-                                </tr>
-                            `;
-        }).join('')}
-                    </tbody>
-                </table>
-            </div>
-            
-            <div style="margin-top: 1rem; text-align: right; color: var(--color-text-muted); font-size: 0.9rem;">
-                 <b>Total:</b> ${pagination.total} registros | 
-                 <b style="color: #EF4444; font-size: 1.1rem;">${formatCurrency(items.reduce((acc, i) => acc + parseFloat(i.valor), 0))}</b>
-            </div>
-        `;
-
-        container.querySelector('#btn-new-retirada').onclick = createRetirada;
-        container.querySelectorAll('.filter-trigger').forEach(el => el.onclick = (e) => { e.stopPropagation(); showAdvancedMenu(el.dataset.key, el); });
-        container.querySelectorAll('.btn-edit').forEach(el => el.onclick = () => updateRetirada(items.find(i => i.id == el.dataset.id)));
-        container.querySelectorAll('.btn-delete').forEach(el => el.onclick = () => deleteRetirada(el.dataset.id, items.find(i => i.id == el.dataset.id).descricao));
-    };
+    // Init SharedTable
+    sharedTable = new SharedTable({
+        container: tableContainer,
+        columns: columns,
+        projectId: project.id,
+        endpointPrefix: null, // Client-side distinct or add backend support later
+        onSortChange: (sort) => { sortConfig = sort; loadRetiradas(pagination.page); },
+        onFilterChange: (newFilters) => { activeFilters = newFilters; loadRetiradas(1); }
+    });
 
     loadRetiradas();
+
     return container;
 };

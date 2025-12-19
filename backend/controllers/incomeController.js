@@ -1,6 +1,33 @@
 const db = require('../config/database');
 const AppError = require('../utils/AppError');
 
+const getOrderByClause = (sortBy, order = 'asc') => {
+    const direction = order.toUpperCase() === 'DESC' ? 'DESC' : 'ASC';
+
+    switch (sortBy) {
+        case 'valor':
+            return `e.valor ${direction}`;
+        case 'data_fato':
+            return `e.data_fato ${direction}`;
+        case 'data_prevista_recebimento':
+            return `e.data_prevista_recebimento ${direction}`;
+        case 'data_real_recebimento':
+            return `e.data_real_recebimento ${direction}`;
+        case 'data_atraso':
+            return `e.data_atraso ${direction}`;
+        case 'descricao':
+            return `e.descricao ${direction}`;
+        case 'tipo_entrada_name':
+            return `th.full_path ${direction}`; // Sorting by joined column (nested path)
+        case 'company_name':
+            return `emp.name ${direction}`;
+        case 'account_name':
+            return `c.name ${direction}`;
+        default:
+            return `e.data_fato DESC, e.created_at DESC`;
+    }
+};
+
 exports.listIncomes = async (req, res, next) => {
     try {
         const { projectId, page = 1, limit = 50, search, startDate, endDate, minValue, maxValue } = req.query;
@@ -14,15 +41,43 @@ exports.listIncomes = async (req, res, next) => {
         let whereClauses = ['e.project_id = ?', 'e.active = 1'];
         params.push(projectId);
 
-        // Dynamic Filtering
-        if (startDate) {
-            whereClauses.push('e.data_fato >= ?');
-            params.push(startDate);
-        }
-        if (endDate) {
-            whereClauses.push('e.data_fato <= ?');
-            params.push(endDate);
-        }
+        // Dynamic Filtering - Specific Date Columns
+        // Helper to handle date range
+        const addDateFilter = (field, startParam, endParam) => {
+            if (req.query[startParam]) {
+                whereClauses.push(`e.${field} >= ?`);
+                params.push(req.query[startParam]);
+            }
+            if (req.query[endParam]) {
+                // For end date, ensure we include the whole day (23:59:59)
+                whereClauses.push(`e.${field} <= ?`);
+                params.push(`${req.query[endParam]} 23:59:59`);
+            }
+        };
+
+        const addDateListFilter = (field, listParam) => {
+            if (req.query[listParam]) {
+                const dates = Array.isArray(req.query[listParam]) ? req.query[listParam] : [req.query[listParam]];
+                if (dates.length > 0) {
+                    // Use DATE() function to match regardless of time component
+                    whereClauses.push(`DATE(e.${field}) IN (?)`);
+                    params.push(dates);
+                }
+            }
+        };
+
+        addDateFilter('data_fato', 'data_fatoStart', 'data_fatoEnd');
+        addDateListFilter('data_fato', 'data_fatoList');
+
+        addDateFilter('data_prevista_recebimento', 'data_prevista_recebimentoStart', 'data_prevista_recebimentoEnd');
+        addDateListFilter('data_prevista_recebimento', 'data_prevista_recebimentoList');
+
+        addDateFilter('data_real_recebimento', 'data_real_recebimentoStart', 'data_real_recebimentoEnd');
+        addDateListFilter('data_real_recebimento', 'data_real_recebimentoList');
+
+        addDateFilter('data_atraso', 'data_atrasoStart', 'data_atrasoEnd');
+        addDateListFilter('data_atraso', 'data_atrasoList');
+
         if (minValue) {
             whereClauses.push('e.valor >= ?');
             params.push(minValue);
@@ -37,12 +92,48 @@ exports.listIncomes = async (req, res, next) => {
             params.push(searchParam, searchParam, searchParam);
         }
 
+        // Specific Text Filters
+        if (req.query.description) {
+            whereClauses.push('e.descricao LIKE ?');
+            params.push(`%${req.query.description}%`);
+        }
+        if (req.query.account) {
+            whereClauses.push('c.name LIKE ?');
+            params.push(`%${req.query.account}%`);
+        }
+        if (req.query.company) {
+            whereClauses.push('emp.name LIKE ?');
+            params.push(`%${req.query.company}%`);
+        }
+
+        if (req.query.tipoEntrada) {
+            whereClauses.push('th.full_path LIKE ?');
+            params.push(`%${req.query.tipoEntrada}%`);
+        }
+
+        // Attachment Filter
+        if (req.query.hasAttachment === '1') {
+            whereClauses.push('e.comprovante_url IS NOT NULL AND e.comprovante_url != ""');
+        } else if (req.query.hasAttachment === '0') {
+            whereClauses.push('(e.comprovante_url IS NULL OR e.comprovante_url = "")');
+        }
+
         const whereSQL = whereClauses.length > 0 ? 'WHERE ' + whereClauses.join(' AND ') : '';
 
         // Count Total
         const countQuery = `
+            WITH RECURSIVE TypeHierarchy AS (
+                SELECT id, label, parent_id, CAST(label AS CHAR(255)) as full_path
+                FROM tipo_entrada
+                WHERE parent_id IS NULL
+                UNION ALL
+                SELECT t.id, t.label, t.parent_id, CONCAT(th.full_path, ' / ', t.label)
+                FROM tipo_entrada t
+                INNER JOIN TypeHierarchy th ON t.parent_id = th.id
+            )
             SELECT COUNT(*) as total
             FROM entradas e
+            LEFT JOIN TypeHierarchy th ON e.tipo_entrada_id = th.id
             INNER JOIN empresas emp ON e.company_id = emp.id
             INNER JOIN contas c ON e.account_id = c.id
             ${whereSQL}`;
@@ -73,7 +164,8 @@ exports.listIncomes = async (req, res, next) => {
              INNER JOIN empresas emp ON e.company_id = emp.id
              INNER JOIN contas c ON e.account_id = c.id
              ${whereSQL}
-             ORDER BY e.data_fato DESC, e.created_at DESC
+             ORDER BY 
+             ${getOrderByClause(req.query.sortBy, req.query.order)}
              LIMIT ? OFFSET ?`;
 
         const [incomes] = await db.query(dataQuery, [...params, parseInt(limit), parseInt(offset)]);
@@ -103,11 +195,13 @@ exports.createIncome = async (req, res, next) => {
             dataFato,
             dataPrevistaRecebimento,
             dataRealRecebimento,
+            dataAtraso,
             valor,
             descricao,
             tipoEntradaId,
             companyId,
             accountId,
+            comprovanteUrl,
             projectId
         } = req.body;
 
@@ -125,9 +219,9 @@ exports.createIncome = async (req, res, next) => {
 
         const [result] = await connection.query(
             `INSERT INTO entradas 
-            (data_fato, data_prevista_recebimento, data_real_recebimento, valor, descricao, tipo_entrada_id, company_id, account_id, project_id) 
-            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)`,
-            [dataFato, dataPrevistaRecebimento, dataRealRecebimento || null, valorDecimal, descricao, tipoEntradaId, companyId, accountId, projectId]
+            (data_fato, data_prevista_recebimento, data_real_recebimento, data_atraso, valor, descricao, tipo_entrada_id, company_id, account_id, project_id, comprovante_url) 
+            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+            [dataFato, dataPrevistaRecebimento, dataRealRecebimento || null, dataAtraso || null, valorDecimal, descricao, tipoEntradaId, companyId, accountId, projectId, comprovanteUrl || null]
         );
 
         // Update account balance
@@ -143,13 +237,15 @@ exports.createIncome = async (req, res, next) => {
             data_fato: dataFato,
             data_prevista_recebimento: dataPrevistaRecebimento,
             data_real_recebimento: dataRealRecebimento || null,
+            data_atraso: dataAtraso || null,
             valor: valorDecimal,
             descricao,
             tipo_entrada_id: tipoEntradaId,
             company_id: companyId,
             account_id: accountId,
             project_id: projectId,
-            active: 1
+            active: 1,
+            comprovante_url: comprovanteUrl || null
         });
     } catch (error) {
         if (connection) await connection.rollback();
@@ -167,11 +263,13 @@ exports.updateIncome = async (req, res, next) => {
             dataFato,
             dataPrevistaRecebimento,
             dataRealRecebimento,
+            dataAtraso,
             valor,
             descricao,
             tipoEntradaId,
             companyId,
             accountId,
+            comprovanteUrl,
             active
         } = req.body;
 
@@ -202,6 +300,10 @@ exports.updateIncome = async (req, res, next) => {
         if (dataRealRecebimento !== undefined) {
             updates.push('data_real_recebimento = ?');
             values.push(dataRealRecebimento || null);
+        }
+        if (dataAtraso !== undefined) {
+            updates.push('data_atraso = ?');
+            values.push(dataAtraso || null);
         }
 
         let newValor = oldIncome[0].valor;
@@ -238,6 +340,10 @@ exports.updateIncome = async (req, res, next) => {
         if (active !== undefined) {
             updates.push('active = ?');
             values.push(active);
+        }
+        if (comprovanteUrl !== undefined) {
+            updates.push('comprovante_url = ?');
+            values.push(comprovanteUrl);
         }
 
         if (updates.length > 0) {

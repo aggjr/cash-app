@@ -1,15 +1,137 @@
 const db = require('../config/database');
 const AppError = require('../utils/AppError');
 
+// Helper function to generate dynamic ORDER BY clause
+const getOrderByClause = (sortBy, order = 'desc') => {
+    const validOrders = ['asc', 'desc'];
+    const orderDirection = validOrders.includes(order?.toLowerCase()) ? order.toUpperCase() : 'DESC';
+
+    const orderMappings = {
+        'valor': `s.valor ${orderDirection}`,
+        'data_fato': `s.data_fato ${orderDirection}`,
+        'data_prevista_pagamento': `s.data_prevista_pagamento ${orderDirection}`,
+        'data_real_pagamento': `s.data_real_pagamento ${orderDirection}`,
+        'data_prevista_atraso': `s.data_prevista_atraso ${orderDirection}`,
+        'descricao': `s.descricao ${orderDirection}`,
+        'tipo_saida_name': `th.full_path ${orderDirection}`,
+        'company_name': `emp.name ${orderDirection}`,
+        'account_name': `c.name ${orderDirection}`
+    };
+
+    return orderMappings[sortBy] || 's.data_fato DESC, s.created_at DESC';
+};
+
 exports.listSaidas = async (req, res, next) => {
     try {
-        const { projectId } = req.query;
+        const { projectId, search, minValue, maxValue, sortBy, order } = req.query;
+
         if (!projectId) {
             throw new AppError('VAL-002', `Debug: query=${JSON.stringify(req.query)}, projectId=${projectId}`);
         }
 
-        const [saidas] = await db.query(
-            `WITH RECURSIVE TypeHierarchy AS (
+        let whereClauses = ['s.project_id = ?', 's.active = 1'];
+        let params = [projectId];
+
+        // Dynamic Filtering - Specific Date Columns
+        const addDateFilter = (field, startParam, endParam) => {
+            if (req.query[startParam]) {
+                whereClauses.push(`s.${field} >= ?`);
+                params.push(req.query[startParam]);
+            }
+            if (req.query[endParam]) {
+                whereClauses.push(`s.${field} <= ?`);
+                params.push(`${req.query[endParam]} 23:59:59`);
+            }
+        };
+
+        const addDateListFilter = (field, listParam) => {
+            if (req.query[listParam]) {
+                const dates = Array.isArray(req.query[listParam]) ? req.query[listParam] : [req.query[listParam]];
+                if (dates.length > 0) {
+                    whereClauses.push(`DATE(s.${field}) IN (?)`);
+                    params.push(dates);
+                }
+            }
+        };
+
+        addDateFilter('data_fato', 'data_fatoStart', 'data_fatoEnd');
+        addDateListFilter('data_fato', 'data_fatoList');
+
+        addDateFilter('data_prevista_pagamento', 'data_prevista_pagamentoStart', 'data_prevista_pagamentoEnd');
+        addDateListFilter('data_prevista_pagamento', 'data_prevista_pagamentoList');
+
+        addDateFilter('data_real_pagamento', 'data_real_pagamentoStart', 'data_real_pagamentoEnd');
+        addDateListFilter('data_real_pagamento', 'data_real_pagamentoList');
+
+        addDateFilter('data_prevista_atraso', 'data_prevista_atrasoStart', 'data_prevista_atrasoEnd');
+        addDateListFilter('data_prevista_atraso', 'data_prevista_atrasoList');
+
+        if (minValue) {
+            whereClauses.push('s.valor >= ?');
+            params.push(minValue);
+        }
+        if (maxValue) {
+            whereClauses.push('s.valor <= ?');
+            params.push(maxValue);
+        }
+        if (search) {
+            whereClauses.push('(s.descricao LIKE ? OR emp.name LIKE ? OR c.name LIKE ?)');
+            const searchParam = `%${search}%`;
+            params.push(searchParam, searchParam, searchParam);
+        }
+
+        // Specific Text Filters
+        if (req.query.description) {
+            whereClauses.push('s.descricao LIKE ?');
+            params.push(`%${req.query.description}%`);
+        }
+        if (req.query.account) {
+            whereClauses.push('c.name LIKE ?');
+            params.push(`%${req.query.account}%`);
+        }
+        if (req.query.company) {
+            whereClauses.push('emp.name LIKE ?');
+            params.push(`%${req.query.company}%`);
+        }
+
+        if (req.query.tipoSaida) {
+            whereClauses.push('th.full_path LIKE ?');
+            params.push(`%${req.query.tipoSaida}%`);
+        }
+
+        // Attachment Filter
+        if (req.query.hasAttachment === '1') {
+            whereClauses.push('s.comprovante_url IS NOT NULL AND s.comprovante_url != ""');
+        } else if (req.query.hasAttachment === '0') {
+            whereClauses.push('(s.comprovante_url IS NULL OR s.comprovante_url = "")');
+        }
+
+        const whereSQL = whereClauses.length > 0 ? 'WHERE ' + whereClauses.join(' AND ') : '';
+
+        // Count Total
+        const countQuery = `
+            WITH RECURSIVE TypeHierarchy AS (
+                SELECT id, label, parent_id, CAST(label AS CHAR(255)) as full_path
+                FROM tipo_saida
+                WHERE parent_id IS NULL
+                UNION ALL
+                SELECT t.id, t.label, t.parent_id, CONCAT(th.full_path, ' / ', t.label)
+                FROM tipo_saida t
+                INNER JOIN TypeHierarchy th ON t.parent_id = th.id
+            )
+            SELECT COUNT(*) as total
+            FROM saidas s
+            LEFT JOIN TypeHierarchy th ON s.tipo_saida_id = th.id
+            INNER JOIN empresas emp ON s.company_id = emp.id
+            INNER JOIN contas c ON s.account_id = c.id
+            ${whereSQL}`;
+
+        const [countResult] = await db.query(countQuery, params);
+        const totalItems = countResult[0].total;
+
+        // Fetch Data
+        const dataQuery = `
+            WITH RECURSIVE TypeHierarchy AS (
                 SELECT id, label, parent_id, CAST(label AS CHAR(255)) as full_path
                 FROM tipo_saida
                 WHERE parent_id IS NULL
@@ -19,20 +141,22 @@ exports.listSaidas = async (req, res, next) => {
                 INNER JOIN TypeHierarchy th ON t.parent_id = th.id
              )
              SELECT 
-                d.*,
+                s.*,
                 th.full_path as tipo_saida_name,
                 emp.name as company_name,
                 emp.cnpj as company_cnpj,
                 c.name as account_name,
                 c.account_type as account_type
-             FROM saidas d
-             INNER JOIN TypeHierarchy th ON d.tipo_saida_id = th.id
-             INNER JOIN empresas emp ON d.company_id = emp.id
-             INNER JOIN contas c ON d.account_id = c.id
-             WHERE d.project_id = ? AND d.active = 1
-             ORDER BY d.data_fato DESC, d.created_at DESC`,
-            [projectId]
-        );
+             FROM saidas s
+             LEFT JOIN TypeHierarchy th ON s.tipo_saida_id = th.id
+             INNER JOIN empresas emp ON s.company_id = emp.id
+             INNER JOIN contas c ON s.account_id = c.id
+             ${whereSQL}
+             ORDER BY 
+             ${getOrderByClause(sortBy, order)}`;
+
+        const [saidas] = await db.query(dataQuery, params);
+
         res.json(saidas);
     } catch (error) {
         next(error);
@@ -51,7 +175,8 @@ exports.createSaida = async (req, res, next) => {
             tipoSaidaId,
             companyId,
             accountId,
-            projectId
+            projectId,
+            comprovanteUrl
         } = req.body;
 
         if (!dataFato || !dataPrevistaPagamento || !valor || !tipoSaidaId || !companyId || !accountId || !projectId) {
@@ -68,9 +193,9 @@ exports.createSaida = async (req, res, next) => {
 
         const [result] = await connection.query(
             `INSERT INTO saidas 
-            (data_fato, data_prevista_pagamento, data_real_pagamento, valor, descricao, tipo_saida_id, company_id, account_id, project_id) 
-            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)`,
-            [dataFato, dataPrevistaPagamento, dataRealPagamento || null, valorDecimal, descricao, tipoSaidaId, companyId, accountId, projectId]
+            (data_fato, data_prevista_pagamento, data_real_pagamento, valor, descricao, tipo_saida_id, company_id, account_id, project_id, comprovante_url) 
+            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+            [dataFato, dataPrevistaPagamento, dataRealPagamento || null, valorDecimal, descricao, tipoSaidaId, companyId, accountId, projectId, comprovanteUrl || null]
         );
 
         // Update account balance - SUBTRACT for expenses
@@ -92,6 +217,7 @@ exports.createSaida = async (req, res, next) => {
             company_id: companyId,
             account_id: accountId,
             project_id: projectId,
+            comprovante_url: comprovanteUrl || null,
             active: 1
         });
     } catch (error) {
@@ -115,7 +241,8 @@ exports.updateSaida = async (req, res, next) => {
             tipoSaidaId,
             companyId,
             accountId,
-            active
+            active,
+            comprovanteUrl
         } = req.body;
 
         connection = await db.getConnection();
@@ -181,6 +308,11 @@ exports.updateSaida = async (req, res, next) => {
         if (active !== undefined) {
             updates.push('active = ?');
             values.push(active);
+        }
+
+        if (comprovanteUrl !== undefined) {
+            updates.push('comprovante_url = ?');
+            values.push(comprovanteUrl || null);
         }
 
         if (updates.length > 0) {

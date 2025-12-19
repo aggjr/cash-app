@@ -165,12 +165,10 @@ export class SharedTable {
             const ascOpacity = isAsc ? '1' : '0.3';
             const descOpacity = isDesc ? '1' : '0.3';
 
-            // Flex Alignment Logic
-            const justify = col.align === 'center' ? 'center' : (col.align === 'right' ? 'flex-end' : 'space-between');
+            // Flex Alignment Logic - Always Center Headers
+            const justify = 'center';
             const labelColor = isActive ? 'var(--color-gold)' : 'white';
-            const spanStyle = col.align === 'center'
-                ? `text-align: center; white-space: nowrap; font-weight: 600; color: ${labelColor};`
-                : `flex: 1; text-align: ${col.align || 'left'}; white-space: nowrap; font-weight: 600; color: ${labelColor};`;
+            const spanStyle = `text-align: center; white-space: nowrap; font-weight: 600; color: ${labelColor};`;
             const containerStyle = `display: flex; align-items: center; justify-content: ${justify}; width: 100%; gap: 6px;`;
 
             // Spacer for center alignment balance
@@ -229,6 +227,10 @@ export class SharedTable {
         const colDef = this.columns.find(c => c.key === colKey);
         const colType = colDef ? colDef.type : 'text';
 
+        // Filter out columns explicitly marked as noFilter (but if we are here, trigger was clicked, so maybe allow specific overrides?)
+        // The Link column was strictly marked noFilter previously. We need to remove that in IncomeManager.
+        // But assuming we enabled it, let's handle 'link' type.
+
         let extraDraft = { ...this.activeFilters[colKey] } || {};
 
         // Helper: Execute Filter
@@ -248,6 +250,13 @@ export class SharedTable {
             if (!isEmpty) {
                 this.activeFilters[colKey] = extraDraft;
             }
+
+            console.group('🔍 SharedTable Filter Debug');
+            console.log('Column:', colKey);
+            console.log('Draft State:', JSON.stringify(extraDraft, null, 2));
+            console.log('Is Empty:', isEmpty);
+            console.log('Active Filters (Final):', JSON.stringify(this.activeFilters, null, 2));
+            console.groupEnd();
 
             if (this.onFilterChange) this.onFilterChange(this.activeFilters);
             menu.remove();
@@ -282,24 +291,16 @@ export class SharedTable {
         menu.onclick = (e) => e.stopPropagation();
 
         // --- Standard Text Filter ---
-        // Only show if type is NOT handled by specific advanced filters
-        if (!['boolean', 'date', 'currency', 'number', 'text'].includes(colType)) {
-            const searchDiv = document.createElement('div');
-            searchDiv.className = 'filter-search';
-            const searchInput = document.createElement('input');
-            searchInput.className = 'form-input';
-            searchInput.placeholder = 'Pesquisar texto...';
-            searchInput.style.width = '100%';
-            searchInput.value = extraDraft.text || '';
-            searchInput.onclick = (e) => e.stopPropagation();
-            searchInput.oninput = (e) => extraDraft.text = e.target.value;
-            searchInput.onkeydown = (e) => handleKeydown(e);
-            searchDiv.appendChild(searchInput);
-            menu.appendChild(searchDiv);
-        }
+        // REMOVED as per user request (redundant with list search)
+        // If we need a simple text filter fallback for non-text/non-special columns, we can keep it,
+        // but 'text' type now has the list view with search.
+        // Checking types that do NOT have advanced filters:
+        // boolean, date, currency, number, link, text (advanced).
+        // So practically everything is covered.
+
 
         // --- Boolean Filter ---
-        if (colType === 'boolean') {
+        if (colType === 'boolean' || colType === 'link') {
             const boolDiv = document.createElement('div');
             boolDiv.style.display = 'flex';
             boolDiv.style.flexDirection = 'column';
@@ -352,11 +353,45 @@ export class SharedTable {
             const listSearch = document.createElement('input');
             listSearch.className = 'form-input';
             listSearch.placeholder = 'Pesquisar...';
+
+            // Initialize with current filter value if exists (and is exact match)
+            if (extraDraft.operator === 'eq' && extraDraft.val1 !== undefined && extraDraft.val1 !== null) {
+                listSearch.value = parseFloat(extraDraft.val1).toLocaleString('pt-BR', { minimumFractionDigits: 2 });
+            }
+
             listSearch.style.width = '100%';
             listSearch.onclick = e => e.stopPropagation();
-            listSearch.onkeydown = (e) => handleKeydown(e);
-            listSearch.onkeyup = (e) => {
+            listSearch.onkeydown = (e) => {
+                if (e.key === 'Enter') {
+                    e.preventDefault(); e.stopPropagation();
+                    // Smart Behavior: Treat as Equals filter if numeric
+                    const val = parseFloat(listSearch.value.replace(',', '.'));
+                    if (!isNaN(val)) {
+                        console.log('Smart Filter (Enter): EQ', val);
+                        extraDraft.operator = 'eq';
+                        extraDraft.val1 = val;
+                        delete extraDraft.numIn; // Priority to explicit value
+                        executeFilter();
+                    }
+                }
+            };
+            listSearch.oninput = (e) => {
                 const term = e.target.value.toLowerCase();
+
+                // Smart Behavior: Update draft state if it looks like a number
+                const val = parseFloat(term.replace(',', '.'));
+                if (!isNaN(val) && term.trim() !== '') {
+                    extraDraft.operator = 'eq';
+                    extraDraft.val1 = val;
+                    // We don't delete numIn here yet, to allow checkbox interactions still
+                } else {
+                    // If cleared, remove operator if it was 'eq'
+                    if (extraDraft.operator === 'eq') {
+                        delete extraDraft.operator;
+                        delete extraDraft.val1;
+                    }
+                }
+
                 listContainer.querySelectorAll('.val-row').forEach(row => {
                     const txt = row.textContent.toLowerCase();
                     row.style.display = txt.includes(term) ? 'flex' : 'none';
@@ -605,6 +640,7 @@ export class SharedTable {
 
             const listSearch = document.createElement('input');
             listSearch.className = 'form-input'; listSearch.placeholder = 'Pesquisar...'; listSearch.style.width = '100%';
+            listSearch.value = extraDraft.text || extraDraft.val1 || ''; // Initialize with current filter value
             listSearch.onclick = e => e.stopPropagation();
             listSearch.onkeydown = (e) => {
                 if (e.key === 'Enter') {
@@ -773,12 +809,6 @@ export class SharedTable {
             btnAdv.style.justifyContent = 'space-between'; btnAdv.style.backgroundColor = '#f9f9f9'; btnAdv.style.borderRadius = '4px';
             btnAdv.onclick = (e) => { e.stopPropagation(); listView.style.display = 'none'; operatorView.style.display = 'flex'; };
             listView.appendChild(btnAdv);
-
-            const listSearch = document.createElement('input');
-            listSearch.className = 'form-input'; listSearch.placeholder = 'Pesquisar...'; listSearch.style.width = '100%';
-            listSearch.onclick = e => e.stopPropagation();
-            listSearch.onkeydown = (e) => handleKeydown(e);
-            listView.appendChild(listSearch);
 
             const listContainer = document.createElement('div');
             listContainer.style.maxHeight = '250px'; listContainer.style.overflowY = 'auto';

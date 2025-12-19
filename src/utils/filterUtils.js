@@ -14,9 +14,16 @@ export const buildApiParams = (activeFilters, sortConfig, pagination, projectId)
         const filter = activeFilters[key];
 
         // Special Boolean / Receipt Logic
-        if (key === 'comprovante_url' || filter.type === 'boolean') {
-            if (filter.value === 'with_file' || filter.value === 'true') params.append('hasReceipt', 'true');
-            if (filter.value === 'without_file' || filter.value === 'false') params.append('hasReceipt', 'false');
+        if (key === 'comprovante_url' || filter.type === 'boolean' || filter.type === 'link') {
+            console.log('🔗 LINK FILTER DETECTED:', { key, filterType: filter.type, filterValue: filter.value });
+            if (filter.value === 'with_file' || filter.value === 'true') {
+                console.log('  ➡️ Adding hasAttachment=1');
+                params.append('hasAttachment', '1');
+            }
+            if (filter.value === 'without_file' || filter.value === 'false') {
+                console.log('  ➡️ Adding hasAttachment=0');
+                params.append('hasAttachment', '0');
+            }
             return;
         }
 

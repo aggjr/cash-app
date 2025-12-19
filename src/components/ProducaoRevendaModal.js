@@ -81,12 +81,18 @@ export const ProducaoRevendaModal = {
                             </div>
 
                             <div class="form-group" style="grid-column: span 2;">
+                                <label for="prod-data-atraso">Data Atraso</label>
+                                <input type="date" id="prod-data-atraso" class="form-input" 
+                                    value="${formatDateForInput(item?.data_prevista_atraso)}" />
+                            </div>
+
+                            <!-- Row 2: Data Real, Company, Account (Span 2 each) -->
+                            <div class="form-group" style="grid-column: span 2;">
                                 <label for="prod-data-real">Data Real</label>
                                 <input type="date" id="prod-data-real" class="form-input" 
                                     value="${formatDateForInput(item?.data_real_pagamento)}" />
                             </div>
 
-                            <!-- Row 2: Company, Account, Value (Span 2 each) -->
                             <div class="form-group" style="grid-column: span 2;">
                                 <label for="prod-company">Empresa <span class="required">*</span></label>
                                 <select id="prod-company" class="form-input" required>
@@ -96,20 +102,52 @@ export const ProducaoRevendaModal = {
                             </div>
 
                             <div class="form-group" style="grid-column: span 2;">
-                                <label for="prod-account">Conta <span class="required">*</span></label>
-                                <select id="prod-account" class="form-input" required>
+                                <label for="prod-account">Conta <span id="account-required-asterisk" class="required" style="display: none;">*</span></label>
+                                <select id="prod-account" class="form-input" style="background-color: var(--color-background-disabled); color: #9CA3AF;" disabled>
                                     <option value="">Selecione...</option>
                                     ${accounts.map(a => `<option value="${a.id}" ${item?.account_id == a.id ? 'selected' : ''}>${a.name}</option>`).join('')}
                                 </select>
                             </div>
 
-                            <div class="form-group" style="grid-column: span 2;">
+                            <!-- Row 3: Valor (Span 3), Comprovante (Span 3) -->
+                            <div class="form-group" style="grid-column: span 3;">
                                 <label for="prod-valor">Valor (R$) <span class="required">*</span></label>
                                 <input type="text" id="prod-valor" class="form-input" 
                                     placeholder="R$ 0,00" required />
                             </div>
 
-                            <!-- Row 3: Description (Span 3) and Tree (Span 3) Side-by-Side Symmetrical -->
+                            <div class="form-group" style="grid-column: span 3;">
+                                <label for="prod-comprovante">Comprovante</label>
+                                <input type="file" id="prod-comprovante" style="display: none;" accept="image/*,application/pdf" />
+                                <input type="hidden" id="prod-comprovante-url" value="${item?.comprovante_url || ''}" />
+                                
+                                <div id="comprovante-container" class="form-input" style="
+                                    display: flex; 
+                                    align-items: center; 
+                                    justify-content: space-between; 
+                                    cursor: pointer; 
+                                    padding: 0.5rem; 
+                                    background: white;
+                                ">
+                                    <div id="file-display-area" style="display: flex; align-items: center; gap: 8px; flex: 1; overflow: hidden;">
+                                        <span id="placeholder-text" style="color: #9CA3AF; font-style: italic; font-size: 0.9rem;">
+                                            ${item?.comprovante_url ? '' : 'Clique no clipe para anexar...'}
+                                        </span>
+                                        <a id="file-link" href="${item?.comprovante_url ? API_BASE_URL + item.comprovante_url : '#'}" target="_blank" 
+                                           style="display: ${item?.comprovante_url ? 'block' : 'none'}; color: var(--color-primary); text-decoration: underline; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; font-size: 0.9rem;">
+                                           ${item?.comprovante_url ? item.comprovante_url.split('/').pop().split('-').slice(1).join('-') : ''}
+                                        </a>
+                                    </div>
+
+                                    <div style="display: flex; align-items: center; gap: 10px;">
+                                        <span id="btn-attach" style="cursor: pointer; font-size: 1.2rem; display: ${item?.comprovante_url ? 'none' : 'block'};" title="Anexar Arquivo">📎</span>
+                                        <span id="btn-remove" style="cursor: pointer; font-size: 1.2rem; display: ${item?.comprovante_url ? 'block' : 'none'};" title="Remover Arquivo">🗑️</span>
+                                    </div>
+                                </div>
+                                <div id="comprovante-preview" style="margin-top: 5px; font-size: 0.85rem; display: none;"></div>
+                            </div>
+
+                            <!-- Row 4: Description (Span 3) and Tree (Span 3) Side-by-Side Symmetrical -->
                             
                             <div class="form-group" style="grid-column: span 3; display: flex; flex-direction: column;">
                                 <label for="prod-descricao">Descrição</label>
@@ -139,6 +177,7 @@ export const ProducaoRevendaModal = {
                 // Elements
                 const dataFatoInput = modal.querySelector('#prod-data-fato');
                 const dataPrevistaInput = modal.querySelector('#prod-data-prevista');
+                const dataAtrasoInput = modal.querySelector('#prod-data-atraso');
                 const dataRealInput = modal.querySelector('#prod-data-real');
                 const valorInput = modal.querySelector('#prod-valor');
                 const tipoIdInput = modal.querySelector('#prod-tipo-id');
@@ -148,6 +187,8 @@ export const ProducaoRevendaModal = {
                 const descricaoInput = modal.querySelector('#prod-descricao');
                 const saveBtn = modal.querySelector('#modal-save');
                 const cancelBtn = modal.querySelector('#modal-cancel');
+                const comprovanteInput = modal.querySelector('#prod-comprovante');
+                const comprovanteUrlInput = modal.querySelector('#prod-comprovante-url');
 
                 const validate = () => {
                     let isValid = true;
@@ -156,7 +197,8 @@ export const ProducaoRevendaModal = {
                     if (!valorInput.value) { valorInput.classList.add('input-error'); isValid = false; } else valorInput.classList.remove('input-error');
                     if (!tipoIdInput.value) { treeContainer.style.border = '1px solid #EF4444'; isValid = false; } else treeContainer.style.border = '1px solid var(--color-border-light)';
                     if (!companySelect.value) { companySelect.classList.add('input-error'); isValid = false; } else companySelect.classList.remove('input-error');
-                    if (!accountSelect.value) { accountSelect.classList.add('input-error'); isValid = false; } else accountSelect.classList.remove('input-error');
+                    // Account is only required if Data Real is filled
+                    if (dataRealInput.value && !accountSelect.value) { accountSelect.classList.add('input-error'); isValid = false; } else accountSelect.classList.remove('input-error');
                     return isValid;
                 };
 
@@ -225,8 +267,118 @@ export const ProducaoRevendaModal = {
 
                 setTimeout(() => { dataFatoInput.focus(); }, 100);
 
+                // File Upload Logic
+                const comprovanteContainer = modal.querySelector('#comprovante-container');
+                const btnAttach = modal.querySelector('#btn-attach');
+                const btnRemove = modal.querySelector('#btn-remove');
+                const fileLink = modal.querySelector('#file-link');
+                const placeholderText = modal.querySelector('#placeholder-text');
+
+                const updateFileUI = (url, filename) => {
+                    if (url) {
+                        placeholderText.style.display = 'none';
+                        fileLink.style.display = 'block';
+                        fileLink.href = `${API_BASE_URL}${url}`;
+                        fileLink.textContent = filename || 'Arquivo Anexado';
+                        btnAttach.style.display = 'none';
+                        btnRemove.style.display = 'block';
+                    } else {
+                        placeholderText.style.display = 'block';
+                        fileLink.style.display = 'none';
+                        fileLink.href = '#';
+                        fileLink.textContent = '';
+                        btnAttach.style.display = 'block';
+                        btnRemove.style.display = 'none';
+                        comprovanteInput.value = '';
+                        comprovanteUrlInput.value = '';
+                    }
+                };
+
+                if (comprovanteInput) {
+                    btnAttach.addEventListener('click', (e) => {
+                        e.stopPropagation();
+                        comprovanteInput.click();
+                    });
+
+                    comprovanteContainer.addEventListener('click', (e) => {
+                        if (!comprovanteUrlInput.value && e.target !== btnRemove && e.target !== fileLink) {
+                            comprovanteInput.click();
+                        }
+                    });
+
+                    btnRemove.addEventListener('click', (e) => {
+                        e.stopPropagation();
+                        updateFileUI(null, null);
+                        markAsDirty();
+                    });
+
+                    comprovanteInput.addEventListener('change', async (e) => {
+                        const file = e.target.files[0];
+                        if (!file) return;
+
+                        const formData = new FormData();
+                        formData.append('file', file);
+
+                        try {
+                            placeholderText.textContent = 'Enviando...';
+                            placeholderText.style.color = 'var(--color-gold)';
+
+                            const response = await fetch(`${API_BASE_URL}/upload`, {
+                                method: 'POST',
+                                headers: { 'Authorization': `Bearer ${token}` },
+                                body: formData
+                            });
+
+                            if (!response.ok) throw new Error('Falha no upload');
+
+                            const result = await response.json();
+
+                            placeholderText.textContent = 'Clique no clipe para anexar...';
+                            placeholderText.style.color = '#9CA3AF';
+
+                            comprovanteUrlInput.value = result.fileUrl;
+                            updateFileUI(result.fileUrl, result.originalName);
+                            markAsDirty();
+
+                        } catch (error) {
+                            console.error('Upload error:', error);
+                            placeholderText.textContent = 'Erro ao enviar. Tente novamente.';
+                            placeholderText.style.color = '#EF4444';
+                            comprovanteInput.value = '';
+                        }
+                    });
+                }
+
+                const accountAsterisk = modal.querySelector('#account-required-asterisk');
+
+                const toggleAccountState = () => {
+                    if (dataRealInput.value) {
+                        accountSelect.disabled = false;
+                        accountSelect.style.backgroundColor = 'white';
+                        accountSelect.style.color = 'inherit';
+                        accountAsterisk.style.display = 'inline';
+                    } else {
+                        accountSelect.disabled = true;
+                        accountSelect.value = ''; // Clear account selection when Data Real is empty
+                        accountSelect.style.backgroundColor = 'var(--color-background-disabled)';
+                        accountSelect.style.color = '#9CA3AF';
+                        accountAsterisk.style.display = 'none';
+                        accountSelect.classList.remove('input-error');
+                    }
+                };
+
+                toggleAccountState();
+
+                dataRealInput.addEventListener('change', () => {
+                    toggleAccountState();
+                    markAsDirty();
+                });
+                dataRealInput.addEventListener('input', () => {
+                    toggleAccountState();
+                });
+
                 // Change Tracking
-                [dataFatoInput, dataPrevistaInput, dataRealInput, valorInput, companySelect, accountSelect, descricaoInput].forEach(el => {
+                [dataFatoInput, dataPrevistaInput, dataAtrasoInput, dataRealInput, valorInput, companySelect, accountSelect, descricaoInput].forEach(el => {
                     if (el) {
                         el.addEventListener('input', markAsDirty);
                         el.addEventListener('change', markAsDirty);
@@ -296,6 +448,54 @@ export const ProducaoRevendaModal = {
                     });
                 };
 
+                const showCustomAlert = (message) => {
+                    return new Promise((resolveAlert) => {
+                        const alertOverlay = document.createElement('div');
+                        alertOverlay.className = 'dialog-overlay';
+                        alertOverlay.style.zIndex = '100000';
+                        alertOverlay.style.backgroundColor = 'rgba(0,0,0,0.4)';
+
+                        const alertBox = document.createElement('div');
+                        alertBox.style.background = 'white';
+                        alertBox.style.padding = '24px';
+                        alertBox.style.borderRadius = '12px';
+                        alertBox.style.maxWidth = '400px';
+                        alertBox.style.width = '90%';
+                        alertBox.style.boxShadow = '0 10px 25px rgba(0,0,0,0.2)';
+                        alertBox.style.textAlign = 'center';
+                        alertBox.className = 'animate-float-in';
+
+                        alertBox.innerHTML = `
+                            <h3 style="margin: 0 0 16px 0; color: #EF4444; font-size: 1.25rem;">Atenção</h3>
+                            <p style="margin: 0 0 24px 0; color: #555; line-height: 1.5;">${message}</p>
+                            <div style="display: flex; justify-content: center;">
+                                <button id="alert-ok" style="
+                                    background: var(--color-primary); border: none; padding: 8px 24px; 
+                                    border-radius: 6px; cursor: pointer; color: white; font-weight: 500;">
+                                    Entendi
+                                </button>
+                            </div>
+                        `;
+
+                        alertOverlay.appendChild(alertBox);
+                        document.body.appendChild(alertOverlay);
+
+                        const closeAlert = () => {
+                            if (document.body.contains(alertOverlay)) {
+                                document.body.removeChild(alertOverlay);
+                            }
+                            resolveAlert();
+                        };
+
+                        const btnOk = alertOverlay.querySelector('#alert-ok');
+                        if (btnOk) btnOk.onclick = () => closeAlert();
+                        alertOverlay.onclick = (e) => { if (e.target === alertOverlay) closeAlert(); };
+
+                        // Focus button for accessibility
+                        setTimeout(() => btnOk?.focus(), 50);
+                    });
+                };
+
                 const requestClose = async () => {
                     try {
                         if (hasChanges) {
@@ -333,23 +533,25 @@ export const ProducaoRevendaModal = {
 
                 document.addEventListener('keydown', handleKeydown);
 
-                saveBtn.addEventListener('click', (e) => {
+                saveBtn.addEventListener('click', async (e) => {
                     e.preventDefault();
                     try {
                         if (!validate()) {
-                            alert('Existem campos obrigatórios não preenchidos (marcados em vermelho).');
+                            await showCustomAlert('Existem campos obrigatórios não preenchidos (marcados em vermelho).');
                             return;
                         }
 
                         const data = {
                             dataFato: dataFatoInput.value,
                             dataPrevistaPagamento: dataPrevistaInput.value,
+                            dataPrevistaAtraso: dataAtrasoInput.value || null,
                             dataRealPagamento: dataRealInput.value || null,
                             valor: parseCurrency(valorInput.value),
                             descricao: descricaoInput.value.trim(),
-                            tipoProducaoRevendaId: parseInt(tipoIdInput.value),
+                            tipoId: parseInt(tipoIdInput.value),
                             companyId: parseInt(companySelect.value),
-                            accountId: parseInt(accountSelect.value)
+                            accountId: dataRealInput.value ? parseInt(accountSelect.value) : null,
+                            comprovanteUrl: comprovanteUrlInput.value || null
                         };
                         if (isEdit) {
                             data.id = item.id;
@@ -358,7 +560,7 @@ export const ProducaoRevendaModal = {
                         close(data);
                         if (onSave) onSave(data);
                     } catch (e) {
-                        alert('Erro ao salvar: ' + e.message);
+                        await showCustomAlert('Erro ao salvar: ' + e.message);
                     }
                 });
 

@@ -3,7 +3,7 @@ const AppError = require('../utils/AppError');
 
 exports.listRetiradas = async (req, res, next) => {
     try {
-        const { projectId, page = 1, limit = 50, search, startDate, endDate, minValue, maxValue } = req.query;
+        const { projectId, page = 1, limit = 50, search, account, company, description, startDate, endDate, minValue, maxValue } = req.query;
         if (!projectId) {
             throw new AppError('VAL-002', 'Project ID is required');
         }
@@ -25,14 +25,55 @@ exports.listRetiradas = async (req, res, next) => {
             const term = `%${search}%`;
             queryParams.push(term, term, term);
         }
-        if (startDate) {
+
+        // Specific Text Filters
+        if (account) {
+            query += ` AND c.name LIKE ?`;
+            queryParams.push(`%${account}%`);
+        }
+        if (company) {
+            query += ` AND e.name LIKE ?`;
+            queryParams.push(`%${company}%`);
+        }
+        if (description) {
+            query += ` AND r.descricao LIKE ?`;
+            queryParams.push(`%${description}%`);
+        }
+
+        // Dynamic Date Filters for data_fato, data_prevista, data_real
+        ['data_fato', 'data_prevista', 'data_real'].forEach(field => {
+            const startKey = `${field}Start`;
+            const endKey = `${field}End`;
+            const listKey = `${field}List`;
+
+            if (req.query[startKey]) {
+                query += ` AND r.${field} >= ?`;
+                queryParams.push(req.query[startKey]);
+            }
+            if (req.query[endKey]) {
+                query += ` AND r.${field} <= ?`;
+                queryParams.push(req.query[endKey]);
+            }
+            if (req.query[listKey]) {
+                const dates = Array.isArray(req.query[listKey]) ? req.query[listKey] : [req.query[listKey]];
+                if (dates.length > 0) {
+                    query += ` AND DATE(r.${field}) IN (?)`;
+                    queryParams.push(dates);
+                }
+            }
+        });
+
+        // Legacy support if startDate is used without specific key (mapped to data_fato)
+        // But RetiradaManager now sends data_fatoStart/End, so this is just fallback
+        if (startDate && !req.query.data_fatoStart) {
             query += ` AND r.data_fato >= ?`;
             queryParams.push(startDate);
         }
-        if (endDate) {
+        if (endDate && !req.query.data_fatoEnd) {
             query += ` AND r.data_fato <= ?`;
             queryParams.push(endDate);
         }
+
         if (minValue) {
             query += ` AND r.valor >= ?`;
             queryParams.push(minValue);
@@ -42,20 +83,17 @@ exports.listRetiradas = async (req, res, next) => {
             queryParams.push(maxValue);
         }
 
-        // Count
-        const countQuery = `SELECT COUNT(*) as total FROM (${query}) as sub`;
-        // We reuse query construction but simplistic usually works or verify performance later.
-        // Actually simpler to just run the count on the base tables with same WHEREs.
-        // For simplicity in this specialized agent context, let's just execute the full count query logic if needed or just use SQL_CALC_FOUND_ROWS if MySQL 5.7, but standard count is better.
+        // Link/Attachment Filter
+        const { hasAttachment } = req.query;
+        if (hasAttachment !== undefined) {
+            if (hasAttachment === '1') {
+                query += ` AND r.comprovante_url IS NOT NULL AND r.comprovante_url != ''`;
+            } else {
+                query += ` AND (r.comprovante_url IS NULL OR r.comprovante_url = '')`;
+            }
+        }
 
-        // Sorting
-        query += ` ORDER BY r.data_fato DESC, r.created_at DESC LIMIT ? OFFSET ?`;
-        queryParams.push(parseInt(limit), parseInt(offset));
-
-        const [rows] = await db.query(query, queryParams);
-
-        // Count total for pagination
-        // Re-construct WHERE clause for count
+        // --- COUNT QUERY ---
         let whereClause = 'WHERE r.project_id = ? AND r.active = 1';
         const countParams = [projectId];
         if (search) {
@@ -63,10 +101,45 @@ exports.listRetiradas = async (req, res, next) => {
             const term = `%${search}%`;
             countParams.push(term, term, term);
         }
-        if (startDate) { whereClause += ` AND r.data_fato >= ?`; countParams.push(startDate); }
-        if (endDate) { whereClause += ` AND r.data_fato <= ?`; countParams.push(endDate); }
+        if (account) { whereClause += ` AND c.name LIKE ?`; countParams.push(`%${account}%`); }
+        if (company) { whereClause += ` AND e.name LIKE ?`; countParams.push(`%${company}%`); }
+        if (description) { whereClause += ` AND r.descricao LIKE ?`; countParams.push(`%${description}%`); }
+
+        // Dynamic Date Filters for Count
+        ['data_fato', 'data_prevista', 'data_real'].forEach(field => {
+            const startKey = `${field}Start`;
+            const endKey = `${field}End`;
+            const listKey = `${field}List`;
+
+            if (req.query[startKey]) { whereClause += ` AND r.${field} >= ?`; countParams.push(req.query[startKey]); }
+            if (req.query[endKey]) { whereClause += ` AND r.${field} <= ?`; countParams.push(req.query[endKey]); }
+            if (req.query[listKey]) {
+                const dates = Array.isArray(req.query[listKey]) ? req.query[listKey] : [req.query[listKey]];
+                if (dates.length > 0) {
+                    whereClause += ` AND DATE(r.${field}) IN (?)`;
+                    countParams.push(dates);
+                }
+            }
+        });
+
+        if (startDate && !req.query.data_fatoStart) { whereClause += ` AND r.data_fato >= ?`; countParams.push(startDate); }
+        if (endDate && !req.query.data_fatoEnd) { whereClause += ` AND r.data_fato <= ?`; countParams.push(endDate); }
         if (minValue) { whereClause += ` AND r.valor >= ?`; countParams.push(minValue); }
         if (maxValue) { whereClause += ` AND r.valor <= ?`; countParams.push(maxValue); }
+
+        if (hasAttachment !== undefined) {
+            if (hasAttachment === '1') {
+                whereClause += ` AND r.comprovante_url IS NOT NULL AND r.comprovante_url != ''`;
+            } else {
+                whereClause += ` AND (r.comprovante_url IS NULL OR r.comprovante_url = '')`;
+            }
+        }
+
+        // Sorting
+        query += ` ORDER BY r.data_fato DESC, r.created_at DESC LIMIT ? OFFSET ?`;
+        queryParams.push(parseInt(limit), parseInt(offset));
+
+        const [rows] = await db.query(query, queryParams);
 
         const [countResult] = await db.query(`
             SELECT COUNT(*) as total 
@@ -96,7 +169,7 @@ exports.createRetirada = async (req, res, next) => {
     try {
         await connection.beginTransaction();
 
-        const { dataFato, dataPrevista, dataReal, valor, descricao, companyId, accountId, projectId } = req.body;
+        const { dataFato, dataPrevista, dataReal, valor, descricao, companyId, accountId, projectId, comprovanteUrl } = req.body;
 
         if (!dataFato || !valor || !companyId || !accountId || !projectId) {
             throw new AppError('VAL-002', 'Datas, Valor, Empresa, Conta e Projeto são obrigatórios');
@@ -104,17 +177,14 @@ exports.createRetirada = async (req, res, next) => {
 
         // Insert Retirada
         const [result] = await connection.query(
-            `INSERT INTO retiradas (data_fato, data_prevista, data_real, valor, descricao, company_id, account_id, project_id)
-             VALUES (?, ?, ?, ?, ?, ?, ?, ?)`,
-            [dataFato, dataPrevista || null, dataReal || null, valor, descricao, companyId, accountId, projectId]
+            `INSERT INTO retiradas (data_fato, data_prevista, data_real, valor, descricao, company_id, account_id, project_id, comprovante_url)
+             VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+            [dataFato, dataPrevista || null, dataReal || null, valor, descricao, companyId, accountId, projectId, comprovanteUrl || null]
         );
 
         const newId = result.insertId;
 
         // Decrease Account Balance (It's a withdrawal)
-        // Ensure valor is positive number for correct math logic, assuming UI sends positive "100" for a 100 withdrawal.
-        // Balances are simple: Balance = In - Out.
-        // We are just updating the current_balance snapshot.
         const valorDecimal = parseFloat(valor);
 
         await connection.query(
@@ -143,7 +213,7 @@ exports.updateRetirada = async (req, res, next) => {
         await connection.beginTransaction();
 
         const { id } = req.params;
-        const { dataFato, dataPrevista, dataReal, valor, descricao, companyId, accountId, active } = req.body;
+        const { dataFato, dataPrevista, dataReal, valor, descricao, companyId, accountId, active, comprovanteUrl } = req.body;
 
         // Get old data to revert balance
         const [oldRetirada] = await connection.query('SELECT * FROM retiradas WHERE id = ?', [id]);
@@ -164,6 +234,7 @@ exports.updateRetirada = async (req, res, next) => {
         if (companyId !== undefined) { updates.push('company_id = ?'); values.push(companyId); }
         if (accountId !== undefined) { updates.push('account_id = ?'); values.push(accountId); }
         if (active !== undefined) { updates.push('active = ?'); values.push(active); }
+        if (comprovanteUrl !== undefined) { updates.push('comprovante_url = ?'); values.push(comprovanteUrl); }
 
         if (updates.length > 0) {
             values.push(id);

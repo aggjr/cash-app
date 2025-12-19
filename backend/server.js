@@ -46,7 +46,13 @@ apiRouter.use('/extrato', extratoRoutes);
 apiRouter.use('/fechamento', fechamentoRoutes);
 apiRouter.use('/consolidadas', consolidadasRoutes);
 apiRouter.use('/previsao', require('./routes/previsao'));
+apiRouter.use('/upload', require('./routes/upload'));
 apiRouter.use('/debug', debugRoutes);
+
+// Static Uploads Serving
+// Static Uploads Serving
+const path = require('path');
+app.use('/api/uploads', express.static(path.join(__dirname, 'uploads')));
 
 // Generic Tree Routes (Protected)
 apiRouter.get('/:tableName', auth, genericTreeController.getAll);

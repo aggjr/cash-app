@@ -1,4 +1,5 @@
 import { AporteModal } from './AporteModal.js';
+import { SharedTable } from './SharedTable.js'; // Import SharedTable
 import { showToast } from '../utils/toast.js';
 import { getApiBaseUrl } from '../utils/apiConfig.js';
 
@@ -6,9 +7,11 @@ export const AporteManager = (project) => {
     const container = document.createElement('div');
     container.className = 'glass-panel';
     const API_BASE_URL = getApiBaseUrl();
-    container.style.padding = '2rem';
-    container.style.margin = '2rem';
-    container.style.height = 'calc(100vh - 150px)';
+    container.style.padding = '1rem'; // Matching IncomeManager padding
+    container.style.margin = '0.5rem';
+    container.style.height = 'calc(100vh - 60px)';
+    container.style.width = 'calc(100% - 1rem)';
+    container.style.maxWidth = 'none';
     container.style.display = 'flex';
     container.style.flexDirection = 'column';
 
@@ -18,18 +21,93 @@ export const AporteManager = (project) => {
     let activeFilters = {};
     let sortConfig = { key: 'data_fato', direction: 'desc' };
 
+    // Define Columns for SharedTable
     const columns = [
-        { key: 'data_fato', label: 'Data Fato', width: '100px', align: 'center', type: 'date' },
-        { key: 'data_real', label: 'Data Real', width: '100px', align: 'center', type: 'date' },
+        { key: 'data_fato', label: 'Dt Fato', width: '90px', align: 'center', type: 'date' },
+        {
+            key: 'data_real',
+            label: 'Dt Real',
+            width: '90px',
+            align: 'center',
+            type: 'date'
+        },
         { key: 'descricao', label: 'Descrição', width: 'auto', align: 'left', type: 'text' },
-        { key: 'company_name', label: 'Empresa', width: '200px', align: 'left', type: 'text' },
-        { key: 'account_name', label: 'Conta', width: '200px', align: 'left', type: 'text' },
-        { key: 'valor', label: 'Valor', width: '120px', align: 'right', type: 'currency' },
-        { key: 'actions', label: 'Ações', width: '100px', align: 'center', noFilter: true },
-        { key: 'status', label: '', width: '40px', align: 'center', noFilter: true }
-    ];
+        { key: 'company_name', label: 'Empresa', width: '180px', align: 'left', type: 'text' },
+        { key: 'account_name', label: 'Conta', width: '150px', align: 'left', type: 'text' },
+        {
+            key: 'valor',
+            label: 'Valor',
+            width: '120px',
+            align: 'right',
+            type: 'currency',
+            colorLogic: 'inflow' // Green for positive, Red for negative
+        },
+        {
+            key: 'link',
+            label: 'Link',
+            width: '60px',
+            align: 'center',
+            type: 'link', // Enable link filter logic
+            noTextSearch: true,
+            render: (item) => {
+                const btn = document.createElement('button');
+                btn.innerHTML = '📎'; // Paperclip
+                btn.style.background = 'none';
+                btn.style.border = 'none';
+                btn.style.fontSize = '1.2rem';
+                btn.style.padding = '0';
 
-    const FILTER_ICON = `<svg viewBox="0 0 24 24" fill="currentColor" class="filter-icon"><path d="M10 18h4v-2h-4v2zM3 6v2h18V6H3zm3 7h12v-2H6v2z"/></svg>`;
+                if (item.comprovante_url) {
+                    btn.style.cursor = 'pointer';
+                    btn.title = 'Ver anexo';
+                    btn.onclick = (e) => {
+                        e.stopPropagation();
+                        window.open(`${API_BASE_URL}${item.comprovante_url}`, '_blank');
+                    };
+                } else {
+                    btn.style.cursor = 'default';
+                    btn.style.opacity = '0.3';
+                    btn.title = 'Sem anexo';
+                }
+                return btn;
+            }
+        },
+        {
+            key: 'actions',
+            label: 'Ações',
+            width: '80px',
+            align: 'center',
+            noFilter: true,
+            render: (item) => {
+                const div = document.createElement('div');
+                div.style.display = 'flex';
+                div.style.gap = '0.5rem';
+                div.style.justifyContent = 'center';
+
+                const btnEdit = document.createElement('button');
+                btnEdit.innerHTML = '✏️';
+                btnEdit.title = 'Editar';
+                btnEdit.style.background = 'none';
+                btnEdit.style.border = 'none';
+                btnEdit.style.cursor = 'pointer';
+                btnEdit.style.fontSize = '1.1rem';
+                btnEdit.onclick = (e) => { e.stopPropagation(); updateAporte(item); };
+
+                const btnDelete = document.createElement('button');
+                btnDelete.innerHTML = '🗑️';
+                btnDelete.title = 'Excluir';
+                btnDelete.style.background = 'none';
+                btnDelete.style.border = 'none';
+                btnDelete.style.cursor = 'pointer';
+                btnDelete.style.fontSize = '1.1rem';
+                btnDelete.onclick = (e) => { e.stopPropagation(); deleteAporte(item.id, item.descricao); };
+
+                div.appendChild(btnEdit);
+                div.appendChild(btnDelete);
+                return div;
+            }
+        }
+    ];
 
     const getHeaders = () => {
         const token = localStorage.getItem('token');
@@ -39,20 +117,12 @@ export const AporteManager = (project) => {
         };
     };
 
-    const formatCurrency = (value) => {
-        return new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(value || 0);
-    };
-
-    const formatDate = (dateString) => {
-        if (!dateString) return '-';
-        const date = dateString.includes('T') ? new Date(dateString) : new Date(dateString + 'T00:00:00');
-        if (isNaN(date.getTime())) return '-';
-        return date.toLocaleDateString('pt-BR');
-    };
+    // SharedTable Instance
+    let sharedTable = null;
 
     const loadAportes = async (page = 1) => {
         try {
-            container.querySelector('.aportes-table-wrapper')?.classList.add('loading');
+            container.querySelector('#table-container')?.classList.add('loading');
 
             const params = new URLSearchParams({
                 projectId: project.id,
@@ -60,21 +130,102 @@ export const AporteManager = (project) => {
                 limit: pagination.limit
             });
 
-            // Map Filters to Query Params
+            // Handle Sorting
+            if (sortConfig.key) {
+                params.append('sortBy', sortConfig.key);
+                params.append('order', sortConfig.direction);
+            }
+
+            // Handle Filters (Robust Logic)
             Object.keys(activeFilters).forEach(key => {
                 const filter = activeFilters[key];
                 if (!filter) return;
 
                 if (key === 'valor') {
-                    if (filter.min) params.append('minValue', filter.min);
-                    if (filter.max) params.append('maxValue', filter.max);
+                    // Operator-based format (advanced filter)
+                    if (filter.operator && filter.val1) {
+                        if (filter.operator === 'eq') {
+                            params.append('minValue', filter.val1);
+                            params.append('maxValue', filter.val1);
+                        } else if (filter.operator === 'gt' || filter.operator === 'gte') {
+                            params.append('minValue', filter.val1);
+                        } else if (filter.operator === 'lt' || filter.operator === 'lte') {
+                            params.append('maxValue', filter.val1);
+                        } else if (filter.operator === 'between' && filter.val2) {
+                            params.append('minValue', filter.val1);
+                            params.append('maxValue', filter.val2);
+                        }
+                    }
+                    // Numeric IN list (quick filter - exact match)
+                    else if (filter.numIn && filter.numIn.length > 0) {
+                        if (filter.numIn.length === 1) {
+                            params.append('minValue', filter.numIn[0]);
+                            params.append('maxValue', filter.numIn[0]);
+                        } else {
+                            const values = filter.numIn.map(v => parseFloat(v));
+                            params.append('minValue', Math.min(...values));
+                            params.append('maxValue', Math.max(...values));
+                        }
+                    }
+                    // Legacy min/max format
+                    else if (filter.min || filter.max) {
+                        if (filter.min) params.append('minValue', filter.min);
+                        if (filter.max) params.append('maxValue', filter.max);
+                    }
                 } else if (key.startsWith('data')) {
-                    if (filter.start) params.append('startDate', filter.start);
-                    if (filter.end) params.append('endDate', filter.end);
+                    // Date Filters
+                    let useAdvanced = false;
+                    if (filter.operator) {
+                        useAdvanced = true;
+                        if (filter.operator === 'eq' && filter.val1) {
+                            params.append(`${key}Start`, filter.val1);
+                            params.append(`${key}End`, filter.val1);
+                        } else if (filter.operator === 'before' && filter.val1) {
+                            params.append(`${key}End`, filter.val1);
+                        } else if (filter.operator === 'after' && filter.val1) {
+                            params.append(`${key}Start`, filter.val1);
+                        } else if (filter.operator === 'between' && filter.val1 && filter.val2) {
+                            params.append(`${key}Start`, filter.val1);
+                            params.append(`${key}End`, filter.val2);
+                        }
+                    } else if (filter.start || filter.end) {
+                        useAdvanced = true;
+                        if (filter.start) params.append(`${key}Start`, filter.start);
+                        if (filter.end) params.append(`${key}End`, filter.end);
+                    }
+
+                    if (!useAdvanced && filter.dateIn && filter.dateIn.length > 0 && !filter.dateIn.includes('__NONE__')) {
+                        filter.dateIn.forEach(d => params.append(`${key}List`, d));
+                    }
+
+                } else if (key === 'link') {
+                    // Link Filter
+                    if (filter.value === 'true' || filter.value === 'with_link') params.append('hasAttachment', '1');
+                    else if (filter.value === 'false' || filter.value === 'without_link') params.append('hasAttachment', '0');
                 } else {
-                    if (filter.text) params.append('search', filter.text);
+                    // Text Filters
+                    if (key === 'descricao' && filter.text) params.append('description', filter.text);
+                    if (key === 'account_name' && filter.text) params.append('account', filter.text);
+                    if (key === 'company_name' && filter.text) params.append('company', filter.text);
+
+                    // Fallback / Generic Search
+                    if (filter.val1 && filter.operator === 'contains') {
+                        if (key === 'descricao') params.append('description', filter.val1);
+                        else if (key === 'account_name') params.append('account', filter.val1);
+                        else if (key === 'company_name') params.append('company', filter.val1);
+                        else params.append('search', filter.val1);
+                    } else if (filter.text && !['descricao', 'account_name', 'company_name'].includes(key)) {
+                        params.append('search', filter.text);
+                    }
                 }
             });
+
+
+            console.group('🔍 AporteManager Filter Debug');
+            console.log('Active Filters:', JSON.stringify(activeFilters, null, 2));
+            console.log('Sort Config:', JSON.stringify(sortConfig, null, 2));
+            console.log('Generated Params:', params.toString());
+            console.groupEnd();
 
             const response = await fetch(`${API_BASE_URL}/aportes?${params.toString()}`, {
                 headers: getHeaders()
@@ -89,21 +240,59 @@ export const AporteManager = (project) => {
                 pagination = { page: 1, limit: aportes.length, total: aportes.length, pages: 1 };
             }
 
-            renderAportes(aportes);
+            renderAportes();
+            renderPagination();
         } catch (error) {
             console.error('Error loading aportes:', error);
             showToast('Erro ao carregar aportes', 'error');
         } finally {
-            container.querySelector('.aportes-table-wrapper')?.classList.remove('loading');
+            container.querySelector('#table-container')?.classList.remove('loading');
         }
     };
 
-    const applyFilters = () => {
-        loadAportes(1);
+    const renderPagination = () => {
+        const pagContainer = container.querySelector('.pagination-controls');
+        if (!pagContainer) return;
+
+        pagContainer.innerHTML = '';
+
+        const btnPrev = document.createElement('button');
+        btnPrev.className = 'btn-sm';
+        btnPrev.textContent = '◀ Anterior';
+        btnPrev.disabled = pagination.page <= 1;
+        btnPrev.onclick = () => loadAportes(pagination.page - 1);
+
+        const label = document.createElement('span');
+        label.textContent = `Página ${pagination.page} de ${pagination.pages}`;
+        label.style.margin = '0 1rem';
+
+        const btnNext = document.createElement('button');
+        btnNext.className = 'btn-sm';
+        btnNext.textContent = 'Próxima ▶';
+        btnNext.disabled = pagination.page >= pagination.pages;
+        btnNext.onclick = () => loadAportes(pagination.page + 1);
+
+        pagContainer.appendChild(btnPrev);
+        pagContainer.appendChild(label);
+        pagContainer.appendChild(btnNext);
+
+        // Update Total
+        const totalContainer = container.querySelector('#total-display');
+        if (totalContainer) {
+            const totalVal = aportes.reduce((sum, item) => sum + parseFloat(item.valor || 0), 0);
+            // Logic: Green if positive, Red if negative
+            const color = totalVal >= 0 ? '#10B981' : '#EF4444';
+            totalContainer.innerHTML = `
+                <span style="font-size: 1.1rem; margin-right: 0.5rem;">Total (Página):</span>
+                <span style="font-weight: 700; font-size: 1.1rem; color: ${color};">
+                    ${new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(totalVal)}
+                </span>
+            `;
+        }
     };
 
     const createAporte = async () => {
-        const data = await AporteModal.show({
+        await AporteModal.show({
             aporte: null,
             projectId: project.id,
             onSave: async (aporteData) => {
@@ -112,12 +301,7 @@ export const AporteManager = (project) => {
                         method: 'POST',
                         headers: getHeaders(),
                         body: JSON.stringify({
-                            dataFato: aporteData.dataFato,
-                            dataReal: aporteData.dataReal,
-                            valor: aporteData.valor,
-                            descricao: aporteData.descricao,
-                            companyId: aporteData.companyId,
-                            accountId: aporteData.accountId,
+                            ...aporteData,
                             projectId: project.id
                         })
                     });
@@ -137,7 +321,7 @@ export const AporteManager = (project) => {
     };
 
     const updateAporte = async (aporte) => {
-        const data = await AporteModal.show({
+        await AporteModal.show({
             aporte: aporte,
             projectId: project.id,
             onSave: async (aporteData) => {
@@ -145,15 +329,7 @@ export const AporteManager = (project) => {
                     const response = await fetch(`${API_BASE_URL}/aportes/${aporte.id}`, {
                         method: 'PUT',
                         headers: getHeaders(),
-                        body: JSON.stringify({
-                            dataFato: aporteData.dataFato,
-                            dataReal: aporteData.dataReal,
-                            valor: aporteData.valor,
-                            descricao: aporteData.descricao,
-                            companyId: aporteData.companyId,
-                            accountId: aporteData.accountId,
-                            active: aporteData.active
-                        })
+                        body: JSON.stringify(aporteData)
                     });
 
                     if (response.ok) {
@@ -192,157 +368,52 @@ export const AporteManager = (project) => {
         }
     };
 
-    const showAdvancedMenu = (colKey, target) => {
-        const existing = document.querySelector('.filter-dropdown');
-        if (existing) existing.remove();
+    // Initial Render
+    container.innerHTML = `
+        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 2rem;">
+            <h2>➕ Aportes</h2>
+             <div style="display: flex; gap: 0.5rem;">
+                 <span style="font-size: 0.9rem; color: var(--color-primary);">Movimentações</span>
+                 <span style="color: var(--color-text-muted);">/</span>
+                 <span style="font-size: 0.9rem; color: var(--color-text-muted);">Aportes</span>
+            </div>
+        </div>
 
-        const colDef = columns.find(c => c.key === colKey);
-        const colType = colDef ? colDef.type : 'text';
+        <div style="margin-bottom: 1rem;">
+            <button id="btn-new-aporte" class="btn-primary">+ Novo Aporte</button>
+        </div>
 
-        let extraDraft = {};
-        if (activeFilters[colKey]) {
-            extraDraft = { ...activeFilters[colKey] };
+        <div id="table-container" style="flex: 1; display: flex; flex-direction: column; overflow: hidden;">
+            <!-- SharedTable will render here -->
+        </div>
+        
+        <div style="margin-top: 1rem; display: flex; justify-content: space-between; align-items: center; padding: 0.5rem; border-top: 1px solid var(--color-border-light);">
+            <div id="total-display"></div>
+            <div class="pagination-controls" style="display: flex; gap: 0.5rem; align-items: center;"></div>
+        </div>
+    `;
+
+    container.querySelector('#btn-new-aporte').onclick = createAporte;
+
+    // Initialize SharedTable
+    const tableContainer = container.querySelector('#table-container');
+    sharedTable = new SharedTable({
+        container: tableContainer,
+        columns: columns,
+        projectId: project.id,
+        endpointPrefix: null,
+        onFilterChange: (filters) => {
+            activeFilters = filters;
+            loadAportes(1);
+        },
+        onSortChange: (sort) => {
+            sortConfig = sort;
+            loadAportes(1);
         }
+    });
 
-        const menu = document.createElement('div');
-        menu.className = 'filter-dropdown animate-float-in';
-        menu.onclick = (e) => e.stopPropagation();
-
-        // Search Input
-        const searchDiv = document.createElement('div');
-        searchDiv.className = 'filter-search';
-        const searchInput = document.createElement('input');
-        searchInput.placeholder = 'Pesquisar...';
-        searchInput.value = extraDraft.text || '';
-        searchInput.onclick = (e) => e.stopPropagation();
-        searchInput.onchange = (e) => extraDraft.text = e.target.value;
-        searchDiv.appendChild(searchInput);
-        menu.appendChild(searchDiv);
-
-        // Advanced Inputs Logic ... (Same as IncomeManager but streamlined)
-        // ... (Omitting full copy for brevity, assuming standard filter logic)
-        // Re-implementing simplified logic for robustness:
-
-        const advancedDiv = document.createElement('div');
-        advancedDiv.className = 'filter-advanced';
-        advancedDiv.style.padding = '0.5rem';
-        advancedDiv.style.borderTop = '1px solid var(--color-border-light)';
-
-        if (colType === 'currency' || colType === 'number') {
-            const row = document.createElement('div');
-            row.style.display = 'flex'; row.style.gap = '0.5rem';
-            const minInput = document.createElement('input'); minInput.type = 'number'; minInput.placeholder = 'Mín'; minInput.value = extraDraft.min || '';
-            minInput.onchange = (e) => extraDraft.min = e.target.value;
-            const maxInput = document.createElement('input'); maxInput.type = 'number'; maxInput.placeholder = 'Máx'; maxInput.value = extraDraft.max || '';
-            maxInput.onchange = (e) => extraDraft.max = e.target.value;
-            row.append(minInput, maxInput); advancedDiv.append(row);
-        } else if (colType === 'date') {
-            const row = document.createElement('div'); row.style.display = 'flex'; row.style.flexDirection = 'column'; row.style.gap = '0.5rem';
-            const sInput = document.createElement('input'); sInput.type = 'date'; sInput.value = extraDraft.start || '';
-            sInput.onchange = (e) => extraDraft.start = e.target.value;
-            const eInput = document.createElement('input'); eInput.type = 'date'; eInput.value = extraDraft.end || '';
-            eInput.onchange = (e) => extraDraft.end = e.target.value;
-            row.append(sInput, eInput); advancedDiv.append(row);
-        }
-        menu.appendChild(advancedDiv);
-
-        // Actions
-        const actionsDiv = document.createElement('div');
-        actionsDiv.className = 'filter-actions';
-        const btnOnlyClear = document.createElement('button'); btnOnlyClear.className = 'filter-btn'; btnOnlyClear.textContent = 'Limpar';
-        btnOnlyClear.onclick = () => { delete activeFilters[colKey]; applyFilters(); menu.remove(); };
-        const btnApply = document.createElement('button'); btnApply.className = 'filter-btn primary'; btnApply.textContent = 'Filtrar';
-        btnApply.onclick = () => {
-            const isEmpty = !extraDraft.text && !extraDraft.min && !extraDraft.max && !extraDraft.start && !extraDraft.end;
-            if (isEmpty) delete activeFilters[colKey]; else activeFilters[colKey] = extraDraft;
-            applyFilters(); menu.remove();
-        };
-        actionsDiv.append(btnOnlyClear, btnApply);
-        menu.appendChild(actionsDiv);
-
-        document.body.appendChild(menu);
-
-        // Positioning
-        const rect = target.getBoundingClientRect();
-        let top = rect.bottom + window.scrollY;
-        let left = rect.left + window.scrollX;
-        if (left + 280 > window.innerWidth) left = (rect.right + window.scrollX) - 280;
-        menu.style.position = 'absolute'; menu.style.top = top + 'px'; menu.style.left = left + 'px'; menu.style.zIndex = '10000';
-
-        setTimeout(() => {
-            const close = (e) => { if (!menu.contains(e.target) && !target.contains(e.target)) { menu.remove(); document.removeEventListener('click', close); } };
-            document.addEventListener('click', close);
-        }, 100);
-    };
-
-    const renderAportes = (items) => {
-        container.innerHTML = `
-            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 2rem;">
-                <h2>➕ Aportes</h2>
-                 <div style="display: flex; gap: 0.5rem;">
-                     <a href="#" style="font-size: 0.9rem; color: var(--color-primary);">Movimentações</a>
-                     <span style="color: var(--color-text-muted);">/</span>
-                     <span style="font-size: 0.9rem; color: var(--color-text-muted);">Aportes</span>
-                </div>
-            </div>
-
-            <div style="margin-bottom: 1rem;">
-                <button id="btn-new-aporte" class="btn-primary">+ Novo Aporte</button>
-            </div>
-
-            <div class="aportes-table-wrapper" style="flex: 1; overflow: auto; border: 1px solid var(--color-border-light); border-radius: 8px; box-shadow: var(--shadow-sm);">
-                <table style="width: 100%; border-collapse: collapse;">
-                    <thead class="sticky-header">
-                        <tr>
-                            ${columns.map(col => {
-            const isActive = !!activeFilters[col.key];
-            const iconClass = isActive ? 'filter-icon active' : 'filter-icon';
-            const content = col.noFilter ? col.label : `
-                                    <div style="display:flex; justify-content:space-between; align-items:center;">
-                                        <span>${col.label}</span>
-                                        <div class="filter-trigger" data-key="${col.key}" style="cursor:pointer;">${FILTER_ICON.replace('filter-icon', iconClass)}</div>
-                                    </div>
-                                `;
-            return `<th style="padding:0.75rem; text-align:${col.align}; border-bottom:2px solid #0c4a6e; background:#0c4a6e; color:white; font-weight:600;">${content}</th>`;
-        }).join('')}
-                        </tr>
-                    </thead>
-                    <tbody>
-                        ${items.map((item, index) => {
-            const isEven = index % 2 === 0;
-            const bgColor = isEven ? '#FFFFFF' : '#F9FAFB';
-            return `
-                                <tr style="background-color:${bgColor}; border-bottom:1px solid #eee;">
-                                    <td style="padding:0.75rem; text-align:center;">${formatDate(item.data_fato)}</td>
-                                    <td style="padding:0.75rem; text-align:center;">${formatDate(item.data_real)}</td>
-                                    <td style="padding:0.75rem;">${item.descricao || '-'}</td>
-                                    <td style="padding:0.75rem;">${item.company_name}</td>
-                                    <td style="padding:0.75rem;">${item.account_name}</td>
-                                    <td style="padding:0.75rem; text-align:right; font-weight:600; color:${parseFloat(item.valor) < 0 ? '#EF4444' : '#10B981'};">${formatCurrency(item.valor)}</td>
-                                    <td style="padding:0.75rem; text-align:center;">
-                                         <button class="btn-edit" data-id="${item.id}" style="color: #10B981; margin-right: 0.5rem; background:none; border:none; cursor:pointer;">✏️</button>
-                                         <button class="btn-delete" data-id="${item.id}" style="color: #EF4444; background:none; border:none; cursor:pointer;">🗑️</button>
-                                    </td>
-                                    <td style="padding:0.75rem; text-align:center;">
-                                        <div style="width:10px; height:10px; border-radius:50%; background-color:${item.data_real ? '#10B981' : '#F59E0B'};" title="${item.data_real ? 'Recebido' : 'Pendente'}"></div>
-                                    </td>
-                                </tr>
-                            `;
-        }).join('')}
-                    </tbody>
-                </table>
-            </div>
-            
-            <div style="margin-top: 1rem; text-align: right; color: var(--color-text-muted); font-size: 0.9rem;">
-                 <b>Total:</b> ${pagination.total} registros | 
-                 <b style="color: ${items.reduce((acc, i) => acc + parseFloat(i.valor), 0) < 0 ? '#EF4444' : '#10B981'}; font-size: 1.1rem;">${formatCurrency(items.reduce((acc, i) => acc + parseFloat(i.valor), 0))}</b>
-            </div>
-        `;
-
-        container.querySelector('#btn-new-aporte').onclick = createAporte;
-        container.querySelectorAll('.filter-trigger').forEach(el => el.onclick = (e) => { e.stopPropagation(); showAdvancedMenu(el.dataset.key, el); });
-        container.querySelectorAll('.btn-edit').forEach(el => el.onclick = () => updateAporte(items.find(i => i.id == el.dataset.id)));
-        container.querySelectorAll('.btn-delete').forEach(el => el.onclick = () => deleteAporte(el.dataset.id, items.find(i => i.id == el.dataset.id).descricao));
+    const renderAportes = () => {
+        sharedTable.render(aportes);
     };
 
     loadAportes();

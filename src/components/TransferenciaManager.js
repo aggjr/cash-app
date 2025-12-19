@@ -1,4 +1,5 @@
 import { TransferenciaModal } from './TransferenciaModal.js';
+import { SharedTable } from './SharedTable.js';
 import { showToast } from '../utils/toast.js';
 import { getApiBaseUrl } from '../utils/apiConfig.js';
 
@@ -6,47 +7,237 @@ export const TransferenciaManager = (project) => {
     const container = document.createElement('div');
     container.className = 'glass-panel';
     const API_BASE_URL = getApiBaseUrl();
-    container.style.padding = '2rem';
-    container.style.margin = '2rem';
-    container.style.height = 'calc(100vh - 150px)';
+    container.style.padding = '1rem';
+    container.style.margin = '0.5rem';
+    container.style.height = 'calc(100vh - 60px)';
+    container.style.width = 'calc(100% - 1rem)';
+    container.style.maxWidth = 'none';
     container.style.display = 'flex';
     container.style.flexDirection = 'column';
 
+    // State
     let transferencias = [];
-    let pagination = { page: 1, limit: 50, total: 0 };
+    let pagination = { page: 1, limit: 50, total: 0, pages: 1 };
     let activeFilters = {};
+    let sortConfig = { key: 'data_prevista', direction: 'desc' };
 
+    // Define Columns for SharedTable
     const columns = [
-        { key: 'data_prevista', label: 'Prevista', width: '100px', align: 'center', type: 'date' },
-        { key: 'data_real', label: 'Real', width: '100px', align: 'center', type: 'date' },
+        { key: 'data_prevista', label: 'Prevista', width: '90px', align: 'center', type: 'date' },
+        { key: 'data_real', label: 'Real', width: '90px', align: 'center', type: 'date' },
         { key: 'descricao', label: 'Descrição', width: 'auto', align: 'left', type: 'text' },
-        { key: 'source_account_name', label: 'Origem (Sai)', width: '200px', align: 'left', type: 'text' },
-        { key: 'destination_account_name', label: 'Destino (Entra)', width: '200px', align: 'left', type: 'text' },
-        { key: 'valor', label: 'Valor', width: '120px', align: 'right', type: 'currency' },
-        { key: 'actions', label: 'Ações', width: '100px', align: 'center', noFilter: true }
+        { key: 'source_account_name', label: 'Origem (Sai)', width: '180px', align: 'left', type: 'text' },
+        { key: 'destination_account_name', label: 'Destino (Entra)', width: '180px', align: 'left', type: 'text' },
+        {
+            key: 'valor',
+            label: 'Valor',
+            width: '120px',
+            align: 'right',
+            type: 'currency',
+            colorLogic: 'blue' // Blue color for neutral transfers
+        },
+        {
+            key: 'link',
+            label: 'Link',
+            width: '60px',
+            align: 'center',
+            type: 'link',
+            render: (item) => {
+                const btn = document.createElement('button');
+                btn.innerHTML = '📎';
+                btn.style.background = 'none';
+                btn.style.border = 'none';
+                btn.style.fontSize = '1.2rem';
+                btn.style.padding = '0';
+                if (item.comprovante_url) {
+                    btn.style.cursor = 'pointer';
+                    btn.title = 'Ver anexo';
+                    btn.onclick = (e) => {
+                        e.stopPropagation();
+                        window.open(`${API_BASE_URL}${item.comprovante_url}`, '_blank');
+                    };
+                } else {
+                    btn.style.cursor = 'default';
+                    btn.style.opacity = '0.3';
+                    btn.title = 'Sem anexo';
+                }
+                return btn;
+            }
+        },
+        {
+            key: 'actions',
+            label: 'Ações',
+            width: '80px',
+            align: 'center',
+            noFilter: true,
+            render: (item) => {
+                const div = document.createElement('div');
+                div.style.display = 'flex';
+                div.style.gap = '0.5rem';
+                div.style.justifyContent = 'center';
+
+                const btnEdit = document.createElement('button');
+                btnEdit.innerHTML = '✏️';
+                btnEdit.title = 'Editar';
+                btnEdit.style.background = 'none';
+                btnEdit.style.border = 'none';
+                btnEdit.style.cursor = 'pointer';
+                btnEdit.style.fontSize = '1.1rem';
+                btnEdit.onclick = (e) => { e.stopPropagation(); updateTransferencia(item); };
+
+                const btnDelete = document.createElement('button');
+                btnDelete.innerHTML = '🗑️';
+                btnDelete.title = 'Excluir';
+                btnDelete.style.background = 'none';
+                btnDelete.style.border = 'none';
+                btnDelete.style.cursor = 'pointer';
+                btnDelete.style.fontSize = '1.1rem';
+                btnDelete.onclick = (e) => { e.stopPropagation(); deleteTransferencia(item.id); };
+
+                div.appendChild(btnEdit);
+                div.appendChild(btnDelete);
+                return div;
+            }
+        }
     ];
 
     const getHeaders = () => {
         const token = localStorage.getItem('token');
-        return { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` };
+        return {
+            'Content-Type': 'application/json',
+            'Authorization': `Bearer ${token}`
+        };
     };
 
-    const formatCurrency = (value) => {
-        return new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(value || 0);
-    };
-
-    const formatDate = (dateString) => {
-        if (!dateString) return '-';
-        const date = dateString.includes('T') ? new Date(dateString) : new Date(dateString + 'T00:00:00');
-        return date.toLocaleDateString('pt-BR');
-    };
+    // SharedTable Instance
+    let sharedTable = null;
 
     const loadTransferencias = async (page = 1) => {
         try {
-            container.querySelector('.transf-table-wrapper')?.classList.add('loading');
-            const params = new URLSearchParams({ projectId: project.id, page, limit: pagination.limit });
+            container.querySelector('#table-container')?.classList.add('loading');
 
-            const response = await fetch(`${API_BASE_URL}/transferencias?${params.toString()}`, { headers: getHeaders() });
+            const params = new URLSearchParams({
+                projectId: project.id,
+                page: page,
+                limit: pagination.limit
+            });
+
+            // Handle Sorting
+            if (sortConfig.key) {
+                params.append('sortBy', sortConfig.key);
+                params.append('order', sortConfig.direction);
+            }
+
+            // Handle Filters
+            Object.keys(activeFilters).forEach(key => {
+                const filter = activeFilters[key];
+                if (!filter) return;
+
+                if (key === 'valor') {
+                    console.log('💰 VALOR FILTER:', filter);
+
+                    // Operator-based format (advanced filter)
+                    if (filter.operator && filter.val1) {
+                        console.log(`  ➡️ Operator: ${filter.operator}, Value: ${filter.val1}`);
+                        if (filter.operator === 'eq') {
+                            // Exact match - using min/max range for equality
+                            console.log('  ➡️ Adding min/max for exact match:', filter.val1);
+                            params.append('minValue', filter.val1);
+                            params.append('maxValue', filter.val1);
+                        } else if (filter.operator === 'gt' || filter.operator === 'gte') {
+                            params.append('minValue', filter.val1);
+                        } else if (filter.operator === 'lt' || filter.operator === 'lte') {
+                            params.append('maxValue', filter.val1);
+                        } else if (filter.operator === 'between' && filter.val2) {
+                            params.append('minValue', filter.val1);
+                            params.append('maxValue', filter.val2);
+                        }
+                    }
+                    // Numeric IN list (quick filter - exact match)
+                    else if (filter.numIn && filter.numIn.length > 0) {
+                        console.log('  ➡️ Quick filter - NumIn list (exact match):', filter.numIn);
+                        if (filter.numIn.length === 1) {
+                            // Single value - exact match using min/max
+                            console.log('  ➡️ Adding min/max for exact match:', filter.numIn[0]);
+                            params.append('minValue', filter.numIn[0]);
+                            params.append('maxValue', filter.numIn[0]);
+                        } else {
+                            // Multiple values - use range (min to max)
+                            const values = filter.numIn.map(v => parseFloat(v));
+                            params.append('minValue', Math.min(...values));
+                            params.append('maxValue', Math.max(...values));
+                        }
+                    }
+                    // Legacy min/max format
+                    else if (filter.min || filter.max) {
+                        if (filter.min) {
+                            console.log('  ➡️ Adding minValue:', filter.min);
+                            params.append('minValue', filter.min);
+                        }
+                        if (filter.max) {
+                            console.log('  ➡️ Adding maxValue:', filter.max);
+                            params.append('maxValue', filter.max);
+                        }
+                    }
+                } else if (key.startsWith('data')) {
+                    // Date Filters
+                    let useAdvanced = false;
+
+                    if (filter.operator) {
+                        useAdvanced = true;
+                        if (filter.operator === 'eq' && filter.val1) {
+                            params.append(`${key}Start`, filter.val1);
+                            params.append(`${key}End`, filter.val1);
+                        } else if (filter.operator === 'before' && filter.val1) {
+                            params.append(`${key}End`, filter.val1);
+                        } else if (filter.operator === 'after' && filter.val1) {
+                            params.append(`${key}Start`, filter.val1);
+                        } else if (filter.operator === 'between' && filter.val1 && filter.val2) {
+                            params.append(`${key}Start`, filter.val1);
+                            params.append(`${key}End`, filter.val2);
+                        }
+                    } else if (filter.start || filter.end) {
+                        useAdvanced = true;
+                        if (filter.start) params.append(`${key}Start`, filter.start);
+                        if (filter.end) params.append(`${key}End`, filter.end);
+                    }
+
+                    if (!useAdvanced && filter.dateIn && filter.dateIn.length > 0 && !filter.dateIn.includes('__NONE__')) {
+                        filter.dateIn.forEach(d => params.append(`${key}List`, d));
+                    }
+                } else if (key === 'link') {
+                    // Link/Attachment Filter
+                    console.log('🔗 LINK FILTER in TransferenciaManager:', filter);
+                    if (filter.value === 'with_file' || filter.value === 'true' || filter.value === true) {
+                        console.log('  ➡️ Adding hasAttachment=1');
+                        params.append('hasAttachment', '1');
+                    } else if (filter.value === 'without_file' || filter.value === 'false' || filter.value === false) {
+                        console.log('  ➡️ Adding hasAttachment=0');
+                        params.append('hasAttachment', '0');
+                    }
+                } else {
+                    // Text Filters
+                    console.log(`📝 TEXT FILTER for ${key}:`, filter);
+                    if (filter.text) {
+                        console.log(`  ➡️ Adding ${key}=${filter.text}`);
+                        params.append(key, filter.text);
+                    }
+                    if (filter.val1 && filter.operator === 'contains') {
+                        console.log(`  ➡️ Adding ${key}=${filter.val1}`);
+                        params.append(key, filter.val1);
+                    }
+                }
+            });
+
+            const fullUrl = `${API_BASE_URL}/transferencias?${params.toString()}`;
+            console.log('🌐 FETCHING URL:', fullUrl);
+
+            const response = await fetch(fullUrl, {
+                headers: getHeaders()
+            });
+
+            if (!response.ok) throw new Error('Falha ao carregar transferências');
+
             const result = await response.json();
 
             if (result.meta) {
@@ -54,13 +245,56 @@ export const TransferenciaManager = (project) => {
                 pagination = result.meta;
             } else {
                 transferencias = Array.isArray(result) ? result : [];
+                pagination = { page: 1, limit: transferencias.length, total: transferencias.length, pages: 1 };
             }
-            renderTable(transferencias);
+
+            renderTransferencias();
+            renderPagination();
+
         } catch (error) {
-            console.error(error);
-            showToast('Erro ao carregar transferências', 'error');
+            console.error('Error loading transferências:', error);
+            showToast(error.message, 'error');
         } finally {
-            container.querySelector('.transf-table-wrapper')?.classList.remove('loading');
+            container.querySelector('#table-container')?.classList.remove('loading');
+        }
+    };
+
+    const renderPagination = () => {
+        const pagContainer = container.querySelector('.pagination-controls');
+        if (!pagContainer) return;
+
+        pagContainer.innerHTML = '';
+
+        const btnPrev = document.createElement('button');
+        btnPrev.className = 'btn-sm';
+        btnPrev.textContent = '◀ Anterior';
+        btnPrev.disabled = pagination.page <= 1;
+        btnPrev.onclick = () => loadTransferencias(pagination.page - 1);
+
+        const label = document.createElement('span');
+        label.textContent = `Página ${pagination.page} de ${pagination.pages}`;
+        label.style.margin = '0 1rem';
+
+        const btnNext = document.createElement('button');
+        btnNext.className = 'btn-sm';
+        btnNext.textContent = 'Próxima ▶';
+        btnNext.disabled = pagination.page >= pagination.pages;
+        btnNext.onclick = () => loadTransferencias(pagination.page + 1);
+
+        pagContainer.appendChild(btnPrev);
+        pagContainer.appendChild(label);
+        pagContainer.appendChild(btnNext);
+
+        // Update Total
+        const totalContainer = container.querySelector('#total-display');
+        if (totalContainer) {
+            const totalVal = transferencias.reduce((sum, t) => sum + parseFloat(t.valor || 0), 0);
+            totalContainer.innerHTML = `
+                <span style="font-size: 1.1rem; margin-right: 0.5rem;">Total Movimentado:</span>
+                <span style="font-weight: 700; font-size: 1.1rem; color: #3B82F6;">
+                    ${new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(totalVal)}
+                </span>
+            `;
         }
     };
 
@@ -69,85 +303,127 @@ export const TransferenciaManager = (project) => {
             transferencia: null,
             projectId: project.id,
             onSave: async (data) => {
-                const res = await fetch(`${API_BASE_URL}/transferencias`, {
-                    method: 'POST', headers: getHeaders(), body: JSON.stringify({ ...data, projectId: project.id })
-                });
-                if (res.ok) { showToast('Criado com sucesso!', 'success'); loadTransferencias(); }
-                else { const err = await res.json(); showToast(err.error || 'Erro', 'error'); }
+                try {
+                    const response = await fetch(`${API_BASE_URL}/transferencias`, {
+                        method: 'POST',
+                        headers: getHeaders(),
+                        body: JSON.stringify({
+                            ...data,
+                            projectId: project.id
+                        })
+                    });
+
+                    if (response.ok) {
+                        showToast('Transferência criada com sucesso!', 'success');
+                        loadTransferencias();
+                    } else {
+                        const error = await response.json();
+                        showToast(error.error || 'Erro ao criar transferência', 'error');
+                    }
+                } catch (error) {
+                    showToast('Erro de conexão', 'error');
+                }
             }
         });
     };
 
-    const updateTransferencia = async (item) => {
+    const updateTransferencia = async (transferencia) => {
         await TransferenciaModal.show({
-            transferencia: item,
+            transferencia: transferencia,
             projectId: project.id,
             onSave: async (data) => {
-                const res = await fetch(`${API_BASE_URL}/transferencias/${item.id}`, {
-                    method: 'PUT', headers: getHeaders(), body: JSON.stringify(data)
-                });
-                if (res.ok) { showToast('Atualizado com sucesso!', 'success'); loadTransferencias(); }
-                else { const err = await res.json(); showToast(err.error || 'Erro', 'error'); }
+                try {
+                    const response = await fetch(`${API_BASE_URL}/transferencias/${transferencia.id}`, {
+                        method: 'PUT',
+                        headers: getHeaders(),
+                        body: JSON.stringify(data)
+                    });
+
+                    if (response.ok) {
+                        showToast('Transferência atualizada com sucesso!', 'success');
+                        loadTransferencias();
+                    } else {
+                        const error = await response.json();
+                        showToast(error.error || 'Erro ao atualizar transferência', 'error');
+                    }
+                } catch (error) {
+                    showToast('Erro de conexão', 'error');
+                }
             }
         });
     };
 
     const deleteTransferencia = async (id) => {
         if (!confirm('Deseja excluir esta transferência e reverter os saldos?')) return;
-        const res = await fetch(`${API_BASE_URL}/transferencias/${id}`, { method: 'DELETE', headers: getHeaders() });
-        if (res.ok) { showToast('Excluído com sucesso!', 'success'); loadTransferencias(); }
-        else { const err = await res.json(); showToast(err.error || 'Erro', 'error'); }
+
+        try {
+            const response = await fetch(`${API_BASE_URL}/transferencias/${id}`, {
+                method: 'DELETE',
+                headers: getHeaders()
+            });
+
+            if (response.ok) {
+                showToast('Transferência excluída com sucesso!', 'success');
+                loadTransferencias();
+            } else {
+                const error = await response.json();
+                showToast(error.error || 'Erro ao excluir transferência', 'error');
+            }
+        } catch (error) {
+            showToast('Erro de conexão', 'error');
+        }
     };
 
-    const renderTable = (items) => {
-        container.innerHTML = `
-            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 2rem;">
-                <h2>↔️ Transferências</h2>
-                <div style="display: flex; gap: 0.5rem; color: var(--color-text-muted);">
-                     <span>Movimentações</span> / <span>Transferências</span>
-                </div>
+    // Initial Render of Container Structure
+    container.innerHTML = `
+        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 2rem;">
+            <h2>↔️ Transferências</h2>
+            <div style="display: flex; gap: 0.5rem;">
+                    <span style="font-size: 0.9rem; color: var(--color-primary);">Movimentações</span>
+                    <span style="color: var(--color-text-muted);">/</span>
+                    <span style="font-size: 0.9rem; color: var(--color-text-muted);">Transferências</span>
             </div>
-            <div style="margin-bottom: 1rem;">
-                <button id="btn-new-transf" class="btn-primary">+ Nova Transferência</button>
-            </div>
-            <div class="transf-table-wrapper" style="flex: 1; overflow: auto; border: 1px solid var(--color-border-light); border-radius: 8px; box-shadow: var(--shadow-sm);">
-                <table style="width: 100%; border-collapse: collapse;">
-                    <thead class="sticky-header">
-                        <tr>
-                            ${columns.map(col => `<th style="padding:0.75rem; text-align:${col.align}; border-bottom:2px solid #0c4a6e; background:#0c4a6e; color:white; font-weight:600;">${col.label}</th>`).join('')}
-                        </tr>
-                    </thead>
-                    <tbody>
-                        ${items.map((item, index) => {
-            const bgColor = index % 2 === 0 ? '#FFFFFF' : '#F9FAFB';
-            return `
-                                <tr style="background-color:${bgColor}; border-bottom:1px solid #eee;">
-                                    <td style="padding:0.75rem; text-align:center;">${formatDate(item.data_prevista)}</td>
-                                    <td style="padding:0.75rem; text-align:center;">${formatDate(item.data_real)}</td>
-                                    <td style="padding:0.75rem;">${item.descricao || '-'}</td>
-                                    <td style="padding:0.75rem;">${item.source_account_name}</td>
-                                    <td style="padding:0.75rem;">${item.destination_account_name}</td>
-                                    <td style="padding:0.75rem; text-align:right; font-weight:600; color:#3B82F6;">${formatCurrency(item.valor)}</td>
-                                    <td style="padding:0.75rem; text-align:center;">
-                                         <button class="btn-edit" data-id="${item.id}" style="color: #10B981; margin-right: 0.5rem; background:none; border:none; cursor:pointer;">✏️</button>
-                                         <button class="btn-delete" data-id="${item.id}" style="color: #EF4444; background:none; border:none; cursor:pointer;">🗑️</button>
-                                    </td>
-                                </tr>
-                            `;
-        }).join('')}
-                    </tbody>
-                </table>
-            </div>
-             <div style="margin-top: 1rem; text-align: right; color: var(--color-text-muted); font-size: 0.9rem;">
-                 <b>Total Movimentado:</b> <b style="color: #3B82F6;">${formatCurrency(items.reduce((acc, i) => acc + parseFloat(i.valor), 0))}</b>
-            </div>
-        `;
+        </div>
 
-        container.querySelector('#btn-new-transf').onclick = createTransferencia;
-        container.querySelectorAll('.btn-edit').forEach(b => b.onclick = () => updateTransferencia(items.find(i => i.id == b.dataset.id)));
-        container.querySelectorAll('.btn-delete').forEach(b => b.onclick = () => deleteTransferencia(b.dataset.id));
+        <div style="margin-bottom: 1rem;">
+            <button id="btn-new-transf" class="btn-primary">+ Nova Transferência</button>
+        </div>
+
+        <div id="table-container" style="flex: 1; display: flex; flex-direction: column; overflow: hidden;">
+            <!-- SharedTable will render here -->
+        </div>
+        
+        <div style="margin-top: 1rem; display: flex; justify-content: space-between; align-items: center; padding: 0.5rem; border-top: 1px solid var(--color-border-light);">
+            <div id="total-display"></div>
+            <div class="pagination-controls" style="display: flex; gap: 0.5rem; align-items: center;"></div>
+        </div>
+    `;
+
+    container.querySelector('#btn-new-transf').addEventListener('click', createTransferencia);
+
+    // Initialize SharedTable
+    const tableContainer = container.querySelector('#table-container');
+    sharedTable = new SharedTable({
+        container: tableContainer,
+        columns: columns,
+        projectId: project.id,
+        endpointPrefix: null, // Client-side distinct values
+        onFilterChange: (filters) => {
+            activeFilters = filters;
+            loadTransferencias(1);
+        },
+        onSortChange: (sort) => {
+            sortConfig = sort;
+            loadTransferencias(1);
+        }
+    });
+
+    const renderTransferencias = () => {
+        // Pass data to SharedTable
+        sharedTable.render(transferencias);
     };
 
     loadTransferencias();
+
     return container;
 };

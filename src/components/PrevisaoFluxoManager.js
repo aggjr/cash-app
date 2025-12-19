@@ -89,22 +89,21 @@ export const PrevisaoFluxoManager = (project) => {
         // Extract roots for easy access
         // If data is null/loading, these remain undefined, and rows won't render (just headers/footer)
         const data = forecastData?.data || [];
+        const aportesRoot = data.find(n => n.id === 'aportes_root'); // Positive Flow
+        const retiradasRoot = data.find(n => n.id === 'retiradas_root'); // Negative Flow
+        const entradasRoot = data.find(n => n.id === 'entradas_root');
         const saidasRoot = data.find(n => n.id === 'saidas_root');
         const producaoRoot = data.find(n => n.id === 'producao_root');
-        const entradasRoot = data.find(n => n.id === 'entradas_root');
 
         days.forEach(day => {
-            const inVal = (entradasRoot?.dailyTotals[day] || 0);
-            const outVal = (saidasRoot?.dailyTotals[day] || 0) + (producaoRoot?.dailyTotals[day] || 0);
+            const inVal = (entradasRoot?.dailyTotals[day] || 0) + (aportesRoot?.dailyTotals[day] || 0);
+            const outVal = (saidasRoot?.dailyTotals[day] || 0) + (producaoRoot?.dailyTotals[day] || 0) + (retiradasRoot?.dailyTotals[day] || 0);
 
             const initial = runningBalance;
-            const final = initial + inVal - outVal; // Inputs add, Outputs subtract (OutVal is usually positive mag?)
-            // Wait, my controller returns Outflows as POSITIVE Magnitude sums?
-            // Yes: `SUM(valor)` on despesas (positive db values) = Positive Total.
-            // So: Final = Initial + In - Out. Correct.
+            const final = initial + inVal - outVal;
 
             dayBalances[day] = { initial, final };
-            runningBalance = final; // Next day starts with this final
+            runningBalance = final;
         });
 
         // Header
@@ -117,7 +116,6 @@ export const PrevisaoFluxoManager = (project) => {
             const [y, m, day] = d.split('-');
             return `<th style="padding: 1rem; text-align: right; border-bottom: 2px solid #e5e7eb; min-width: 120px;">${day}/${m}</th>`;
         }).join('')}
-                        <!-- Total Column? Maybe not needed for daily flow -->
                     </tr>
                 </thead>
                 <tbody>
@@ -138,8 +136,7 @@ export const PrevisaoFluxoManager = (project) => {
         // Recursive Row Renderer
         const renderRows = (nodes, level = 0) => {
             nodes.forEach(node => {
-                // Visibility: Always show roots. Hide zero leaves.
-                const isRoot = ['saidas_root', 'producao_root', 'entradas_root'].includes(node.id);
+                const isRoot = ['saidas_root', 'producao_root', 'entradas_root', 'aportes_root', 'retiradas_root'].includes(node.id);
                 if (!isRoot && Math.abs(node.total) < 0.01) return;
 
                 const hasChildren = node.children && node.children.length > 0;
@@ -155,10 +152,19 @@ export const PrevisaoFluxoManager = (project) => {
                     const val = node.dailyTotals[d] || 0;
                     let color = '#9CA3AF';
                     if (Math.abs(val) > 0.001) {
-                        if (node.id && (node.id.toString().startsWith('entradas') || node.id.toString().includes('tipo_entrada'))) {
+                        // Color Logic:
+                        // Positive Flow Items (Entradas, Aportes): >0 Green, <0 Red
+                        // Negative Flow Items (Saidas, Producao, Retiradas): >0 Red, <0 Green
+                        const isPositiveFlow = node.id && (
+                            node.id.toString().startsWith('entradas') ||
+                            node.id.toString().includes('tipo_entrada') ||
+                            node.id.toString().startsWith('aportes')
+                        );
+
+                        if (isPositiveFlow) {
                             color = val >= 0 ? '#10B981' : '#EF4444';
                         } else {
-                            // Expenses
+                            // Negative Flow (Saidas, Retiradas, Producao)
                             color = val >= 0 ? '#EF4444' : '#10B981';
                         }
                     }

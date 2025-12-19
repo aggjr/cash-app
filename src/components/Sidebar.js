@@ -22,17 +22,17 @@ export const Sidebar = () => {
       children: [
         { id: 'entrada', label: 'Entrada', icon: '💰' },
         { id: 'saida', label: 'Saída', icon: '💸' },
-        { id: 'producao-revenda', label: 'Produção / Revenda', icon: '🏭' }
+        { id: 'producao-revenda', label: 'Produção / Revenda', icon: '🏭' },
+        { id: 'transferencias', label: 'Transferencias', icon: '↔️' }
       ]
     },
     {
       id: 'movimentacoes',
-      label: 'Movimentações Internas',
+      label: 'Transações com os sócios',
       icon: '🔀',
       children: [
         { id: 'aportes', label: 'Aportes', icon: '➕' },
-        { id: 'retiradas', label: 'Retiradas', icon: '➖' },
-        { id: 'transferencias', label: 'Transferencias', icon: '↔️' }
+        { id: 'retiradas', label: 'Retiradas', icon: '➖' }
       ]
     },
     {
@@ -100,6 +100,10 @@ export const Sidebar = () => {
         ${menuItems.map(item => renderMenuItem(item)).join('')}
       </nav>
       <div class="sidebar-footer">
+        <a href="#" class="menu-item" id="toggle-eva-btn" title="Habilitar/Desabilitar EVA">
+          <span class="menu-icon"><img src="/robot_icon.png" style="width: 24px; height: 24px; border-radius: 50%; object-fit: cover;"></span>
+          <span class="menu-text">EVA</span>
+        </a>
         <a href="#" class="menu-item" id="logout-btn">
           <span class="menu-icon">🚪</span>
           <span class="menu-text">Sair</span>

@@ -7,9 +7,11 @@ export const IncomeManager = (project) => {
     const container = document.createElement('div');
     container.className = 'glass-panel';
     const API_BASE_URL = getApiBaseUrl();
-    container.style.padding = '2rem';
-    container.style.margin = '2rem';
-    container.style.height = 'calc(100vh - 150px)';
+    container.style.padding = '1rem';
+    container.style.margin = '0.5rem'; // Reduced margin
+    container.style.height = 'calc(100vh - 60px)'; // Maximize height
+    container.style.width = 'calc(100% - 1rem)'; // Maximize width
+    container.style.maxWidth = 'none';
     container.style.display = 'flex';
     container.style.flexDirection = 'column';
 
@@ -21,64 +23,57 @@ export const IncomeManager = (project) => {
 
     // Define Columns for SharedTable
     const columns = [
-        { key: 'data_fato', label: 'Data Fato', width: '100px', align: 'center', type: 'date' },
+        { key: 'data_fato', label: 'Dt Fato', width: '70px', align: 'left', type: 'date' },
         {
             key: 'data_prevista_recebimento',
-            label: 'Data Prevista',
-            width: '100px',
-            align: 'center',
+            label: 'Dt Prevista',
+            width: '70px',
+            align: 'left',
             type: 'date'
         },
+        { key: 'data_atraso', label: 'Dt Atraso', width: '70px', align: 'left', type: 'date' },
         {
             key: 'data_real_recebimento',
-            label: 'Data Real',
-            width: '100px',
-            align: 'center',
+            label: 'Dt Real',
+            width: '70px',
+            align: 'left',
             type: 'date'
         },
         { key: 'tipo_entrada_name', label: 'Tipo Entrada', width: '200px', align: 'left', type: 'text' },
         { key: 'descricao', label: 'Descrição', width: 'auto', align: 'left', type: 'text' },
         { key: 'company_name', label: 'Empresa', width: '150px', align: 'left', type: 'text' },
-        { key: 'account_name', label: 'Conta', width: '150px', align: 'left', type: 'text' },
+        { key: 'account_name', label: 'Conta', width: '150px', align: 'center', type: 'text' },
         { key: 'valor', label: 'Valor', width: '120px', align: 'right', type: 'currency', colorLogic: 'inflow' },
         {
-            key: 'status',
-            label: 'Status',
-            width: '100px',
+            key: 'link',
+            label: 'Link',
+            width: '60px',
             align: 'center',
-            noFilter: true,
+            type: 'link', // Explicit type for filter logic
             render: (item) => {
-                let statusColor = '#F59E0B'; // Pending (Yellow)
-                let statusTitle = 'Aguardando Pagamento';
-                let statusText = 'Pendente';
-
-                if (item.data_real_recebimento) {
-                    statusColor = '#10B981'; // Received (Green)
-                    statusTitle = 'Recebido';
-                    statusText = 'Recebido';
+                const btn = document.createElement('button');
+                btn.innerHTML = '📎'; // Paperclip
+                btn.style.background = 'none';
+                btn.style.border = 'none';
+                btn.style.fontSize = '1.2rem';
+                btn.style.padding = '0';
+                if (item.comprovante_url) {
+                    btn.style.cursor = 'pointer';
+                    btn.title = 'Ver anexo';
+                    btn.onclick = (e) => {
+                        e.stopPropagation();
+                        window.open(`${API_BASE_URL}${item.comprovante_url}`, '_blank');
+                    };
                 } else {
-                    const today = new Date().toISOString().split('T')[0];
-                    const prev = item.data_prevista_recebimento ? item.data_prevista_recebimento.split('T')[0] : '';
-                    if (prev && prev < today) {
-                        statusColor = '#EF4444'; // Overdue (Red)
-                        statusTitle = 'Atrasado';
-                        statusText = 'Atrasado';
-                    }
+                    btn.style.cursor = 'default';
+                    btn.style.opacity = '0.3';
+                    btn.title = 'Sem anexo';
                 }
-
-                const badge = document.createElement('div');
-                badge.style.backgroundColor = statusColor;
-                badge.style.color = 'white';
-                badge.style.padding = '4px 8px';
-                badge.style.borderRadius = '12px';
-                badge.style.fontSize = '0.75rem';
-                badge.style.fontWeight = '600';
-                badge.style.display = 'inline-block';
-                badge.textContent = statusText;
-                badge.title = statusTitle;
-                return badge;
+                return btn;
             }
         },
+
+
         {
             key: 'actions',
             label: 'Ações',
@@ -113,6 +108,39 @@ export const IncomeManager = (project) => {
                 div.appendChild(btnDelete);
                 return div;
             }
+        },
+        {
+            key: 'status',
+            label: '',
+            width: '60px',
+            align: 'center',
+            noFilter: true,
+            render: (item) => {
+                let statusColor = '#F59E0B'; // Pending (Yellow)
+                let statusTitle = 'Aguardando Pagamento';
+
+                if (item.data_real_recebimento) {
+                    statusColor = '#10B981'; // Received (Green)
+                    statusTitle = 'Recebido';
+                } else {
+                    const today = new Date().toISOString().split('T')[0];
+                    const prev = item.data_prevista_recebimento ? item.data_prevista_recebimento.split('T')[0] : '';
+                    if (prev && prev < today) {
+                        statusColor = '#EF4444'; // Overdue (Red)
+                        statusTitle = 'Atrasado';
+                    }
+                }
+
+                const dot = document.createElement('div');
+                dot.style.backgroundColor = statusColor;
+                dot.style.width = '12px';
+                dot.style.height = '12px';
+                dot.style.borderRadius = '50%';
+                dot.style.margin = '0 auto';
+                dot.style.cursor = 'help';
+                dot.title = statusTitle;
+                return dot;
+            }
         }
     ];
 
@@ -138,26 +166,98 @@ export const IncomeManager = (project) => {
             });
 
             // Handle Filters
+            if (sortConfig.key) {
+                params.append('sortBy', sortConfig.key);
+                params.append('order', sortConfig.direction);
+            }
+
             Object.keys(activeFilters).forEach(key => {
                 const filter = activeFilters[key];
                 if (!filter) return;
 
                 if (key === 'valor') {
-                    if (filter.min) params.append('minValue', filter.min);
-                    if (filter.max) params.append('maxValue', filter.max);
-                    // Handle advanced numeric filters if supported by backend, or map them
-                    if (filter.operator) {
-                        // Backend might not support operators yet, keeping basic min/max for now as per previous logic
-                        // If SharedTable passes operator, we might need to adapt.
-                        // For now, let's stick to min/max/text which are sure to work.
+                    // Operator-based format (advanced filter)
+                    if (filter.operator && filter.val1) {
+                        if (filter.operator === 'eq') {
+                            // Exact match - using min/max range for equality
+                            params.append('minValue', filter.val1);
+                            params.append('maxValue', filter.val1);
+                        } else if (filter.operator === 'gt' || filter.operator === 'gte') {
+                            params.append('minValue', filter.val1);
+                        } else if (filter.operator === 'lt' || filter.operator === 'lte') {
+                            params.append('maxValue', filter.val1);
+                        } else if (filter.operator === 'between' && filter.val2) {
+                            params.append('minValue', filter.val1);
+                            params.append('maxValue', filter.val2);
+                        }
+                    }
+                    // Numeric IN list (quick filter - exact match)
+                    else if (filter.numIn && filter.numIn.length > 0) {
+                        if (filter.numIn.length === 1) {
+                            // Single value - exact match using min/max
+                            params.append('minValue', filter.numIn[0]);
+                            params.append('maxValue', filter.numIn[0]);
+                        } else {
+                            // Multiple values - use range (min to max)
+                            const values = filter.numIn.map(v => parseFloat(v));
+                            params.append('minValue', Math.min(...values));
+                            params.append('maxValue', Math.max(...values));
+                        }
+                    }
+                    // Legacy min/max format
+                    else if (filter.min || filter.max) {
+                        if (filter.min) params.append('minValue', filter.min);
+                        if (filter.max) params.append('maxValue', filter.max);
                     }
                 } else if (key.startsWith('data')) {
-                    if (filter.start) params.append('startDate', filter.start);
-                    if (filter.end) params.append('endDate', filter.end);
-                    // If filter.dateIn (list of dates) exists, we should handle it if backend supported it.
+                    // Date Filters with Mutual Exclusion
+                    let useAdvanced = false;
+
+                    // Check for operator-based advanced filters
+                    if (filter.operator) {
+                        useAdvanced = true;
+                        if (filter.operator === 'eq' && filter.val1) {
+                            params.append(`${key}Start`, filter.val1);
+                            params.append(`${key}End`, filter.val1);
+                        } else if (filter.operator === 'before' && filter.val1) {
+                            params.append(`${key}End`, filter.val1);
+                        } else if (filter.operator === 'after' && filter.val1) {
+                            params.append(`${key}Start`, filter.val1);
+                        } else if (filter.operator === 'between' && filter.val1 && filter.val2) {
+                            params.append(`${key}Start`, filter.val1);
+                            params.append(`${key}End`, filter.val2);
+                        }
+                    } else if (filter.start || filter.end) {
+                        useAdvanced = true;
+                        if (filter.start) params.append(`${key}Start`, filter.start);
+                        if (filter.end) params.append(`${key}End`, filter.end);
+                    }
+
+                    // Only use checkbox list if no advanced filter
+                    if (!useAdvanced && filter.dateIn && filter.dateIn.length > 0 && !filter.dateIn.includes('__NONE__')) {
+                        filter.dateIn.forEach(d => params.append(`${key}List`, d));
+                    }
+                } else if (key === 'link') {
+                    // Link filter (boolean)
+                    if (filter.value === 'true' || filter.value === 'with_link') params.append('hasAttachment', '1');
+                    else if (filter.value === 'false' || filter.value === 'without_link') params.append('hasAttachment', '0');
                 } else {
-                    if (filter.text) params.append('search', filter.text);
-                    if (filter.val1 && filter.operator === 'contains') params.append('search', filter.val1);
+                    // Specific Text Filters
+                    if (key === 'descricao' && filter.text) params.append('description', filter.text);
+                    if (key === 'account_name' && filter.text) params.append('account', filter.text);
+                    if (key === 'company_name' && filter.text) params.append('company', filter.text);
+                    if (key === 'tipo_entrada_name' && filter.text) params.append('tipoEntrada', filter.text);
+
+                    // Fallback or "Contains" generic operator if matched
+                    if (filter.val1 && filter.operator === 'contains') {
+                        if (key === 'descricao') params.append('description', filter.val1);
+                        else if (key === 'account_name') params.append('account', filter.val1);
+                        else if (key === 'company_name') params.append('company', filter.val1);
+                        else if (key === 'tipo_entrada_name') params.append('tipoEntrada', filter.val1);
+                        else params.append('search', filter.val1); // Genuine fallback
+                    } else if (filter.text && !['descricao', 'account_name', 'company_name', 'tipo_entrada_name'].includes(key)) {
+                        params.append('search', filter.text);
+                    }
                 }
             });
 
@@ -343,10 +443,6 @@ export const IncomeManager = (project) => {
         },
         onSortChange: (sort) => {
             sortConfig = sort;
-            // Sorting is mostly client-side visual in SharedTable headers currently unless we pass sort params to backend
-            // For now, loadIncomes ignores sortConfig params, but we can add them:
-            // params.append('sortBy', sort.key); params.append('order', sort.direction);
-            // Re-load to apply if supported.
             loadIncomes(1);
         }
     });

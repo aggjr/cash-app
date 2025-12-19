@@ -49,15 +49,27 @@ exports.getDailyForecast = async (req, res, next) => {
         // "Fluxo de Caixa" usually implies CASH flow, i.e., when money moves.
         // If data_real_pagamento exists, use it. Else use data_prevista_pagamento.
 
-        // Helper to get date column based on table context
-        const getDateCol = (table) => {
+        // Helper to get effective date SQL expression
+        // Logic: 
+        // 1. Data Real (Paid/Received)
+        // 2. If no Real, and Prevista < Today (Overdue) -> Use Today (CURDATE)
+        // 3. Else use Prevista
+        const getEffectiveDateSql = (table) => {
+            let realCol = 'data_real';
+            let prevCol = 'data_prevista';
+
+            if (table === 'entradas') { realCol = 'data_real_recebimento'; prevCol = 'data_prevista_recebimento'; }
+            if (table === 'saidas') { realCol = 'data_real_pagamento'; prevCol = 'data_prevista_pagamento'; }
+            if (table === 'producao_revenda') { realCol = 'data_fato'; prevCol = 'data_fato'; } // Producao acts differently? Or implies 'data_fato' is the date.
+
+            // Producao doesn't usually have expected vs real in this schema context?
+            // If producao_revenda only has data_fato, we stick to it.
             if (table === 'producao_revenda') return 'data_fato';
-            if (table === 'entradas') return 'COALESCE(data_real_recebimento, data_prevista_recebimento)';
-            if (table === 'saidas') return 'COALESCE(data_real_pagamento, data_prevista_pagamento)';
-            if (table === 'aportes') return 'COALESCE(data_real, data_fato)';
-            if (table === 'retiradas') return 'COALESCE(data_real, data_fato)';
-            return 'data_fato'; // Fallback
+
+            return `COALESCE(${realCol}, IF(${prevCol} < CURDATE(), CURDATE(), ${prevCol}))`;
         };
+
+        const effectiveDateSql = (table) => getEffectiveDateSql(table);
 
         // 1.1 Calculate Historic Inflows (active=1)
         const [inflowResult] = await db.execute(`
@@ -65,17 +77,17 @@ exports.getDailyForecast = async (req, res, next) => {
             FROM entradas 
             WHERE project_id = ? 
             AND active = 1 
-            AND ${getDateCol('entradas')} < ?
+            AND ${effectiveDateSql('entradas')} < ?
         `, [projectId, startDate]);
         const historicInflow = parseFloat(inflowResult[0].total || 0);
 
-        // 1.2 Calculate Historic Outflows (Saidas + Producao)
+        // 1.2 Calculate Historic Outflows
         const [saidasResult] = await db.execute(`
             SELECT SUM(valor) as total 
             FROM saidas 
             WHERE project_id = ? 
             AND active = 1 
-            AND ${getDateCol('saidas')} < ?
+            AND ${effectiveDateSql('saidas')} < ?
         `, [projectId, startDate]);
         const historicSaidas = parseFloat(saidasResult[0].total || 0);
 
@@ -84,27 +96,27 @@ exports.getDailyForecast = async (req, res, next) => {
             FROM producao_revenda 
             WHERE project_id = ? 
             AND active = 1 
-            AND ${getDateCol('producao_revenda')} < ?
+            AND ${effectiveDateSql('producao_revenda')} < ?
         `, [projectId, startDate]);
         const historicProducao = parseFloat(producaoResult[0].total || 0);
 
-        // 1.3 Historic Aportes (Add to Balance)
+        // 1.3 Historic Aportes
         const [aportesResult] = await db.execute(`
             SELECT SUM(valor) as total 
             FROM aportes 
             WHERE project_id = ? 
             AND active = 1 
-            AND ${getDateCol('aportes')} < ?
+            AND ${effectiveDateSql('aportes')} < ?
         `, [projectId, startDate]);
         const historicAportes = parseFloat(aportesResult[0].total || 0);
 
-        // 1.4 Historic Retiradas (Subtract from Balance)
+        // 1.4 Historic Retiradas
         const [retiradasResult] = await db.execute(`
             SELECT SUM(valor) as total 
             FROM retiradas 
             WHERE project_id = ? 
             AND active = 1 
-            AND ${getDateCol('retiradas')} < ?
+            AND ${effectiveDateSql('retiradas')} < ?
         `, [projectId, startDate]);
         const historicRetiradas = parseFloat(retiradasResult[0].total || 0);
 
@@ -124,18 +136,19 @@ exports.getDailyForecast = async (req, res, next) => {
             );
 
             // Data
-            const dateCol = getDateCol(dataTable);
+            // Use effective date filtering
+            const dateExpr = effectiveDateSql(dataTable);
             const query = `
                 SELECT 
                     d.id, 
                     d.valor, 
                     d.${fkCol} as type_id, 
-                    DATE_FORMAT(${dateCol}, '%Y-%m-%d') as date_key
+                    DATE_FORMAT(${dateExpr}, '%Y-%m-%d') as date_key
                 FROM ${dataTable} d
                 WHERE d.project_id = ? 
                 AND d.active = 1
-                AND ${dateCol} >= ? 
-                AND ${dateCol} <= ?
+                AND ${dateExpr} >= ? 
+                AND ${dateExpr} <= ?
             `;
             const [items] = await db.execute(query, [projectId, startDate, endDate]);
 
@@ -156,6 +169,7 @@ exports.getDailyForecast = async (req, res, next) => {
                 const node = typeMap.get(item.type_id);
                 if (node) {
                     const val = parseFloat(item.valor) || 0;
+                    // date_key is already formatted by SQL
                     node.dailyTotals[item.date_key] = (node.dailyTotals[item.date_key] || 0) + val;
                     node.total += val;
                 }
@@ -193,15 +207,15 @@ exports.getDailyForecast = async (req, res, next) => {
         // Or just fetch them and format as a Root Node.
 
         const fetchFlatDaily = async (table, label, id) => {
-            const dateCol = getDateCol(table);
+            const dateExpr = effectiveDateSql(table);
             const [items] = await db.execute(`
                 SELECT 
                     id, 
                     valor, 
-                    ${dateCol} as date_val
+                    ${dateExpr} as date_val
                 FROM ${table}
                 WHERE project_id = ? AND active = 1
-                AND ${dateCol} >= ? AND ${dateCol} <= ?
+                AND ${dateExpr} >= ? AND ${dateExpr} <= ?
             `, [projectId, startDate, endDate]);
 
             const dailyTotals = {};
