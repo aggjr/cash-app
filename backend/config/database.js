@@ -3,7 +3,7 @@ require('dotenv').config();
 
 // Create connection pool - TCP/IP configuration for Windows
 const pool = mysql.createPool({
-    host: '127.0.0.1',
+    host: process.env.DB_HOST || '127.0.0.1',
     port: 3306,
     user: process.env.DB_USER || 'root',
     password: process.env.DB_PASSWORD,
