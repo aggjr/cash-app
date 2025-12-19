@@ -464,6 +464,7 @@ export const IncomeModal = {
                         const btnYes = confirmOverlay.querySelector('#confirm-yes');
 
                         if (btnNo) btnNo.onclick = () => closeConfirm(false);
+                        if (btnYes) btnYes.onclick = () => closeConfirm(true);
                     });
                 };
 
