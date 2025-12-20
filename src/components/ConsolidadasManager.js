@@ -474,19 +474,21 @@ export const ConsolidadasManager = (project) => {
     const lblDe = document.createElement('span');
     lblDe.textContent = 'De:'; lblDe.style.fontSize = '0.9rem'; lblDe.style.color = '#4B5563';
 
-    // Updated to use imported MonthPicker
+    // Updated to use imported MonthPicker and auto-trigger loadData
     const startPicker = MonthPicker(startMonth, (val) => {
         startMonth = val;
         localStorage.setItem('consolidadas_startMonth', startMonth);
+        loadData();
     });
 
     const lblAte = document.createElement('span');
     lblAte.textContent = 'Até:'; lblAte.style.fontSize = '0.9rem'; lblAte.style.color = '#4B5563';
 
-    // Updated to use imported MonthPicker
+    // Updated to use imported MonthPicker and auto-trigger loadData
     const endPicker = MonthPicker(endMonth, (val) => {
         endMonth = val;
         localStorage.setItem('consolidadas_endMonth', endMonth);
+        loadData();
     });
 
     dateGroup.appendChild(lblDe);
@@ -494,19 +496,7 @@ export const ConsolidadasManager = (project) => {
     dateGroup.appendChild(lblAte);
     dateGroup.appendChild(endPicker);
 
-    leftGroup.appendChild(dateGroup);
-
-    // Refresh Button
-    const btnRefresh = document.createElement('button');
-    btnRefresh.className = 'btn-primary';
-    btnRefresh.innerHTML = '🔍';
-    btnRefresh.style.height = '38px'; btnRefresh.style.width = '38px';
-    btnRefresh.style.display = 'flex'; btnRefresh.style.alignItems = 'center'; btnRefresh.style.justifyContent = 'center';
-    btnRefresh.style.fontSize = '1.2rem';
-    btnRefresh.style.padding = '0';
-    btnRefresh.onclick = () => loadData();
-
-    leftGroup.appendChild(btnRefresh);
+    leftGroup.appendChild(dateGroup); // Refresh button removed
 
     // Title
     const title = document.createElement('div');

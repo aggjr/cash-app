@@ -30,7 +30,9 @@ const errorHandler = (err, req, res, next) => {
         if (catalogEntry) {
             statusCode = catalogEntry.http_status;
             errorCode = catalogEntry.code;
-            message = catalogEntry.message;
+            // Prefer specific details if provided (as string), otherwise use generic catalog message
+            const specificMessage = (err.details && typeof err.details === 'string') ? err.details : null;
+            message = specificMessage || catalogEntry.message;
         } else {
             console.warn(`Error code ${err.code} not found in catalog.`);
             errorCode = err.code;
