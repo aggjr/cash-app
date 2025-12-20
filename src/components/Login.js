@@ -13,7 +13,7 @@ export const Login = (onLoginSuccess) => {
     container.innerHTML = `
         <div class="auth-box">
             <div class="auth-header-title">
-                <h1 class="text-gradient" style="font-size: 2rem; margin-bottom: 0.25rem;">CASH</h1>
+                <h1 class="text-gradient notranslate" translate="no" style="font-size: 2rem; margin-bottom: 0.25rem;">CASH</h1>
             </div>
             
             <h2>Login</h2>
