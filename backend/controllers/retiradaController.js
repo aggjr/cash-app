@@ -212,12 +212,8 @@ exports.createRetirada = async (req, res, next) => {
             throw new AppError('VAL-002', 'Data Prevista é obrigatória');
         }
 
-        if (!descricao) {
-            const msg = 'Validation Fail: Missing Descricao';
-            console.error(`[CRITICAL] ${msg}`, { body: req.body }); // Force output to console
-            fileLogger.log(msg);
-            throw new AppError('VAL-002', 'Descrição é obrigatória');
-        }
+        // Description is OPTIONAL as per user request
+        // if (!descricao) { ... }
 
         if (!companyId) { // Mapped from 'empresa' in instruction
             const msg = 'Validation Fail: Missing Company ID';
