@@ -1,5 +1,6 @@
 import { showToast } from '../utils/toast.js';
 import { getApiBaseUrl } from '../utils/apiConfig.js';
+import { MonthPicker } from './MonthPicker.js';
 
 export const ConsolidadasManager = (project) => {
     const container = document.createElement('div');
@@ -473,7 +474,8 @@ export const ConsolidadasManager = (project) => {
     const lblDe = document.createElement('span');
     lblDe.textContent = 'De:'; lblDe.style.fontSize = '0.9rem'; lblDe.style.color = '#4B5563';
 
-    const startPicker = createMonthPicker(startMonth, (val) => {
+    // Updated to use imported MonthPicker
+    const startPicker = MonthPicker(startMonth, (val) => {
         startMonth = val;
         localStorage.setItem('consolidadas_startMonth', startMonth);
     });
@@ -481,7 +483,8 @@ export const ConsolidadasManager = (project) => {
     const lblAte = document.createElement('span');
     lblAte.textContent = 'Até:'; lblAte.style.fontSize = '0.9rem'; lblAte.style.color = '#4B5563';
 
-    const endPicker = createMonthPicker(endMonth, (val) => {
+    // Updated to use imported MonthPicker
+    const endPicker = MonthPicker(endMonth, (val) => {
         endMonth = val;
         localStorage.setItem('consolidadas_endMonth', endMonth);
     });

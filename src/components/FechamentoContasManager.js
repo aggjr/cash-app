@@ -1,5 +1,6 @@
 import { showToast } from '../utils/toast.js';
 import { getApiBaseUrl } from '../utils/apiConfig.js';
+import { MonthPicker } from './MonthPicker.js';
 
 export const FechamentoContasManager = (project) => {
     const container = document.createElement('div');
@@ -87,16 +88,10 @@ export const FechamentoContasManager = (project) => {
         startLabel.style.fontSize = '0.9rem'; // Smaller label
         startLabel.style.color = '#374151';
 
-        const startInput = document.createElement('input');
-        startInput.type = 'month';
-        startInput.className = 'form-input';
-        startInput.style.width = '160px'; // Compact input
-        startInput.style.padding = '0.4rem'; // Compact padding
-        startInput.style.fontSize = '0.9rem';
-        startInput.value = `${startMonth.getFullYear()}-${(startMonth.getMonth() + 1).toString().padStart(2, '0')}`;
-        startInput.addEventListener('change', (e) => {
-            if (e.target.value) {
-                const parts = e.target.value.split('-');
+        const startStr = `${startMonth.getFullYear()}-${(startMonth.getMonth() + 1).toString().padStart(2, '0')}`;
+        const startPicker = MonthPicker(startStr, (val) => {
+            if (val) {
+                const parts = val.split('-');
                 if (parts.length === 2) {
                     startMonth = new Date(parseInt(parts[0]), parseInt(parts[1]) - 1, 1, 12);
                     localStorage.setItem(storageKeyStart, startMonth.toISOString()); // Persist
@@ -106,7 +101,7 @@ export const FechamentoContasManager = (project) => {
         });
 
         startDiv.appendChild(startLabel);
-        startDiv.appendChild(startInput);
+        startDiv.appendChild(startPicker);
 
         // End Month Input
         const endDiv = document.createElement('div');
@@ -118,16 +113,10 @@ export const FechamentoContasManager = (project) => {
         endLabel.style.fontSize = '0.9rem';
         endLabel.style.color = '#374151';
 
-        const endInput = document.createElement('input');
-        endInput.type = 'month';
-        endInput.className = 'form-input';
-        endInput.style.width = '160px';
-        endInput.style.padding = '0.4rem';
-        endInput.style.fontSize = '0.9rem';
-        endInput.value = `${endMonth.getFullYear()}-${(endMonth.getMonth() + 1).toString().padStart(2, '0')}`;
-        endInput.addEventListener('change', (e) => {
-            if (e.target.value) {
-                const parts = e.target.value.split('-');
+        const endStr = `${endMonth.getFullYear()}-${(endMonth.getMonth() + 1).toString().padStart(2, '0')}`;
+        const endPicker = MonthPicker(endStr, (val) => {
+            if (val) {
+                const parts = val.split('-');
                 if (parts.length === 2) {
                     endMonth = new Date(parseInt(parts[0]), parseInt(parts[1]) - 1, 1, 12);
                     localStorage.setItem(storageKeyEnd, endMonth.toISOString()); // Persist
@@ -137,7 +126,7 @@ export const FechamentoContasManager = (project) => {
         });
 
         endDiv.appendChild(endLabel);
-        endDiv.appendChild(endInput);
+        endDiv.appendChild(endPicker);
 
         controls.appendChild(startDiv);
         controls.appendChild(endDiv);
