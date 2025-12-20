@@ -232,6 +232,188 @@ export const ConsolidadasManager = (project) => {
         });
     };
 
+    // --- Custom Month-Year Picker Component ---
+    const createMonthPicker = (initialValue, onChange) => {
+        const wrapper = document.createElement('div');
+        wrapper.style.position = 'relative';
+        wrapper.style.display = 'inline-block';
+
+        let [year, month] = initialValue.split('-').map(Number);
+        let displayYear = year; // For navigation
+
+        const monthNames = ['Jan', 'Fev', 'Mar', 'Abr', 'Mai', 'Jun', 'Jul', 'Ago', 'Set', 'Out', 'Nov', 'Dez'];
+        const fullMonthNames = ['Janeiro', 'Fevereiro', 'Março', 'Abril', 'Maio', 'Junho', 'Julho', 'Agosto', 'Setembro', 'Outubro', 'Novembro', 'Dezembro'];
+
+        // 1. The Trigger Input
+        const trigger = document.createElement('div');
+        trigger.className = 'form-input';
+        trigger.style.cursor = 'pointer';
+        trigger.style.display = 'flex';
+        trigger.style.alignItems = 'center';
+        trigger.style.justifyContent = 'space-between';
+        trigger.style.width = '160px'; // Fixed width for consistency
+        trigger.style.height = '38px';
+        trigger.style.padding = '0 0.75rem';
+        trigger.style.backgroundColor = 'white';
+        trigger.style.userSelect = 'none';
+
+        const updateTriggerText = () => {
+            trigger.innerHTML = `
+                <span style="font-weight: 500; color: #374151;">${fullMonthNames[month - 1]} / ${year}</span>
+                <span style="font-size: 0.8rem; color: #9CA3AF;">▼</span>
+            `;
+        };
+        updateTriggerText();
+
+        // 2. The Popover
+        const popover = document.createElement('div');
+        popover.className = 'month-picker-popover glass-panel'; // Reuse glass panel style or similar
+        popover.style.display = 'none';
+        popover.style.position = 'absolute';
+        popover.style.top = '100%';
+        popover.style.left = '0';
+        popover.style.marginTop = '0.25rem';
+        popover.style.zIndex = '1000';
+        popover.style.width = '240px';
+        popover.style.padding = '0.5rem';
+        popover.style.backgroundColor = 'white';
+        popover.style.border = '1px solid #e5e7eb';
+        popover.style.boxShadow = '0 10px 15px -3px rgba(0, 0, 0, 0.1)';
+        popover.style.borderRadius = '0.5rem';
+
+        const renderPopoverContent = () => {
+            popover.innerHTML = '';
+
+            // Header: Year Navigation
+            const header = document.createElement('div');
+            header.style.display = 'flex';
+            header.style.justifyContent = 'space-between';
+            header.style.alignItems = 'center';
+            header.style.marginBottom = '0.5rem';
+            header.style.paddingBottom = '0.5rem';
+            header.style.borderBottom = '1px solid #f3f4f6';
+
+            const btnPrev = document.createElement('button');
+            btnPrev.textContent = '◀';
+            btnPrev.style.background = 'none';
+            btnPrev.style.border = 'none';
+            btnPrev.style.cursor = 'pointer';
+            btnPrev.style.padding = '0.25rem 0.5rem';
+            btnPrev.style.color = '#4B5563';
+            btnPrev.onclick = (e) => {
+                e.stopPropagation();
+                displayYear--;
+                renderPopoverContent();
+            };
+
+            const yearLabel = document.createElement('span');
+            yearLabel.textContent = displayYear;
+            yearLabel.style.fontWeight = 'bold';
+            yearLabel.style.color = '#111827';
+
+            const btnNext = document.createElement('button');
+            btnNext.textContent = '▶';
+            btnNext.style.background = 'none';
+            btnNext.style.border = 'none';
+            btnNext.style.cursor = 'pointer';
+            btnNext.style.padding = '0.25rem 0.5rem';
+            btnNext.style.color = '#4B5563';
+            btnNext.onclick = (e) => {
+                e.stopPropagation();
+                displayYear++;
+                renderPopoverContent();
+            };
+
+            header.appendChild(btnPrev);
+            header.appendChild(yearLabel);
+            header.appendChild(btnNext);
+            popover.appendChild(header);
+
+            // Grid: Months
+            const grid = document.createElement('div');
+            grid.style.display = 'grid';
+            grid.style.gridTemplateColumns = 'repeat(3, 1fr)';
+            grid.style.gap = '0.25rem';
+
+            monthNames.forEach((mName, idx) => {
+                const btnMonth = document.createElement('button');
+                btnMonth.textContent = mName;
+                const mNum = idx + 1;
+                const isSelected = displayYear === year && mNum === month;
+
+                btnMonth.style.padding = '0.5rem 0.25rem';
+                btnMonth.style.border = 'none';
+                btnMonth.style.borderRadius = '0.25rem';
+                btnMonth.style.cursor = 'pointer';
+                btnMonth.style.fontSize = '0.9rem';
+
+                if (isSelected) {
+                    btnMonth.style.backgroundColor = 'var(--color-primary)'; // Blue
+                    btnMonth.style.color = 'white';
+                    btnMonth.style.fontWeight = '600';
+                } else {
+                    btnMonth.style.backgroundColor = 'transparent';
+                    btnMonth.style.color = '#374151';
+                }
+
+                btnMonth.onmouseover = () => { if (!isSelected) btnMonth.style.backgroundColor = '#f3f4f6'; };
+                btnMonth.onmouseout = () => { if (!isSelected) btnMonth.style.backgroundColor = 'transparent'; };
+
+                btnMonth.onclick = (e) => {
+                    e.stopPropagation();
+                    year = displayYear;
+                    month = mNum;
+                    updateTriggerText();
+                    closePopover();
+
+                    // Format YYYY-MM
+                    const formatted = `${year}-${String(month).padStart(2, '0')}`;
+                    onChange(formatted);
+                };
+
+                grid.appendChild(btnMonth);
+            });
+            popover.appendChild(grid);
+        };
+
+        // Logic
+        const closePopover = () => {
+            popover.style.display = 'none';
+            document.removeEventListener('click', outsideClickListener);
+        };
+
+        const outsideClickListener = (e) => {
+            if (!wrapper.contains(e.target)) {
+                closePopover();
+            }
+        };
+
+        trigger.onclick = (e) => {
+            e.stopPropagation();
+            if (popover.style.display === 'block') {
+                closePopover();
+            } else {
+                displayYear = year; // Reset view to selected year
+                renderPopoverContent();
+                popover.style.display = 'block';
+                document.addEventListener('click', outsideClickListener);
+            }
+        };
+
+        wrapper.appendChild(trigger);
+        wrapper.appendChild(popover);
+
+        // API for external set
+        wrapper.setValue = (val) => {
+            [year, month] = val.split('-').map(Number);
+            displayYear = year;
+            updateTriggerText();
+        };
+
+        return wrapper;
+    };
+
+
     // --- Build Header / Controls ---
     const controls = document.createElement('div');
     controls.style.display = 'flex';
@@ -242,38 +424,96 @@ export const ConsolidadasManager = (project) => {
     controls.style.borderBottom = '1px solid #e5e7eb';
     controls.style.borderRadius = '8px 8px 0 0';
 
-    controls.innerHTML = `
-        <div style="display: flex; align-items: center; gap: 1.5rem;">
-             <!-- View Type Radio -->
-             <div style="display: flex; gap: 1rem; background: #f3f4f6; padding: 0.5rem; border-radius: 8px;">
-                <label style="display: flex; align-items: center; gap: 0.5rem; cursor: pointer; font-size: 0.9rem; font-weight: 500;">
-                    <input type="radio" name="viewType" value="caixa" ${viewType === 'caixa' ? 'checked' : ''}>
-                    Visão de Caixa
-                </label>
-                <label style="display: flex; align-items: center; gap: 0.5rem; cursor: pointer; font-size: 0.9rem; font-weight: 500;">
-                    <input type="radio" name="viewType" value="competencia" ${viewType === 'competencia' ? 'checked' : ''}>
-                    Visão de Competência
-                </label>
-             </div>
+    // Left Logic Group
+    const leftGroup = document.createElement('div');
+    leftGroup.style.display = 'flex';
+    leftGroup.style.alignItems = 'center';
+    leftGroup.style.gap = '1.5rem';
 
-             <!-- Date Range -->
-             <div style="display: flex; align-items: center; gap: 0.5rem;">
-                <label style="font-size: 0.9rem; color: #4B5563;">De:</label>
-                <input type="month" id="start-month" value="${startMonth}" style="padding: 0.4rem; border: 1px solid #d1d5db; border-radius: 4px; font-family: inherit;">
-                
-                <label style="font-size: 0.9rem; color: #4B5563;">Até:</label>
-                <input type="month" id="end-month" value="${endMonth}" style="padding: 0.4rem; border: 1px solid #d1d5db; border-radius: 4px; font-family: inherit;">
-             </div>
-             
-             <button id="btn-refresh" class="btn-primary" title="Pesquisar" style="height: 38px; width: 38px; padding: 0; display: flex; align-items: center; justify-content: center; font-size: 1.2rem;">
-                🔍
-             </button>
-        </div>
-        
-        <div style="font-size: 1.2rem; font-weight: bold; color: #00425F;">
-            📑 Consolidadas
-        </div>
-    `;
+    // View Type
+    const viewGroup = document.createElement('div');
+    viewGroup.style.display = 'flex';
+    viewGroup.style.gap = '1rem';
+    viewGroup.style.background = '#f3f4f6';
+    viewGroup.style.padding = '0.5rem';
+    viewGroup.style.borderRadius = '8px';
+
+    const renderRadio = (label, val) => {
+        const lbl = document.createElement('label');
+        lbl.style.display = 'flex'; lbl.style.alignItems = 'center'; lbl.style.gap = '0.5rem';
+        lbl.style.cursor = 'pointer'; lbl.style.fontSize = '0.9rem'; lbl.style.fontWeight = '500';
+
+        const inp = document.createElement('input');
+        inp.type = 'radio';
+        inp.name = 'viewType';
+        inp.value = val;
+        if (viewType === val) inp.checked = true;
+
+        inp.onchange = (e) => {
+            viewType = e.target.value;
+            localStorage.setItem('consolidadas_viewType', viewType);
+            loadData();
+        };
+
+        lbl.appendChild(inp);
+        lbl.appendChild(document.createTextNode(label));
+        return lbl;
+    };
+
+    viewGroup.appendChild(renderRadio('Visão de Caixa', 'caixa'));
+    viewGroup.appendChild(renderRadio('Visão de Competência', 'competencia'));
+    leftGroup.appendChild(viewGroup);
+
+    // Date Pickers Group
+    const dateGroup = document.createElement('div');
+    dateGroup.style.display = 'flex';
+    dateGroup.style.alignItems = 'center';
+    dateGroup.style.gap = '0.5rem';
+
+    const lblDe = document.createElement('span');
+    lblDe.textContent = 'De:'; lblDe.style.fontSize = '0.9rem'; lblDe.style.color = '#4B5563';
+
+    const startPicker = createMonthPicker(startMonth, (val) => {
+        startMonth = val;
+        localStorage.setItem('consolidadas_startMonth', startMonth);
+    });
+
+    const lblAte = document.createElement('span');
+    lblAte.textContent = 'Até:'; lblAte.style.fontSize = '0.9rem'; lblAte.style.color = '#4B5563';
+
+    const endPicker = createMonthPicker(endMonth, (val) => {
+        endMonth = val;
+        localStorage.setItem('consolidadas_endMonth', endMonth);
+    });
+
+    dateGroup.appendChild(lblDe);
+    dateGroup.appendChild(startPicker);
+    dateGroup.appendChild(lblAte);
+    dateGroup.appendChild(endPicker);
+
+    leftGroup.appendChild(dateGroup);
+
+    // Refresh Button
+    const btnRefresh = document.createElement('button');
+    btnRefresh.className = 'btn-primary';
+    btnRefresh.innerHTML = '🔍';
+    btnRefresh.style.height = '38px'; btnRefresh.style.width = '38px';
+    btnRefresh.style.display = 'flex'; btnRefresh.style.alignItems = 'center'; btnRefresh.style.justifyContent = 'center';
+    btnRefresh.style.fontSize = '1.2rem';
+    btnRefresh.style.padding = '0';
+    btnRefresh.onclick = () => loadData();
+
+    leftGroup.appendChild(btnRefresh);
+
+    // Title
+    const title = document.createElement('div');
+    title.innerHTML = '📑 Consolidadas';
+    title.style.fontSize = '1.2rem';
+    title.style.fontWeight = 'bold';
+    title.style.color = '#00425F';
+
+    controls.appendChild(leftGroup);
+    controls.appendChild(title);
 
     // --- Container Assembly ---
     const tableContainer = document.createElement('div');
@@ -298,37 +538,6 @@ export const ConsolidadasManager = (project) => {
     container.appendChild(controls);
     container.appendChild(tableContainer);
     container.appendChild(loadingOverlay);
-
-    // --- Event Listeners ---
-    controls.querySelectorAll('input[name="viewType"]').forEach(radio => {
-        radio.addEventListener('change', (e) => {
-            viewType = e.target.value;
-            localStorage.setItem('consolidadas_viewType', viewType);
-            loadData();
-        });
-    });
-
-    const startInput = controls.querySelector('#start-month');
-    const endInput = controls.querySelector('#end-month');
-    const btnRefresh = controls.querySelector('#btn-refresh');
-
-    const handleDateChange = () => {
-        startMonth = startInput.value;
-        endMonth = endInput.value;
-        localStorage.setItem('consolidadas_startMonth', startMonth);
-        localStorage.setItem('consolidadas_endMonth', endMonth);
-    };
-
-    startInput.addEventListener('change', handleDateChange);
-    endInput.addEventListener('change', handleDateChange);
-
-    btnRefresh.addEventListener('click', () => {
-        startMonth = startInput.value;
-        endMonth = endInput.value;
-        localStorage.setItem('consolidadas_startMonth', startMonth);
-        localStorage.setItem('consolidadas_endMonth', endMonth);
-        loadData();
-    });
 
     // --- Init ---
     // Render empty table structure immediately
