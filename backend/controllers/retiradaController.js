@@ -1,9 +1,17 @@
 const db = require('../config/database');
 const AppError = require('../utils/AppError');
+const fileLogger = require('../utils/fileLogger');
 
 exports.listRetiradas = async (req, res, next) => {
     try {
         const { projectId, page = 1, limit = 50, search, account, company, description, startDate, endDate, minValue, maxValue } = req.query;
+
+        console.log('DEBUG RETIRADAS LIST:', {
+            query: req.query,
+            projectId,
+            type: typeof projectId
+        });
+
         if (!projectId) {
             throw new AppError('VAL-002', 'Project ID is required');
         }
@@ -164,6 +172,18 @@ exports.listRetiradas = async (req, res, next) => {
     }
 };
 
+exports.debugProbe = (req, res) => { // Updated to return logs
+    const fs = require('fs');
+    const logPath = fileLogger.getLogFilePath();
+    let logs = 'Log file not found.';
+    if (fs.existsSync(logPath)) {
+        logs = fs.readFileSync(logPath, 'utf8');
+    }
+
+    res.header('Content-Type', 'text/plain');
+    res.send(`--- DEBUG PROBE W/ LOGS ---\nVariables Check: fileLogger active.\n\n${logs}`);
+};
+
 exports.createRetirada = async (req, res, next) => {
     const connection = await db.getConnection();
     try {
@@ -171,26 +191,54 @@ exports.createRetirada = async (req, res, next) => {
 
         const { dataFato, dataPrevista, dataReal, valor, descricao, companyId, accountId, projectId, comprovanteUrl } = req.body;
 
-        if (!dataFato || !valor || !companyId || !accountId || !projectId) {
-            throw new AppError('VAL-002', 'Datas, Valor, Empresa, Conta e Projeto são obrigatórios');
+        // FILE LOGGING
+        fileLogger.log('--- CREATE RETIRADA REQUEST ---', {
+            body: req.body,
+            headers: req.headers
+        });
+
+        // Validation with specific errors
+        if (!dataFato) {
+            fileLogger.log('Validation Fail: Missing Data Fato');
+            throw new AppError('VAL-002', 'Data Fato é obrigatória');
         }
+        if (valor === undefined || valor === null || valor === '') {
+            fileLogger.log('Validation Fail: Missing Valor');
+            throw new AppError('VAL-002', 'Valor é obrigatório');
+        }
+        if (!companyId) {
+            fileLogger.log('Validation Fail: Missing Company ID');
+            throw new AppError('VAL-002', 'Empresa é obrigatória');
+        }
+        if (!projectId) {
+            fileLogger.log('Validation Fail: Missing Project ID');
+            throw new AppError('VAL-002', 'Projeto ID é obrigatório (Erro Interno)');
+        }
+
+        if (dataReal && !accountId) {
+            fileLogger.log('Validation Fail: Missing Account ID on Realized Transaction', { dataReal });
+            throw new AppError('VAL-002', 'Conta é obrigatória para transações realizadas (com Data Real)');
+        }
+
+        fileLogger.log('Validation Passed. Inserting into DB...');
 
         // Insert Retirada
         const [result] = await connection.query(
             `INSERT INTO retiradas (data_fato, data_prevista, data_real, valor, descricao, company_id, account_id, project_id, comprovante_url)
              VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)`,
-            [dataFato, dataPrevista || null, dataReal || null, valor, descricao, companyId, accountId, projectId, comprovanteUrl || null]
+            [dataFato, dataPrevista || null, dataReal || null, valor, descricao, companyId, accountId || null, projectId, comprovanteUrl || null]
         );
 
         const newId = result.insertId;
 
-        // Decrease Account Balance (It's a withdrawal)
-        const valorDecimal = parseFloat(valor);
-
-        await connection.query(
-            'UPDATE contas SET current_balance = current_balance - ? WHERE id = ?',
-            [valorDecimal, accountId]
-        );
+        // Decrease Account Balance (It's a withdrawal) - ONLY if Account is defined
+        if (accountId) {
+            const valorDecimal = parseFloat(valor);
+            await connection.query(
+                'UPDATE contas SET current_balance = current_balance - ? WHERE id = ?',
+                [valorDecimal, accountId]
+            );
+        }
 
         await connection.commit();
 
@@ -201,6 +249,11 @@ exports.createRetirada = async (req, res, next) => {
 
     } catch (error) {
         await connection.rollback();
+        // Log error to file
+        fileLogger.log('Create Retirada Error:', {
+            message: error.message,
+            stack: error.stack
+        });
         next(error);
     } finally {
         connection.release();
@@ -245,7 +298,7 @@ exports.updateRetirada = async (req, res, next) => {
         // Simplest strategy: Revert old, Apply new.
 
         // 1. Revert Old (Increase balance back)
-        if (oldData.active) {
+        if (oldData.active && oldData.account_id) {
             await connection.query(
                 'UPDATE contas SET current_balance = current_balance + ? WHERE id = ?',
                 [oldData.valor, oldData.account_id]
@@ -258,10 +311,12 @@ exports.updateRetirada = async (req, res, next) => {
             const newValor = valor !== undefined ? parseFloat(valor) : parseFloat(oldData.valor);
             const newAccountId = accountId !== undefined ? accountId : oldData.account_id;
 
-            await connection.query(
-                'UPDATE contas SET current_balance = current_balance - ? WHERE id = ?',
-                [newValor, newAccountId]
-            );
+            if (newAccountId) {
+                await connection.query(
+                    'UPDATE contas SET current_balance = current_balance - ? WHERE id = ?',
+                    [newValor, newAccountId]
+                );
+            }
         }
 
         await connection.commit();
@@ -290,7 +345,7 @@ exports.deleteRetirada = async (req, res, next) => {
         await connection.query('UPDATE retiradas SET active = 0 WHERE id = ?', [id]);
 
         // Increase account balance (reverse the withdrawal)
-        if (retirada[0].active) {
+        if (retirada[0].active && retirada[0].account_id) {
             await connection.query(
                 'UPDATE contas SET current_balance = current_balance + ? WHERE id = ?',
                 [retirada[0].valor, retirada[0].account_id]

@@ -3,6 +3,7 @@ const router = express.Router();
 const retiradaController = require('../controllers/retiradaController');
 const auth = require('../middleware/auth');
 
+router.get('/debug-probe', retiradaController.debugProbe);
 router.use(auth);
 
 router.get('/', retiradaController.listRetiradas);

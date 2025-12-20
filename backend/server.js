@@ -29,6 +29,13 @@ const PORT = process.env.PORT || 3001;
 app.use(cors());
 app.use(bodyParser.json());
 
+// GLOBAL REQUEST LOGGER
+const fileLogger = require('./utils/fileLogger');
+app.use((req, res, next) => {
+    fileLogger.log(`Incoming Request: ${req.method} ${req.url}`);
+    next();
+});
+
 // API Router
 const apiRouter = express.Router();
 
@@ -87,18 +94,22 @@ app.use((req, res) => {
 });
 
 // Start server
-loadErrorCatalog().then(() => {
-    app.listen(PORT, '0.0.0.0', () => {
-        console.log(`\n========================================`);
-        console.log(`🚀 CASH Backend API Server`);
-        console.log(`========================================`);
-        console.log(`⏰ Started at: ${new Date().toISOString()}`);
-        console.log(`🌍 Timezone: ${Intl.DateTimeFormat().resolvedOptions().timeZone}`);
-        console.log(`📡 Server running on: http://localhost:${PORT}`);
-        console.log(`🏥 Health check: http://localhost:${PORT}/health`);
-        console.log(`📊 API endpoint: http://localhost:${PORT}/api/tipo-entrada`);
-        console.log(`========================================\n`);
+const migrateFixAccounts = require('./migrate-fix-accounts');
+
+loadErrorCatalog()
+    .then(() => migrateFixAccounts())
+    .then(() => {
+        app.listen(PORT, '0.0.0.0', () => {
+            console.log(`\n========================================`);
+            console.log(`🚀 CASH Backend API Server`);
+            console.log(`========================================`);
+            console.log(`⏰ Started at: ${new Date().toISOString()}`);
+            console.log(`🌍 Timezone: ${Intl.DateTimeFormat().resolvedOptions().timeZone}`);
+            console.log(`📡 Server running on: http://localhost:${PORT}`);
+            console.log(`🏥 Health check: http://localhost:${PORT}/health`);
+            console.log(`📊 API endpoint: http://localhost:${PORT}/api/tipo-entrada`);
+            console.log(`========================================\n`);
+        });
     });
-});
 
 module.exports = app;
