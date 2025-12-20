@@ -43,15 +43,12 @@ export const MonthPicker = (initialValue, onChange) => {
     };
     updateTriggerText();
 
-    // 2. The Popover
+    // 2. The Popover (Created lazily or eagerly, but detached)
     const popover = document.createElement('div');
     popover.className = 'month-picker-popover glass-panel';
-    popover.style.display = 'none';
-    popover.style.position = 'absolute';
-    popover.style.top = '100%';
-    popover.style.left = '0';
-    popover.style.marginTop = '0.25rem';
-    popover.style.zIndex = '1000';
+    popover.style.display = 'none'; // Controlled by logic
+    popover.style.position = 'absolute'; // Absolute relative to BODY
+    popover.style.zIndex = '2147483647'; // Max safe integer to beat ALL other layers
     popover.style.width = '240px';
     popover.style.padding = '0.5rem';
     popover.style.backgroundColor = 'white';
@@ -126,13 +123,8 @@ export const MonthPicker = (initialValue, onChange) => {
             btnMonth.style.fontSize = '0.9rem';
 
             if (isSelected) {
-                btnMonth.style.backgroundColor = 'var(--color-primary)'; // Needs global CSS or fallback
-                btnMonth.style.color = 'white'; // Fallback text
-                // Ideally use style directly if var not sure, but var usually exists in this app
-                if (!getComputedStyle(document.documentElement).getPropertyValue('--color-primary')) {
-                    btnMonth.style.backgroundColor = '#0EA5E9'; // Fallback blue
-                    btnMonth.style.color = 'white';
-                }
+                btnMonth.style.backgroundColor = 'var(--color-primary, #0EA5E9)';
+                btnMonth.style.color = 'white';
                 btnMonth.style.fontWeight = '600';
             } else {
                 btnMonth.style.backgroundColor = 'transparent';
@@ -161,30 +153,53 @@ export const MonthPicker = (initialValue, onChange) => {
 
     // Logic
     const closePopover = () => {
-        popover.style.display = 'none';
+        if (popover.parentNode) {
+            popover.parentNode.removeChild(popover);
+        }
         document.removeEventListener('click', outsideClickListener);
+        window.removeEventListener('scroll', reposition, true);
+        window.removeEventListener('resize', reposition);
+    };
+
+    const reposition = () => {
+        if (!popover.parentNode) return;
+        const rect = trigger.getBoundingClientRect();
+        popover.style.top = `${rect.bottom + window.scrollY + 4}px`; // +4px margin
+        popover.style.left = `${rect.left + window.scrollX}px`;
     };
 
     const outsideClickListener = (e) => {
-        if (!wrapper.contains(e.target)) {
+        if (!popover.contains(e.target) && !trigger.contains(e.target)) {
             closePopover();
         }
     };
 
     trigger.onclick = (e) => {
         e.stopPropagation();
-        if (popover.style.display === 'block') {
+        if (document.body.contains(popover)) {
             closePopover();
         } else {
             displayYear = year; // Reset view to selected year
             renderPopoverContent();
+
+            // Append to body and Position
+            document.body.appendChild(popover);
             popover.style.display = 'block';
+            reposition();
+
             document.addEventListener('click', outsideClickListener);
+            window.addEventListener('scroll', reposition, true); // Capture scroll to update pos
+            window.addEventListener('resize', reposition);
         }
     };
 
     wrapper.appendChild(trigger);
-    wrapper.appendChild(popover);
+
+    // cleanup logic if wrapper is removed? 
+    // Hard to detect in vanilla JS without MutationObserver but for this simple app, 
+    // clicks outside handle removal, so "leaks" are minimal (just the detached element).
+    // If the view changes, the old popover is lost to GC if not attached. 
+    // If attached, the outsideClick will likely catch it or the user navigation will rebuild.
 
     // API for external set
     wrapper.setValue = (val) => {

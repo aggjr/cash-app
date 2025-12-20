@@ -1,5 +1,6 @@
 import { showToast } from '../utils/toast.js';
 import { getApiBaseUrl } from '../utils/apiConfig.js';
+import { MonthPicker } from './MonthPicker.js';
 
 export const ExtratoContaManager = (project) => {
     const container = document.createElement('div');
@@ -14,12 +15,13 @@ export const ExtratoContaManager = (project) => {
     // State
     // State - Persistence
     const today = new Date();
-    const storedStart = localStorage.getItem('extrato_startDate');
-    const storedEnd = localStorage.getItem('extrato_endDate');
+    const storedStartMonth = localStorage.getItem('extrato_startMonth');
+    const storedEndMonth = localStorage.getItem('extrato_endMonth');
     const storedAcc = localStorage.getItem('extrato_accountId');
 
-    let startDate = storedStart || new Date(today.getFullYear(), today.getMonth(), 1).toISOString().substring(0, 10);
-    let endDate = storedEnd || new Date(today.getFullYear(), today.getMonth() + 1, 0).toISOString().substring(0, 10);
+    // Default: Start = Current Year - Jan, End = Current Year - Dec
+    let startMonth = storedStartMonth || `${today.getFullYear()}-01`;
+    let endMonth = storedEndMonth || `${today.getFullYear()}-12`;
     let selectedAccountId = storedAcc || null;
     let accounts = [];
     let extratoData = null;
@@ -84,67 +86,47 @@ export const ExtratoContaManager = (project) => {
         accDiv.appendChild(accLabel);
         accDiv.appendChild(accSelect);
 
-        // Start Date
-        const startDiv = document.createElement('div');
-        const startLabel = document.createElement('label');
-        startLabel.textContent = 'Data Início';
-        startLabel.style.display = 'block';
-        startLabel.style.marginBottom = '0.2rem';
-        startLabel.style.fontWeight = '500';
-        startLabel.style.color = '#374151';
+        // Date Pickers Group
+        const dateGroup = document.createElement('div');
+        dateGroup.style.display = 'flex';
+        dateGroup.style.alignItems = 'center';
+        dateGroup.style.gap = '0.5rem';
 
-        const startInput = document.createElement('input');
-        startInput.type = 'date';
-        startInput.id = 'extrato-start-date';
-        startInput.className = 'form-input';
-        startInput.style.height = '38px';
-        startInput.value = startDate;
+        const lblDe = document.createElement('span');
+        lblDe.textContent = 'De:'; lblDe.style.fontSize = '0.9rem'; lblDe.style.color = '#4B5563';
 
-        startDiv.appendChild(startLabel);
-        startDiv.appendChild(startInput);
+        const startPicker = MonthPicker(startMonth, (val) => {
+            startMonth = val;
+            localStorage.setItem('extrato_startMonth', startMonth);
+            triggerSearch();
+        });
 
-        // End Date
-        const endDiv = document.createElement('div');
-        const endLabel = document.createElement('label');
-        endLabel.textContent = 'Data Fim';
-        endLabel.style.display = 'block';
-        endLabel.style.marginBottom = '0.2rem';
-        endLabel.style.fontWeight = '500';
-        endLabel.style.color = '#374151';
+        const lblAte = document.createElement('span');
+        lblAte.textContent = 'Até:'; lblAte.style.fontSize = '0.9rem'; lblAte.style.color = '#4B5563';
 
-        const endInput = document.createElement('input');
-        endInput.type = 'date';
-        endInput.id = 'extrato-end-date';
-        endInput.className = 'form-input';
-        endInput.style.height = '38px';
-        endInput.value = endDate;
+        const endPicker = MonthPicker(endMonth, (val) => {
+            endMonth = val;
+            localStorage.setItem('extrato_endMonth', endMonth);
+            triggerSearch();
+        });
 
-        endDiv.appendChild(endLabel);
-        endDiv.appendChild(endInput);
+        dateGroup.appendChild(lblDe);
+        dateGroup.appendChild(startPicker);
+        dateGroup.appendChild(lblAte);
+        dateGroup.appendChild(endPicker);
 
         // Auto-Trigger Search Logic
         const triggerSearch = () => {
             selectedAccountId = accSelect.value;
-            startDate = startInput.value;
-            endDate = endInput.value;
-
-            // Persist
             localStorage.setItem('extrato_accountId', selectedAccountId);
-            localStorage.setItem('extrato_startDate', startDate);
-            localStorage.setItem('extrato_endDate', endDate);
-
             loadExtrato();
         };
 
         // Attach listeners
         accSelect.addEventListener('change', triggerSearch);
-        startInput.addEventListener('change', triggerSearch);
-        endInput.addEventListener('change', triggerSearch);
 
         controls.appendChild(accDiv);
-        controls.appendChild(startDiv);
-        controls.appendChild(endDiv);
-        // controls.appendChild(btnSearch); // Button removed as per request
+        controls.appendChild(dateGroup);
 
         return controls;
     };
@@ -346,7 +328,16 @@ export const ExtratoContaManager = (project) => {
             const wrapper = container.querySelector('.extrato-table-wrapper');
             if (wrapper) wrapper.style.opacity = '0.5';
 
-            const resp = await fetch(`${API_BASE_URL}/extrato?projectId=${project.id}&accountId=${selectedAccountId}&startDate=${startDate}&endDate=${endDate}`, { headers: getHeaders() });
+            // Calculate full dates from Month YYYY-MM
+            // Start: 1st day of startMonth
+            const startDateFull = `${startMonth}-01`;
+
+            // End: Last day of endMonth
+            const [endY, endM] = endMonth.split('-').map(Number);
+            const endDateDate = new Date(endY, endM, 0); // Day 0 of next month = last day of current
+            const endDateFull = endDateDate.toISOString().substring(0, 10);
+
+            const resp = await fetch(`${API_BASE_URL}/extrato?projectId=${project.id}&accountId=${selectedAccountId}&startDate=${startDateFull}&endDate=${endDateFull}`, { headers: getHeaders() });
 
             if (resp.ok) {
                 extratoData = await resp.json();
