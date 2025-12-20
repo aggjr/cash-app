@@ -122,19 +122,8 @@ export const ExtratoContaManager = (project) => {
         endDiv.appendChild(endLabel);
         endDiv.appendChild(endInput);
 
-        // Search Button
-        const btnSearch = document.createElement('button');
-        btnSearch.className = 'btn-primary';
-        btnSearch.innerHTML = '🔍';
-        btnSearch.title = 'Pesquisar';
-        btnSearch.style.height = '38px'; // Reduced height
-        btnSearch.style.width = '38px'; // Square
-        btnSearch.style.padding = '0';
-        btnSearch.style.display = 'flex';
-        btnSearch.style.alignItems = 'center';
-        btnSearch.style.justifyContent = 'center';
-        btnSearch.style.fontSize = '1.2rem';
-        btnSearch.onclick = () => {
+        // Auto-Trigger Search Logic
+        const triggerSearch = () => {
             selectedAccountId = accSelect.value;
             startDate = startInput.value;
             endDate = endInput.value;
@@ -147,19 +136,15 @@ export const ExtratoContaManager = (project) => {
             loadExtrato();
         };
 
-        // Clear grid on change
-        const clearGrid = () => {
-            extratoData = null;
-            renderTable();
-        };
-        accSelect.addEventListener('change', clearGrid);
-        startInput.addEventListener('change', clearGrid);
-        endInput.addEventListener('change', clearGrid);
+        // Attach listeners
+        accSelect.addEventListener('change', triggerSearch);
+        startInput.addEventListener('change', triggerSearch);
+        endInput.addEventListener('change', triggerSearch);
 
         controls.appendChild(accDiv);
         controls.appendChild(startDiv);
         controls.appendChild(endDiv);
-        controls.appendChild(btnSearch);
+        // controls.appendChild(btnSearch); // Button removed as per request
 
         return controls;
     };
