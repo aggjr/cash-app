@@ -199,24 +199,59 @@ exports.createRetirada = async (req, res, next) => {
 
         // Validation with specific errors
         if (!dataFato) {
-            fileLogger.log('Validation Fail: Missing Data Fato');
+            const msg = 'Validation Fail: Missing Data Fato';
+            console.error(`[CRITICAL] ${msg}`, { body: req.body }); // Force output to console
+            fileLogger.log(msg);
             throw new AppError('VAL-002', 'Data Fato é obrigatória');
         }
-        if (valor === undefined || valor === null || valor === '') {
-            fileLogger.log('Validation Fail: Missing Valor');
-            throw new AppError('VAL-002', 'Valor é obrigatório');
+
+        if (!dataPrevista) {
+            const msg = 'Validation Fail: Missing Data Prevista';
+            console.error(`[CRITICAL] ${msg}`, { body: req.body }); // Force output to console
+            fileLogger.log(msg);
+            throw new AppError('VAL-002', 'Data Prevista é obrigatória');
         }
-        if (!companyId) {
-            fileLogger.log('Validation Fail: Missing Company ID');
+
+        if (!descricao) {
+            const msg = 'Validation Fail: Missing Descricao';
+            console.error(`[CRITICAL] ${msg}`, { body: req.body }); // Force output to console
+            fileLogger.log(msg);
+            throw new AppError('VAL-002', 'Descrição é obrigatória');
+        }
+
+        if (!companyId) { // Mapped from 'empresa' in instruction
+            const msg = 'Validation Fail: Missing Company ID';
+            console.error(`[CRITICAL] ${msg}`, { body: req.body }); // Force output to console
+            fileLogger.log(msg);
             throw new AppError('VAL-002', 'Empresa é obrigatória');
         }
+
+        // accountId is only mandatory if dataReal is present, so this check is moved below
+        // if (!accountId) { // Mapped from 'conta' in instruction
+        //     const msg = 'Validation Fail: Missing Account ID';
+        //     console.error(`[CRITICAL] ${msg}`, { body: req.body }); // Force output to console
+        //     fileLogger.log(msg);
+        //     throw new AppError('VAL-002', 'Conta é obrigatória');
+        // }
+
+        if (valor === undefined || valor === null || valor === '') {
+            const msg = 'Validation Fail: Missing Valor';
+            console.error(`[CRITICAL] ${msg}`, { body: req.body }); // Force output to console
+            fileLogger.log(msg);
+            throw new AppError('VAL-002', 'Valor é obrigatório');
+        }
+
         if (!projectId) {
-            fileLogger.log('Validation Fail: Missing Project ID');
+            const msg = 'Validation Fail: Missing Project ID';
+            console.error(`[CRITICAL] ${msg}`, { body: req.body }); // Force output to console
+            fileLogger.log(msg);
             throw new AppError('VAL-002', 'Projeto ID é obrigatório (Erro Interno)');
         }
 
         if (dataReal && !accountId) {
-            fileLogger.log('Validation Fail: Missing Account ID on Realized Transaction', { dataReal });
+            const msg = 'Validation Fail: Missing Account ID on Realized Transaction';
+            console.error(`[CRITICAL] ${msg}`, { body: req.body, dataReal }); // Force output to console
+            fileLogger.log(msg, { dataReal });
             throw new AppError('VAL-002', 'Conta é obrigatória para transações realizadas (com Data Real)');
         }
 
