@@ -1,6 +1,6 @@
 import { showToast } from '../utils/toast.js';
 import { getApiBaseUrl } from '../utils/apiConfig.js';
-import { MonthPicker } from './MonthPicker.js';
+import { getApiBaseUrl } from '../utils/apiConfig.js';
 
 export const ExtratoContaManager = (project) => {
     const container = document.createElement('div');
@@ -15,13 +15,12 @@ export const ExtratoContaManager = (project) => {
     // State
     // State - Persistence
     const today = new Date();
-    const storedStartMonth = localStorage.getItem('extrato_startMonth');
-    const storedEndMonth = localStorage.getItem('extrato_endMonth');
+    const storedStart = localStorage.getItem('extrato_startDate');
+    const storedEnd = localStorage.getItem('extrato_endDate');
     const storedAcc = localStorage.getItem('extrato_accountId');
 
-    // Default: Start = Current Year - Jan, End = Current Year - Dec
-    let startMonth = storedStartMonth || `${today.getFullYear()}-01`;
-    let endMonth = storedEndMonth || `${today.getFullYear()}-12`;
+    let startDate = storedStart || new Date(today.getFullYear(), today.getMonth(), 1).toISOString().substring(0, 10);
+    let endDate = storedEnd || new Date(today.getFullYear(), today.getMonth() + 1, 0).toISOString().substring(0, 10);
     let selectedAccountId = storedAcc || null;
     let accounts = [];
     let extratoData = null;
