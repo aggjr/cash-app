@@ -51,25 +51,45 @@ exports.getDailyForecast = async (req, res, next) => {
 
         // Helper to get effective date SQL expression
         // Logic: 
-        // 1. Data Real (Paid/Received)
-        // 2. If no Real, and Prevista < Today (Overdue) -> Use Today (CURDATE)
-        // 3. Else use Prevista
+        // 1. Data Real (Paid/Received) if exists.
+        // 2. Else Data Prevista.
         const getEffectiveDateSql = (table) => {
             let realCol = 'data_real';
             let prevCol = 'data_prevista';
 
             if (table === 'entradas') { realCol = 'data_real_recebimento'; prevCol = 'data_prevista_recebimento'; }
-            if (table === 'saidas') { realCol = 'data_real_pagamento'; prevCol = 'data_prevista_pagamento'; }
-            if (table === 'producao_revenda') { realCol = 'data_fato'; prevCol = 'data_fato'; } // Producao acts differently? Or implies 'data_fato' is the date.
+            else if (table === 'saidas') { realCol = 'data_real_pagamento'; prevCol = 'data_prevista_pagamento'; }
+            else if (table === 'producao_revenda') { realCol = 'data_real_pagamento'; prevCol = 'data_prevista_pagamento'; }
+            else if (table === 'aportes') { realCol = 'data_real'; prevCol = 'data_fato'; } // Aportes uses data_fato as 'predicted'
+            else if (table === 'retiradas') { realCol = 'data_real'; prevCol = 'data_prevista'; }
 
-            // Producao doesn't usually have expected vs real in this schema context?
-            // If producao_revenda only has data_fato, we stick to it.
-            if (table === 'producao_revenda') return 'data_fato';
+            return `COALESCE(${realCol}, ${prevCol})`;
+        };
 
-            return `COALESCE(${realCol}, IF(${prevCol} < CURDATE(), CURDATE(), ${prevCol}))`;
+        // Helper to get Validity SQL Condition
+        // Logic:
+        // Record is VALID if:
+        // 1. It has a Real Date (it happened).
+        // OR
+        // 2. It has NO Real Date BUT Predicted Date >= Today (it is a valid future/today forecast).
+        //
+        // IMPLICIT: If Real is NULL and Predicted < Today, it is IGNORED (expired).
+        const getValiditySql = (table) => {
+            let realCol = 'data_real';
+            let prevCol = 'data_prevista';
+
+            if (table === 'entradas') { realCol = 'data_real_recebimento'; prevCol = 'data_prevista_recebimento'; }
+            else if (table === 'saidas') { realCol = 'data_real_pagamento'; prevCol = 'data_prevista_pagamento'; }
+            else if (table === 'producao_revenda') { realCol = 'data_real_pagamento'; prevCol = 'data_prevista_pagamento'; }
+            else if (table === 'aportes') { realCol = 'data_real'; prevCol = 'data_fato'; }
+            else if (table === 'retiradas') { realCol = 'data_real'; prevCol = 'data_prevista'; }
+
+            // Logic: Include if (Real is Set) OR (Predicted >= CurrentDate)
+            return `(${realCol} IS NOT NULL OR ${prevCol} >= CURDATE())`;
         };
 
         const effectiveDateSql = (table) => getEffectiveDateSql(table);
+        const validitySql = (table) => getValiditySql(table);
 
         // 1.1 Calculate Historic Inflows (active=1)
         const [inflowResult] = await db.execute(`
@@ -77,6 +97,7 @@ exports.getDailyForecast = async (req, res, next) => {
             FROM entradas 
             WHERE project_id = ? 
             AND active = 1 
+            AND ${validitySql('entradas')}
             AND ${effectiveDateSql('entradas')} < ?
         `, [projectId, startDate]);
         const historicInflow = parseFloat(inflowResult[0].total || 0);
@@ -87,6 +108,7 @@ exports.getDailyForecast = async (req, res, next) => {
             FROM saidas 
             WHERE project_id = ? 
             AND active = 1 
+            AND ${validitySql('saidas')}
             AND ${effectiveDateSql('saidas')} < ?
         `, [projectId, startDate]);
         const historicSaidas = parseFloat(saidasResult[0].total || 0);
@@ -96,6 +118,7 @@ exports.getDailyForecast = async (req, res, next) => {
             FROM producao_revenda 
             WHERE project_id = ? 
             AND active = 1 
+            AND ${validitySql('producao_revenda')}
             AND ${effectiveDateSql('producao_revenda')} < ?
         `, [projectId, startDate]);
         const historicProducao = parseFloat(producaoResult[0].total || 0);
@@ -106,6 +129,7 @@ exports.getDailyForecast = async (req, res, next) => {
             FROM aportes 
             WHERE project_id = ? 
             AND active = 1 
+            AND ${validitySql('aportes')}
             AND ${effectiveDateSql('aportes')} < ?
         `, [projectId, startDate]);
         const historicAportes = parseFloat(aportesResult[0].total || 0);
@@ -116,6 +140,7 @@ exports.getDailyForecast = async (req, res, next) => {
             FROM retiradas 
             WHERE project_id = ? 
             AND active = 1 
+            AND ${validitySql('retiradas')}
             AND ${effectiveDateSql('retiradas')} < ?
         `, [projectId, startDate]);
         const historicRetiradas = parseFloat(retiradasResult[0].total || 0);
@@ -136,8 +161,10 @@ exports.getDailyForecast = async (req, res, next) => {
             );
 
             // Data
-            // Use effective date filtering
+            // Use effective date filtering AND validity check
             const dateExpr = effectiveDateSql(dataTable);
+            const validExpr = validitySql(dataTable);
+
             const query = `
                 SELECT 
                     d.id, 
@@ -147,6 +174,7 @@ exports.getDailyForecast = async (req, res, next) => {
                 FROM ${dataTable} d
                 WHERE d.project_id = ? 
                 AND d.active = 1
+                AND ${validExpr}
                 AND ${dateExpr} >= ? 
                 AND ${dateExpr} <= ?
             `;
@@ -201,20 +229,21 @@ exports.getDailyForecast = async (req, res, next) => {
         const producaoRoots = await buildDailyTree('tipo_producao_revenda', 'producao_revenda', 'tipo_id');
         const entradasRoots = await buildDailyTree('tipo_entrada', 'entradas', 'tipo_entrada_id');
 
-        // Aportes & Retiradas - Treat them as flat lists or virtual roots since they don't have types?
-        // Actually, they don't have "tipo" table. They are just rows.
-        // We can create a "Virtual Type" for them to reuse the tree structure?
-        // Or just fetch them and format as a Root Node.
+        // Aportes & Retiradas
 
         const fetchFlatDaily = async (table, label, id) => {
             const dateExpr = effectiveDateSql(table);
+            const validExpr = validitySql(table);
+
             const [items] = await db.execute(`
                 SELECT 
                     id, 
                     valor, 
                     ${dateExpr} as date_val
                 FROM ${table}
-                WHERE project_id = ? AND active = 1
+                WHERE project_id = ? 
+                AND active = 1
+                AND ${validExpr}
                 AND ${dateExpr} >= ? AND ${dateExpr} <= ?
             `, [projectId, startDate, endDate]);
 
