@@ -152,7 +152,7 @@ export const IncomeModal = {
                             <div class="form-group" style="grid-column: span 6;">
                                 <label>Forma de Entrada</label>
                                 <div style="display: flex; flex-wrap: wrap; gap: 1.5rem; padding: 0.5rem 0;">
-                                    ${['Pix', 'Ted', 'Boleto', 'Verificar', 'Dinheiro', 'Cartão'].map(opt => `
+                                    ${['Pix', 'Ted', 'DOC', 'Boleto', 'Verificar', 'Dinheiro', 'Cartão'].map(opt => `
                                         <div style="display: flex; align-items: center; gap: 0.3rem;">
                                             <input type="radio" name="forma_pagamento" id="fp-${opt}" value="${opt}" 
                                                 ${income?.forma_pagamento === opt ? 'checked' : ''} style="cursor: pointer;">
