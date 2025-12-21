@@ -143,9 +143,9 @@ export const PrevisaoFluxoManager = (project) => {
                 const isExpanded = expandedNodes.has(node.id);
                 const paddingLeft = level * 1.5 + 1;
 
-                const bgColor = level === 0 ? '#f0f9ff' : '#ffffff';
+                const bgColor = '#ffffff'; // All data rows white
                 const fontWeight = level === 0 ? '700' : (hasChildren ? '600' : '400');
-                const rowClass = hasChildren ? 'expandable-row' : '';
+                const rowClass = (hasChildren ? 'expandable-row' : '') + ' data-row';
 
                 let dayCells = '';
                 days.forEach(d => {
@@ -172,8 +172,8 @@ export const PrevisaoFluxoManager = (project) => {
                 });
 
                 html += `
-                    <tr class="${rowClass}" data-id="${node.id}" style="background-color: ${bgColor}; cursor: ${hasChildren ? 'pointer' : 'default'};">
-                        <td style="padding: 0.5rem 1rem 0.5rem ${paddingLeft}rem; border-bottom: 1px solid #f3f4f6; font-weight: ${fontWeight}; display: flex; align-items: center; gap: 0.5rem; position: sticky; left: 0; z-index: 5; background-color: ${bgColor};">
+                    <tr class="${rowClass}" data-id="${node.id}" style="background-color: ${bgColor}; cursor: ${hasChildren ? 'pointer' : 'default'}; transition: background-color 0.2s;">
+                        <td class="sticky-col" style="padding: 0.5rem 1rem 0.5rem ${paddingLeft}rem; border-bottom: 1px solid #f3f4f6; font-weight: ${fontWeight}; display: flex; align-items: center; gap: 0.5rem; position: sticky; left: 0; z-index: 5; background-color: ${bgColor}; transition: background-color 0.2s;">
                             ${hasChildren ? `<span style="font-size: 0.8rem; transform: rotate(${isExpanded ? '90deg' : '0deg'}); transition: transform 0.2s;">▶</span>` : ''}
                             ${node.name}
                         </td>
@@ -246,13 +246,29 @@ export const PrevisaoFluxoManager = (project) => {
         html += '</tbody></table>';
         tableContainer.innerHTML = html;
 
-        // Toggle Listeners
+        // Listeners: Expand/Collapse
         tableContainer.querySelectorAll('.expandable-row').forEach(row => {
             row.addEventListener('click', (e) => {
                 const id = row.dataset.id;
                 if (expandedNodes.has(id)) expandedNodes.delete(id);
                 else expandedNodes.add(id);
                 renderTable();
+            });
+        });
+
+        // Listeners: Hover Effect (Gold)
+        tableContainer.querySelectorAll('.data-row').forEach(row => {
+            row.addEventListener('mouseenter', () => {
+                const color = 'rgba(218, 177, 119, 0.5)'; // Gold with opacity
+                row.style.backgroundColor = color;
+                const sticky = row.querySelector('.sticky-col');
+                if (sticky) sticky.style.backgroundColor = color;
+            });
+            row.addEventListener('mouseleave', () => {
+                const color = '#ffffff'; // Reset to white
+                row.style.backgroundColor = color;
+                const sticky = row.querySelector('.sticky-col');
+                if (sticky) sticky.style.backgroundColor = color;
             });
         });
     };
