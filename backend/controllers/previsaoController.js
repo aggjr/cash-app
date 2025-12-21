@@ -277,7 +277,7 @@ exports.getDailyForecast = async (req, res, next) => {
                 SELECT 
                     id, 
                     valor, 
-                    ${dateExpr} as date_val
+                    DATE_FORMAT(${dateExpr}, '%Y-%m-%d') as date_key
                 FROM ${table}
                 WHERE project_id = ? 
                 AND active = 1
@@ -288,7 +288,8 @@ exports.getDailyForecast = async (req, res, next) => {
             const dailyTotals = {};
             let total = 0;
             items.forEach(item => {
-                const dateKey = item.date_val instanceof Date ? item.date_val.toISOString().split('T')[0] : item.date_val;
+                // item.date_key is now a string "YYYY-MM-DD" directly from DB
+                const dateKey = item.date_key;
                 const val = parseFloat(item.valor) || 0;
                 dailyTotals[dateKey] = (dailyTotals[dateKey] || 0) + val;
                 total += val;
