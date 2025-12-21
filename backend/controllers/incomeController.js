@@ -201,8 +201,8 @@ exports.createIncome = async (req, res, next) => {
             tipoEntradaId,
             companyId,
             accountId,
-            comprovanteUrl,
-            projectId
+            projectId,
+            formaPagamento
         } = req.body;
 
         if (!dataFato || !dataPrevistaRecebimento || !valor || !tipoEntradaId || !companyId || !accountId || !projectId) {
@@ -219,9 +219,9 @@ exports.createIncome = async (req, res, next) => {
 
         const [result] = await connection.query(
             `INSERT INTO entradas 
-            (data_fato, data_prevista_recebimento, data_real_recebimento, data_atraso, valor, descricao, tipo_entrada_id, company_id, account_id, project_id, comprovante_url) 
-            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
-            [dataFato, dataPrevistaRecebimento, dataRealRecebimento || null, dataAtraso || null, valorDecimal, descricao, tipoEntradaId, companyId, accountId, projectId, comprovanteUrl || null]
+            (data_fato, data_prevista_recebimento, data_real_recebimento, data_atraso, valor, descricao, tipo_entrada_id, company_id, account_id, project_id, comprovante_url, forma_pagamento) 
+            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+            [dataFato, dataPrevistaRecebimento, dataRealRecebimento || null, dataAtraso || null, valorDecimal, descricao, tipoEntradaId, companyId, accountId, projectId, comprovanteUrl || null, formaPagamento || null]
         );
 
         // Update account balance
@@ -245,7 +245,8 @@ exports.createIncome = async (req, res, next) => {
             account_id: accountId,
             project_id: projectId,
             active: 1,
-            comprovante_url: comprovanteUrl || null
+            comprovante_url: comprovanteUrl || null,
+            forma_pagamento: formaPagamento || null
         });
     } catch (error) {
         if (connection) await connection.rollback();
@@ -341,9 +342,17 @@ exports.updateIncome = async (req, res, next) => {
             updates.push('active = ?');
             values.push(active);
         }
+        if (active !== undefined) {
+            updates.push('active = ?');
+            values.push(active);
+        }
         if (comprovanteUrl !== undefined) {
             updates.push('comprovante_url = ?');
             values.push(comprovanteUrl);
+        }
+        if (req.body.formaPagamento !== undefined) {
+            updates.push('forma_pagamento = ?');
+            values.push(req.body.formaPagamento || null);
         }
 
         if (updates.length > 0) {

@@ -148,16 +148,30 @@ export const IncomeModal = {
                                 <div id="comprovante-preview" style="margin-top: 5px; font-size: 0.85rem; display: none;"></div>
                             </div>
 
-                            <!-- Row 3: Description (Span 3) and Tree (Span 3) Side-by-Side Symmetrical -->
+                            <!-- Row 3.5: Payment Method Radio Buttons (Span 6) -->
+                            <div class="form-group" style="grid-column: span 6;">
+                                <label>Forma de Entrada</label>
+                                <div style="display: flex; flex-wrap: wrap; gap: 1.5rem; padding: 0.5rem 0;">
+                                    ${['Pix', 'Ted', 'Boleto', 'Verificar', 'Dinheiro', 'Cartão'].map(opt => `
+                                        <div style="display: flex; align-items: center; gap: 0.3rem;">
+                                            <input type="radio" name="forma_pagamento" id="fp-${opt}" value="${opt}" 
+                                                ${income?.forma_pagamento === opt ? 'checked' : ''} style="cursor: pointer;">
+                                            <label for="fp-${opt}" style="margin: 0; cursor: pointer; font-weight: normal;">${opt}</label>
+                                        </div>
+                                    `).join('')}
+                                </div>
+                            </div>
+
+                            <!-- Row 4: Description (Span 3) and Tree (Span 3) Side-by-Side Symmetrical (Reduced height) -->
                             
                             <div class="form-group" style="grid-column: span 3; display: flex; flex-direction: column;">
                                 <label for="income-descricao">Descrição</label>
-                                <textarea id="income-descricao" class="form-input" placeholder="Opcional" style="resize: none; height: 200px; font-family: inherit;">${income?.descricao || ''}</textarea>
+                                <textarea id="income-descricao" class="form-input" placeholder="Opcional" style="resize: none; height: 120px; font-family: inherit;">${income?.descricao || ''}</textarea>
                             </div>
 
                             <div class="form-group" style="grid-column: span 3; display: flex; flex-direction: column;">
                                 <label>Tipo de Entrada <span class="required">*</span></label>
-                                <div id="tree-selector-container" style="flex: 1; height: 200px;"></div>
+                                <div id="tree-selector-container" style="flex: 1; height: 120px;"></div>
                                 <input type="hidden" id="income-tipo-entrada-id" value="${income?.tipo_entrada_id || ''}" />
                             </div>
 
@@ -573,7 +587,8 @@ export const IncomeModal = {
                             tipoEntradaId: parseInt(tipoEntradaIdInput.value),
                             companyId: parseInt(companySelect.value),
                             accountId: parseInt(accountSelect.value),
-                            comprovanteUrl: comprovanteUrlInput.value || null
+                            comprovanteUrl: comprovanteUrlInput.value || null,
+                            formaPagamento: modal.querySelector('input[name="forma_pagamento"]:checked')?.value || null
                         };
                         if (isEdit) {
                             data.id = income.id;
