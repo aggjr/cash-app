@@ -293,10 +293,6 @@ export const PrevisaoFluxoManager = (project) => {
                 <label style="font-size: 0.9rem; color: #4B5563;">Até:</label>
                 <input type="date" id="end-date" value="${endStr}" style="padding: 0.4rem; border: 1px solid #d1d5db; border-radius: 4px; font-family: inherit;">
              </div>
-             
-             <button id="btn-refresh" class="btn-primary" title="Pesquisar" style="height: 38px; width: 38px; padding: 0; display: flex; align-items: center; justify-content: center; font-size: 1.2rem;">
-                🔍
-             </button>
         </div>
         
         <div style="font-size: 1.2rem; font-weight: bold; color: #00425F;">
@@ -324,21 +320,17 @@ export const PrevisaoFluxoManager = (project) => {
     // --- Listeners ---
     const startInput = controls.querySelector('#start-date');
     const endInput = controls.querySelector('#end-date');
-    const btnRefresh = controls.querySelector('#btn-refresh');
 
     const handleDateChange = () => {
         startStr = startInput.value;
         endStr = endInput.value;
         localStorage.setItem('previsao_startDate', startStr);
         localStorage.setItem('previsao_endDate', endStr);
+        loadData(); // Auto-refresh
     };
 
     startInput.addEventListener('change', handleDateChange);
     endInput.addEventListener('change', handleDateChange);
-    btnRefresh.addEventListener('click', () => {
-        handleDateChange();
-        loadData();
-    });
 
     // Init
     renderTable(); // Render empty structure immediately
