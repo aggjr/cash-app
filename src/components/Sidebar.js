@@ -70,7 +70,7 @@ export const Sidebar = () => {
         <div class="menu-item" data-id="${item.id}" style="padding-left: ${paddingLeft}rem;">
           ${hasChildren ? `<span class="expand-icon">▶</span>` : '<span class="expand-icon-placeholder"></span>'}
           <span class="menu-icon">${item.icon}</span>
-          <span class="menu-label">${item.label}</span>
+          <span class="menu-label notranslate" translate="no">${item.label}</span>
         </div>
         ${hasChildren ? `
           <div class="submenu" data-parent="${item.id}" style="display: none;">

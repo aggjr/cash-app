@@ -1,6 +1,5 @@
 import { showToast } from '../utils/toast.js';
 import { getApiBaseUrl } from '../utils/apiConfig.js';
-import { getApiBaseUrl } from '../utils/apiConfig.js';
 
 export const ExtratoContaManager = (project) => {
     const container = document.createElement('div');
@@ -89,8 +88,7 @@ export const ExtratoContaManager = (project) => {
         const startDiv = document.createElement('div');
         const startLabel = document.createElement('label');
         startLabel.textContent = 'Data Início';
-        startLabel.className = 'notranslate';
-        startLabel.setAttribute('translate', 'no');
+        startLabel.setAttribute('translate', 'no'); // Prevent translation
         startLabel.style.display = 'block';
         startLabel.style.marginBottom = '0.2rem';
         startLabel.style.fontWeight = '500';
@@ -109,9 +107,8 @@ export const ExtratoContaManager = (project) => {
         // End Date
         const endDiv = document.createElement('div');
         const endLabel = document.createElement('label');
-        endLabel.textContent = 'Data Fim';
-        endLabel.className = 'notranslate';
-        endLabel.setAttribute('translate', 'no');
+        endLabel.textContent = 'Data Fim'; // Correct label
+        endLabel.setAttribute('translate', 'no'); // Prevent translation
         endLabel.style.display = 'block';
         endLabel.style.marginBottom = '0.2rem';
         endLabel.style.fontWeight = '500';
@@ -149,14 +146,6 @@ export const ExtratoContaManager = (project) => {
         controls.appendChild(accDiv);
         controls.appendChild(startDiv);
         controls.appendChild(endDiv);
-
-
-
-        // Attach listeners
-
-
-        controls.appendChild(accDiv);
-        controls.appendChild(dateGroup);
 
         return controls;
     };
