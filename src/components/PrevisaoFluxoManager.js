@@ -109,9 +109,9 @@ export const PrevisaoFluxoManager = (project) => {
         // Header
         let html = `
             <table style="width: auto; min-width: 50%; border-collapse: separate; border-spacing: 0;">
-                <thead style="position: sticky; top: 0; z-index: 10; background-color: #00425F; color: white;">
+                <thead style="position: sticky; top: 0; z-index: 20; background-color: #00425F; color: white;">
                     <tr>
-                        <th style="padding: 1rem; text-align: left; border-bottom: 2px solid #e5e7eb; min-width: 300px;">TRANSAÇÕES</th>
+                        <th style="padding: 1rem; text-align: left; border-bottom: 2px solid #e5e7eb; min-width: 300px; position: sticky; left: 0; z-index: 21; background-color: #00425F;">TRANSAÇÕES</th>
                         ${days.map(d => {
             const [y, m, day] = d.split('-');
             return `<th style="padding: 1rem; text-align: right; border-bottom: 2px solid #e5e7eb; min-width: 120px;">${day}/${m}</th>`;
@@ -124,7 +124,7 @@ export const PrevisaoFluxoManager = (project) => {
         // 1. SALDO INICIAL ROW
         html += `
             <tr style="background-color: #e0f2fe;">
-                <td style="padding: 0.5rem 1rem; font-weight: 800; border-bottom: 2px solid #cbd5e1;">Saldo Inicial</td>
+                <td style="padding: 0.5rem 1rem; font-weight: 800; border-bottom: 2px solid #cbd5e1; position: sticky; left: 0; z-index: 5; background-color: #e0f2fe;">Saldo Inicial</td>
                 ${days.map(d => {
             const val = dayBalances[d].initial;
             const color = val >= 0 ? '#10B981' : '#EF4444';
@@ -173,7 +173,7 @@ export const PrevisaoFluxoManager = (project) => {
 
                 html += `
                     <tr class="${rowClass}" data-id="${node.id}" style="background-color: ${bgColor}; cursor: ${hasChildren ? 'pointer' : 'default'};">
-                        <td style="padding: 0.5rem 1rem 0.5rem ${paddingLeft}rem; border-bottom: 1px solid #f3f4f6; font-weight: ${fontWeight}; display: flex; align-items: center; gap: 0.5rem;">
+                        <td style="padding: 0.5rem 1rem 0.5rem ${paddingLeft}rem; border-bottom: 1px solid #f3f4f6; font-weight: ${fontWeight}; display: flex; align-items: center; gap: 0.5rem; position: sticky; left: 0; z-index: 5; background-color: ${bgColor};">
                             ${hasChildren ? `<span style="font-size: 0.8rem; transform: rotate(${isExpanded ? '90deg' : '0deg'}); transition: transform 0.2s;">▶</span>` : ''}
                             ${node.name}
                         </td>
@@ -213,7 +213,7 @@ export const PrevisaoFluxoManager = (project) => {
         // 2. SALDO FINAL ROW
         html += `
             <tr style="background-color: #e0f2fe;">
-                <td style="padding: 0.5rem 1rem; font-weight: 800; border-top: 2px solid #cbd5e1;">Saldo Final</td>
+                <td style="padding: 0.5rem 1rem; font-weight: 800; border-top: 2px solid #cbd5e1; position: sticky; left: 0; z-index: 5; background-color: #e0f2fe;">Saldo Final</td>
                 ${days.map(d => {
             const val = dayBalances[d].final;
             const color = val >= 0 ? '#10B981' : '#EF4444';
@@ -228,7 +228,7 @@ export const PrevisaoFluxoManager = (project) => {
 
         html += `
             <tr style="background-color: #f9fafb;">
-                <td style="padding: 0.5rem 1rem; font-weight: 600; font-size: 0.8rem; color: #6B7280; border-top: 2px solid #cbd5e1;">Dias Relativos</td>
+                <td style="padding: 0.5rem 1rem; font-weight: 600; font-size: 0.8rem; color: #6B7280; border-top: 2px solid #cbd5e1; position: sticky; left: 0; z-index: 5; background-color: #f9fafb;">Dias Relativos</td>
                 ${days.map(d => {
             const cellDate = new Date(d + 'T00:00:00');
             const diffTime = cellDate - todayDate;
