@@ -208,7 +208,7 @@ exports.getDailyForecast = async (req, res, next) => {
                     d.id, 
                     d.valor, 
                     d.${fkCol} as type_id, 
-                    DATE_FORMAT(${dateExpr}, '%Y-%m-%d') as date_key
+                    DATE_FORMAT(DATE_SUB(${dateExpr}, INTERVAL 4 HOUR), '%Y-%m-%d') as date_key
                 FROM ${dataTable} d
                 WHERE d.project_id = ? 
                 AND d.active = 1

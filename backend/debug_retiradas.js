@@ -8,19 +8,19 @@ async function runDebug() {
         const [tz] = await db.execute("SELECT @@global.time_zone, @@session.time_zone;");
         console.log("Timezones:", tz);
 
-        console.log("\n--- Checking Retiradas Raw Data ---");
+        console.log("\n--- Checking Aportes Raw Data ---");
         // Get all retiradas to see raw dates
         const [retiradas] = await db.execute(`
             SELECT id, valor, data_fato, data_prevista, data_real, active 
-            FROM retiradas 
+            FROM aportes 
             ORDER BY id DESC LIMIT 5
         `);
         console.log(JSON.stringify(retiradas, null, 2));
 
-        console.log("\n--- Simulating Previsão Query for Retiradas ---");
-        // Simulate effectiveDateSql logic
-        // COALESCE(data_real, data_prevista)
-        const dateExpr = "COALESCE(data_real, data_prevista)";
+        console.log("\n--- Simulating Previsão Query for Aportes ---");
+        // Simulate effectiveDateSql logic (COALESCE(data_real, data_fato))
+        const dateExpr = "COALESCE(data_real, data_fato)";
+        const table = "aportes";
         const startDate = '2025-12-10';
         const endDate = '2025-12-31';
 
