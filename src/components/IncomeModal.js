@@ -171,7 +171,7 @@ export const IncomeModal = {
 
                             <div class="form-group" style="grid-column: span 3; display: flex; flex-direction: column;">
                                 <label>Tipo de Entrada <span class="required">*</span></label>
-                                <div id="tree-selector-container" style="flex: 1; height: 120px;"></div>
+                                <div id="tree-selector-container" style="height: 120px;"></div>
                                 <input type="hidden" id="income-tipo-entrada-id" value="${income?.tipo_entrada_id || ''}" />
                             </div>
 
