@@ -164,14 +164,14 @@ export const IncomeModal = {
 
                             <!-- Row 4: Description (Span 3) and Tree (Span 3) Side-by-Side Symmetrical (Reduced height) -->
                             
-                            <div class="form-group" style="grid-column: span 3; display: flex; flex-direction: column;">
+                            <div class="form-group" style="grid-column: span 3; display: flex; flex-direction: column; height: 150px;">
                                 <label for="income-descricao">Descrição</label>
-                                <textarea id="income-descricao" class="form-input" placeholder="Opcional" style="resize: none; height: 120px; box-sizing: border-box; font-family: inherit;">${income?.descricao || ''}</textarea>
+                                <textarea id="income-descricao" class="form-input" placeholder="Opcional" style="resize: none; flex: 1; box-sizing: border-box; font-family: inherit;">${income?.descricao || ''}</textarea>
                             </div>
 
-                            <div class="form-group" style="grid-column: span 3; display: flex; flex-direction: column;">
+                            <div class="form-group" style="grid-column: span 3; display: flex; flex-direction: column; height: 150px;">
                                 <label>Tipo de Entrada <span class="required">*</span></label>
-                                <div id="tree-selector-container" style="height: 120px;"></div>
+                                <div id="tree-selector-container" style="flex: 1;"></div>
                                 <input type="hidden" id="income-tipo-entrada-id" value="${income?.tipo_entrada_id || ''}" />
                             </div>
 
@@ -239,6 +239,7 @@ export const IncomeModal = {
                 const treeEl = treeContainer.querySelector('.tree-selector');
                 if (treeEl) {
                     treeEl.style.height = '100%';
+                    treeEl.style.maxHeight = 'none'; // Override internal max-height
                     treeEl.style.boxSizing = 'border-box';
                 }
 
