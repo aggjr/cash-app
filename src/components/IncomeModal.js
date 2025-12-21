@@ -166,7 +166,7 @@ export const IncomeModal = {
                             
                             <div class="form-group" style="grid-column: span 3; display: flex; flex-direction: column;">
                                 <label for="income-descricao">Descrição</label>
-                                <textarea id="income-descricao" class="form-input" placeholder="Opcional" style="resize: none; height: 120px; font-family: inherit;">${income?.descricao || ''}</textarea>
+                                <textarea id="income-descricao" class="form-input" placeholder="Opcional" style="resize: none; flex: 1; height: auto; min-height: 120px; font-family: inherit;">${income?.descricao || ''}</textarea>
                             </div>
 
                             <div class="form-group" style="grid-column: span 3; display: flex; flex-direction: column;">
