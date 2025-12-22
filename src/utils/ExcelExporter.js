@@ -246,9 +246,9 @@ export const ExcelExporter = {
                 if (columnDef.type === 'date') {
                     // Brazilian date format: DD/MM/AAAA
                     cell.numFmt = 'dd/mm/yyyy';
-                    cell.alignment = { vertical: 'middle', horizontal: 'left' };
+                    cell.alignment = { vertical: 'middle', horizontal: 'center' };
                 } else if (columnDef.type === 'currency') {
-                    // Brazilian currency format: R$ #.##0,00
+                    // Brazilian currency format: R$ #.###,##
                     cell.numFmt = '"R$ "#,##0.00';
                     cell.alignment = { vertical: 'middle', horizontal: 'right' };
                 } else if (columnDef.key === 'active' || columnDef.type === 'center') {
