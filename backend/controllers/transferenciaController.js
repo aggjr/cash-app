@@ -231,7 +231,7 @@ exports.createTransferencia = async (req, res, next) => {
             throw new AppError('VAL-002', 'Data Prevista, Valor e Projeto são obrigatórios');
         }
 
-        if (sourceAccountId === destinationAccountId) {
+        if (sourceAccountId && destinationAccountId && sourceAccountId === destinationAccountId) {
             throw new AppError('VAL-003', 'A conta de origem e destino devem ser diferentes');
         }
 
