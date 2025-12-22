@@ -16,7 +16,7 @@ async function migrateComprovanteUrl() {
 
                 if (columns.length === 0) {
                     console.log(`Adding comprovante_url to ${table}...`);
-                    await connection.query(`ALTER TABLE ${table} ADD COLUMN comprovante_url VARCHAR(255) DEFAULT NULL AFTER form_pagamento`);
+                    await connection.query(`ALTER TABLE ${table} ADD COLUMN comprovante_url VARCHAR(255) DEFAULT NULL AFTER forma_pagamento`);
                     console.log(`Successfully added comprovante_url to ${table}`);
                 } else {
                     console.log(`Column comprovante_url already exists in ${table}`);
