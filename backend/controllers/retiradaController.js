@@ -189,7 +189,7 @@ exports.createRetirada = async (req, res, next) => {
     try {
         await connection.beginTransaction();
 
-        const { dataFato, dataPrevista, dataReal, valor, descricao, companyId, accountId, projectId, comprovanteUrl } = req.body;
+        const { dataFato, dataPrevista, dataReal, valor, descricao, companyId, accountId, projectId, comprovanteUrl, formaPagamento } = req.body;
 
         // FILE LOGGING
         fileLogger.log('--- CREATE RETIRADA REQUEST ---', {
@@ -255,9 +255,9 @@ exports.createRetirada = async (req, res, next) => {
 
         // Insert Retirada
         const [result] = await connection.query(
-            `INSERT INTO retiradas (data_fato, data_prevista, data_real, valor, descricao, company_id, account_id, project_id, comprovante_url)
-             VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)`,
-            [dataFato, dataPrevista || null, dataReal || null, valor, descricao, companyId, accountId || null, projectId, comprovanteUrl || null]
+            `INSERT INTO retiradas (data_fato, data_prevista, data_real, valor, descricao, company_id, account_id, project_id, comprovante_url, forma_pagamento)
+             VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+            [dataFato, dataPrevista || null, dataReal || null, valor, descricao, companyId, accountId || null, projectId, comprovanteUrl || null, formaPagamento || null]
         );
 
         const newId = result.insertId;
@@ -319,6 +319,7 @@ exports.updateRetirada = async (req, res, next) => {
         if (accountId !== undefined) { updates.push('account_id = ?'); values.push(accountId); }
         if (active !== undefined) { updates.push('active = ?'); values.push(active); }
         if (comprovanteUrl !== undefined) { updates.push('comprovante_url = ?'); values.push(comprovanteUrl); }
+        if (req.body.formaPagamento !== undefined) { updates.push('forma_pagamento = ?'); values.push(req.body.formaPagamento || null); }
 
         if (updates.length > 0) {
             values.push(id);

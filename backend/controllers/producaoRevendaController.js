@@ -181,7 +181,8 @@ exports.createProducaoRevenda = async (req, res, next) => {
             companyId,
             accountId,
             comprovanteUrl,
-            projectId
+            projectId,
+            formaPagamento
         } = req.body;
 
         console.log('Extracted fields:', {
@@ -195,7 +196,8 @@ exports.createProducaoRevenda = async (req, res, next) => {
             companyId,
             accountId,
             comprovanteUrl,
-            projectId
+            projectId,
+            formaPagamento
         });
 
         // accountId is optional if dataRealPagamento is null
@@ -215,9 +217,9 @@ exports.createProducaoRevenda = async (req, res, next) => {
 
         const [result] = await connection.query(
             `INSERT INTO producao_revenda 
-            (data_fato, data_prevista_pagamento, data_prevista_atraso, data_real_pagamento, valor, descricao, tipo_id, company_id, account_id, comprovante_url, project_id) 
-            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
-            [dataFato, dataPrevistaPagamento, dataPrevistaAtraso || null, dataRealPagamento || null, valorDecimal, descricao, tipoId, companyId, accountId || null, comprovanteUrl || null, projectId]
+            (data_fato, data_prevista_pagamento, data_prevista_atraso, data_real_pagamento, valor, descricao, tipo_id, company_id, account_id, comprovante_url, project_id, forma_pagamento) 
+            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+            [dataFato, dataPrevistaPagamento, dataPrevistaAtraso || null, dataRealPagamento || null, valorDecimal, descricao, tipoId, companyId, accountId || null, comprovanteUrl || null, projectId, formaPagamento || null]
         );
 
         console.log('Item created with ID:', result.insertId);
@@ -280,7 +282,8 @@ exports.updateProducaoRevenda = async (req, res, next) => {
             companyId: 'company_id',
             accountId: 'account_id',
             comprovanteUrl: 'comprovante_url',
-            active: 'active'
+            active: 'active',
+            formaPagamento: 'forma_pagamento'
         };
 
         for (const [key, val] of Object.entries(updates)) {

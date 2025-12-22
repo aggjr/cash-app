@@ -176,7 +176,8 @@ exports.createSaida = async (req, res, next) => {
             companyId,
             accountId,
             projectId,
-            comprovanteUrl
+            comprovanteUrl,
+            formaPagamento
         } = req.body;
 
         if (!dataFato || !dataPrevistaPagamento || !valor || !tipoSaidaId || !companyId || !accountId || !projectId) {
@@ -193,9 +194,9 @@ exports.createSaida = async (req, res, next) => {
 
         const [result] = await connection.query(
             `INSERT INTO saidas 
-            (data_fato, data_prevista_pagamento, data_real_pagamento, valor, descricao, tipo_saida_id, company_id, account_id, project_id, comprovante_url) 
-            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
-            [dataFato, dataPrevistaPagamento, dataRealPagamento || null, valorDecimal, descricao, tipoSaidaId, companyId, accountId, projectId, comprovanteUrl || null]
+            (data_fato, data_prevista_pagamento, data_real_pagamento, valor, descricao, tipo_saida_id, company_id, account_id, project_id, comprovante_url, forma_pagamento) 
+            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+            [dataFato, dataPrevistaPagamento, dataRealPagamento || null, valorDecimal, descricao, tipoSaidaId, companyId, accountId, projectId, comprovanteUrl || null, formaPagamento || null]
         );
 
         // Update account balance - SUBTRACT for expenses
@@ -218,6 +219,7 @@ exports.createSaida = async (req, res, next) => {
             account_id: accountId,
             project_id: projectId,
             comprovante_url: comprovanteUrl || null,
+            forma_pagamento: formaPagamento || null,
             active: 1
         });
     } catch (error) {
@@ -242,7 +244,8 @@ exports.updateSaida = async (req, res, next) => {
             companyId,
             accountId,
             active,
-            comprovanteUrl
+            comprovanteUrl,
+            formaPagamento
         } = req.body;
 
         connection = await db.getConnection();
@@ -313,6 +316,11 @@ exports.updateSaida = async (req, res, next) => {
         if (comprovanteUrl !== undefined) {
             updates.push('comprovante_url = ?');
             values.push(comprovanteUrl || null);
+        }
+
+        if (formaPagamento !== undefined) {
+            updates.push('forma_pagamento = ?');
+            values.push(formaPagamento || null);
         }
 
         if (updates.length > 0) {

@@ -1,5 +1,6 @@
 import { Dialogs } from './Dialogs.js';
 import { getApiBaseUrl } from '../utils/apiConfig.js';
+// Refresh Sync
 
 export const RetiradaModal = {
     show: ({ retirada, projectId, onSave }) => {
@@ -99,6 +100,21 @@ export const RetiradaModal = {
                             <div style="grid-column: span 2;">
                                 <label style="display:block; margin-bottom:0.5rem; font-weight:500;">Valor (R$) <span style="color:#EF4444">*</span></label>
                                 <input type="text" id="retirada-valor" class="form-input" placeholder="R$ 0,00" value="">
+                            </div>
+
+
+                            <!-- Row 2.5: Payment Methods -->
+                            <div style="grid-column: span 6;">
+                                <label style="display:block; margin-bottom:0.5rem; font-weight:500;">Forma de Retirada</label>
+                                <div style="display: flex; flex-wrap: wrap; gap: 1.5rem; padding: 0.2rem 0;">
+                                    ${['Pix', 'Ted', 'DOC', 'Boleto', 'Verificar', 'Dinheiro', 'Cartão'].map(opt => `
+                                        <div style="display: flex; align-items: center; gap: 0.3rem;">
+                                            <input type="radio" name="forma_pagamento" id="fp-${opt}" value="${opt}" 
+                                                ${retirada?.forma_pagamento === opt ? 'checked' : ''} style="cursor: pointer;">
+                                            <label for="fp-${opt}" style="margin: 0; cursor: pointer; font-weight: normal; font-size: 0.9rem;">${opt}</label>
+                                        </div>
+                                    `).join('')}
+                                </div>
                             </div>
 
                             <!-- Row 3: Description (Full Span) -->
@@ -345,7 +361,10 @@ export const RetiradaModal = {
                         companyId,
                         accountId: dataReal ? accountId : null,
                         comprovanteUrl: comprovanteUrl || null,
-                        active
+                        accountId: dataReal ? accountId : null,
+                        comprovanteUrl: comprovanteUrl || null,
+                        active,
+                        formaPagamento: modal.querySelector('input[name="forma_pagamento"]:checked')?.value || null
                     };
 
                     if (onSave) await onSave(data);

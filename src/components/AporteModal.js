@@ -1,5 +1,6 @@
 import { Dialogs } from './Dialogs.js';
 import { getApiBaseUrl } from '../utils/apiConfig.js';
+// Refresh Sync
 
 export const AporteModal = {
     show: ({ aporte, projectId, onSave }) => {
@@ -83,6 +84,21 @@ export const AporteModal = {
                                         <option value="">Selecione...</option>
                                         ${accounts.map(a => `<option value="${a.id}" ${aporte?.account_id === a.id ? 'selected' : ''}>${a.name}</option>`).join('')}
                                     </select>
+                                </div>
+                            </div>
+
+
+                             <!-- FORMA DE APORTE -->
+                            <div style="margin-bottom: 0px;">
+                                <label style="display:block; margin-bottom:0.5rem; font-weight:500;">Forma de Aporte</label>
+                                <div style="display: flex; flex-wrap: wrap; gap: 1.5rem; padding: 0.2rem 0;">
+                                    ${['Pix', 'Ted', 'DOC', 'Boleto', 'Verificar', 'Dinheiro', 'Cartão'].map(opt => `
+                                        <div style="display: flex; align-items: center; gap: 0.3rem;">
+                                            <input type="radio" name="forma_pagamento" id="fp-${opt}" value="${opt}" 
+                                                ${aporte?.forma_pagamento === opt ? 'checked' : ''} style="cursor: pointer;">
+                                            <label for="fp-${opt}" style="margin: 0; cursor: pointer; font-weight: normal; font-size: 0.9rem;">${opt}</label>
+                                        </div>
+                                    `).join('')}
                                 </div>
                             </div>
 
@@ -344,7 +360,8 @@ export const AporteModal = {
                         companyId,
                         accountId: dataReal ? accountId : null, // Ensure explicit null if not used
                         active,
-                        comprovante_url: comprovanteUrl
+                        comprovante_url: comprovanteUrl,
+                        formaPagamento: modal.querySelector('input[name="forma_pagamento"]:checked')?.value || null
                     };
 
                     if (onSave) await onSave(data);

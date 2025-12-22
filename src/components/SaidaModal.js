@@ -1,5 +1,6 @@
 import { TreeSelector } from './TreeSelector.js';
 import { getApiBaseUrl } from '../utils/apiConfig.js';
+// Refresh Sync
 
 export const SaidaModal = {
     show({ saida = null, projectId, onSave, onCancel }) {
@@ -147,16 +148,30 @@ export const SaidaModal = {
                                 <div id="comprovante-preview" style="margin-top: 5px; font-size: 0.85rem; display: none;"></div>
                             </div>
 
-                            <!-- Row 4: Description (Span 3) and Tree (Span 3) Side-by-Side Symmetrical -->
-                            
-                            <div class="form-group" style="grid-column: span 3; display: flex; flex-direction: column;">
-                                <label for="saida-descricao">Descrição</label>
-                                <textarea id="saida-descricao" class="form-input" placeholder="Opcional" style="resize: none; height: 200px; font-family: inherit;">${saida?.descricao || ''}</textarea>
+                            <!-- Row 3.5: Payment Methods -->
+                            <div class="form-group" style="grid-column: span 6;">
+                                <label>Forma de Saída</label>
+                                <div style="display: flex; flex-wrap: wrap; gap: 1.5rem; padding: 0.5rem 0;">
+                                    ${['Pix', 'Ted', 'DOC', 'Boleto', 'Verificar', 'Dinheiro', 'Cartão'].map(opt => `
+                                        <div style="display: flex; align-items: center; gap: 0.3rem;">
+                                            <input type="radio" name="forma_pagamento" id="fp-${opt}" value="${opt}" 
+                                                ${saida?.forma_pagamento === opt ? 'checked' : ''} style="cursor: pointer;">
+                                            <label for="fp-${opt}" style="margin: 0; cursor: pointer; font-weight: normal;">${opt}</label>
+                                        </div>
+                                    `).join('')}
+                                </div>
                             </div>
 
-                            <div class="form-group" style="grid-column: span 3; display: flex; flex-direction: column;">
+                            <!-- Row 4: Description (Span 3) and Tree (Span 3) Side-by-Side Symmetrical -->
+                            
+                            <div class="form-group" style="grid-column: span 3; display: flex; flex-direction: column; min-height: 150px;">
+                                <label for="saida-descricao">Descrição</label>
+                                <textarea id="saida-descricao" class="form-input" placeholder="Opcional" style="resize: none; flex: 1; box-sizing: border-box; font-family: inherit;">${saida?.descricao || ''}</textarea>
+                            </div>
+
+                            <div class="form-group" style="grid-column: span 3; display: flex; flex-direction: column; min-height: 150px;">
                                 <label>Tipo de Saída <span class="required">*</span></label>
-                                <div id="tree-selector-container" style="flex: 1; height: 200px;"></div>
+                                <div id="tree-selector-container" style="flex: 1;"></div>
                                 <input type="hidden" id="saida-tipo-saida-id" value="${saida?.tipo_saida_id || ''}" />
                             </div>
 
@@ -216,6 +231,7 @@ export const SaidaModal = {
                 const treeEl = treeContainer.querySelector('.tree-selector');
                 if (treeEl) {
                     treeEl.style.height = '100%';
+                    treeEl.style.maxHeight = 'none'; // Override internal max-height
                     treeEl.style.boxSizing = 'border-box';
                 }
 
@@ -512,7 +528,8 @@ export const SaidaModal = {
                             tipoSaidaId: parseInt(tiposaidaIdInput.value),
                             companyId: parseInt(companySelect.value),
                             accountId: dataRealInput.value ? parseInt(accountSelect.value) : null,
-                            comprovanteUrl: comprovanteUrlInput.value || null
+                            comprovanteUrl: comprovanteUrlInput.value || null,
+                            formaPagamento: modal.querySelector('input[name="forma_pagamento"]:checked')?.value || null
                         };
                         if (isEdit) {
                             data.id = saida.id;

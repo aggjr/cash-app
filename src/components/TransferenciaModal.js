@@ -1,5 +1,6 @@
 import { Dialogs } from './Dialogs.js';
 import { getApiBaseUrl } from '../utils/apiConfig.js';
+// Refresh Sync
 
 export const TransferenciaModal = {
     show: ({ transferencia, projectId, onSave }) => {
@@ -75,6 +76,21 @@ export const TransferenciaModal = {
                                     <option value="">Selecione...</option>
                                     ${accounts.map(a => `<option value="${a.id}" ${transferencia?.destination_account_id === a.id ? 'selected' : ''}>${a.name}</option>`).join('')}
                                 </select>
+                            </div>
+
+
+                            <!-- Row 2.5: Forma de Transferência -->
+                            <div class="form-group" style="grid-column: span 6;">
+                                <label>Forma de Transferência</label>
+                                <div style="display: flex; flex-wrap: wrap; gap: 1.5rem; padding: 0.2rem 0;">
+                                    ${['Pix', 'Ted', 'DOC', 'Boleto', 'Verificar', 'Dinheiro', 'Cartão'].map(opt => `
+                                        <div style="display: flex; align-items: center; gap: 0.3rem;">
+                                            <input type="radio" name="forma_pagamento" id="fp-${opt}" value="${opt}" 
+                                                ${transferencia?.forma_pagamento === opt ? 'checked' : ''} style="cursor: pointer;">
+                                            <label for="fp-${opt}" style="margin: 0; cursor: pointer; font-weight: normal; font-size: 0.9rem;">${opt}</label>
+                                        </div>
+                                    `).join('')}
+                                </div>
                             </div>
 
                             <!-- Row 3: Comprovante -->
@@ -539,7 +555,8 @@ export const TransferenciaModal = {
                         sourceAccountId: sourceAccountId || null,
                         destinationAccountId: destinationAccountId || null,
                         comprovanteUrl,
-                        active: 1 // Always active - deletion is handled by delete button
+                        active: 1, // Always active - deletion is handled by delete button
+                        formaPagamento: modal.querySelector('input[name="forma_pagamento"]:checked')?.value || null
                     };
 
                     if (onSave) await onSave(data);

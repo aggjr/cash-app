@@ -219,7 +219,7 @@ exports.createTransferencia = async (req, res, next) => {
     try {
         await connection.beginTransaction();
 
-        const { dataFato, dataPrevista, dataReal, valor, descricao, sourceAccountId, destinationAccountId, projectId, comprovanteUrl } = req.body;
+        const { dataFato, dataPrevista, dataReal, valor, descricao, sourceAccountId, destinationAccountId, projectId, comprovanteUrl, formaPagamento } = req.body;
 
         if (!dataFato || !dataPrevista || !valor || !sourceAccountId || !destinationAccountId || !projectId) {
             throw new AppError('VAL-002', 'Data Fato, Data Prevista, Valor, Contas e Projeto são obrigatórios');
@@ -231,9 +231,9 @@ exports.createTransferencia = async (req, res, next) => {
 
         // Insert
         const [result] = await connection.query(
-            `INSERT INTO transferencias (data_fato, data_prevista, data_real, valor, descricao, source_account_id, destination_account_id, project_id, comprovante_url)
-             VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)`,
-            [dataFato, dataPrevista, dataReal || null, valor, descricao, sourceAccountId, destinationAccountId, projectId, comprovanteUrl || null]
+            `INSERT INTO transferencias (data_fato, data_prevista, data_real, valor, descricao, source_account_id, destination_account_id, project_id, comprovante_url, forma_pagamento)
+             VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+            [dataFato, dataPrevista, dataReal || null, valor, descricao, sourceAccountId, destinationAccountId, projectId, comprovanteUrl || null, formaPagamento || null]
         );
 
         const newId = result.insertId;
@@ -293,6 +293,7 @@ exports.updateTransferencia = async (req, res, next) => {
         if (sourceAccountId !== undefined) { updates.push('source_account_id = ?'); values.push(sourceAccountId); }
         if (destinationAccountId !== undefined) { updates.push('destination_account_id = ?'); values.push(destinationAccountId); }
         if (comprovanteUrl !== undefined) { updates.push('comprovante_url = ?'); values.push(comprovanteUrl); }
+        if (req.body.formaPagamento !== undefined) { updates.push('forma_pagamento = ?'); values.push(req.body.formaPagamento || null); }
         if (active !== undefined) { updates.push('active = ?'); values.push(active); }
 
         if (updates.length > 0) {
