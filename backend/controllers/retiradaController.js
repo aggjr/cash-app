@@ -2,9 +2,22 @@ const db = require('../config/database');
 const AppError = require('../utils/AppError');
 const fileLogger = require('../utils/fileLogger');
 
+// Helper for Sorting
+const getOrderByClause = (sortBy, order) => {
+    const dir = order?.toUpperCase() === 'ASC' ? 'ASC' : 'DESC';
+    switch (sortBy) {
+        case 'valor': return `r.valor ${dir}`;
+        case 'data_fato': return `r.data_fato ${dir}`;
+        case 'descricao': return `r.descricao ${dir}`;
+        case 'company_name': return `e.name ${dir}`;
+        case 'account_name': return `c.name ${dir}`;
+        default: return `r.data_fato DESC, r.created_at DESC`;
+    }
+};
+
 exports.listRetiradas = async (req, res, next) => {
     try {
-        const { projectId, page = 1, limit = 50, search, account, company, description, startDate, endDate, minValue, maxValue } = req.query;
+        const { projectId, page = 1, limit = 50, search, account, company, description, startDate, endDate, minValue, maxValue, sortBy, order } = req.query;
 
         console.log('DEBUG RETIRADAS LIST:', {
             query: req.query,
@@ -144,7 +157,7 @@ exports.listRetiradas = async (req, res, next) => {
         }
 
         // Sorting
-        query += ` ORDER BY r.data_fato DESC, r.created_at DESC LIMIT ? OFFSET ?`;
+        query += ` ORDER BY ${getOrderByClause(sortBy, order)} LIMIT ? OFFSET ?`;
         queryParams.push(parseInt(limit), parseInt(offset));
 
         const [rows] = await db.query(query, queryParams);
