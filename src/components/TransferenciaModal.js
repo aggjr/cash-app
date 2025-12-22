@@ -251,27 +251,19 @@ export const TransferenciaModal = {
                 const toggleAccountState = () => {
                     const hasDataReal = dataRealInput.value !== '';
 
-                    sourceSelect.disabled = !hasDataReal;
-                    destSelect.disabled = !hasDataReal;
+                    // Always enabled
+                    sourceSelect.disabled = false;
+                    destSelect.disabled = false;
 
+                    // Mandatory only if Realized
                     sourceAsterisk.style.display = hasDataReal ? 'inline' : 'none';
                     destAsterisk.style.display = hasDataReal ? 'inline' : 'none';
 
-                    // Visual styling
-                    if (hasDataReal) {
-                        sourceSelect.style.backgroundColor = 'white';
-                        sourceSelect.style.color = 'inherit';
-                        destSelect.style.backgroundColor = 'white';
-                        destSelect.style.color = 'inherit';
-                    } else {
-                        sourceSelect.style.backgroundColor = 'var(--color-background-disabled)';
-                        sourceSelect.style.color = '#9CA3AF';
-                        destSelect.style.backgroundColor = 'var(--color-background-disabled)';
-                        destSelect.style.color = '#9CA3AF';
-                        // Clear selections if Data Real is removed
-                        sourceSelect.value = '';
-                        destSelect.value = '';
-                    }
+                    // Visual styling - Always normal white background
+                    sourceSelect.style.backgroundColor = 'white';
+                    sourceSelect.style.color = 'inherit';
+                    destSelect.style.backgroundColor = 'white';
+                    destSelect.style.color = 'inherit';
                 };
 
                 // Initialize account state
