@@ -209,12 +209,10 @@ export class SharedTable {
                 e.stopPropagation();
                 const key = btn.dataset.key;
                 const dir = btn.dataset.dir;
-                // Toggle Logic
-                if (this.sortConfig.key === key && this.sortConfig.direction === dir) {
-                    this.sortConfig = { key: null, direction: 'desc' };
-                } else {
-                    this.sortConfig = { key, direction: dir };
-                }
+                // Enforce Logic: Always set to clicked direction
+                // Do not toggle off to null, as it causes confusion with default backend sort
+                this.sortConfig = { key, direction: dir };
+
                 if (this.onSortChange) this.onSortChange(this.sortConfig);
             };
         });

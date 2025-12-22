@@ -1,88 +1,25 @@
 const db = require('../config/database');
 const AppError = require('../utils/AppError');
 
+// Helper for Sorting
+const getOrderByClause = (sortBy, order) => {
+    const dir = order?.toUpperCase() === 'ASC' ? 'ASC' : 'DESC';
+    switch (sortBy) {
+        case 'valor': return `a.valor ${dir}`;
+        case 'data_fato': return `a.data_fato ${dir}`;
+        case 'descricao': return `a.descricao ${dir}`;
+        case 'company_name': return `emp.name ${dir}`;
+        case 'account_name': return `c.name ${dir}`;
+        default: return `a.data_fato DESC, a.created_at DESC`;
+    }
+};
+
 exports.listAportes = async (req, res, next) => {
     try {
-        const { projectId, page = 1, limit = 50, search, startDate, endDate, minValue, maxValue } = req.query;
+        const { projectId, page = 1, limit = 50, search, startDate, endDate, minValue, maxValue, sortBy, order } = req.query;
 
-        if (!projectId) {
-            throw new AppError('VAL-002', 'Project ID is required');
-        }
+        // ... (lines 8-90 omitted) ...
 
-        const offset = (page - 1) * limit;
-        const params = [];
-        let whereClauses = ['a.project_id = ?', 'a.active = 1'];
-        params.push(projectId);
-
-        // Dynamic Filtering
-        if (startDate) {
-            whereClauses.push('a.data_fato >= ?');
-            params.push(startDate);
-        }
-        if (endDate) {
-            whereClauses.push('a.data_fato <= ?');
-            params.push(endDate);
-        }
-        if (minValue) {
-            whereClauses.push('a.valor >= ?');
-            params.push(minValue);
-        }
-        if (maxValue) {
-            whereClauses.push('a.valor <= ?');
-            params.push(maxValue);
-        }
-
-        // Link Filter (hasAttachment)
-        const { hasAttachment, account, company, description } = req.query;
-        if (hasAttachment !== undefined) {
-            if (hasAttachment === '1' || hasAttachment === 'true') {
-                whereClauses.push('(a.comprovante_url IS NOT NULL AND a.comprovante_url != "")');
-            } else if (hasAttachment === '0' || hasAttachment === 'false') {
-                whereClauses.push('(a.comprovante_url IS NULL OR a.comprovante_url = "")');
-            }
-        }
-
-        // Specific Text Filters
-        if (account) {
-            whereClauses.push('c.name LIKE ?');
-            params.push(`%${account}%`);
-        }
-        if (company) {
-            whereClauses.push('emp.name LIKE ?');
-            params.push(`%${company}%`);
-        }
-        if (description) {
-            whereClauses.push('a.descricao LIKE ?');
-            params.push(`%${description}%`);
-        }
-
-        if (search) {
-            whereClauses.push('(a.descricao LIKE ? OR emp.name LIKE ? OR c.name LIKE ?)');
-            const searchParam = `%${search}%`;
-            params.push(searchParam, searchParam, searchParam);
-        }
-
-        const whereSQL = whereClauses.length > 0 ? 'WHERE ' + whereClauses.join(' AND ') : '';
-
-        // Comprehensive Backend Logging
-        console.group('🔍 Aportes Controller Debug');
-        console.log('Query Params:', JSON.stringify(req.query, null, 2));
-        console.log('WHERE SQL:', whereSQL);
-        console.log('SQL Params:', JSON.stringify(params, null, 2));
-        console.groupEnd();
-
-        // Count Total
-        const countQuery = `
-            SELECT COUNT(*) as total
-            FROM aportes a
-            INNER JOIN empresas emp ON a.company_id = emp.id
-            INNER JOIN contas c ON a.account_id = c.id
-            ${whereSQL}`;
-
-        const [countResult] = await db.query(countQuery, params);
-        const totalItems = countResult[0].total;
-
-        // Fetch Data
         const dataQuery = `
              SELECT 
                 a.*,
@@ -94,7 +31,7 @@ exports.listAportes = async (req, res, next) => {
              INNER JOIN empresas emp ON a.company_id = emp.id
              LEFT JOIN contas c ON a.account_id = c.id
              ${whereSQL}
-             ORDER BY a.data_fato DESC, a.created_at DESC
+             ORDER BY ${getOrderByClause(sortBy, order)}
              LIMIT ? OFFSET ?`;
 
         const [aportes] = await db.query(dataQuery, [...params, parseInt(limit), parseInt(offset)]);

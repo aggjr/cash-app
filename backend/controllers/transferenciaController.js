@@ -145,10 +145,16 @@ exports.listTransferencias = async (req, res, next) => {
         }
 
         // Sorting
+        // Sorting
         const validSortColumns = ['data_prevista', 'data_real', 'valor', 'descricao', 'source_account_name', 'destination_account_name'];
         const sortColumn = validSortColumns.includes(sortBy) ? sortBy : 'data_prevista';
         const sortOrder = order === 'asc' ? 'ASC' : 'DESC';
-        query += ` ORDER BY t.${sortColumn} ${sortOrder}, t.created_at DESC LIMIT ? OFFSET ?`;
+
+        // Fix: Do not prefix 't.' for aliased columns (account names)
+        const isAlias = ['source_account_name', 'destination_account_name'].includes(sortColumn);
+        const columnExpression = isAlias ? sortColumn : `t.${sortColumn}`;
+
+        query += ` ORDER BY ${columnExpression} ${sortOrder}, t.created_at DESC LIMIT ? OFFSET ?`;
         queryParams.push(parseInt(limit), parseInt(offset));
 
         console.log('🔍 FINAL SQL QUERY:', query);
