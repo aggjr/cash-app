@@ -100,9 +100,10 @@ export const ConsolidadasManager = (project) => {
                         <th style="padding: 1rem; text-align: left; border-bottom: 2px solid #e5e7eb; min-width: 300px;">TRANSAÇÕES</th>
                         ${months.map(m => {
             const [y, mo] = m.split('-');
-            return `<th style="padding: 1rem; text-align: right; border-bottom: 2px solid #e5e7eb; min-width: 120px;">${mo}/${y}</th>`;
+            return `<th style="padding: 1rem; text-align: center; border-bottom: 2px solid #e5e7eb; min-width: 120px;">${mo}/${y}</th>`;
         }).join('')}
-                        <th style="padding: 1rem; text-align: right; border-bottom: 2px solid #e5e7eb; min-width: 120px;">Total</th>
+                        <th style="padding: 1rem; text-align: center; border-bottom: 2px solid #e5e7eb; min-width: 120px;">Total</th>
+                        <th style="padding: 1rem; text-align: center; border-bottom: 2px solid #e5e7eb; min-width: 120px;">MÉDIA</th>
                     </tr>
                 </thead>
                 <tbody>
@@ -188,7 +189,14 @@ export const ConsolidadasManager = (project) => {
                     }
                 }
 
-                const totalCell = `<td style="padding: 0.5rem 1rem; text-align: right; border-bottom: 1px solid #f3f4f6; font-weight: bold; color: ${totalColor};">${node.total !== 0 ? formatCurrency(node.total) : '-'}</td>`;
+                const totalCell = `<td style="padding: 0.5rem 1rem; text-align: right; border-bottom: 1px solid #f3f4f6; font-weight: bold; color: ${totalColor}; text-align: center;">${node.total !== 0 ? formatCurrency(node.total) : '-'}</td>`;
+
+                // Average Calculation
+                let average = 0;
+                if (months.length > 0) {
+                    average = node.total / months.length;
+                }
+                const averageCell = `<td style="padding: 0.5rem 1rem; text-align: right; border-bottom: 1px solid #f3f4f6; font-weight: bold; color: ${totalColor}; text-align: center;">${average !== 0 ? formatCurrency(average) : '-'}</td>`;
 
                 // Row HTML
                 html += `
@@ -199,6 +207,7 @@ export const ConsolidadasManager = (project) => {
                         </td>
                         ${monthCells}
                         ${totalCell}
+                        ${averageCell}
                     </tr>
                 `;
 
