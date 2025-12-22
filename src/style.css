@@ -353,6 +353,13 @@ button {
 
 /* Print Styles */
 @media print {
+
+  /* Page Setup - Landscape Mode */
+  @page {
+    size: A4 landscape;
+    margin: 10mm;
+  }
+
   /* Global Print Reset */
   body * {
     visibility: hidden;
@@ -418,22 +425,32 @@ button {
     display: block !important;
     height: auto !important;
     border: none !important;
+    width: 100% !important;
   }
 
   table {
     width: 100% !important;
-    font-size: 10pt !important;
+    font-size: 8pt !important;
+    table-layout: auto !important;
+    border-collapse: collapse !important;
   }
 
   th {
     background-color: #f3f4f6 !important;
     color: black !important;
     border: 1px solid #ddd !important;
+    padding: 4px 6px !important;
+    font-size: 8pt !important;
+    font-weight: bold !important;
+    white-space: nowrap !important;
   }
 
   td {
     border: 1px solid #ddd !important;
     color: black !important;
+    padding: 3px 5px !important;
+    font-size: 8pt !important;
+    white-space: nowrap !important;
   }
 
   /* Ensure rows don't break awkwardly */

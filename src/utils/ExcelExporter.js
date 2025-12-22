@@ -211,6 +211,18 @@ export const ExcelExporter = {
                 if (col.key === 'active' && typeof value === 'boolean') {
                     value = value ? 'Ativo' : 'Inativo';
                 }
+                // Date handling - convert ISO date to Date object
+                else if (col.type === 'date' && value) {
+                    // Parse ISO date string to Date object
+                    const dateValue = new Date(value);
+                    if (!isNaN(dateValue.getTime())) {
+                        value = dateValue;
+                    }
+                }
+                // Currency handling - ensure numeric value
+                else if (col.type === 'currency' && value) {
+                    value = parseFloat(value) || 0;
+                }
 
                 rowData[col.key] = value;
             });
@@ -228,11 +240,20 @@ export const ExcelExporter = {
                     color: { argb: 'FF1E293B' }
                 };
 
-                // Alignment based on type or column index
-                // Center Status or generic 'center' type
-                if (columns[colNumber - 1].key === 'active' || columns[colNumber - 1].type === 'center') {
+                const columnDef = columns[colNumber - 1];
+
+                // Apply number format based on type
+                if (columnDef.type === 'date') {
+                    // Brazilian date format: DD/MM/AAAA
+                    cell.numFmt = 'dd/mm/yyyy';
+                    cell.alignment = { vertical: 'middle', horizontal: 'left' };
+                } else if (columnDef.type === 'currency') {
+                    // Brazilian currency format: R$ #.##0,00
+                    cell.numFmt = '"R$ "#,##0.00';
+                    cell.alignment = { vertical: 'middle', horizontal: 'right' };
+                } else if (columnDef.key === 'active' || columnDef.type === 'center') {
                     cell.alignment = { vertical: 'middle', horizontal: 'center' };
-                } else if (columns[colNumber - 1].type === 'number' || columns[colNumber - 1].type === 'currency') {
+                } else if (columnDef.type === 'number') {
                     cell.alignment = { vertical: 'middle', horizontal: 'right' };
                 } else {
                     cell.alignment = { vertical: 'middle', horizontal: 'left' };
