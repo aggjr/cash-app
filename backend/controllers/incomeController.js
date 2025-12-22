@@ -202,7 +202,8 @@ exports.createIncome = async (req, res, next) => {
             companyId,
             accountId,
             projectId,
-            formaPagamento
+            formaPagamento,
+            comprovanteUrl
         } = req.body;
 
         if (!dataFato || !dataPrevistaRecebimento || !valor || !tipoEntradaId || !companyId || !accountId || !projectId) {
@@ -342,10 +343,7 @@ exports.updateIncome = async (req, res, next) => {
             updates.push('active = ?');
             values.push(active);
         }
-        if (active !== undefined) {
-            updates.push('active = ?');
-            values.push(active);
-        }
+
         if (comprovanteUrl !== undefined) {
             updates.push('comprovante_url = ?');
             values.push(comprovanteUrl);
