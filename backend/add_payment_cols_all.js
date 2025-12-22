@@ -7,7 +7,8 @@ const tables = [
     'aportes',
     'retiradas',
     'transferencias',
-    'producao_revenda'
+    'producao_revenda',
+    'entradas'
 ];
 
 async function addColumns() {
