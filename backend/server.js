@@ -97,11 +97,13 @@ app.use((req, res) => {
 const migrateFixAccounts = require('./migrate-fix-accounts');
 const migratePaymentColumns = require('./add_payment_cols_all');
 const migrateDataPrevistaAtraso = require('./migrate-add-data-prevista-atraso');
+const migrateComprovanteUrl = require('./migrate-add-comprovante-url');
 
 loadErrorCatalog()
     .then(() => migrateFixAccounts())
     .then(() => migratePaymentColumns())
     .then(() => migrateDataPrevistaAtraso())
+    .then(() => migrateComprovanteUrl())
     .then(() => {
         app.listen(PORT, '0.0.0.0', () => {
             console.log(`\n========================================`);

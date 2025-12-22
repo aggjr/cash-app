@@ -176,6 +176,8 @@ CREATE TABLE producao_revenda (
     project_id INT NOT NULL,
     active TINYINT(1) DEFAULT 1,
     forma_pagamento VARCHAR(50) DEFAULT NULL,
+    comprovante_url VARCHAR(255) DEFAULT NULL,
+    data_prevista_atraso DATE DEFAULT NULL,
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     FOREIGN KEY (tipo_id) REFERENCES tipo_producao_revenda(id),
     FOREIGN KEY (account_id) REFERENCES contas(id),
