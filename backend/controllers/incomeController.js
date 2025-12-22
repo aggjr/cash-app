@@ -206,8 +206,14 @@ exports.createIncome = async (req, res, next) => {
             comprovanteUrl
         } = req.body;
 
-        if (!dataFato || !dataPrevistaRecebimento || !valor || !tipoEntradaId || !companyId || !accountId || !projectId) {
+        // Validations
+        // Account ID is mandatory only if there is a Real Date (Receivement happened)
+        if (!dataFato || !dataPrevistaRecebimento || !valor || !tipoEntradaId || !companyId || !projectId) {
             throw new AppError('VAL-002');
+        }
+
+        if (dataRealRecebimento && !accountId) {
+            throw new AppError('VAL-002', 'Conta é obrigatória para recebimentos realizados.');
         }
 
         const valorDecimal = parseFloat(valor);

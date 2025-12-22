@@ -180,8 +180,12 @@ exports.createSaida = async (req, res, next) => {
             formaPagamento
         } = req.body;
 
-        if (!dataFato || !dataPrevistaPagamento || !valor || !tipoSaidaId || !companyId || !accountId || !projectId) {
+        if (!dataFato || !dataPrevistaPagamento || !valor || !tipoSaidaId || !companyId || !projectId) {
             throw new AppError('VAL-002');
+        }
+
+        if (dataRealPagamento && !accountId) {
+            throw new AppError('VAL-002', 'Conta é obrigatória para pagamentos realizados.');
         }
 
         const valorDecimal = parseFloat(valor);
