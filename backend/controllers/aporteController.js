@@ -92,7 +92,7 @@ exports.listAportes = async (req, res, next) => {
                 c.account_type as account_type
              FROM aportes a
              INNER JOIN empresas emp ON a.company_id = emp.id
-             INNER JOIN contas c ON a.account_id = c.id
+             LEFT JOIN contas c ON a.account_id = c.id
              ${whereSQL}
              ORDER BY a.data_fato DESC, a.created_at DESC
              LIMIT ? OFFSET ?`;
