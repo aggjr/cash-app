@@ -31,12 +31,20 @@ async function migrateFixAccounts() {
             console.warn('⚠️ Error updating saidas:', e.message);
         }
 
-        // 4. Modify PRODUCAO_REVENDA (Just in case, though not explicitly requested, good practice as it follows same pattern)
+        // 4. Modify PRODUCAO_REVENDA
         try {
             await connection.query('ALTER TABLE producao_revenda MODIFY account_id INT NULL');
             console.log('✅ producao_revenda table updated (account_id NULL)');
         } catch (e) {
             console.warn('⚠️ Error updating producao_revenda:', e.message);
+        }
+
+        // 5. Modify ENTRADAS (New Fix)
+        try {
+            await connection.query('ALTER TABLE entradas MODIFY account_id INT NULL');
+            console.log('✅ entradas table updated (account_id NULL)');
+        } catch (e) {
+            console.warn('⚠️ Error updating entradas:', e.message);
         }
 
         console.log('Migration Fix Accounts completed.');
