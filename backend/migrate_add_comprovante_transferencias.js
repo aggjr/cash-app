@@ -29,9 +29,11 @@ async function addComprovanteToTransferencias() {
     } catch (error) {
         console.error('❌ Error adding comprovante_url column:', error);
         throw error;
-    } finally {
-        process.exit(0);
+        if (connection) {
+            // connection.release(); // if using pool, but here we used db module directly which might be a pool or connection
+            // Assuming db is a pool/promise wrapper that doesn't need explicit release if from require('./config/database')
+        }
     }
 }
 
-addComprovanteToTransferencias();
+module.exports = addComprovanteToTransferencias;

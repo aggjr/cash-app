@@ -1,0 +1,3 @@
+# Global Agent Rules
+
+1. **ALWAYS PUSH TO GITHUB**: After verifying a fix or completing a task, you MUST automatically push the changes to GitHub using `git add . && git commit -m '...' && git push`. Do not wait for user request.
