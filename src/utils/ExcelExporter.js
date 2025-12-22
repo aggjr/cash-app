@@ -3,7 +3,7 @@ const ExcelJS = window.ExcelJS;
 
 /**
  * Excel Exporter with Styling (ExcelJS)
- * Mimics the Generic Tree view styles
+ * Mimics the Generic Tree view styles but splits hierarchy into columns
  */
 export const ExcelExporter = {
 
@@ -51,9 +51,10 @@ export const ExcelExporter = {
 
         const sheet = workbook.addWorksheet(title.substring(0, 31));
 
-        // Define Columns
+        // Define Columns: A=Tipo, B=Sub-tipo, C=Status
         sheet.columns = [
-            { header: 'Estrutura', key: 'label', width: 60 },
+            { header: 'Tipo', key: 'type', width: 40 },
+            { header: 'Sub-tipo', key: 'subtype', width: 40 },
             { header: 'Status', key: 'status', width: 15 }
         ];
 
@@ -66,46 +67,52 @@ export const ExcelExporter = {
             cell.border = BORDER_STYLE;
         });
 
-        // Fix alignment for first column header
-        headerRow.getCell(1).alignment = { vertical: 'middle', horizontal: 'left' };
+        // Add AutoFilter to headers
+        sheet.autoFilter = {
+            from: 'A1',
+            to: 'C1',
+        };
 
-        // 2. Flatten Tree with indentation logic
+        // 2. Flatten Tree with Column Logic
         const processNode = (node, level = 0) => {
             const isRoot = level === 0;
 
-            // Add Row
-            const row = sheet.addRow({
-                label: node.label,
+            // Map data to columns based on level
+            // Level 0 (Root) -> type column
+            // Level 1 (Child) -> subtype column
+            const rowData = {
+                type: isRoot ? node.label : '',
+                subtype: !isRoot ? node.label : '',
                 status: node.active ? 'Ativo' : 'Inativo'
-            });
+            };
+
+            // Add Row
+            const row = sheet.addRow(rowData);
 
             // Style Row
             const rowStyle = isRoot ? ROW_COLOR_ROOT : ROW_COLOR_CHILD;
 
-            // Cell 1: Label (Indented)
-            const cellLabel = row.getCell(1);
-            cellLabel.fill = rowStyle;
-            cellLabel.font = {
-                size: 11,
-                color: { argb: node.active ? 'FF1E293B' : 'FF94A3B8' }, // Dark or Muted
-                bold: isRoot
-            };
-            cellLabel.alignment = {
-                vertical: 'middle',
-                indent: level // ExcelJS supports indent natively
-            };
-            cellLabel.border = BORDER_STYLE;
+            // Apply styles to all cells in row
+            [1, 2, 3].forEach(colIdx => {
+                const cell = row.getCell(colIdx);
+                cell.fill = rowStyle;
+                cell.border = BORDER_STYLE;
 
-            // Cell 2: Status (Centered)
-            const cellStatus = row.getCell(2);
-            cellStatus.fill = rowStyle;
-            cellStatus.font = {
-                size: 11,
-                italic: true,
-                color: { argb: node.active ? 'FF1E293B' : 'FF94A3B8' }
-            };
-            cellStatus.alignment = { vertical: 'middle', horizontal: 'center' };
-            cellStatus.border = BORDER_STYLE;
+                // Font color logic
+                cell.font = {
+                    size: 11,
+                    color: { argb: node.active ? 'FF1E293B' : 'FF94A3B8' }, // Dark or Muted
+                    bold: isRoot && colIdx === 1 // Bold only Root Name
+                };
+
+                // Alignment
+                if (colIdx === 3) { // Status
+                    cell.alignment = { vertical: 'middle', horizontal: 'center' };
+                    cell.font.italic = true;
+                } else {
+                    cell.alignment = { vertical: 'middle', horizontal: 'left' };
+                }
+            });
 
             // Recursion
             if (node.children && node.children.length > 0) {
