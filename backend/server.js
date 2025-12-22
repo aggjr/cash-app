@@ -98,12 +98,14 @@ const migrateFixAccounts = require('./migrate-fix-accounts');
 const migratePaymentColumns = require('./add_payment_cols_all');
 const migrateDataPrevistaAtraso = require('./migrate-add-data-prevista-atraso');
 const migrateComprovanteUrl = require('./migrate-add-comprovante-url');
+const migrateTransferenciaComprovante = require('./migrate_add_comprovante_transferencias');
 
 loadErrorCatalog()
     .then(() => migrateFixAccounts())
     .then(() => migratePaymentColumns())
     .then(() => migrateDataPrevistaAtraso())
     .then(() => migrateComprovanteUrl())
+    .then(() => migrateTransferenciaComprovante())
     .then(() => {
         app.listen(PORT, '0.0.0.0', () => {
             console.log(`\n========================================`);

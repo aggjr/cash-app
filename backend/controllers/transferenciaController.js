@@ -227,8 +227,8 @@ exports.createTransferencia = async (req, res, next) => {
 
         const { dataFato, dataPrevista, dataReal, valor, descricao, sourceAccountId, destinationAccountId, projectId, comprovanteUrl, formaPagamento } = req.body;
 
-        if (!dataFato || !dataPrevista || !valor || !sourceAccountId || !destinationAccountId || !projectId) {
-            throw new AppError('VAL-002', 'Data Fato, Data Prevista, Valor, Contas e Projeto são obrigatórios');
+        if (!dataPrevista || !valor || !projectId) {
+            throw new AppError('VAL-002', 'Data Prevista, Valor e Projeto são obrigatórios');
         }
 
         if (sourceAccountId === destinationAccountId) {
@@ -239,24 +239,26 @@ exports.createTransferencia = async (req, res, next) => {
         const [result] = await connection.query(
             `INSERT INTO transferencias (data_fato, data_prevista, data_real, valor, descricao, source_account_id, destination_account_id, project_id, comprovante_url, forma_pagamento)
              VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
-            [dataFato, dataPrevista, dataReal || null, valor, descricao, sourceAccountId, destinationAccountId, projectId, comprovanteUrl || null, formaPagamento || null]
+            [dataFato || null, dataPrevista, dataReal || null, valor, descricao, sourceAccountId || null, destinationAccountId || null, projectId, comprovanteUrl || null, formaPagamento || null]
         );
 
         const newId = result.insertId;
         const valorDecimal = parseFloat(valor);
 
-        // Update Balances
-        // Source Account: Decrease
-        await connection.query(
-            'UPDATE contas SET current_balance = current_balance - ? WHERE id = ?',
-            [valorDecimal, sourceAccountId]
-        );
+        // Update Balances - Only if Realized
+        if (dataReal && sourceAccountId && destinationAccountId) {
+            // Source Account: Decrease
+            await connection.query(
+                'UPDATE contas SET current_balance = current_balance - ? WHERE id = ?',
+                [valorDecimal, sourceAccountId]
+            );
 
-        // Destination Account: Increase
-        await connection.query(
-            'UPDATE contas SET current_balance = current_balance + ? WHERE id = ?',
-            [valorDecimal, destinationAccountId]
-        );
+            // Destination Account: Increase
+            await connection.query(
+                'UPDATE contas SET current_balance = current_balance + ? WHERE id = ?',
+                [valorDecimal, destinationAccountId]
+            );
+        }
 
         await connection.commit();
 
@@ -308,8 +310,8 @@ exports.updateTransferencia = async (req, res, next) => {
         }
 
         // Handle Balance Updates
-        // 1. Revert Old (Source +, Dest -)
-        if (oldData.active) {
+        // 1. Revert Old (Source +, Dest -) - IF it was realized
+        if (oldData.active && oldData.data_real && oldData.source_account_id && oldData.destination_account_id) {
             await connection.query(
                 'UPDATE contas SET current_balance = current_balance + ? WHERE id = ?',
                 [oldData.valor, oldData.source_account_id]
@@ -320,9 +322,13 @@ exports.updateTransferencia = async (req, res, next) => {
             );
         }
 
-        // 2. Apply New (Source -, Dest +)
+        // 2. Apply New (Source -, Dest +) - IF it is realized
         const newActive = active !== undefined ? active : oldData.active;
-        if (newActive) {
+        const newDataReal = dataReal !== undefined ? dataReal : oldData.data_real;
+        const newSourceId = sourceAccountId !== undefined ? sourceAccountId : oldData.source_account_id;
+        const newDestId = destinationAccountId !== undefined ? destinationAccountId : oldData.destination_account_id;
+
+        if (newActive && newDataReal && newSourceId && newDestId) {
             const newValor = valor !== undefined ? parseFloat(valor) : parseFloat(oldData.valor);
             const newSourceId = sourceAccountId !== undefined ? sourceAccountId : oldData.source_account_id;
             const newDestId = destinationAccountId !== undefined ? destinationAccountId : oldData.destination_account_id;
@@ -368,8 +374,8 @@ exports.deleteTransferencia = async (req, res, next) => {
         // Soft delete
         await connection.query('UPDATE transferencias SET active = 0 WHERE id = ?', [id]);
 
-        // Revert Balances (Source +, Dest -)
-        if (transf[0].active) {
+        // Revert Balances (Source +, Dest -) - IF it was realized
+        if (transf[0].active && transf[0].data_real && transf[0].source_account_id && transf[0].destination_account_id) {
             await connection.query(
                 'UPDATE contas SET current_balance = current_balance + ? WHERE id = ?',
                 [transf[0].valor, transf[0].source_account_id]
