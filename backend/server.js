@@ -95,6 +95,7 @@ app.use((req, res) => {
 
 // Start server
 const migrateFixAccounts = require('./migrate-fix-accounts');
+const migratePaymentColumns = require('./add_payment_cols_all');
 const migrateDataPrevistaAtraso = require('./migrate-add-data-prevista-atraso');
 
 loadErrorCatalog()
