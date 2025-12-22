@@ -1,4 +1,5 @@
-import ExcelJS from 'exceljs';
+// import ExcelJS from '../assets/exceljs.min.js';
+const ExcelJS = window.ExcelJS;
 
 /**
  * Excel Exporter with Styling (ExcelJS)
