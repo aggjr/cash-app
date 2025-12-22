@@ -458,6 +458,13 @@ button {
     page-break-inside: avoid;
   }
 
+  /* Hide last 2 columns (Link and Ações) - not useful in print */
+  th:nth-last-child(-n+2),
+  td:nth-last-child(-n+2) {
+    display: none !important;
+  }
+
+
 
   /* Hide buttons and interactive elements */
   .tree-header button,
