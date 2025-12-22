@@ -1,6 +1,4 @@
-const mysql = require('mysql2/promise');
-const path = require('path');
-require('dotenv').config({ path: path.join(__dirname, '.env') });
+const db = require('./config/database');
 
 const tables = [
     'saidas',
@@ -11,38 +9,35 @@ const tables = [
     'entradas'
 ];
 
-async function addColumns() {
+async function migratePaymentColumns() {
     let connection;
     try {
-        console.log('Connecting to DB...');
-        connection = await mysql.createConnection({
-            host: process.env.DB_HOST || 'localhost',
-            user: process.env.DB_USER,
-            password: process.env.DB_PASSWORD,
-            database: process.env.DB_NAME || 'cash_db'
-        });
+        connection = await db.getConnection();
+        console.log('Running migration: Add Payment Columns...');
 
         for (const table of tables) {
-            console.log(`Checking table: ${table}`);
             try {
+                // Check if column exists is hard in pure SQL without query, but ADD COLUMN IF NOT EXISTS is MariaDB 10.2+
+                // We will try to add and catch duplicate error which is standard.
                 await connection.query(`ALTER TABLE ${table} ADD COLUMN forma_pagamento VARCHAR(50) DEFAULT NULL`);
                 console.log(`  -> Added forma_pagamento to ${table}`);
             } catch (err) {
                 if (err.code === 'ER_DUP_FIELDNAME') {
-                    console.log(`  -> Column already exists in ${table}`);
+                    // console.log(`  -> Column already exists in ${table}`); // Silent success
                 } else if (err.code === 'ER_NO_SUCH_TABLE') {
-                    console.log(`  -> Table ${table} does not exist`);
+                    console.warn(`  -> Table ${table} does not exist`);
                 } else {
                     console.error(`  -> Error in ${table}:`, err.message);
                 }
             }
         }
-        console.log('Done!');
+        console.log('Migration Add Payment Columns completed.');
     } catch (err) {
-        console.error('Fatal error:', err);
+        console.error('Migration Add Payment Columns failed:', err);
     } finally {
-        if (connection) connection.end();
+        if (connection) connection.release();
     }
 }
 
-addColumns();
+module.exports = migratePaymentColumns;
+

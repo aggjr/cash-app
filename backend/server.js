@@ -95,9 +95,11 @@ app.use((req, res) => {
 
 // Start server
 const migrateFixAccounts = require('./migrate-fix-accounts');
+const migratePaymentColumns = require('./add_payment_cols_all');
 
 loadErrorCatalog()
     .then(() => migrateFixAccounts())
+    .then(() => migratePaymentColumns())
     .then(() => {
         app.listen(PORT, '0.0.0.0', () => {
             console.log(`\n========================================`);
