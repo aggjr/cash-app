@@ -11,8 +11,8 @@ export const Sidebar = () => {
         { id: 'tipo-entrada', label: 'Tipo de Entrada', icon: '📥' },
         { id: 'tipo-saida', label: 'Tipo de Saída', icon: '💸' },
         { id: 'tipo-producao-revenda', label: 'Tipo Producao Revenda', icon: '🏭' },
-        { id: 'centros-custo', label: 'Centros Custo', icon: '🏢' },
-        { id: 'cnpj-tomador', label: 'Cnpj Tomador', icon: '📝' }
+        { id: 'centros-custo', label: 'Centros Custo', icon: '🏢', disabled: true },
+        { id: 'cnpj-tomador', label: 'Cnpj Tomador', icon: '📝', disabled: true }
       ]
     },
     {
@@ -65,12 +65,17 @@ export const Sidebar = () => {
     const hasChildren = item.children && item.children.length > 0;
     const paddingLeft = level * 1.5 + 1;
 
+    const isDisabled = item.disabled;
+    const style = isDisabled ? 'opacity: 0.5; cursor: not-allowed; pointer-events: none;' : '';
+    const title = isDisabled ? 'Em breve' : '';
+
     return `
       <div class="menu-item-wrapper" data-level="${level}">
-        <div class="menu-item" data-id="${item.id}" style="padding-left: ${paddingLeft}rem;">
+        <div class="menu-item ${isDisabled ? 'disabled' : ''}" data-id="${item.id}" style="padding-left: ${paddingLeft}rem; ${style}" title="${title}">
           ${hasChildren ? `<span class="expand-icon">▶</span>` : '<span class="expand-icon-placeholder"></span>'}
           <span class="menu-icon">${item.icon}</span>
           <span class="menu-label notranslate" translate="no">${item.label}</span>
+          ${isDisabled ? '<span class="status-badge" style="margin-left: auto; font-size: 0.6rem; background: #94a3b8; color: white; padding: 2px 6px; border-radius: 4px;">Em breve</span>' : ''}
         </div>
         ${hasChildren ? `
           <div class="submenu" data-parent="${item.id}" style="display: none;">

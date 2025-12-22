@@ -2,6 +2,7 @@ import { SaidaModal } from './SaidaModal.js';
 import { SharedTable } from './SharedTable.js';
 import { showToast } from '../utils/toast.js';
 import { getApiBaseUrl } from '../utils/apiConfig.js';
+import { ExcelExporter } from '../utils/ExcelExporter.js';
 
 export const SaidaManager = (project) => {
     const container = document.createElement('div');
@@ -416,8 +417,11 @@ export const SaidaManager = (project) => {
             </div>
         </div>
 
-        <div style="margin-bottom: 1rem;">
+        <div style="margin-bottom: 1rem; display: flex; gap: 0.5rem;">
             <button id="btn-new-saida" class="btn-primary">+ Nova Saída</button>
+            <div style="flex: 1;"></div>
+            <button id="btn-excel" class="btn-outline">📊 Excel</button>
+            <button id="btn-pdf" class="btn-outline">🖨️ PDF</button>
         </div>
 
         <div id="table-container" style="flex: 1; display: flex; flex-direction: column; overflow: hidden;">
@@ -431,6 +435,33 @@ export const SaidaManager = (project) => {
     `;
 
     container.querySelector('#btn-new-saida').addEventListener('click', createSaida);
+
+    // Export Handlers
+    container.querySelector('#btn-excel').onclick = () => {
+        if (!saidas || saidas.length === 0) {
+            showToast('Sem dados para exportar', 'warning');
+            return;
+        }
+
+        // Prepare data
+        const exportData = saidas.map(item => ({
+            ...item
+        }));
+
+        ExcelExporter.exportTable(
+            exportData,
+            columns.filter(c => c.key !== 'actions' && c.key !== 'link').map(c => ({
+                header: c.label,
+                key: c.key,
+                width: parseInt(c.width) / 7 || 15,
+                type: c.type
+            })),
+            'Relatório de Saídas',
+            'saidas'
+        );
+    };
+
+    container.querySelector('#btn-pdf').onclick = () => window.print();
 
     // Initialize SharedTable
     const tableContainer = container.querySelector('#table-container');

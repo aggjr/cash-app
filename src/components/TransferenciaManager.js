@@ -2,6 +2,7 @@ import { TransferenciaModal } from './TransferenciaModal.js';
 import { SharedTable } from './SharedTable.js';
 import { showToast } from '../utils/toast.js';
 import { getApiBaseUrl } from '../utils/apiConfig.js';
+import { ExcelExporter } from '../utils/ExcelExporter.js';
 
 export const TransferenciaManager = (project) => {
     const container = document.createElement('div');
@@ -385,8 +386,11 @@ export const TransferenciaManager = (project) => {
             </div>
         </div>
 
-        <div style="margin-bottom: 1rem;">
+        <div style="margin-bottom: 1rem; display: flex; gap: 0.5rem;">
             <button id="btn-new-transf" class="btn-primary">+ Nova Transferência</button>
+            <div style="flex: 1;"></div>
+            <button id="btn-excel" class="btn-outline">📊 Excel</button>
+            <button id="btn-pdf" class="btn-outline">🖨️ PDF</button>
         </div>
 
         <div id="table-container" style="flex: 1; display: flex; flex-direction: column; overflow: hidden;">
@@ -400,6 +404,32 @@ export const TransferenciaManager = (project) => {
     `;
 
     container.querySelector('#btn-new-transf').addEventListener('click', createTransferencia);
+
+    // Export Handlers
+    container.querySelector('#btn-excel').onclick = () => {
+        if (!transferencias || transferencias.length === 0) {
+            showToast('Sem dados para exportar', 'warning');
+            return;
+        }
+
+        const exportData = transferencias.map(item => ({
+            ...item
+        }));
+
+        ExcelExporter.exportTable(
+            exportData,
+            columns.filter(c => c.key !== 'actions' && c.key !== 'link').map(c => ({
+                header: c.label,
+                key: c.key,
+                width: parseInt(c.width) / 7 || 15,
+                type: c.type
+            })),
+            'Relatório de Transferências',
+            'transferencias'
+        );
+    };
+
+    container.querySelector('#btn-pdf').onclick = () => window.print();
 
     // Initialize SharedTable
     const tableContainer = container.querySelector('#table-container');

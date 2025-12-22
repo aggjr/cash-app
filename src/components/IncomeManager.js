@@ -2,6 +2,7 @@ import { IncomeModal } from './IncomeModal.js';
 import { SharedTable } from './SharedTable.js';
 import { showToast } from '../utils/toast.js';
 import { getApiBaseUrl } from '../utils/apiConfig.js';
+import { ExcelExporter } from '../utils/ExcelExporter.js';
 
 export const IncomeManager = (project) => {
     const container = document.createElement('div');
@@ -403,7 +404,6 @@ export const IncomeManager = (project) => {
         }
     };
 
-    // Initial Render of Container Structure
     container.innerHTML = `
         <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 2rem;">
             <h2>💰 Entrada</h2>
@@ -414,8 +414,11 @@ export const IncomeManager = (project) => {
             </div>
         </div>
 
-        <div style="margin-bottom: 1rem;">
+        <div style="margin-bottom: 1rem; display: flex; gap: 0.5rem;">
             <button id="btn-new-income" class="btn-primary">+ Nova Entrada</button>
+            <div style="flex: 1;"></div>
+            <button id="btn-excel" class="btn-outline">📊 Excel</button>
+            <button id="btn-pdf" class="btn-outline">🖨️ PDF</button>
         </div>
 
         <div id="table-container" style="flex: 1; display: flex; flex-direction: column; overflow: hidden;">
@@ -429,6 +432,34 @@ export const IncomeManager = (project) => {
     `;
 
     container.querySelector('#btn-new-income').addEventListener('click', createIncome);
+
+    // Export Handlers
+    container.querySelector('#btn-excel').onclick = () => {
+        if (!incomes || incomes.length === 0) {
+            showToast('Sem dados para exportar', 'warning');
+            return;
+        }
+
+        // Prepare data for export
+        const exportData = incomes.map(item => ({
+            ...item,
+            active: item.active ? 'Ativo' : 'Inativo'
+        }));
+
+        ExcelExporter.exportTable(
+            exportData,
+            columns.filter(c => c.key !== 'actions' && c.key !== 'link').map(c => ({
+                header: c.label,
+                key: c.key,
+                width: parseInt(c.width) / 7 || 15, // Approx px to char width
+                type: c.type
+            })),
+            'Relatório de Entradas',
+            'entradas'
+        );
+    };
+
+    container.querySelector('#btn-pdf').onclick = () => window.print();
 
     // Initialize SharedTable
     const tableContainer = container.querySelector('#table-container');

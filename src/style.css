@@ -353,29 +353,94 @@ button {
 
 /* Print Styles */
 @media print {
+  /* Global Print Reset */
   body * {
     visibility: hidden;
   }
 
+  /* Visibility Allowlist */
+  .glass-panel,
+  .glass-panel *,
+  .table-wrapper,
+  .table-wrapper *,
   #tree-manager,
   #tree-manager * {
     visibility: visible;
   }
 
-  #tree-manager {
+  /* Layout Overrides for Print */
+  body,
+  html,
+  #app,
+  .main-content {
+    background: white !important;
+    height: auto !important;
+    width: 100% !important;
+    overflow: visible !important;
+    margin: 0 !important;
+    padding: 0 !important;
+    position: static !important;
+  }
+
+  /* Hide Navigation & UI Chrome */
+  .sidebar,
+  .sidebar-toggle-btn,
+  #theme-toggle,
+  .pagination-controls,
+  #btn-new-income,
+  #btn-new-saida,
+  #btn-new-item,
+  #btn-excel,
+  #btn-pdf,
+  .filter-trigger,
+  .sort-controls,
+  .header-actions,
+  button {
+    display: none !important;
+  }
+
+  /* Container Reset */
+  .glass-panel {
     position: absolute;
     left: 0;
     top: 0;
-    width: 100%;
-    height: auto !important;
-    overflow: visible !important;
-    background: white !important;
-    color: black !important;
-    box-shadow: none !important;
-    border: none !important;
+    width: 100% !important;
     margin: 0 !important;
     padding: 0 !important;
+    border: none !important;
+    box-shadow: none !important;
+    height: auto !important;
   }
+
+  /* Table Specifics */
+  .table-wrapper {
+    overflow: visible !important;
+    display: block !important;
+    height: auto !important;
+    border: none !important;
+  }
+
+  table {
+    width: 100% !important;
+    font-size: 10pt !important;
+  }
+
+  th {
+    background-color: #f3f4f6 !important;
+    color: black !important;
+    border: 1px solid #ddd !important;
+  }
+
+  td {
+    border: 1px solid #ddd !important;
+    color: black !important;
+  }
+
+  /* Ensure rows don't break awkwardly */
+  tr {
+    page-break-inside: avoid;
+  }
+
 
   /* Hide buttons and interactive elements */
   .tree-header button,
