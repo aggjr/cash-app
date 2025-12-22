@@ -135,7 +135,7 @@ exports.listIncomes = async (req, res, next) => {
             FROM entradas e
             LEFT JOIN TypeHierarchy th ON e.tipo_entrada_id = th.id
             INNER JOIN empresas emp ON e.company_id = emp.id
-            INNER JOIN contas c ON e.account_id = c.id
+            LEFT JOIN contas c ON e.account_id = c.id
             ${whereSQL}`;
 
         const [countResult] = await db.query(countQuery, params);
@@ -162,7 +162,7 @@ exports.listIncomes = async (req, res, next) => {
              FROM entradas e
              LEFT JOIN TypeHierarchy th ON e.tipo_entrada_id = th.id
              INNER JOIN empresas emp ON e.company_id = emp.id
-             INNER JOIN contas c ON e.account_id = c.id
+             LEFT JOIN contas c ON e.account_id = c.id
              ${whereSQL}
              ORDER BY 
              ${getOrderByClause(req.query.sortBy, req.query.order)}
