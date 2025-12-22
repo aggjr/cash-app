@@ -1,6 +1,8 @@
 import GenericTreeApi from '../services/genericTreeApi.js';
 import { Dialogs } from './Dialogs.js';
 import { getApiBaseUrl } from '../utils/apiConfig.js';
+import { ExcelExporter } from '../utils/ExcelExporter.js';
+
 
 /**
  * Generic Tree Manager Factory
@@ -415,33 +417,7 @@ export const createTreeManager = (tableName, title, term = 'Categoria') => {
     };
 
     const exportToCSV = () => {
-        // Flatten tree for CSV
-        const rows = [['ID', 'Nome', 'ID Pai', 'Ativo']];
-
-        const processNode = (node) => {
-            rows.push([
-                node.id,
-                `"${node.label.replace(/"/g, '""')}"`, // Escape quotes
-                node.parent_id || '',
-                node.active ? 'Sim' : 'Não'
-            ]);
-            if (node.children) {
-                node.children.forEach(processNode);
-            }
-        };
-
-        treeData.forEach(processNode);
-
-        const csvContent = "data:text/csv;charset=utf-8,"
-            + rows.map(e => e.join(",")).join("\n");
-
-        const encodedUri = encodeURI(csvContent);
-        const link = document.createElement("a");
-        link.setAttribute("href", encodedUri);
-        link.setAttribute("download", `${tableName}_export.csv`);
-        document.body.appendChild(link);
-        link.click();
-        document.body.removeChild(link);
+        ExcelExporter.exportTree(treeData, title, `${tableName}_export`);
     };
 
     const renderTree = () => {
