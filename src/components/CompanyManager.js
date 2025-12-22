@@ -1,6 +1,7 @@
 import { CompanyModal } from './CompanyModal.js';
 import { Dialogs } from './Dialogs.js';
 import { getApiBaseUrl } from '../utils/apiConfig.js';
+import { ExcelExporter } from '../utils/ExcelExporter.js';
 
 export const CompanyManager = (project) => {
     const container = document.createElement('div');
@@ -184,14 +185,35 @@ export const CompanyManager = (project) => {
         }
     };
 
+    const exportToExcel = async (companies) => {
+        const columns = [
+            { header: 'Nome', key: 'name', width: 30 },
+            { header: 'CNPJ', key: 'cnpj_formatted', width: 20 },
+            { header: 'Descrição', key: 'description', width: 40 },
+            { header: 'Status', key: 'active', width: 15, type: 'center' },
+            { header: 'Criado em', key: 'created_at_formatted', width: 15, type: 'center' }
+        ];
+
+        // Prepare data for export
+        const exportData = companies.map(c => ({
+            ...c,
+            cnpj_formatted: formatCNPJ(c.cnpj),
+            created_at_formatted: formatDate(c.created_at)
+        }));
+
+        await ExcelExporter.exportTable(exportData, columns, 'Empresas', 'empresas_export');
+    };
+
     const renderCompanies = (companies) => {
         container.innerHTML = `
             <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 2rem;">
                 <h2>🏢 Empresas</h2>
                 <div style="display: flex; gap: 0.5rem;">
-                     <a href="#" style="font-size: 0.9rem; color: var(--color-primary);">Lar</a>
+                     <!-- <a href="#" style="font-size: 0.9rem; color: var(--color-primary);">Lar</a>
                      <span style="color: var(--color-text-muted);">/</span>
-                     <span style="font-size: 0.9rem; color: var(--color-text-muted);">Empresas</span>
+                     <span style="font-size: 0.9rem; color: var(--color-text-muted);">Empresas</span> -->
+                     <button id="btn-print-pdf" class="btn-secondary" title="Imprimir / Salvar PDF" style="margin-right: 0.5rem;">🖨️ PDF</button>
+                     <button id="btn-export-excel" class="btn-secondary" title="Exportar Excel">📊 Excel</button>
                 </div>
             </div>
 
@@ -265,6 +287,8 @@ export const CompanyManager = (project) => {
         `;
 
         container.querySelector('#btn-new-company').addEventListener('click', createCompany);
+        container.querySelector('#btn-print-pdf').addEventListener('click', () => window.print());
+        container.querySelector('#btn-export-excel').addEventListener('click', () => exportToExcel(companies));
 
         container.querySelectorAll('.btn-edit').forEach(btn => {
             btn.addEventListener('click', () => {

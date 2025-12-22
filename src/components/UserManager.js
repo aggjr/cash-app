@@ -1,6 +1,7 @@
 import { UserModal } from './UserModal.js';
 import { Dialogs } from './Dialogs.js';
 import { getApiBaseUrl } from '../utils/apiConfig.js';
+import { ExcelExporter } from '../utils/ExcelExporter.js';
 
 export const UserManager = (project) => {
     const API_BASE_URL = getApiBaseUrl();
@@ -117,6 +118,27 @@ export const UserManager = (project) => {
         }
     };
 
+    const exportToExcel = async (users) => {
+        const columns = [
+            { header: 'Nome', key: 'name', width: 30 },
+            { header: 'E-mail', key: 'email', width: 30 },
+            { header: 'Função', key: 'role_display', width: 15, type: 'center' },
+            { header: 'Status', key: 'status_display', width: 15, type: 'center' },
+            { header: 'Convidado em', key: 'invited_at_formatted', width: 15, type: 'center' },
+            { header: 'Convidado por', key: 'invited_by_name', width: 25 }
+        ];
+
+        // Prepare data
+        const exportData = users.map(u => ({
+            ...u,
+            role_display: u.role === 'master' ? 'Master' : 'Usuário',
+            status_display: u.status === 'active' ? 'Ativo' : (u.status === 'pending' ? 'Pendente' : 'Inativo'),
+            invited_at_formatted: formatDate(u.invited_at)
+        }));
+
+        await ExcelExporter.exportTable(exportData, columns, 'Usuários', 'usuarios_export');
+    };
+
     const renderUsers = (users) => {
         const currentUser = JSON.parse(localStorage.getItem('user'));
         const isMaster = users.find(u => u.id === currentUser.id)?.role === 'master';
@@ -125,9 +147,11 @@ export const UserManager = (project) => {
             <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 2rem;">
                 <h2>👥 Usuários do Projeto</h2>
                 <div style="display: flex; gap: 0.5rem;">
-                     <a href="#" style="font-size: 0.9rem; color: var(--color-primary);">Lar</a>
+                     <!-- <a href="#" style="font-size: 0.9rem; color: var(--color-primary);">Lar</a>
                      <span style="color: var(--color-text-muted);">/</span>
-                     <span style="font-size: 0.9rem; color: var(--color-text-muted);">Usuários</span>
+                     <span style="font-size: 0.9rem; color: var(--color-text-muted);">Usuários</span> -->
+                     <button id="btn-print-pdf" class="btn-secondary" title="Imprimir / Salvar PDF" style="margin-right: 0.5rem;">🖨️ PDF</button>
+                     <button id="btn-export-excel" class="btn-secondary" title="Exportar Excel">📊 Excel</button>
                 </div>
             </div>
 
@@ -223,6 +247,9 @@ export const UserManager = (project) => {
                 });
             });
         }
+
+        container.querySelector('#btn-print-pdf').addEventListener('click', () => window.print());
+        container.querySelector('#btn-export-excel').addEventListener('click', () => exportToExcel(users));
     };
 
     loadUsers();

@@ -1,6 +1,7 @@
 import { AccountModal } from './AccountModal.js';
 import { showToast } from '../utils/toast.js';
 import { getApiBaseUrl } from '../utils/apiConfig.js';
+import { ExcelExporter } from '../utils/ExcelExporter.js';
 
 export const AccountManager = (project) => {
     const container = document.createElement('div');
@@ -172,6 +173,34 @@ export const AccountManager = (project) => {
         }
     };
 
+    const exportToExcel = async (accounts, companies) => {
+        const columns = [
+            { header: 'Nome', key: 'name', width: 30 },
+            { header: 'Tipo', key: 'type_display', width: 20 },
+            { header: 'Descrição', key: 'description', width: 30 },
+            { header: 'Saldo', key: 'balance_formatted', width: 20, type: 'currency' },
+            { header: 'Empresa', key: 'company_name', width: 30 },
+            { header: 'Status', key: 'active', width: 15, type: 'center' },
+            { header: 'Criado em', key: 'created_at_formatted', width: 15, type: 'center' }
+        ];
+
+        // Prepare data
+        const exportData = accounts.map(a => {
+            const company = companies.find(c => c.id === a.company_id);
+            const typeInfo = accountTypeInfo[a.account_type] || accountTypeInfo['outros'];
+
+            return {
+                ...a,
+                type_display: typeInfo.label,
+                balance_formatted: formatCurrency(a.current_balance),
+                company_name: company ? company.name : '-',
+                created_at_formatted: formatDate(a.created_at)
+            };
+        });
+
+        await ExcelExporter.exportTable(exportData, columns, 'Contas', 'contas_export');
+    };
+
     const renderAccounts = (accounts, companies = []) => {
         const hasCompanies = companies && companies.length > 0;
 
@@ -179,9 +208,11 @@ export const AccountManager = (project) => {
             <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 2rem;">
                 <h2>💰 Contas</h2>
                 <div style="display: flex; gap: 0.5rem;">
-                     <a href="#" style="font-size: 0.9rem; color: var(--color-primary);">Lar</a>
+                     <!-- <a href="#" style="font-size: 0.9rem; color: var(--color-primary);">Lar</a>
                      <span style="color: var(--color-text-muted);">/</span>
-                     <span style="font-size: 0.9rem; color: var(--color-text-muted);">Contas</span>
+                     <span style="font-size: 0.9rem; color: var(--color-text-muted);">Contas</span> -->
+                     <button id="btn-print-pdf" class="btn-secondary" title="Imprimir / Salvar PDF" style="margin-right: 0.5rem;">🖨️ PDF</button>
+                     <button id="btn-export-excel" class="btn-secondary" title="Exportar Excel">📊 Excel</button>
                 </div>
             </div>
 
@@ -261,6 +292,8 @@ export const AccountManager = (project) => {
         `;
 
         container.querySelector('#btn-new-account').addEventListener('click', createAccount);
+        container.querySelector('#btn-print-pdf').addEventListener('click', () => window.print());
+        container.querySelector('#btn-export-excel').addEventListener('click', () => exportToExcel(accounts, companies));
 
         container.querySelectorAll('.btn-edit').forEach(btn => {
             btn.addEventListener('click', () => {
