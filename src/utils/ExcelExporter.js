@@ -248,9 +248,9 @@ export const ExcelExporter = {
                     cell.numFmt = 'dd/mm/yyyy';
                     cell.alignment = { vertical: 'middle', horizontal: 'center' };
                 } else if (columnDef.type === 'currency') {
-                    // Brazilian Accounting format (Contábil): R$ symbol left-aligned, values right-aligned with comma decimal separator
-                    // Format: _ "R$" * #.##0,00_ ;_ "R$" * -#.##0,00_ ;_ "R$" * "-"??_ ;_ @_
-                    cell.numFmt = '_ "R$" * #,##0.00_ ;_ "R$" * -#,##0.00_ ;_ "R$" * "-"??_ ;_ @_';
+                    // Brazilian Accounting format (Contábil) - Custom format tested and working
+                    // Pattern: _-R$ * #.##0,00_-;-R$ * #.##0,00_-;_-R$ * "-"??_-;_-@_-
+                    cell.numFmt = '_-R$ * #.##0,00_-;-R$ * #.##0,00_-;_-R$ * "-"??_-;_-@_-';
                     cell.alignment = { vertical: 'middle', horizontal: 'right' };
                 } else if (columnDef.key === 'active' || columnDef.type === 'center') {
                     cell.alignment = { vertical: 'middle', horizontal: 'center' };
