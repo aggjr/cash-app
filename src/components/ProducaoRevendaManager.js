@@ -495,7 +495,7 @@ export const ProducaoRevendaManager = (project) => {
             await ExcelExporter.exportTable(
                 exportData,
                 filteredColumns,
-                'Relatório de Produção/Revenda',
+                'Relatório de Produção e Revenda',
                 'producao_revenda'
             );
 
