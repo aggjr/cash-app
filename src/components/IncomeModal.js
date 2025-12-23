@@ -143,7 +143,14 @@ export const IncomeModal = {
                                     <option value="trimestral">Trimestral</option>
                                     <option value="semestral">Semestral</option>
                                     <option value="anual">Anual</option>
+                                    <option value="personalizado">Personalizado</option>
                                 </select>
+                            </div>
+
+                            <div class="form-group" id="custom-days-group" style="grid-column: span 1; display: none;">
+                                <label for="income-custom-days">Dias</label>
+                                <input type="number" id="income-custom-days" class="form-input" 
+                                    min="1" max="365" value="10" placeholder="Ex: 10" />
                             </div>
 
                             <!-- Row 4: Boleto/Cobrança (Span 3), Comprovante (Span 3) -->
@@ -260,6 +267,8 @@ export const IncomeModal = {
                 const installmentIntervalSelect = modal.querySelector('#income-installment-interval');
                 const installmentCountGroup = modal.querySelector('#installment-count-group');
                 const installmentIntervalGroup = modal.querySelector('#installment-interval-group');
+                const customDaysInput = modal.querySelector('#income-custom-days');
+                const customDaysGroup = modal.querySelector('#custom-days-group');
                 const comprovanteInput = modal.querySelector('#income-comprovante');
                 const comprovanteUrlInput = modal.querySelector('#income-comprovante-url');
                 const comprovantePreview = modal.querySelector('#comprovante-preview');
@@ -365,9 +374,14 @@ export const IncomeModal = {
                     installmentCountGroup.style.display = showFields ? 'block' : 'none';
                     installmentIntervalGroup.style.display = showFields ? 'block' : 'none';
 
+                    // Show custom days field only when interval is 'personalizado'
+                    const showCustomDays = showFields && installmentIntervalSelect.value === 'personalizado';
+                    customDaysGroup.style.display = showCustomDays ? 'block' : 'none';
+
                     if (!showFields) {
                         installmentCountInput.value = 2;
                         installmentIntervalSelect.value = 'mensal';
+                        customDaysInput.value = 10;
                     }
                 };
 
@@ -381,7 +395,13 @@ export const IncomeModal = {
                 });
 
                 installmentCountInput.addEventListener('change', markAsDirty);
-                installmentIntervalSelect.addEventListener('change', markAsDirty);
+
+                installmentIntervalSelect.addEventListener('change', () => {
+                    toggleInstallmentFields(); // Re-toggle to show/hide custom days
+                    markAsDirty();
+                });
+
+                customDaysInput.addEventListener('change', markAsDirty);
 
                 setTimeout(() => { dataFatoInput.focus(); }, 100);
 
@@ -769,7 +789,8 @@ export const IncomeModal = {
                             // Installment data
                             installmentType: installmentTypeSelect.value,
                             installmentCount: installmentTypeSelect.value === 'total' ? 1 : parseInt(installmentCountInput.value),
-                            installmentInterval: installmentTypeSelect.value === 'total' ? null : installmentIntervalSelect.value
+                            installmentInterval: installmentTypeSelect.value === 'total' ? null : installmentIntervalSelect.value,
+                            customDays: installmentIntervalSelect.value === 'personalizado' ? parseInt(customDaysInput.value) : null
                         };
                         if (isEdit) {
                             data.id = income.id;

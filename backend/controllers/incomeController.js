@@ -213,7 +213,7 @@ const calculateInstallments = (totalValue, count, type) => {
     return [totalValue];
 };
 
-const calculateDates = (baseDate, count, interval) => {
+const calculateDates = (baseDate, count, interval, customDays = null) => {
     const dates = [baseDate];
 
     for (let i = 1; i < count; i++) {
@@ -244,6 +244,10 @@ const calculateDates = (baseDate, count, interval) => {
             case 'anual':
                 nextDate = new Date(prevDate);
                 nextDate.setFullYear(prevDate.getFullYear() + 1);
+                break;
+            case 'personalizado':
+                nextDate = new Date(prevDate);
+                nextDate.setDate(prevDate.getDate() + (customDays || 1));
                 break;
             default:
                 nextDate = prevDate;
@@ -277,7 +281,8 @@ exports.createIncome = async (req, res, next) => {
             comprovanteUrl,
             installmentType,
             installmentCount,
-            installmentInterval
+            installmentInterval,
+            customDays
         } = req.body;
 
         // Validations
@@ -301,16 +306,17 @@ exports.createIncome = async (req, res, next) => {
         const type = installmentType || 'total';
         const count = (type === 'total') ? 1 : (parseInt(installmentCount) || 1);
         const interval = installmentInterval || 'mensal';
+        const days = customDays ? parseInt(customDays) : null;
 
         // Calculate installments and dates
         const installmentValues = calculateInstallments(valorDecimal, count, type);
-        const installmentDates = calculateDates(dataPrevistaRecebimento, count, interval);
+        const installmentDates = calculateDates(dataPrevistaRecebimento, count, interval, days);
 
         // Calculate fact dates based on type
         let factDates;
         if (type === 'replicar') {
             // For REPLICAR: data_fato increments with each interval (recorrente)
-            factDates = calculateDates(dataFato, count, interval);
+            factDates = calculateDates(dataFato, count, interval, days);
         } else {
             // For DIVIDIR or TOTAL: data_fato stays the same for all installments (parcelamento)
             factDates = Array(count).fill(dataFato);
