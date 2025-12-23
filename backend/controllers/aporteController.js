@@ -16,10 +16,96 @@ const getOrderByClause = (sortBy, order) => {
 
 exports.listAportes = async (req, res, next) => {
     try {
-        const { projectId, page = 1, limit = 50, search, startDate, endDate, minValue, maxValue, sortBy, order } = req.query;
+        const { projectId, page = 1, limit = 50, search, sortBy, order } = req.query;
 
-        // ... (lines 8-90 omitted) ...
+        if (!projectId) {
+            throw new AppError('VAL-002', 'Project ID is required');
+        }
 
+        const offset = (page - 1) * limit;
+        const params = [];
+        let whereClauses = ['a.project_id = ?', 'a.active = 1'];
+        params.push(projectId);
+
+        // Date Filters
+        const addDateFilter = (field, startParam, endParam) => {
+            if (req.query[startParam]) {
+                whereClauses.push(`a.${field} >= ?`);
+                params.push(req.query[startParam]);
+            }
+            if (req.query[endParam]) {
+                whereClauses.push(`a.${field} <= ?`);
+                params.push(`${req.query[endParam]} 23:59:59`);
+            }
+        };
+
+        const addDateListFilter = (field, listParam) => {
+            if (req.query[listParam]) {
+                const dates = Array.isArray(req.query[listParam]) ? req.query[listParam] : [req.query[listParam]];
+                if (dates.length > 0) {
+                    whereClauses.push(`DATE(a.${field}) IN (?)`);
+                    params.push(dates);
+                }
+            }
+        };
+
+        addDateFilter('data_fato', 'data_fatoStart', 'data_fatoEnd');
+        addDateListFilter('data_fato', 'data_fatoList');
+        addDateFilter('data_real', 'data_realStart', 'data_realEnd');
+        addDateListFilter('data_real', 'data_realList');
+
+        // Value Filters
+        if (req.query.minValue) {
+            whereClauses.push('a.valor >= ?');
+            params.push(req.query.minValue);
+        }
+        if (req.query.maxValue) {
+            whereClauses.push('a.valor <= ?');
+            params.push(req.query.maxValue);
+        }
+
+        // Text Search
+        if (search) {
+            whereClauses.push('(a.descricao LIKE ? OR emp.name LIKE ? OR c.name LIKE ?)');
+            const searchParam = `%${search}%`;
+            params.push(searchParam, searchParam, searchParam);
+        }
+
+        // Specific Text Filters
+        if (req.query.description) {
+            whereClauses.push('a.descricao LIKE ?');
+            params.push(`%${req.query.description}%`);
+        }
+        if (req.query.account) {
+            whereClauses.push('c.name LIKE ?');
+            params.push(`%${req.query.account}%`);
+        }
+        if (req.query.company) {
+            whereClauses.push('emp.name LIKE ?');
+            params.push(`%${req.query.company}%`);
+        }
+
+        // Attachment Filter
+        if (req.query.hasAttachment === '1') {
+            whereClauses.push('a.comprovante_url IS NOT NULL AND a.comprovante_url != ""');
+        } else if (req.query.hasAttachment === '0') {
+            whereClauses.push('(a.comprovante_url IS NULL OR a.comprovante_url = "")');
+        }
+
+        const whereSQL = whereClauses.length > 0 ? 'WHERE ' + whereClauses.join(' AND ') : '';
+
+        // Count Total
+        const countQuery = `
+            SELECT COUNT(*) as total
+            FROM aportes a
+            INNER JOIN empresas emp ON a.company_id = emp.id
+            LEFT JOIN contas c ON a.account_id = c.id
+            ${whereSQL}`;
+
+        const [countResult] = await db.query(countQuery, params);
+        const totalItems = countResult[0].total;
+
+        // Fetch Data
         const dataQuery = `
              SELECT 
                 a.*,
