@@ -154,6 +154,9 @@ export const IncomeModal = {
                                     min="1" max="365" value="10" placeholder="Ex: 10" />
                             </div>
 
+                            <!-- Spacer to fill remaining columns when installments are visible -->
+                            <div id="installment-spacer" style="grid-column: span 2; display: none;"></div>
+
                             <!-- Row 4: Boleto/Cobrança (4), Comprovante (4) = 8 cols -->
                             <div class="form-group" style="grid-column: span 4;">
                                 <label for="income-boleto">Boleto/Cobrança</label>
