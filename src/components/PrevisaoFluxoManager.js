@@ -396,6 +396,26 @@ export const PrevisaoFluxoManager = (project) => {
                     // Add data
                     flattenNodes(forecastData.data);
 
+                    // Add final balance row
+                    const finalRow = { 'Categoria': 'Saldo Final' };
+                    let finalBalance = forecastData.initialBalance || 0;
+                    days.forEach(d => {
+                        const data = forecastData.data || [];
+                        const aportesRoot = data.find(n => n.id === 'aportes_root');
+                        const retiradasRoot = data.find(n => n.id === 'retiradas_root');
+                        const entradasRoot = data.find(n => n.id === 'entradas_root');
+                        const saidasRoot = data.find(n => n.id === 'saidas_root');
+                        const producaoRoot = data.find(n => n.id === 'producao_root');
+                        const inVal = (entradasRoot?.dailyTotals[d] || 0) + (aportesRoot?.dailyTotals[d] || 0);
+                        const outVal = (saidasRoot?.dailyTotals[d] || 0) + (producaoRoot?.dailyTotals[d] || 0) + (retiradasRoot?.dailyTotals[d] || 0);
+                        finalBalance = finalBalance + inVal - outVal;
+
+                        const [y, m, day] = d.split('-');
+                        const label = `${day}/${m}`;
+                        finalRow[label] = finalBalance;
+                    });
+                    exportData.push(finalRow);
+
                     // Define columns
                     const columns = [
                         { header: 'Categoria', key: 'Categoria', width: 40, type: 'text' }
