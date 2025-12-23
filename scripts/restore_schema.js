@@ -12,10 +12,10 @@
  *   node restore_schema.js database/backups/schema_latest.sql
  */
 
-require('dotenv').config();
+const path = require('path');
+require('dotenv').config({ path: path.join(__dirname, '..', 'backend', '.env') });
 const mysql = require('mysql2/promise');
 const fs = require('fs').promises;
-const path = require('path');
 
 async function getConnection() {
     return await mysql.createConnection({

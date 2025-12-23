@@ -16,10 +16,10 @@
  *   database/backups/schema_backup_YYYY-MM-DD_HH-MM-SS.sql
  */
 
-require('dotenv').config();
+const path = require('path');
+require('dotenv').config({ path: path.join(__dirname, '..', 'backend', '.env') });
 const mysql = require('mysql2/promise');
 const fs = require('fs').promises;
-const path = require('path');
 
 const BACKUP_DIR = path.join(__dirname, '..', 'database', 'backups');
 
