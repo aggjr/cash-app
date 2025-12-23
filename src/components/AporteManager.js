@@ -123,6 +123,10 @@ export const AporteManager = (project) => {
 
     const loadAportes = async (page = 1) => {
         try {
+            console.log('=== LOAD APORTES DEBUG START ===');
+            console.log('Step 1: Starting loadAportes, page:', page);
+            console.log('Step 2: Project ID:', project.id);
+
             container.querySelector('#table-container')?.classList.add('loading');
 
             const params = new URLSearchParams({
@@ -228,10 +232,25 @@ export const AporteManager = (project) => {
             console.log('Generated Params:', params.toString());
             console.groupEnd();
 
-            const response = await fetch(`${API_BASE_URL}/aportes?${params.toString()}`, {
+            console.log('Step 3: Calling API...');
+            const url = `${API_BASE_URL}/aportes?${params.toString()}`;
+            console.log('Step 4: URL:', url);
+
+            const response = await fetch(url, {
                 headers: getHeaders()
             });
+
+            console.log('Step 5: Response status:', response.status);
+
+            if (!response.ok) {
+                const errorText = await response.text();
+                console.error('Step 6 ERROR: Response not ok');
+                console.error('Error response:', errorText);
+                throw new Error(`HTTP ${response.status}: ${errorText}`);
+            }
+
             const result = await response.json();
+            console.log('Step 7: Result received:', result);
 
             if (result.meta) {
                 aportes = result.data;
@@ -241,10 +260,19 @@ export const AporteManager = (project) => {
                 pagination = { page: 1, limit: aportes.length, total: aportes.length, pages: 1 };
             }
 
+            console.log('Step 8: Aportes count:', aportes.length);
+            console.log('Step 9: Pagination:', pagination);
+
             renderAportes();
             renderPagination();
+
+            console.log('Step 10: SUCCESS - Render complete');
+            console.log('=== LOAD APORTES DEBUG END ===');
         } catch (error) {
-            console.error('Error loading aportes:', error);
+            console.error('=== LOAD APORTES ERROR ===');
+            console.error('Error:', error);
+            console.error('Message:', error.message);
+            console.error('Stack:', error.stack);
             showToast('Erro ao carregar aportes', 'error');
         } finally {
             container.querySelector('#table-container')?.classList.remove('loading');
