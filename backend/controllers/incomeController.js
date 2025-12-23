@@ -593,3 +593,61 @@ exports.deleteIncome = async (req, res, next) => {
     }
 };
 
+exports.getDistinctValues = async (req, res, next) => {
+    try {
+        const { projectId, field } = req.query;
+
+        if (!projectId || !field) {
+            return res.status(400).json({ error: 'Missing projectId or field parameter' });
+        }
+
+        let query = '';
+        let params = [projectId];
+
+        if (field === 'tipo_name') {
+            query = `
+             WITH RECURSIVE TypeHierarchy AS (
+                SELECT id, label, parent_id, CAST(label AS CHAR(255)) as full_path
+                FROM tipo_entrada
+                WHERE parent_id IS NULL AND project_id = ?
+                UNION ALL
+                SELECT t.id, t.label, t.parent_id, CONCAT(th.full_path, ' / ', t.label)
+                FROM tipo_entrada t
+                INNER JOIN TypeHierarchy th ON t.parent_id = th.id
+             )
+             SELECT DISTINCT th.full_path as val
+             FROM entradas e
+             JOIN TypeHierarchy th ON e.tipo_entrada_id = th.id
+             WHERE e.project_id = ? AND e.active = 1
+             ORDER BY val`;
+            params = [projectId, projectId];
+        }
+        else if (field === 'company_name') {
+            query = `SELECT DISTINCT emp.name as val FROM entradas e JOIN empresas emp ON e.company_id = emp.id WHERE e.project_id = ? AND e.active = 1 ORDER BY val`;
+        }
+        else if (field === 'account_name') {
+            query = `SELECT DISTINCT c.name as val FROM entradas e JOIN contas c ON e.account_id = c.id WHERE e.project_id = ? AND e.active = 1 ORDER BY val`;
+        }
+        else {
+            const map = {
+                'descricao': 'descricao',
+                'data_prevista_recebimento': 'data_prevista_recebimento',
+                'data_fato': 'data_fato',
+                'valor': 'valor'
+            };
+            const dbCol = map[field];
+
+            if (dbCol) {
+                query = `SELECT DISTINCT ${dbCol} as val FROM entradas e WHERE e.project_id = ? AND e.active = 1 ORDER BY val DESC`;
+            } else {
+                return res.json([]);
+            }
+        }
+
+        const [rows] = await db.query(query, params);
+        res.json(rows.map(r => r.val).filter(v => v !== null && v !== ''));
+
+    } catch (error) {
+        next(error);
+    }
+};
