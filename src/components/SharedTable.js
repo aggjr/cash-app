@@ -211,7 +211,7 @@ export class SharedTable {
 
             const content = col.noFilter
                 ? col.label
-                : `<div style="${containerStyle}">
+                : `<div class="header-sort-trigger" data-key="${col.key}" style="${containerStyle} cursor: pointer;" title="Clique para ordenar">
                      ${spacer}
                      <span style="${spanStyle}">${col.label}</span>
                      <div style="display: flex; flex-direction: column; align-items: center; margin-left: 0; width: 14px; flex-shrink: 0;">
@@ -232,6 +232,33 @@ export class SharedTable {
     }
 
     attachHeaderEvents(headerRow) {
+        headerRow.querySelectorAll('.header-sort-trigger').forEach(trigger => {
+            trigger.onclick = (e) => {
+                // Ignore if clicked on filter trigger or specific sort btn (handled separately)
+                // Actually sort-btns are inside, so event bubbling hits this. 
+                // We must ensure we don't double-trigger if sort-btn is clicked.
+                // But sort-btn stops propagation? Yes. Line 244.
+                // Filter stops propagation? Yes. Line 237.
+                // So this only fires for Label/Background.
+
+                const key = trigger.dataset.key;
+                const col = this.columns.find(c => c.key === key);
+                if (!col) return;
+
+                let dir = 'asc';
+                if (this.sortConfig.key === key) {
+                    // Toggle
+                    dir = this.sortConfig.direction === 'asc' ? 'desc' : 'asc';
+                } else {
+                    // Default for new column - Smart Defaults
+                    if (col.type === 'date' || col.type === 'datetime') dir = 'desc';
+                }
+
+                this.sortConfig = { key, direction: dir };
+                if (this.onSortChange) this.onSortChange(this.sortConfig);
+            };
+        });
+
         headerRow.querySelectorAll('.filter-trigger').forEach(trigger => {
             trigger.onclick = (e) => {
                 e.stopPropagation();
@@ -241,13 +268,10 @@ export class SharedTable {
 
         headerRow.querySelectorAll('.sort-btn').forEach(btn => {
             btn.onclick = (e) => {
-                e.stopPropagation();
+                e.stopPropagation(); // Prevents triggering header-sort-trigger
                 const key = btn.dataset.key;
                 const dir = btn.dataset.dir;
-                // Enforce Logic: Always set to clicked direction
-                // Do not toggle off to null, as it causes confusion with default backend sort
                 this.sortConfig = { key, direction: dir };
-
                 if (this.onSortChange) this.onSortChange(this.sortConfig);
             };
         });

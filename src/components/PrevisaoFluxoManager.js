@@ -115,7 +115,7 @@ export const PrevisaoFluxoManager = (project) => {
                         <th style="padding: 1rem; text-align: left; border-bottom: 2px solid #e5e7eb; min-width: 300px; position: sticky; left: 0; z-index: 21; background-color: #00425F;">TRANSAÇÕES</th>
                         ${days.map(d => {
             const [y, m, day] = d.split('-');
-            return `<th style="padding: 1rem; text-align: right; border-bottom: 2px solid #e5e7eb; min-width: 120px;">${day}/${m}</th>`;
+            return `<th style="padding: 1rem; text-align: center; border-bottom: 2px solid #e5e7eb; min-width: 120px;">${day}/${m}</th>`;
         }).join('')}
                     </tr>
                 </thead>
