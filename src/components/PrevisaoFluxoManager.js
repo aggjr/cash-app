@@ -416,6 +416,22 @@ export const PrevisaoFluxoManager = (project) => {
                     });
                     exportData.push(finalRow);
 
+                    // Add relative days row
+                    const relativeDaysRow = { 'Categoria': 'Dias Relativos' };
+                    const todayDate = new Date();
+                    todayDate.setHours(0, 0, 0, 0);
+
+                    days.forEach(d => {
+                        const cellDate = new Date(d + 'T00:00:00');
+                        const diffTime = cellDate - todayDate;
+                        const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
+
+                        const [y, m, day] = d.split('-');
+                        const label = `${day}/${m}`;
+                        relativeDaysRow[label] = diffDays;
+                    });
+                    exportData.push(relativeDaysRow);
+
                     // Define columns
                     const columns = [
                         { header: 'Categoria', key: 'Categoria', width: 40, type: 'text' }
