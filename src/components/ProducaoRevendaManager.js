@@ -438,26 +438,44 @@ export const ProducaoRevendaManager = (project) => {
 
     // Export Handlers
     container.querySelector('#btn-excel').onclick = () => {
-        if (!items || items.length === 0) {
-            showToast('Sem dados para exportar', 'warning');
-            return;
-        }
+        try {
+            console.log('Excel export clicked');
+            console.log('Items:', items);
+            console.log('Items length:', items?.length);
 
-        const exportData = items.map(item => ({
-            ...item
-        }));
+            if (!items || items.length === 0) {
+                showToast('Sem dados para exportar', 'warning');
+                return;
+            }
 
-        ExcelExporter.exportTable(
-            exportData,
-            columns.filter(c => c.key !== 'actions' && c.key !== 'link').map(c => ({
+            const exportData = items.map(item => ({
+                ...item
+            }));
+
+            console.log('Export data prepared:', exportData.length, 'items');
+
+            const filteredColumns = columns.filter(c => c.key !== 'actions' && c.key !== 'link').map(c => ({
                 header: c.label,
                 key: c.key,
                 width: parseInt(c.width) / 7 || 15,
                 type: c.type
-            })),
-            'Relatório de Produção/Revenda',
-            'producao_revenda'
-        );
+            }));
+
+            console.log('Columns for export:', filteredColumns);
+            console.log('Calling ExcelExporter.exportTable...');
+
+            ExcelExporter.exportTable(
+                exportData,
+                filteredColumns,
+                'Relatório de Produção/Revenda',
+                'producao_revenda'
+            );
+
+            console.log('ExcelExporter.exportTable completed');
+        } catch (error) {
+            console.error('Error during Excel export:', error);
+            showToast(`Erro ao exportar: ${error.message}`, 'error');
+        }
     };
 
     container.querySelector('#btn-pdf').onclick = () => window.print();
