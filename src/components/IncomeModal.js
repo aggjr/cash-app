@@ -95,8 +95,8 @@ export const IncomeModal = {
                                     value="${formatDateForInput(income?.data_real_recebimento)}" />
                             </div>
 
-                            <!-- Row 2: Empresa (4), Conta (4) = 8 cols -->
-                            <div class="form-group" style="grid-column: span 4;">
+                            <!-- Row 2: Empresa (2), Conta (2), Valor (2), Tipo (2) = 8 cols -->
+                            <div class="form-group" style="grid-column: span 2;">
                                 <label for="income-company">Empresa <span class="required">*</span></label>
                                 <select id="income-company" class="form-input" required>
                                     <option value="">Selecione...</option>
@@ -106,14 +106,13 @@ export const IncomeModal = {
                                 </select>
                             </div>
 
-                            <div class="form-group" style="grid-column: span 4;">
+                            <div class="form-group" style="grid-column: span 2;">
                                 <label for="income-account">Conta <span id="account-required-asterisk" style="display: ${income?.data_real_recebimento ? 'inline' : 'none'};">*</span></label>
                                 <select id="income-account" class="form-input">
                                     <option value="">Selecione...</option>
                                 </select>
                             </div>
 
-                            <!-- Row 3: Valor (2), Tipo (2), Parcelas (2), Intervalo (1), Dias (1) = 8 cols -->
                             <div class="form-group" style="grid-column: span 2;">
                                 <label for="income-valor">Valor (R$) <span class="required">*</span></label>
                                 <input type="text" id="income-valor" class="form-input" 
@@ -129,13 +128,14 @@ export const IncomeModal = {
                                 </select>
                             </div>
 
+                            <!-- Row 3 (Conditional): Parcelas, Intervalo, Dias - Only shows when Dividir/Replicar -->
                             <div class="form-group" id="installment-count-group" style="grid-column: span 2; display: none;">
                                 <label for="income-installment-count">Nº Parcelas</label>
                                 <input type="number" id="income-installment-count" class="form-input" 
                                     min="2" max="120" value="2" />
                             </div>
 
-                            <div class="form-group" id="installment-interval-group" style="grid-column: span 1; display: none;">
+                            <div class="form-group" id="installment-interval-group" style="grid-column: span 2; display: none;">
                                 <label for="income-installment-interval">Intervalo</label>
                                 <select id="income-installment-interval" class="form-input">
                                     <option value="semanal">Semanal</option>
@@ -148,7 +148,7 @@ export const IncomeModal = {
                                 </select>
                             </div>
 
-                            <div class="form-group" id="custom-days-group" style="grid-column: span 1; display: none;">
+                            <div class="form-group" id="custom-days-group" style="grid-column: span 2; display: none;">
                                 <label for="income-custom-days">Dias</label>
                                 <input type="number" id="income-custom-days" class="form-input" 
                                     min="1" max="365" value="10" placeholder="Ex: 10" />
