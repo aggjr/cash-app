@@ -110,7 +110,6 @@ loadErrorCatalog()
     .then(() => migrateTransferenciaComprovante())
     .then(() => migrateFixTransferenciaNulls())
     .then(() => migrateInstallmentColumns())
-    .then(() => migrateInstallmentColumns())
     .then(() => {
         startServer();
     })
