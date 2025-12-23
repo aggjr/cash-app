@@ -178,12 +178,46 @@ export const ExcelExporter = {
 
         const sheet = workbook.addWorksheet(title.substring(0, 31));
 
-        // Define Columns
-        sheet.columns = columns.map(c => ({
+        // TEMPORARY TEST MODE: Add multiple currency format columns
+        const TEST_MODE = true; // Set to false to disable
+        const currencyFormats = TEST_MODE ? [
+            { name: 'F1:Simples(Atual)', pattern: 'R$ #,##0.00' },
+            { name: 'F2:ComEspaço', pattern: '"R$ "* #,##0.00' },
+            { name: 'F3:Accounting', pattern: '_-"R$ "* #,##0.00_-;-"R$ "* #,##0.00_-;_-"R$ "* "-"_-;_-@_-' },
+            { name: 'F4:SemHífenZero', pattern: '_-"R$ "* #,##0.00_-;-"R$ "* #,##0.00_-;_-"R$ "* 0.00_-;_-@_-' },
+            { name: 'F5:RedNegative', pattern: '"R$ "#,##0.00;[Red]"R$ "-#,##0.00;"R$ "-";"R$ "@"' },
+            { name: 'F6:Underline', pattern: '_ * #,##0.00" R$"_ ;_ * -#,##0.00" R$"_ ;_ * "-"" R$"_ ;_ @_ ' },
+            { name: 'F7:CurrencyID', pattern: '[$$-416]#,##0.00' },
+            { name: 'F8:BrFormat', pattern: 'R$#,##0.00_);(R$#,##0.00)' },
+            { name: 'F9:SpaceAlign', pattern: '"R$" #,##0.00_);[Red]("R$" #,##0.00)' },
+            { name: 'F10:AccAlt', pattern: '_("R$"* #,##0.00_);_("R$"* (#,##0.00);_("R$"* "-"??_);_(@_)' },
+            { name: 'F11:SimpleBRL', pattern: 'R$#,##0.00' },
+            { name: 'F12:Thousands', pattern: '"R$ "#.##0,00' }
+        ] : [];
+
+        // Define Columns - add test columns if in TEST_MODE
+        const baseColumns = columns.map(c => ({
             header: c.header,
             key: c.key,
             width: c.width || 20
         }));
+
+        if (TEST_MODE && columns.some(c => c.type === 'currency')) {
+            // Find currency column to duplicate
+            const currencyCol = columns.find(c => c.type === 'currency');
+            if (currencyCol) {
+                // Add test format columns after the original columns
+                currencyFormats.forEach((fmt, idx) => {
+                    baseColumns.push({
+                        header: fmt.name,
+                        key: `valor_test_${idx}`,
+                        width: 18
+                    });
+                });
+            }
+        }
+
+        sheet.columns = baseColumns;
 
         // 1. Style Header Row
         const headerRow = sheet.getRow(1);
@@ -227,6 +261,17 @@ export const ExcelExporter = {
                 rowData[col.key] = value;
             });
 
+            // TEST MODE: Add currency test columns
+            if (TEST_MODE && currencyFormats.length > 0) {
+                const currencyCol = columns.find(c => c.type === 'currency');
+                if (currencyCol) {
+                    const valorOriginal = parseFloat(item[currencyCol.key]) || 0;
+                    currencyFormats.forEach((fmt, idx) => {
+                        rowData[`valor_test_${idx}`] = valorOriginal;
+                    });
+                }
+            }
+
             const row = sheet.addRow(rowData);
 
             // Style Row
@@ -242,19 +287,29 @@ export const ExcelExporter = {
 
                 const columnDef = columns[colNumber - 1];
 
+                // TEST MODE: Apply formats to test columns
+                if (TEST_MODE && colNumber > columns.length) {
+                    const testColIdx = colNumber - columns.length - 1;
+                    if (testColIdx >= 0 && testColIdx < currencyFormats.length) {
+                        cell.numFmt = currencyFormats[testColIdx].pattern;
+                        cell.alignment = { vertical: 'middle', horizontal: 'right' };
+                        return; // Skip regular formatting for test columns
+                    }
+                }
+
                 // Apply number format based on type
-                if (columnDef.type === 'date') {
+                if (columnDef && columnDef.type === 'date') {
                     // Brazilian date format: DD/MM/AAAA
                     cell.numFmt = 'dd/mm/yyyy';
                     cell.alignment = { vertical: 'middle', horizontal: 'center' };
-                } else if (columnDef.type === 'currency') {
+                } else if (columnDef && columnDef.type === 'currency') {
                     // Brazilian currency format - Simple and reliable
                     // Uses comma as decimal separator (Brazilian standard)
                     cell.numFmt = 'R$ #,##0.00';
                     cell.alignment = { vertical: 'middle', horizontal: 'right' };
-                } else if (columnDef.key === 'active' || columnDef.type === 'center') {
+                } else if (columnDef && (columnDef.key === 'active' || columnDef.type === 'center')) {
                     cell.alignment = { vertical: 'middle', horizontal: 'center' };
-                } else if (columnDef.type === 'number') {
+                } else if (columnDef && columnDef.type === 'number') {
                     cell.alignment = { vertical: 'middle', horizontal: 'right' };
                 } else {
                     cell.alignment = { vertical: 'middle', horizontal: 'left' };
