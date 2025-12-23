@@ -68,10 +68,10 @@ export const IncomeModal = {
                     <div class="account-modal-body" style="padding: 1rem; overflow-y: auto; max-height: 85vh;">
                         <h3 style="margin: 0 0 1rem 0; color: var(--color-primary); font-size: 1.1rem;">${isEdit ? 'Editar Entrada' : 'Nova Entrada'}</h3>
                         
-                        <div class="form-grid" style="display: grid; grid-template-columns: repeat(6, 1fr); gap: 0.75rem;">
+                        <div class="form-grid" style="display: grid; grid-template-columns: repeat(8, 1fr); gap: 0.75rem;">
                             
-                            <!-- Row 1: Dates (Span 2 each) -->
-                            <div class="form-group" style="grid-column: span 2;">
+                            <!-- Row 1: Dates (3+2+3 = 8 cols) -->
+                            <div class="form-group" style="grid-column: span 3;">
                                 <label for="income-data-fato">Data do Fato <span class="required">*</span></label>
                                 <input type="date" id="income-data-fato" class="form-input" 
                                     value="${formatDateForInput(income?.data_fato)}" required />
@@ -83,7 +83,7 @@ export const IncomeModal = {
                                     value="${formatDateForInput(income?.data_prevista_recebimento)}" required />
                             </div>
 
-                            <div class="form-group" style="grid-column: span 2;">
+                            <div class="form-group" style="grid-column: span 3;">
                                 <label for="income-data-atraso">Data Atraso</label>
                                 <input type="date" id="income-data-atraso" class="form-input" 
                                     value="${formatDateForInput(income?.data_atraso)}" />
@@ -112,7 +112,7 @@ export const IncomeModal = {
                                 </select>
                             </div>
 
-                            <!-- Row 3: Valor, Tipo, Parcelas, Intervalo (All in one line: 2+2+1+1=6 cols) -->
+                            <!-- Row 3: Valor (2), Tipo (2), Parcelas (2), Intervalo (1), Dias (1) = 8 cols -->
                             <div class="form-group" style="grid-column: span 2;">
                                 <label for="income-valor">Valor (R$) <span class="required">*</span></label>
                                 <input type="text" id="income-valor" class="form-input" 
@@ -128,7 +128,7 @@ export const IncomeModal = {
                                 </select>
                             </div>
 
-                            <div class="form-group" id="installment-count-group" style="grid-column: span 1; display: none;">
+                            <div class="form-group" id="installment-count-group" style="grid-column: span 2; display: none;">
                                 <label for="income-installment-count">Nº Parcelas</label>
                                 <input type="number" id="income-installment-count" class="form-input" 
                                     min="2" max="120" value="2" />
@@ -153,8 +153,8 @@ export const IncomeModal = {
                                     min="1" max="365" value="10" placeholder="Ex: 10" />
                             </div>
 
-                            <!-- Row 4: Boleto/Cobrança (Span 3), Comprovante (Span 3) -->
-                            <div class="form-group" style="grid-column: span 3;">
+                            <!-- Row 4: Boleto/Cobrança (4), Comprovante (4) = 8 cols -->
+                            <div class="form-group" style="grid-column: span 4;">
                                 <label for="income-boleto">Boleto/Cobrança</label>
                                 <input type="file" id="income-boleto" style="display: none;" accept="image/*,application/pdf" />
                                 <input type="hidden" id="income-boleto-url" value="${income?.boleto_url || ''}" />
@@ -184,7 +184,7 @@ export const IncomeModal = {
                                 </div>
                             </div>
 
-                            <div class="form-group" style="grid-column: span 3;">
+                            <div class="form-group" style="grid-column: span 4;">
                                 <label for="income-comprovante">Comprovante</label>
                                 <input type="file" id="income-comprovante" style="display: none;" accept="image/*,application/pdf" />
                                 <input type="hidden" id="income-comprovante-url" value="${income?.comprovante_url || ''}" />

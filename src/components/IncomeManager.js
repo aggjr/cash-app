@@ -384,7 +384,10 @@ export const IncomeManager = (project) => {
     };
 
     const deleteIncome = async (id, description) => {
-        if (!confirm(`Tem certeza que deseja excluir "${description || 'item'}"?`)) return;
+        // Show custom confirmation dialog
+        const confirmed = await showCustomConfirm(`Tem certeza que deseja excluir "${description || 'Parcela 1/2'}"?`, 'Sim, Excluir');
+
+        if (!confirmed) return;
 
         try {
             const response = await fetch(`${API_BASE_URL}/incomes/${id}`, {
@@ -402,6 +405,55 @@ export const IncomeManager = (project) => {
         } catch (error) {
             showToast('Erro de conexão', 'error');
         }
+    };
+
+    // Custom confirmation dialog (matches system standard)
+    const showCustomConfirm = (message, confirmText = 'Sim') => {
+        return new Promise((resolve) => {
+            const overlay = document.createElement('div');
+            overlay.className = 'dialog-overlay';
+            overlay.style.zIndex = '100000';
+            overlay.style.backgroundColor = 'rgba(0,0,0,0.4)';
+
+            const box = document.createElement('div');
+            box.style.background = 'white';
+            box.style.padding = '24px';
+            box.style.borderRadius = '12px';
+            box.style.maxWidth = '400px';
+            box.style.width = '90%';
+            box.style.boxShadow = '0 10px 25px rgba(0,0,0,0.2)';
+            box.style.textAlign = 'center';
+
+            box.innerHTML = `
+                <h3 style="margin: 0 0 16px 0; color: var(--color-primary); font-size: 1.25rem;">Confirmação</h3>
+                <p style="margin: 0 0 24px 0; color: #555; line-height: 1.5;">${message}</p>
+                <div style="display: flex; gap: 12px; justify-content: center;">
+                    <button id="confirm-no" style="
+                        background: transparent; border: 1px solid #ccc; padding: 8px 16px; 
+                        border-radius: 6px; cursor: pointer; color: #555; font-weight: 500;">
+                        Não
+                    </button>
+                    <button id="confirm-yes" style="
+                        background: var(--color-primary); border: none; padding: 8px 16px; 
+                        border-radius: 6px; cursor: pointer; color: white; font-weight: 500;">
+                        ${confirmText}
+                    </button>
+                </div>
+            `;
+
+            overlay.appendChild(box);
+            document.body.appendChild(overlay);
+
+            const closeConfirm = (val) => {
+                if (document.body.contains(overlay)) {
+                    document.body.removeChild(overlay);
+                }
+                resolve(val);
+            };
+
+            box.querySelector('#confirm-no').onclick = () => closeConfirm(false);
+            box.querySelector('#confirm-yes').onclick = () => closeConfirm(true);
+        });
     };
 
     container.innerHTML = `
