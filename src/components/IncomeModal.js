@@ -273,6 +273,7 @@ export const IncomeModal = {
                 const installmentIntervalGroup = modal.querySelector('#installment-interval-group');
                 const customDaysInput = modal.querySelector('#income-custom-days');
                 const customDaysGroup = modal.querySelector('#custom-days-group');
+                const installmentSpacer = modal.querySelector('#installment-spacer');
                 const comprovanteInput = modal.querySelector('#income-comprovante');
                 const comprovanteUrlInput = modal.querySelector('#income-comprovante-url');
                 const comprovantePreview = modal.querySelector('#comprovante-preview');
@@ -377,6 +378,7 @@ export const IncomeModal = {
 
                     installmentCountGroup.style.display = showFields ? 'block' : 'none';
                     installmentIntervalGroup.style.display = showFields ? 'block' : 'none';
+                    installmentSpacer.style.display = showFields ? 'block' : 'none';
 
                     // Show custom days field only when interval is 'personalizado'
                     const showCustomDays = showFields && installmentIntervalSelect.value === 'personalizado';
