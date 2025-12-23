@@ -31,7 +31,16 @@ export class SharedTable {
 
     formatDate(dateString) {
         if (!dateString) return '-';
-        const date = dateString.includes('T') ? new Date(dateString) : new Date(dateString + 'T00:00:00');
+        // Handle ISO strings or YYYY-MM-DD strings manually to avoid Timezone shifts (e.g. UTC -> GMT-3)
+        // This ensures what is seen is exactly what was stored YYYY-MM-DD
+        if (typeof dateString === 'string' && dateString.length >= 10) {
+            const datePart = dateString.substring(0, 10);
+            const [year, month, day] = datePart.split('-');
+            return `${day}/${month}/${year}`;
+        }
+
+        // Fallback for Date objects or other formats
+        const date = new Date(dateString);
         return isNaN(date.getTime()) ? 'Invalid Date' : date.toLocaleDateString('pt-BR');
     }
 
