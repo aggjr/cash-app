@@ -74,6 +74,32 @@ export class SharedTable {
 
     render(data) {
         this.currentData = data;
+
+        // Client Side Sort Fallback (if no server sort handler provided)
+        if (!this.onSortChange && this.sortConfig.key) {
+            const key = this.sortConfig.key;
+            const dir = this.sortConfig.direction === 'desc' ? -1 : 1;
+            const colDef = this.columns.find(c => c.key === key);
+            const type = colDef ? colDef.type : 'text';
+
+            this.currentData.sort((a, b) => {
+                let valA = a[key] || '';
+                let valB = b[key] || '';
+
+                if (type === 'date') {
+                    // Handle ISO strings or YYYY-MM-DD
+                    const dateA = new Date(valA).getTime() || 0;
+                    const dateB = new Date(valB).getTime() || 0;
+                    return (dateA - dateB) * dir;
+                }
+                if (type === 'currency' || type === 'number') {
+                    return (Number(valA) - Number(valB)) * dir;
+                }
+                // String default
+                return String(valA).localeCompare(String(valB)) * dir;
+            });
+        }
+
         this.saveScrollPosition();
 
         this.container.innerHTML = ''; // Clear
@@ -1031,7 +1057,7 @@ export class SharedTable {
                         };
 
                         // Days
-                        mObj.days.forEach(dayObj => {
+                        mObj.days.sort((a, b) => parseInt(a.day) - parseInt(b.day)).forEach(dayObj => {
                             const dRow = document.createElement('div');
                             dRow.style.marginLeft = '1.2rem';
                             const dCb = document.createElement('input'); dCb.type = 'checkbox';

@@ -8,6 +8,9 @@ const auth = require('../middleware/auth');
 // GET /api/incomes?projectId=X - List all incomes for a project
 router.get('/', auth, incomeController.listIncomes);
 
+// GET /api/incomes/distinct-values?projectId=X&field=Y - Get distinct values for filter
+router.get('/distinct-values', auth, incomeController.getDistinctValues);
+
 // POST /api/incomes - Create new income
 router.post('/', auth, incomeController.createIncome);
 

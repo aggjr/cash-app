@@ -597,6 +597,32 @@ export const IncomeModal = {
 
                 const accountAsterisk = modal.querySelector('#account-required-asterisk');
 
+                // Account Logic
+                const updateAccountList = () => {
+                    const selectedCompanyId = parseInt(companySelect.value);
+                    const currentAccountId = parseInt(accountSelect.value || income?.account_id || 0);
+
+                    // Clear options
+                    accountSelect.innerHTML = '<option value="">Selecione...</option>';
+
+                    if (selectedCompanyId) {
+                        const filteredAccounts = accounts.filter(acc => acc.company_id === selectedCompanyId);
+
+                        filteredAccounts.forEach(acc => {
+                            const option = document.createElement('option');
+                            option.value = acc.id;
+                            option.textContent = acc.name;
+                            if (acc.id === currentAccountId) {
+                                option.selected = true;
+                            }
+                            accountSelect.appendChild(option);
+                        });
+                    }
+
+                    // Re-trigger validation or state toggle if needed
+                    toggleAccountState();
+                };
+
                 const toggleAccountState = () => {
                     if (dataRealInput.value) {
                         accountSelect.disabled = false;
@@ -608,13 +634,20 @@ export const IncomeModal = {
                         accountSelect.style.backgroundColor = 'var(--color-background-disabled)'; // Ensure this var exists or use #F3F4F6
                         accountSelect.style.color = '#9CA3AF';
                         accountAsterisk.style.display = 'none';
-                        accountSelect.value = ''; // Optional: clear value when disabled? Or keep it? User might toggle back. User said "não permitindo que o usuário mexe em seu valor". Usually implies clearing or locking. Let's keep value if editing, but maybe clear if new? Let's just disable for now to preserve state if they accidentally cleared date.
+                        // accountSelect.value = ''; // Keep value logic as is
                         accountSelect.classList.remove('input-error');
                     }
                 };
 
                 // Initial State Check
+                updateAccountList(); // Populate accounts based on initial company
                 toggleAccountState();
+
+                // Listen for Company changes
+                companySelect.addEventListener('change', () => {
+                    updateAccountList();
+                    markAsDirty();
+                });
 
                 // Listen for Data Real changes
                 dataRealInput.addEventListener('change', () => {
