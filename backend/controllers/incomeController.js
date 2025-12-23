@@ -300,13 +300,12 @@ exports.createIncome = async (req, res, next) => {
         // Determine installment parameters
         const type = installmentType || 'total';
         const count = (type === 'total') ? 1 : (parseInt(installmentCount) || 1);
-        ```
         const interval = installmentInterval || 'mensal';
 
         // Calculate installments and dates
         const installmentValues = calculateInstallments(valorDecimal, count, type);
         const installmentDates = calculateDates(dataPrevistaRecebimento, count, interval);
-        
+
         // Calculate fact dates based on type
         let factDates;
         if (type === 'replicar') {
@@ -322,57 +321,57 @@ exports.createIncome = async (req, res, next) => {
         // Create each installment
         for (let i = 0; i < count; i++) {
             const installmentDesc = count > 1
-                ? `${ descricao || '' } - Parcela ${ i + 1 }/${count}`.trim()
+                ? `${descricao || ''} - Parcela ${i + 1}/${count}`.trim()
                 : descricao;
 
-        const [result] = await connection.query(
-            `INSERT INTO entradas 
+            const [result] = await connection.query(
+                `INSERT INTO entradas 
                 (data_fato, data_prevista_recebimento, data_real_recebimento, data_atraso, valor, descricao, tipo_entrada_id, company_id, account_id, project_id, comprovante_url, forma_pagamento) 
                 VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
-            [
-                factDates[i],  // <- CHANGED: now uses calculated fact date
-                installmentDates[i],
-                dataRealRecebimento || null,
-                dataAtraso || null,
-                installmentValues[i],
-                installmentDesc,
-                tipoEntradaId,
-                companyId,
-                accountId,
-                projectId,
-                comprovanteUrl || null,
-                formaPagamento || null
-            ]
-        );
-
-        createdIds.push(result.insertId);
-
-        // Update account balance only if there's a real receipt date
-        if (dataRealRecebimento && accountId) {
-            await connection.query(
-                'UPDATE contas SET current_balance = current_balance + ? WHERE id = ?',
-                [installmentValues[i], accountId]
+                [
+                    factDates[i],  // <- CHANGED: now uses calculated fact date
+                    installmentDates[i],
+                    dataRealRecebimento || null,
+                    dataAtraso || null,
+                    installmentValues[i],
+                    installmentDesc,
+                    tipoEntradaId,
+                    companyId,
+                    accountId,
+                    projectId,
+                    comprovanteUrl || null,
+                    formaPagamento || null
+                ]
             );
+
+            createdIds.push(result.insertId);
+
+            // Update account balance only if there's a real receipt date
+            if (dataRealRecebimento && accountId) {
+                await connection.query(
+                    'UPDATE contas SET current_balance = current_balance + ? WHERE id = ?',
+                    [installmentValues[i], accountId]
+                );
+            }
         }
-    }
 
         await connection.commit();
 
-    res.status(201).json({
-        success: true,
-        ids: createdIds,
-        count: createdIds.length,
-        installmentType: type,
-        message: count > 1
-            ? `${count} ${type === 'dividir' ? 'parcelas criadas' : 'entradas recorrentes criadas'} com sucesso`
-            : 'Entrada criada com sucesso'
-    });
-} catch (error) {
-    if (connection) await connection.rollback();
-    next(error);
-} finally {
-    if (connection) connection.release();
-}
+        res.status(201).json({
+            success: true,
+            ids: createdIds,
+            count: createdIds.length,
+            installmentType: type,
+            message: count > 1
+                ? `${count} ${type === 'dividir' ? 'parcelas criadas' : 'entradas recorrentes criadas'} com sucesso`
+                : 'Entrada criada com sucesso'
+        });
+    } catch (error) {
+        if (connection) await connection.rollback();
+        next(error);
+    } finally {
+        if (connection) connection.release();
+    }
 };
 
 exports.updateIncome = async (req, res, next) => {
