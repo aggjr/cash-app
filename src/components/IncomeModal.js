@@ -233,14 +233,14 @@ export const IncomeModal = {
                                 </div>
                             </div>
 
-                            <!-- Row 4: Description (Span 3) and Tree (Span 3) Side-by-Side Symmetrical (Reduced height) -->
+                            <!-- Row 4: Description (Span 4) and Tree (Span 4) Side-by-Side Symmetrical (Full width) -->
                             
-                            <div class="form-group" style="grid-column: span 3; display: flex; flex-direction: column; min-height: 150px;">
+                            <div class="form-group" style="grid-column: span 4; display: flex; flex-direction: column; min-height: 150px;">
                                 <label for="income-descricao">Descrição</label>
                                 <textarea id="income-descricao" class="form-input" placeholder="Opcional" style="resize: none; flex: 1; box-sizing: border-box; font-family: inherit;">${income?.descricao || ''}</textarea>
                             </div>
 
-                            <div class="form-group" style="grid-column: span 3; display: flex; flex-direction: column; min-height: 150px;">
+                            <div class="form-group" style="grid-column: span 4; display: flex; flex-direction: column; min-height: 150px;">
                                 <label>Tipo de Entrada <span class="required">*</span></label>
                                 <div id="tree-selector-container" style="flex: 1;"></div>
                                 <input type="hidden" id="income-tipo-entrada-id" value="${income?.tipo_entrada_id || ''}" />
