@@ -55,6 +55,8 @@ export const IncomeModal = {
 
                 const modal = document.createElement('div');
                 modal.className = 'account-modal animate-float-in';
+                modal.style.maxWidth = '900px';
+                modal.style.width = '95%';
 
                 const formatDateForInput = (dateString) => {
                     if (!dateString) return '';
@@ -63,7 +65,7 @@ export const IncomeModal = {
                 };
 
                 modal.innerHTML = `
-                    <div class="account-modal-body" style="padding: 1rem; overflow-y: hidden; max-height: 95vh;">
+                    <div class="account-modal-body" style="padding: 1rem; overflow-y: auto; max-height: 85vh;">
                         <h3 style="margin: 0 0 1rem 0; color: var(--color-primary); font-size: 1.1rem;">${isEdit ? 'Editar Entrada' : 'Nova Entrada'}</h3>
                         
                         <div class="form-grid" style="display: grid; grid-template-columns: repeat(6, 1fr); gap: 0.75rem;">
@@ -110,14 +112,14 @@ export const IncomeModal = {
                                 </select>
                             </div>
 
-                            <!-- Row 3: Valor (Span 2), Tipo de Lançamento (Span 2), Parcelas (Span 1), Intervalo (Span 1) -->
-                            <div class="form-group" style="grid-column: span 2;">
+                            <!-- Row 3: Valor (Span 3), Tipo de Lançamento (Span 3) -->
+                            <div class="form-group" style="grid-column: span 3;">
                                 <label for="income-valor">Valor (R$) <span class="required">*</span></label>
                                 <input type="text" id="income-valor" class="form-input" 
                                     placeholder="R$ 0,00" required />
                             </div>
 
-                            <div class="form-group" style="grid-column: span 2;">
+                            <div class="form-group" style="grid-column: span 3;">
                                 <label for="income-installment-type">Tipo de Lançamento</label>
                                 <select id="income-installment-type" class="form-input">
                                     <option value="total">Total (Único)</option>
@@ -126,13 +128,14 @@ export const IncomeModal = {
                                 </select>
                             </div>
 
-                            <div class="form-group" id="installment-count-group" style="grid-column: span 1; display: none;">
+                            <!-- Row 3.5: Nº Parcelas (Span 3), Intervalo (Span 3) - Conditional -->
+                            <div class="form-group" id="installment-count-group" style="grid-column: span 3; display: none;">
                                 <label for="income-installment-count">Nº Parcelas</label>
                                 <input type="number" id="income-installment-count" class="form-input" 
                                     min="2" max="120" value="2" />
                             </div>
 
-                            <div class="form-group" id="installment-interval-group" style="grid-column: span 1; display: none;">
+                            <div class="form-group" id="installment-interval-group" style="grid-column: span 3; display: none;">
                                 <label for="income-installment-interval">Intervalo</label>
                                 <select id="income-installment-interval" class="form-input">
                                     <option value="semanal">Semanal</option>
