@@ -1445,3 +1445,26 @@ body.dark-mode .badge-inactive {
   background: #ddd;
   border-radius: 3px;
 }
+
+/* Dark Mode Tree Manager Overrides */
+body.dark-mode .tree-node-content.row-even {
+  background-color: var(--color-bg-card);
+  color: var(--color-text-dark);
+}
+
+body.dark-mode .tree-node-content.row-odd {
+  background-color: var(--color-bg-secondary);
+  color: var(--color-text-dark);
+}
+
+body.dark-mode .node-label,
+body.dark-mode .node-toggle {
+  color: var(--color-text-dark);
+}
+
+/* Maintain hover effect visibility - Text must be dark on the Gold hover background */
+body.dark-mode .tree-node-content:hover .node-label,
+body.dark-mode .tree-node-content:hover .node-toggle,
+body.dark-mode .tree-node-content:hover .node-icon {
+  color: var(--color-navy) !important;
+}
