@@ -1,5 +1,6 @@
 import { showToast } from '../utils/toast.js';
 import { getApiBaseUrl } from '../utils/apiConfig.js';
+import { ExcelExporter } from '../utils/ExcelExporter.js';
 
 export const PrevisaoFluxoManager = (project) => {
     const container = document.createElement('div');
@@ -293,6 +294,10 @@ export const PrevisaoFluxoManager = (project) => {
                 <label style="font-size: 0.9rem; color: #4B5563;">Até:</label>
                 <input type="date" id="end-date" value="${endStr}" style="padding: 0.4rem; border: 1px solid #d1d5db; border-radius: 4px; font-family: inherit;">
              </div>
+             <div style="display: flex; gap: 0.5rem;">
+                 <button id="btn-excel-prev" class="btn-outline">📊 Excel</button>
+                 <button id="btn-pdf-prev" class="btn-outline">🖨️ PDF</button>
+             </div>
         </div>
         
         <div style="font-size: 1.2rem; font-weight: bold; color: #00425F;">
@@ -331,6 +336,99 @@ export const PrevisaoFluxoManager = (project) => {
 
     startInput.addEventListener('change', handleDateChange);
     endInput.addEventListener('change', handleDateChange);
+
+    // Export Handlers
+    setTimeout(() => {
+        const btnExcel = container.querySelector('#btn-excel-prev');
+        const btnPdf = container.querySelector('#btn-pdf-prev');
+
+        if (btnExcel) {
+            btnExcel.onclick = async () => {
+                try {
+                    if (!forecastData || !forecastData.data) {
+                        showToast('Sem dados para exportar', 'warning');
+                        return;
+                    }
+
+                    const days = getDays();
+                    const exportData = [];
+
+                    // Flatten hierarchy
+                    const flattenNodes = (nodes, level = 0) => {
+                        nodes.forEach(node => {
+                            const indent = '  '.repeat(level);
+                            const row = { 'Categoria': indent + node.name };
+
+                            days.forEach(d => {
+                                const [y, m, day] = d.split('-');
+                                const label = `${day}/${m}`;
+                                row[label] = node.dailyTotals[d] || 0;
+                            });
+
+                            exportData.push(row);
+
+                            if (node.children && node.children.length > 0) {
+                                flattenNodes(node.children, level + 1);
+                            }
+                        });
+                    };
+
+                    // Add initial balance row
+                    const initialRow = { 'Categoria': 'Saldo Inicial' };
+                    let runningBalance = forecastData.initialBalance || 0;
+                    days.forEach(d => {
+                        const [y, m, day] = d.split('-');
+                        const label = `${day}/${m}`;
+                        initialRow[label] = runningBalance;
+                        // Update running balance for next day
+                        const data = forecastData.data || [];
+                        const aportesRoot = data.find(n => n.id === 'aportes_root');
+                        const retiradasRoot = data.find(n => n.id === 'retiradas_root');
+                        const entradasRoot = data.find(n => n.id === 'entradas_root');
+                        const saidasRoot = data.find(n => n.id === 'saidas_root');
+                        const producaoRoot = data.find(n => n.id === 'producao_root');
+                        const inVal = (entradasRoot?.dailyTotals[d] || 0) + (aportesRoot?.dailyTotals[d] || 0);
+                        const outVal = (saidasRoot?.dailyTotals[d] || 0) + (producaoRoot?.dailyTotals[d] || 0) + (retiradasRoot?.dailyTotals[d] || 0);
+                        runningBalance = runningBalance + inVal - outVal;
+                    });
+                    exportData.push(initialRow);
+
+                    // Add data
+                    flattenNodes(forecastData.data);
+
+                    // Define columns
+                    const columns = [
+                        { header: 'Categoria', key: 'Categoria', width: 40, type: 'text' }
+                    ];
+
+                    days.forEach(d => {
+                        const [y, m, day] = d.split('-');
+                        const label = `${day}/${m}`;
+                        columns.push({
+                            header: label,
+                            key: label,
+                            width: 15,
+                            type: 'currency'
+                        });
+                    });
+
+                    await ExcelExporter.exportTable(
+                        exportData,
+                        columns,
+                        'Previsão Diária de Fluxo',
+                        'previsao_fluxo'
+                    );
+                } catch (error) {
+                    console.error('Excel export error:', error);
+                    showToast(`Erro ao exportar: ${error.message}`, 'error');
+                }
+            };
+        }
+
+        if (btnPdf) {
+            btnPdf.onclick = () => window.print();
+        }
+    }, 100);
 
     // Init
     renderTable(); // Render empty structure immediately

@@ -1,6 +1,7 @@
 import { showToast } from '../utils/toast.js';
 import { getApiBaseUrl } from '../utils/apiConfig.js';
 import { MonthPicker } from './MonthPicker.js';
+import { ExcelExporter } from '../utils/ExcelExporter.js';
 
 export const ConsolidadasManager = (project) => {
     const container = document.createElement('div');
@@ -507,6 +508,25 @@ export const ConsolidadasManager = (project) => {
 
     leftGroup.appendChild(dateGroup); // Refresh button removed
 
+    // Export Buttons
+    const exportDiv = document.createElement('div');
+    exportDiv.style.display = 'flex';
+    exportDiv.style.gap = '0.5rem';
+
+    const btnExcel = document.createElement('button');
+    btnExcel.id = 'btn-excel-consol';
+    btnExcel.className = 'btn-outline';
+    btnExcel.textContent = '📊 Excel';
+    exportDiv.appendChild(btnExcel);
+
+    const btnPdf = document.createElement('button');
+    btnPdf.id = 'btn-pdf-consol';
+    btnPdf.className = 'btn-outline';
+    btnPdf.textContent = '🖨️ PDF';
+    exportDiv.appendChild(btnPdf);
+
+    leftGroup.appendChild(exportDiv);
+
     // Title
     const title = document.createElement('div');
     title.innerHTML = '📑 Consolidadas';
@@ -516,6 +536,86 @@ export const ConsolidadasManager = (project) => {
 
     controls.appendChild(leftGroup);
     controls.appendChild(title);
+
+    // Export Handlers
+    setTimeout(() => {
+        const excelBtn = container.querySelector('#btn-excel-consol');
+        const pdfBtn = container.querySelector('#btn-pdf-consol');
+
+        if (excelBtn) {
+            excelBtn.onclick = async () => {
+                try {
+                    if (consolidatedData.length === 0) {
+                        showToast('Sem dados para exportar', 'warning');
+                        return;
+                    }
+
+                    const months = getMonthKeys();
+                    const exportData = [];
+
+                    // Flatten hierarchy function
+                    const flattenNodes = (nodes, level = 0) => {
+                        nodes.forEach(node => {
+                            const indent = '  '.repeat(level);
+                            const row = { 'Categoria': indent + node.name };
+
+                            months.forEach(m => {
+                                const [y, mo] = m.split('-');
+                                const label = `${mo}/${y}`;
+                                row[label] = node.monthlyTotals[m] || 0;
+                            });
+
+                            row['Total'] = node.total || 0;
+                            row['Média'] = months.length > 0 ? (node.total / months.length) : 0;
+
+                            exportData.push(row);
+
+                            if (node.children && node.children.length > 0) {
+                                flattenNodes(node.children, level + 1);
+                            }
+                        });
+                    };
+
+                    flattenNodes(consolidatedData);
+
+                    // Define columns
+                    const columns = [
+                        { header: 'Categoria', key: 'Categoria', width: 40, type: 'text' }
+                    ];
+
+                    months.forEach(m => {
+                        const [y, mo] = m.split('-');
+                        const label = `${mo}/${y}`;
+                        columns.push({
+                            header: label,
+                            key: label,
+                            width: 15,
+                            type: 'currency'
+                        });
+                    });
+
+                    columns.push(
+                        { header: 'Total', key: 'Total', width: 15, type: 'currency' },
+                        { header: 'Média', key: 'Média', width: 15, type: 'currency' }
+                    );
+
+                    await ExcelExporter.exportTable(
+                        exportData,
+                        columns,
+                        'Relatório Consolidado',
+                        'consolidadas'
+                    );
+                } catch (error) {
+                    console.error('Excel export error:', error);
+                    showToast(`Erro ao exportar: ${error.message}`, 'error');
+                }
+            };
+        }
+
+        if (pdfBtn) {
+            pdfBtn.onclick = () => window.print();
+        }
+    }, 100);
 
     // --- Container Assembly ---
     const tableContainer = document.createElement('div');

@@ -1,5 +1,6 @@
 import { showToast } from '../utils/toast.js';
 import { getApiBaseUrl } from '../utils/apiConfig.js';
+import { ExcelExporter } from '../utils/ExcelExporter.js';
 
 export const ExtratoContaManager = (project) => {
     const container = document.createElement('div');
@@ -146,6 +147,26 @@ export const ExtratoContaManager = (project) => {
         controls.appendChild(accDiv);
         controls.appendChild(startDiv);
         controls.appendChild(endDiv);
+
+        // Export Buttons
+        const exportDiv = document.createElement('div');
+        exportDiv.style.display = 'flex';
+        exportDiv.style.gap = '0.5rem';
+        exportDiv.style.marginLeft = 'auto';
+
+        const btnExcel = document.createElement('button');
+        btnExcel.id = 'btn-excel-extrato';
+        btnExcel.className = 'btn-outline';
+        btnExcel.textContent = '📊 Excel';
+        exportDiv.appendChild(btnExcel);
+
+        const btnPdf = document.createElement('button');
+        btnPdf.id = 'btn-pdf-extrato';
+        btnPdf.className = 'btn-outline';
+        btnPdf.textContent = '🖨️ PDF';
+        exportDiv.appendChild(btnPdf);
+
+        controls.appendChild(exportDiv);
 
         return controls;
     };
@@ -385,7 +406,86 @@ export const ExtratoContaManager = (project) => {
     `;
 
     // Render initial empty controls (will be repopulated after loadAccounts)
-    container.appendChild(renderControls());
+    const controlsElement = renderControls();
+    container.appendChild(controlsElement);
+
+    // Export Handlers
+    setTimeout(() => {
+        const btnExcel = container.querySelector('#btn-excel-extrato');
+        const btnPdf = container.querySelector('#btn-pdf-extrato');
+
+        if (btnExcel) {
+            btnExcel.onclick = async () => {
+                try {
+                    if (!extratoData || !extratoData.transactions) {
+                        showToast('Sem dados para exportar', 'warning');
+                        return;
+                    }
+
+                    const exportData = [];
+                    let balance = extratoData.initialBalance;
+
+                    // Initial balance row
+                    exportData.push({
+                        'Data': '-',
+                        'Tipo': 'SALDO ANTERIOR',
+                        'Descrição': '-',
+                        'Fluxo': '-',
+                        'Valor': balance
+                    });
+
+                    // Transactions
+                    extratoData.transactions.forEach(tx => {
+                        const isInput = tx.direction === 'IN';
+                        const val = parseFloat(tx.valor);
+                        const balanceChange = isInput ? val : -val;
+                        balance += balanceChange;
+
+                        exportData.push({
+                            'Data': formatDate(tx.data),
+                            'Tipo': tx.tipo_formatado,
+                            'Descrição': tx.descricao || '-',
+                            'Fluxo': isInput ? 'ENTRADA' : 'SAÍDA',
+                            'Valor': val
+                        });
+                    });
+
+                    // Final balance row
+                    exportData.push({
+                        'Data': '-',
+                        'Tipo': 'SALDO FINAL',
+                        'Descrição': '-',
+                        'Fluxo': '-',
+                        'Valor': balance
+                    });
+
+                    const columns = [
+                        { header: 'Data', key: 'Data', width: 15, type: 'text' },
+                        { header: 'Tipo', key: 'Tipo', width: 25, type: 'text' },
+                        { header: 'Descrição', key: 'Descrição', width: 35, type: 'text' },
+                        { header: 'Fluxo', key: 'Fluxo', width: 12, type: 'text' },
+                        { header: 'Valor', key: 'Valor', width: 15, type: 'currency' }
+                    ];
+
+                    const accountName = accounts.find(a => a.id === parseInt(selectedAccountId))?.name || 'Conta';
+
+                    await ExcelExporter.exportTable(
+                        exportData,
+                        columns,
+                        `Extrato - ${accountName}`,
+                        'extrato_conta'
+                    );
+                } catch (error) {
+                    console.error('Error during Excel export:', error);
+                    showToast(`Erro ao exportar: ${error.message}`, 'error');
+                }
+            };
+        }
+
+        if (btnPdf) {
+            btnPdf.onclick = () => window.print();
+        }
+    }, 100);
 
     // Render empty table structure immediately
     renderTable();

@@ -1,6 +1,7 @@
 import { showToast } from '../utils/toast.js';
 import { getApiBaseUrl } from '../utils/apiConfig.js';
 import { MonthPicker } from './MonthPicker.js';
+import { ExcelExporter } from '../utils/ExcelExporter.js';
 
 export const FechamentoContasManager = (project) => {
     const container = document.createElement('div');
@@ -130,6 +131,26 @@ export const FechamentoContasManager = (project) => {
 
         controls.appendChild(startDiv);
         controls.appendChild(endDiv);
+
+        // Export Buttons
+        const exportDiv = document.createElement('div');
+        exportDiv.style.display = 'flex';
+        exportDiv.style.gap = '0.5rem';
+        exportDiv.style.marginLeft = 'auto';
+
+        const btnExcel = document.createElement('button');
+        btnExcel.id = 'btn-excel-fech';
+        btnExcel.className = 'btn-outline';
+        btnExcel.textContent = '📊 Excel';
+        exportDiv.appendChild(btnExcel);
+
+        const btnPdf = document.createElement('button');
+        btnPdf.id = 'btn-pdf-fech';
+        btnPdf.className = 'btn-outline';
+        btnPdf.textContent = '🖨️ PDF';
+        exportDiv.appendChild(btnPdf);
+
+        controls.appendChild(exportDiv);
 
         containerDiv.appendChild(controls);
         return containerDiv;
@@ -380,7 +401,94 @@ export const FechamentoContasManager = (project) => {
         </div>
     `;
 
-    container.appendChild(renderControls());
+    const controlsElement = renderControls();
+    container.appendChild(controlsElement);
+
+    // Export Handlers
+    setTimeout(() => {
+        const btnExcel = container.querySelector('#btn-excel-fech');
+        const btnPdf = container.querySelector('#btn-pdf-fech');
+
+        if (btnExcel) {
+            btnExcel.onclick = async () => {
+                try {
+                    if (accounts.length === 0) {
+                        showToast('Sem dados para exportar', 'warning');
+                        return;
+                    }
+
+                    const months = getMonthList();
+                    const exportData = [];
+
+                    // Prepare data rows
+                    accounts.forEach(acc => {
+                        const row = { 'Conta Bancária': acc.name };
+                        let currentBalance = initialBalances[acc.id] || 0;
+
+                        months.forEach(m => {
+                            const monthKey = `${m.getFullYear()}-${(m.getMonth() + 1).toString().padStart(2, '0')}`;
+                            const monthDelta = (movementsData[acc.id] && movementsData[acc.id][monthKey])
+                                ? movementsData[acc.id][monthKey]
+                                : 0;
+                            currentBalance += monthDelta;
+                            row[formatDateMonth(m)] = currentBalance;
+                        });
+
+                        exportData.push(row);
+                    });
+
+                    // Add totals row
+                    const totalsRow = { 'Conta Bancária': 'TOTAL' };
+                    const monthTotals = new Array(months.length).fill(0);
+
+                    accounts.forEach(acc => {
+                        let currentBalance = initialBalances[acc.id] || 0;
+                        months.forEach((m, mIndex) => {
+                            const monthKey = `${m.getFullYear()}-${(m.getMonth() + 1).toString().padStart(2, '0')}`;
+                            const monthDelta = (movementsData[acc.id] && movementsData[acc.id][monthKey])
+                                ? movementsData[acc.id][monthKey]
+                                : 0;
+                            currentBalance += monthDelta;
+                            monthTotals[mIndex] += currentBalance;
+                        });
+                    });
+
+                    months.forEach((m, idx) => {
+                        totalsRow[formatDateMonth(m)] = monthTotals[idx];
+                    });
+                    exportData.push(totalsRow);
+
+                    // Define columns (Account + Month columns)
+                    const columns = [
+                        { header: 'Conta Bancária', key: 'Conta Bancária', width: 30, type: 'text' }
+                    ];
+
+                    months.forEach(m => {
+                        columns.push({
+                            header: formatDateMonth(m),
+                            key: formatDateMonth(m),
+                            width: 15,
+                            type: 'currency'
+                        });
+                    });
+
+                    await ExcelExporter.exportTable(
+                        exportData,
+                        columns,
+                        'Relatório de Fechamento de Contas',
+                        'fechamento_contas'
+                    );
+                } catch (error) {
+                    console.error('Error during Excel export:', error);
+                    showToast(`Erro ao exportar: ${error.message}`, 'error');
+                }
+            };
+        }
+
+        if (btnPdf) {
+            btnPdf.onclick = () => window.print();
+        }
+    }, 100);
 
     // Load initial data
     loadData();
