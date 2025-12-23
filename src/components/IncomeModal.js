@@ -112,14 +112,14 @@ export const IncomeModal = {
                                 </select>
                             </div>
 
-                            <!-- Row 3: Valor (Span 3), Tipo de Lançamento (Span 3) -->
-                            <div class="form-group" style="grid-column: span 3;">
+                            <!-- Row 3: Valor, Tipo, Parcelas, Intervalo (All in one line: 2+2+1+1=6 cols) -->
+                            <div class="form-group" style="grid-column: span 2;">
                                 <label for="income-valor">Valor (R$) <span class="required">*</span></label>
                                 <input type="text" id="income-valor" class="form-input" 
                                     placeholder="R$ 0,00" required />
                             </div>
 
-                            <div class="form-group" style="grid-column: span 3;">
+                            <div class="form-group" style="grid-column: span 2;">
                                 <label for="income-installment-type">Tipo de Lançamento</label>
                                 <select id="income-installment-type" class="form-input">
                                     <option value="total">Total (Único)</option>
@@ -128,14 +128,13 @@ export const IncomeModal = {
                                 </select>
                             </div>
 
-                            <!-- Row 3.5: Nº Parcelas (Span 3), Intervalo (Span 3) - Conditional -->
-                            <div class="form-group" id="installment-count-group" style="grid-column: span 3; display: none;">
+                            <div class="form-group" id="installment-count-group" style="grid-column: span 1; display: none;">
                                 <label for="income-installment-count">Nº Parcelas</label>
                                 <input type="number" id="income-installment-count" class="form-input" 
                                     min="2" max="120" value="2" />
                             </div>
 
-                            <div class="form-group" id="installment-interval-group" style="grid-column: span 3; display: none;">
+                            <div class="form-group" id="installment-interval-group" style="grid-column: span 1; display: none;">
                                 <label for="income-installment-interval">Intervalo</label>
                                 <select id="income-installment-interval" class="form-input">
                                     <option value="semanal">Semanal</option>
@@ -147,8 +146,38 @@ export const IncomeModal = {
                                 </select>
                             </div>
 
-                            <!-- Row 4: Comprovante (Span 6) -->
-                            <div class="form-group" style="grid-column: span 6;">
+                            <!-- Row 4: Boleto/Cobrança (Span 3), Comprovante (Span 3) -->
+                            <div class="form-group" style="grid-column: span 3;">
+                                <label for="income-boleto">Boleto/Cobrança</label>
+                                <input type="file" id="income-boleto" style="display: none;" accept="image/*,application/pdf" />
+                                <input type="hidden" id="income-boleto-url" value="${income?.boleto_url || ''}" />
+                                
+                                <div id="boleto-container" class="form-input" style="
+                                    display: flex; 
+                                    align-items: center; 
+                                    justify-content: space-between; 
+                                    cursor: pointer; 
+                                    padding: 0.5rem; 
+                                    background: white;
+                                ">
+                                    <div id="boleto-display-area" style="display: flex; align-items: center; gap: 8px; flex: 1; overflow: hidden;">
+                                        <span id="boleto-placeholder-text" style="color: #9CA3AF; font-style: italic; font-size: 0.9rem;">
+                                            ${income?.boleto_url ? '' : 'Clique no clipe para anexar...'}
+                                        </span>
+                                        <a id="boleto-link" href="${income?.boleto_url ? API_BASE_URL + income.boleto_url : '#'}" target="_blank" 
+                                           style="display: ${income?.boleto_url ? 'block' : 'none'}; color: var(--color-primary); text-decoration: underline; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; font-size: 0.9rem;">
+                                           ${income?.boleto_url ? income.boleto_url.split('/').pop().split('-').slice(1).join('-') : ''}
+                                        </a>
+                                    </div>
+
+                                    <div style="display: flex; align-items: center; gap: 10px;">
+                                        <span id="btn-boleto-attach" style="cursor: pointer; font-size: 1.2rem; display: ${income?.boleto_url ? 'none' : 'block'};" title="Anexar Boleto">📎</span>
+                                        <span id="btn-boleto-remove" style="cursor: pointer; font-size: 1.2rem; display: ${income?.boleto_url ? 'block' : 'none'};" title="Remover Boleto">🗑️</span>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <div class="form-group" style="grid-column: span 3;">
                                 <label for="income-comprovante">Comprovante</label>
                                 <input type="file" id="income-comprovante" style="display: none;" accept="image/*,application/pdf" />
                                 <input type="hidden" id="income-comprovante-url" value="${income?.comprovante_url || ''}" />
@@ -234,6 +263,8 @@ export const IncomeModal = {
                 const comprovanteInput = modal.querySelector('#income-comprovante');
                 const comprovanteUrlInput = modal.querySelector('#income-comprovante-url');
                 const comprovantePreview = modal.querySelector('#comprovante-preview');
+                const boletoInput = modal.querySelector('#income-boleto');
+                const boletoUrlInput = modal.querySelector('#income-boleto-url');
                 const tipoEntradaIdInput = modal.querySelector('#income-tipo-entrada-id');
                 const treeContainer = modal.querySelector('#tree-selector-container');
                 const companySelect = modal.querySelector('#income-company');
@@ -439,6 +470,88 @@ export const IncomeModal = {
                             placeholderText.textContent = 'Erro ao enviar. Tente novamente.';
                             placeholderText.style.color = '#EF4444';
                             comprovanteInput.value = '';
+                        }
+                    });
+                }
+
+                // Boleto Upload Logic (duplicate of comprovante)
+                const boletoContainer = modal.querySelector('#boleto-container');
+                const btnBoletoAttach = modal.querySelector('#btn-boleto-attach');
+                const btnBoletoRemove = modal.querySelector('#btn-boleto-remove');
+                const boletoLink = modal.querySelector('#boleto-link');
+                const boletoPlaceholderText = modal.querySelector('#boleto-placeholder-text');
+
+                const updateBoletoUI = (url, filename) => {
+                    if (url) {
+                        boletoPlaceholderText.style.display = 'none';
+                        boletoLink.style.display = 'block';
+                        boletoLink.href = `${API_BASE_URL}${url}`;
+                        boletoLink.textContent = filename || 'Boleto Anexado';
+                        btnBoletoAttach.style.display = 'none';
+                        btnBoletoRemove.style.display = 'block';
+                    } else {
+                        boletoPlaceholderText.style.display = 'block';
+                        boletoLink.style.display = 'none';
+                        boletoLink.href = '#';
+                        boletoLink.textContent = '';
+                        btnBoletoAttach.style.display = 'block';
+                        btnBoletoRemove.style.display = 'none';
+                        boletoInput.value = '';
+                        boletoUrlInput.value = '';
+                    }
+                };
+
+                if (boletoInput) {
+                    btnBoletoAttach.addEventListener('click', (e) => {
+                        e.stopPropagation();
+                        boletoInput.click();
+                    });
+
+                    boletoContainer.addEventListener('click', (e) => {
+                        if (!boletoUrlInput.value && e.target !== btnBoletoRemove && e.target !== boletoLink) {
+                            boletoInput.click();
+                        }
+                    });
+
+                    btnBoletoRemove.addEventListener('click', (e) => {
+                        e.stopPropagation();
+                        updateBoletoUI(null, null);
+                        markAsDirty();
+                    });
+
+                    boletoInput.addEventListener('change', async (e) => {
+                        const file = e.target.files[0];
+                        if (!file) return;
+
+                        const formData = new FormData();
+                        formData.append('file', file);
+
+                        try {
+                            boletoPlaceholderText.textContent = 'Enviando...';
+                            boletoPlaceholderText.style.color = 'var(--color-gold)';
+
+                            const response = await fetch(`${API_BASE_URL}/upload`, {
+                                method: 'POST',
+                                headers: { 'Authorization': `Bearer ${token}` },
+                                body: formData
+                            });
+
+                            if (!response.ok) throw new Error('Falha no upload');
+
+                            const result = await response.json();
+
+                            boletoPlaceholderText.textContent = 'Clique no clipe para anexar...';
+                            boletoPlaceholderText.style.color = '#9CA3AF';
+
+                            boletoUrlInput.value = result.fileUrl;
+                            updateBoletoUI(result.fileUrl, result.originalName);
+                            markAsDirty();
+
+                        } catch (error) {
+                            console.error('Upload error:', error);
+                            boletoPlaceholderText.textContent = 'Erro ao enviar. Tente novamente.';
+                            boletoPlaceholderText.style.color = '#EF4444';
+                            boletoInput.value = '';
                         }
                     });
                 }
@@ -651,6 +764,7 @@ export const IncomeModal = {
                             companyId: parseInt(companySelect.value),
                             accountId: parseInt(accountSelect.value),
                             comprovanteUrl: comprovanteUrlInput.value || null,
+                            boletoUrl: boletoUrlInput.value || null,
                             formaPagamento: modal.querySelector('input[name="forma_pagamento"]:checked')?.value || null,
                             // Installment data
                             installmentType: installmentTypeSelect.value,
