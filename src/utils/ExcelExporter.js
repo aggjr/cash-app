@@ -179,7 +179,7 @@ export const ExcelExporter = {
         const sheet = workbook.addWorksheet(title.substring(0, 31));
 
         // TEMPORARY TEST MODE: Add multiple currency format columns
-        const TEST_MODE = true; // Set to false to disable
+        const TEST_MODE = false; // Set to false to disable - TESTING COMPLETE!
         const currencyFormats = TEST_MODE ? [
             { name: 'F1:Simples(Atual)', pattern: 'R$ #,##0.00' },
             { name: 'F2:ComEspaço', pattern: '"R$ "* #,##0.00' },
@@ -303,9 +303,9 @@ export const ExcelExporter = {
                     cell.numFmt = 'dd/mm/yyyy';
                     cell.alignment = { vertical: 'middle', horizontal: 'center' };
                 } else if (columnDef && columnDef.type === 'currency') {
-                    // Brazilian currency format - Simple and reliable
-                    // Uses comma as decimal separator (Brazilian standard)
-                    cell.numFmt = 'R$ #,##0.00';
+                    // Brazilian currency format - F2: With space (tested and approved in production)
+                    // Format: "R$ " with space between symbol and value
+                    cell.numFmt = '"R$ "* #,##0.00';
                     cell.alignment = { vertical: 'middle', horizontal: 'right' };
                 } else if (columnDef && (columnDef.key === 'active' || columnDef.type === 'center')) {
                     cell.alignment = { vertical: 'middle', horizontal: 'center' };
