@@ -100,6 +100,7 @@ const migrateDataPrevistaAtraso = require('./migrate-add-data-prevista-atraso');
 const migrateComprovanteUrl = require('./migrate-add-comprovante-url');
 const migrateTransferenciaComprovante = require('./migrate_add_comprovante_transferencias');
 const migrateFixTransferenciaNulls = require('./migrate_fix_transferencia_nulls');
+const migrateInstallmentColumns = require('./migrate_add_installment_columns');
 
 loadErrorCatalog()
     .then(() => migrateFixAccounts())
@@ -108,6 +109,7 @@ loadErrorCatalog()
     .then(() => migrateComprovanteUrl())
     .then(() => migrateTransferenciaComprovante())
     .then(() => migrateFixTransferenciaNulls())
+    .then(() => migrateInstallmentColumns())
     .then(() => {
         app.listen(PORT, '0.0.0.0', () => {
             console.log(`\n========================================`);
