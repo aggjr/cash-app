@@ -1468,3 +1468,26 @@ body.dark-mode .tree-node-content:hover .node-toggle,
 body.dark-mode .tree-node-content:hover .node-icon {
   color: var(--color-navy) !important;
 }
+
+/* Global Dark Mode Text Fixes - Ensure these elements switch to light text */
+body.dark-mode h1,
+body.dark-mode h2,
+body.dark-mode h3,
+body.dark-mode h4,
+body.dark-mode h5,
+body.dark-mode h6,
+body.dark-mode p,
+body.dark-mode label,
+body.dark-mode li,
+body.dark-mode td {
+  color: var(--color-text-dark);
+}
+
+/* Ensure inputs/selects not covered by .form-input also switch */
+body.dark-mode input:not([type="submit"]),
+body.dark-mode select,
+body.dark-mode textarea {
+  color: var(--color-text-dark);
+  background-color: var(--color-bg-secondary);
+  border-color: var(--color-border-light);
+}
