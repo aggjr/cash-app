@@ -330,6 +330,9 @@ exports.createIncome = async (req, res, next) => {
 
         const createdIds = [];
 
+        // Generate group ID for installments if count > 1
+        const groupId = count > 1 ? `${Date.now()}-${Math.random().toString(36).substr(2, 9)}` : null;
+
         // Create each installment
         for (let i = 0; i < count; i++) {
             const installmentDesc = count > 1
@@ -338,10 +341,10 @@ exports.createIncome = async (req, res, next) => {
 
             const [result] = await connection.query(
                 `INSERT INTO entradas 
-                (data_fato, data_prevista_recebimento, data_real_recebimento, data_atraso, valor, descricao, tipo_entrada_id, company_id, account_id, project_id, comprovante_url, forma_pagamento) 
-                VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+                (data_fato, data_prevista_recebimento, data_real_recebimento, data_atraso, valor, descricao, tipo_entrada_id, company_id, account_id, project_id, comprovante_url, forma_pagamento, installment_group_id, installment_number, installment_total, installment_interval, installment_custom_days) 
+                VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
                 [
-                    factDates[i],  // <- CHANGED: now uses calculated fact date
+                    factDates[i],
                     installmentDates[i],
                     dataRealRecebimento || null,
                     dataAtraso || null,
@@ -352,7 +355,12 @@ exports.createIncome = async (req, res, next) => {
                     accountId,
                     projectId,
                     comprovanteUrl || null,
-                    formaPagamento || null
+                    formaPagamento || null,
+                    groupId,
+                    count > 1 ? i + 1 : null,
+                    count > 1 ? count : null,
+                    count > 1 ? interval : null,
+                    count > 1 && interval === 'personalizado' ? days : null
                 ]
             );
 
@@ -407,14 +415,49 @@ exports.updateIncome = async (req, res, next) => {
         connection = await db.getConnection();
         await connection.beginTransaction();
 
-        // Get old income data
+        // Get old income data including installment info
         const [oldIncome] = await connection.query(
-            'SELECT valor, account_id FROM entradas WHERE id = ?',
+            'SELECT valor, account_id, installment_group_id, installment_number, installment_total, installment_interval, installment_custom_days, data_prevista_recebimento FROM entradas WHERE id = ?',
             [id]
         );
 
         if (!oldIncome.length) {
             throw new AppError('RES-001', 'Entrada não encontrada.');
+        }
+
+        const oldData = oldIncome[0];
+
+        // Check if this is the first installment of a group and if predicted date is being changed
+        if (oldData.installment_group_id &&
+            oldData.installment_number === 1 &&
+            dataPrevistaRecebimento &&
+            dataPrevistaRecebimento !== oldData.data_prevista_recebimento) {
+
+            console.log('🔄 Atualizando parcelas em cascata...');
+
+            // Recalculate dates for all installments in the group
+            const newDates = calculateDates(
+                dataPrevistaRecebimento,
+                oldData.installment_total,
+                oldData.installment_interval,
+                oldData.installment_custom_days
+            );
+
+            // Get all installments in the group
+            const [installments] = await connection.query(
+                'SELECT id, installment_number FROM entradas WHERE installment_group_id = ? AND id != ? ORDER BY installment_number',
+                [oldData.installment_group_id, id]
+            );
+
+            // Update each installment's predicted date
+            for (const inst of installments) {
+                const newDate = newDates[inst.installment_number - 1];
+                await connection.query(
+                    'UPDATE entradas SET data_prevista_recebimento = ? WHERE id = ?',
+                    [newDate, inst.id]
+                );
+                console.log(`✅ Parcela ${inst.installment_number} atualizada para ${newDate}`);
+            }
         }
 
         const updates = [];
@@ -461,7 +504,7 @@ exports.updateIncome = async (req, res, next) => {
             values.push(companyId);
         }
 
-        let newAccountId = oldIncome[0].account_id;
+        let newAccountId = oldData.account_id;
         if (accountId !== undefined) {
             updates.push('account_id = ?');
             values.push(accountId);
@@ -494,7 +537,7 @@ exports.updateIncome = async (req, res, next) => {
         // 1. Revert old transaction from old account
         await connection.query(
             'UPDATE contas SET current_balance = current_balance - ? WHERE id = ?',
-            [oldIncome[0].valor, oldIncome[0].account_id]
+            [oldData.valor, oldData.account_id]
         );
 
         // 2. Apply new transaction to new account (even if same account, logic holds)
