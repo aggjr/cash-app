@@ -293,14 +293,16 @@ export const IncomeModal = {
                     if (!dataPrevistaInput.value) { dataPrevistaInput.classList.add('input-error'); isValid = false; } else dataPrevistaInput.classList.remove('input-error');
                     if (!valorInput.value) { valorInput.classList.add('input-error'); isValid = false; } else valorInput.classList.remove('input-error');
                     if (!tipoEntradaIdInput.value) {
-                        treeContainer.classList.add('input-error');
-                        treeContainer.style.border = ''; // Clear any inline override
+                        // Apply ONLY to inner element to avoid double border/background issues
+                        treeContainer.style.border = '';
+                        treeContainer.classList.remove('input-error');
+
                         const innerTree = treeContainer.querySelector('.tree-selector');
                         if (innerTree) innerTree.classList.add('input-error');
                         isValid = false;
                     } else {
                         treeContainer.classList.remove('input-error');
-                        treeContainer.style.border = ''; // Reset to default CSS
+                        treeContainer.style.border = '';
                         const innerTree = treeContainer.querySelector('.tree-selector');
                         if (innerTree) innerTree.classList.remove('input-error');
                     }

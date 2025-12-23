@@ -91,6 +91,10 @@ export const TreeSelector = {
             .ts-toggle:hover {
                 color: var(--color-primary);
             }
+            .tree-selector.input-error {
+                background-color: #FEF2F2 !important;
+                border: 2px solid #EF4444 !important;
+            }
         `;
         container.appendChild(style);
 
