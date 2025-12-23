@@ -122,7 +122,7 @@ export const IncomeModal = {
                             <div class="form-group" style="grid-column: span 2;">
                                 <label for="income-installment-type">Tipo de Lançamento</label>
                                 <select id="income-installment-type" class="form-input">
-                                    <option value="total">Total (Único)</option>
+                                    <option value="total">Entrada Única</option>
                                     <option value="dividir">Dividir (Parcelar)</option>
                                     <option value="replicar">Replicar (Recorrente)</option>
                                 </select>
