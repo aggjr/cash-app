@@ -13,7 +13,8 @@ const pool = mysql.createPool({
     queueLimit: 0,
     enableKeepAlive: true,
     keepAliveInitialDelay: 0,
-    // CRITICAL: Force timezone to prevent date shifting issues
+    // CRITICAL: Force dates to be returned as strings to prevent timezone conversion
+    dateStrings: true, // Returns DATE/DATETIME as 'YYYY-MM-DD' strings, not Date objects
     timezone: 'Z' // Use UTC to prevent automatic timezone conversions
 });
 

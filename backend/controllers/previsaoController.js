@@ -113,9 +113,9 @@ exports.getDailyForecast = async (req, res, next) => {
             else if (table === 'aportes') { realCol = 'data_real'; prevCol = 'data_fato'; }
             else if (table === 'retiradas') { realCol = 'data_real'; prevCol = 'data_prevista'; }
 
-            // CRITICAL FIX: Use SUBSTRING to extract first 10 chars (YYYY-MM-DD) as pure string
-            // This completely bypasses ALL timezone conversions and Date object creation
-            return `SUBSTRING(COALESCE(${realCol}, ${prevCol}), 1, 10)`;
+            // With dateStrings: true, MySQL already returns dates as 'YYYY-MM-DD' strings
+            // No need for SUBSTRING - COALESCE will return the first non-null date string
+            return `COALESCE(${realCol}, ${prevCol})`;
         };
 
         // Helper to get Validity SQL Condition
@@ -218,23 +218,40 @@ exports.getDailyForecast = async (req, res, next) => {
             const dateExpr = effectiveDateSql(dataTable);
             const validExpr = validitySql(dataTable);
 
+            // Build SELECT clause with all necessary date columns based on table type
+            let dateColumns = '';
+            if (dataTable === 'entradas') {
+                dateColumns = 'd.data_real_recebimento, d.data_atraso, d.data_prevista_recebimento,';
+            } else if (dataTable === 'saidas') {
+                dateColumns = 'd.data_real_pagamento, d.data_prevista_pagamento,';
+            } else if (dataTable === 'producao_revenda') {
+                dateColumns = 'd.data_real_pagamento, d.data_prevista_pagamento,';
+            }
 
             const query = `
                 SELECT 
                     d.id, 
                     d.valor, 
-                    d.${fkCol} as type_id, 
+                    d.${fkCol} as type_id,
+                    ${dateColumns}
                     ${dateExpr} as raw_date
                 FROM ${dataTable} d
                 WHERE d.project_id = ?
                 AND d.active = 1
-                /* Keep SQL filter for performance but broaden it slightly to ensure we don't miss edge cases */
-                /* AND ${validExpr} -> we will filter validity in JS if needed or keep it here */
                 AND ${validExpr}
                 AND ${dateExpr} >= ?
                 AND ${dateExpr} <= ?
                     `;
             const [items] = await db.execute(query, [projectId, startDate, endDate]);
+
+            // DEBUG: Log query results for troubleshooting
+            if (dataTable === 'entradas') {
+                console.log(`\n=== ENTRADAS DEBUG ===`);
+                console.log(`Query returned ${items.length} items`);
+                console.log(`First item sample:`, items[0]);
+                console.log(`Date range: ${startDate} to ${endDate}`);
+            }
+
 
             // Map & Aggregate
             const typeMap = new Map();
@@ -253,38 +270,17 @@ exports.getDailyForecast = async (req, res, next) => {
                 const node = typeMap.get(item.type_id);
                 if (node) {
                     const val = parseFloat(item.valor) || 0;
-                    // Fix: Resolve date in JS exactly like IncomeController/SharedTable
-                    // Logic: Entradas uses: Real (if exists) -> Atraso (if exists) -> Prevista
-                    // But wait, SharedTable just shows the columns. Forecast needs ONE effective date.
-                    // The screenshot shows 'Dt Real' populated (15/12). So we must use that.
 
-                    let rawDateVal = null;
+                    // CRITICAL FIX: Use ONLY raw_date from SQL (already formatted as YYYY-MM-DD string)
+                    // The SQL query uses SUBSTRING(COALESCE(...), 1, 10) which:
+                    // 1. Handles priority: Real > Atraso > Prevista
+                    // 2. Returns as string, avoiding Date object timezone conversions
+                    const rawDateVal = item.raw_date;
 
-                    if (typeTable === 'tipo_entrada') {
-                        // Priority: Real > Atraso > Prevista (Based on generic 'effectiveDateSql' logic)
-                        // But let's check what the user actually sees.
-                        // User sees Dt Real = 15/12.
-                        if (item.data_real_recebimento) rawDateVal = item.data_real_recebimento;
-                        else if (item.data_atraso) rawDateVal = item.data_atraso;
-                        else rawDateVal = item.data_prevista_recebimento;
-                    }
-                    else if (typeTable === 'tipo_saida' || typeTable === 'tipo_producao_revenda') {
-                        // Saida/Producao: Real > Prevista
-                        if (item.data_real_pagamento) rawDateVal = item.data_real_pagamento;
-                        else rawDateVal = item.data_prevista_pagamento;
-                    }
-                    else {
-                        // Fallback to the SQL calculated raw_date
-                        rawDateVal = item.raw_date;
-                    }
-
-                    let dateKey = '';
-                    if (rawDateVal instanceof Date) {
-                        // Use local timezone formatting to avoid UTC conversion
-                        dateKey = formatDateLocal(rawDateVal);
-                    } else if (typeof rawDateVal === 'string' && rawDateVal.length >= 10) {
-                        dateKey = rawDateVal.substring(0, 10);
-                    }
+                    // Extract YYYY-MM-DD from string (dateStrings: true ensures it's always a string)
+                    const dateKey = (typeof rawDateVal === 'string' && rawDateVal.length >= 10)
+                        ? rawDateVal.substring(0, 10)
+                        : '';
 
                     if (dateKey) {
                         node.dailyTotals[dateKey] = (node.dailyTotals[dateKey] || 0) + val;
@@ -340,12 +336,11 @@ exports.getDailyForecast = async (req, res, next) => {
             let total = 0;
             items.forEach(item => {
                 const val = parseFloat(item.valor) || 0;
-                let dateKey = '';
-                if (item.raw_date instanceof Date) {
-                    dateKey = formatDateLocal(item.raw_date);
-                } else if (typeof item.raw_date === 'string' && item.raw_date.length >= 10) {
-                    dateKey = item.raw_date.substring(0, 10);
-                }
+
+                // Use raw_date from SQL (already YYYY-MM-DD string with dateStrings: true)
+                const dateKey = (typeof item.raw_date === 'string' && item.raw_date.length >= 10)
+                    ? item.raw_date.substring(0, 10)
+                    : '';
 
                 if (dateKey) {
                     dailyTotals[dateKey] = (dailyTotals[dateKey] || 0) + val;
