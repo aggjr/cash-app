@@ -101,7 +101,7 @@ export const IncomeModal = {
                                 <select id="income-company" class="form-input" required>
                                     <option value="">Selecione...</option>
                                     ${companies.map(c => `
-                                        <option value="${c.id}" ${income?.company_id === c.id ? 'selected' : ''}>${c.razao_social}</option>
+                                        <option value="${c.id}" ${income?.company_id === c.id ? 'selected' : ''}>${c.name}</option>
                                     `).join('')}
                                 </select>
                             </div>
