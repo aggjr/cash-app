@@ -70,8 +70,8 @@ export const IncomeModal = {
                         
                         <div class="form-grid" style="display: grid; grid-template-columns: repeat(8, 1fr); gap: 0.75rem;">
                             
-                            <!-- Row 1: Dates (3+2+3 = 8 cols) -->
-                            <div class="form-group" style="grid-column: span 3;">
+                            <!-- Row 1: All Dates (2+2+2+2 = 8 cols) -->
+                            <div class="form-group" style="grid-column: span 2;">
                                 <label for="income-data-fato">Data do Fato <span class="required">*</span></label>
                                 <input type="date" id="income-data-fato" class="form-input" 
                                     value="${formatDateForInput(income?.data_fato)}" required />
@@ -83,32 +83,33 @@ export const IncomeModal = {
                                     value="${formatDateForInput(income?.data_prevista_recebimento)}" required />
                             </div>
 
-                            <div class="form-group" style="grid-column: span 3;">
+                            <div class="form-group" style="grid-column: span 2;">
                                 <label for="income-data-atraso">Data Atraso</label>
                                 <input type="date" id="income-data-atraso" class="form-input" 
                                     value="${formatDateForInput(income?.data_atraso)}" />
                             </div>
 
-                            <!-- Row 2: Data Real, Company, Account (Span 2 each) -->
                             <div class="form-group" style="grid-column: span 2;">
                                 <label for="income-data-real">Data Real</label>
                                 <input type="date" id="income-data-real" class="form-input" 
                                     value="${formatDateForInput(income?.data_real_recebimento)}" />
                             </div>
 
-                            <div class="form-group" style="grid-column: span 2;">
+                            <!-- Row 2: Empresa (4), Conta (4) = 8 cols -->
+                            <div class="form-group" style="grid-column: span 4;">
                                 <label for="income-company">Empresa <span class="required">*</span></label>
                                 <select id="income-company" class="form-input" required>
                                     <option value="">Selecione...</option>
-                                    ${companies.map(c => `<option value="${c.id}" ${income?.company_id == c.id ? 'selected' : ''}>${c.name}</option>`).join('')}
+                                    ${companies.map(c => `
+                                        <option value="${c.id}" ${income?.company_id === c.id ? 'selected' : ''}>${c.razao_social}</option>
+                                    `).join('')}
                                 </select>
                             </div>
 
-                            <div class="form-group" style="grid-column: span 2;">
-                                <label for="income-account">Conta <span id="account-required-asterisk" class="required" style="display: none;">*</span></label>
-                                <select id="income-account" class="form-input" style="background-color: var(--color-background-disabled); color: #9CA3AF;" disabled>
+                            <div class="form-group" style="grid-column: span 4;">
+                                <label for="income-account">Conta <span id="account-required-asterisk" style="display: ${income?.data_real_recebimento ? 'inline' : 'none'};">*</span></label>
+                                <select id="income-account" class="form-input">
                                     <option value="">Selecione...</option>
-                                    ${accounts.map(a => `<option value="${a.id}" ${income?.account_id == a.id ? 'selected' : ''}>${a.name}</option>`).join('')}
                                 </select>
                             </div>
 
