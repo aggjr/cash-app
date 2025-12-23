@@ -2,6 +2,7 @@ import { AporteModal } from './AporteModal.js';
 import { SharedTable } from './SharedTable.js'; // Import SharedTable
 import { showToast } from '../utils/toast.js';
 import { getApiBaseUrl } from '../utils/apiConfig.js';
+import { ExcelExporter } from '../utils/ExcelExporter.js';
 
 export const AporteManager = (project) => {
     const container = document.createElement('div');
@@ -379,8 +380,11 @@ export const AporteManager = (project) => {
             </div>
         </div>
 
-        <div style="margin-bottom: 1rem;">
+        <div style="margin-bottom: 1rem; display: flex; gap: 0.5rem;">
             <button id="btn-new-aporte" class="btn-primary">+ Novo Aporte</button>
+            <div style="flex: 1;"></div>
+            <button id="btn-excel" class="btn-outline">📊 Excel</button>
+            <button id="btn-pdf" class="btn-outline">🖨️ PDF</button>
         </div>
 
         <div id="table-container" style="flex: 1; display: flex; flex-direction: column; overflow: hidden;">
@@ -394,6 +398,35 @@ export const AporteManager = (project) => {
     `;
 
     container.querySelector('#btn-new-aporte').onclick = createAporte;
+
+    // Export Handlers
+    container.querySelector('#btn-excel').onclick = async () => {
+        try {
+            if (!aportes || aportes.length === 0) {
+                showToast('Sem dados para exportar', 'warning');
+                return;
+            }
+
+            const exportData = aportes.map(item => ({ ...item }));
+
+            await ExcelExporter.exportTable(
+                exportData,
+                columns.filter(c => c.key !== 'actions' && c.key !== 'link').map(c => ({
+                    header: c.label,
+                    key: c.key,
+                    width: parseInt(c.width) / 7 || 15,
+                    type: c.type
+                })),
+                'Relatório de Aportes',
+                'aportes'
+            );
+        } catch (error) {
+            console.error('Error during Excel export:', error);
+            showToast(`Erro ao exportar: ${error.message}`, 'error');
+        }
+    };
+
+    container.querySelector('#btn-pdf').onclick = () => window.print();
 
     // Initialize SharedTable
     const tableContainer = container.querySelector('#table-container');

@@ -3,6 +3,7 @@ import { SharedTable } from './SharedTable.js';
 import { showToast } from '../utils/toast.js';
 import { getApiBaseUrl } from '../utils/apiConfig.js';
 import * as filterUtils from '../utils/filterUtils.js'; // Assuming this exists or we inline logic
+import { ExcelExporter } from '../utils/ExcelExporter.js';
 
 export const RetiradaManager = (project) => {
     const container = document.createElement('div');
@@ -325,11 +326,31 @@ export const RetiradaManager = (project) => {
 
     const btnArea = document.createElement('div');
     btnArea.style.marginBottom = '1rem';
+    btnArea.style.display = 'flex';
+    btnArea.style.gap = '0.5rem';
+
     const btnNew = document.createElement('button');
     btnNew.className = 'btn-primary';
     btnNew.textContent = '+ Nova Retirada';
     btnNew.onclick = createRetirada;
     btnArea.appendChild(btnNew);
+
+    const spacer = document.createElement('div');
+    spacer.style.flex = '1';
+    btnArea.appendChild(spacer);
+
+    const btnExcel = document.createElement('button');
+    btnExcel.id = 'btn-excel';
+    btnExcel.className = 'btn-outline';
+    btnExcel.textContent = '📊 Excel';
+    btnArea.appendChild(btnExcel);
+
+    const btnPdf = document.createElement('button');
+    btnPdf.id = 'btn-pdf';
+    btnPdf.className = 'btn-outline';
+    btnPdf.textContent = '🖨️ PDF';
+    btnArea.appendChild(btnPdf);
+
     container.appendChild(btnArea);
 
     const tableContainer = document.createElement('div');
@@ -354,6 +375,35 @@ export const RetiradaManager = (project) => {
         <div class="pagination-controls" style="display: flex; gap: 0.5rem; align-items: center;"></div>
     `;
     container.appendChild(footer);
+
+    // Export Handlers
+    container.querySelector('#btn-excel').onclick = async () => {
+        try {
+            if (!retiradas || retiradas.length === 0) {
+                showToast('Sem dados para exportar', 'warning');
+                return;
+            }
+
+            const exportData = retiradas.map(item => ({ ...item }));
+
+            await ExcelExporter.exportTable(
+                exportData,
+                columns.filter(c => c.key !== 'actions' && c.key !== 'link' && c.key !== 'status').map(c => ({
+                    header: c.label,
+                    key: c.key,
+                    width: parseInt(c.width) / 7 || 15,
+                    type: c.type
+                })),
+                'Relatório de Retiradas',
+                'retiradas'
+            );
+        } catch (error) {
+            console.error('Error during Excel export:', error);
+            showToast(`Erro ao exportar: ${error.message}`, 'error');
+        }
+    };
+
+    container.querySelector('#btn-pdf').onclick = () => window.print();
 
     // Init SharedTable
     sharedTable = new SharedTable({
