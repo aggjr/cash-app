@@ -1,0 +1,10 @@
+# Adicionar ao .gitignore - Arquivos de Backup com Dados
+
+# Database backups com dados de produção (sensível)
+database/backups/PRODUCTION_*.sql
+database/backups/*_FULL*.sql
+database/backups/*_full*.sql
+
+# Manter apenas backups de estrutura no Git
+!database/backups/schema_*.sql
+!database/backups/README*.md
