@@ -295,10 +295,14 @@ export const IncomeModal = {
                     if (!tipoEntradaIdInput.value) {
                         treeContainer.classList.add('input-error');
                         treeContainer.style.border = ''; // Clear any inline override
+                        const innerTree = treeContainer.querySelector('.tree-selector');
+                        if (innerTree) innerTree.classList.add('input-error');
                         isValid = false;
                     } else {
                         treeContainer.classList.remove('input-error');
                         treeContainer.style.border = ''; // Reset to default CSS
+                        const innerTree = treeContainer.querySelector('.tree-selector');
+                        if (innerTree) innerTree.classList.remove('input-error');
                     }
                     if (!companySelect.value) { companySelect.classList.add('input-error'); isValid = false; } else companySelect.classList.remove('input-error');
 
