@@ -791,9 +791,12 @@ body.dark-mode {
 }
 
 .input-error {
-  border-color: #EF4444 !important;
-  /* Red */
+  border: 2px solid #EF4444 !important;
+  /* Red, thicker */
+  border-radius: 8px !important;
+  /* Rounded */
   background-color: #FEF2F2 !important;
+  /* Light red background */
 }
 
 .full-width {

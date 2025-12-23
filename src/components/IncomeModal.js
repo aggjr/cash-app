@@ -292,7 +292,14 @@ export const IncomeModal = {
                     if (!dataFatoInput.value) { dataFatoInput.classList.add('input-error'); isValid = false; } else dataFatoInput.classList.remove('input-error');
                     if (!dataPrevistaInput.value) { dataPrevistaInput.classList.add('input-error'); isValid = false; } else dataPrevistaInput.classList.remove('input-error');
                     if (!valorInput.value) { valorInput.classList.add('input-error'); isValid = false; } else valorInput.classList.remove('input-error');
-                    if (!tipoEntradaIdInput.value) { treeContainer.style.border = '1px solid #EF4444'; isValid = false; } else treeContainer.style.border = '1px solid var(--color-border-light)';
+                    if (!tipoEntradaIdInput.value) {
+                        treeContainer.classList.add('input-error');
+                        treeContainer.style.border = ''; // Clear any inline override
+                        isValid = false;
+                    } else {
+                        treeContainer.classList.remove('input-error');
+                        treeContainer.style.border = ''; // Reset to default CSS
+                    }
                     if (!companySelect.value) { companySelect.classList.add('input-error'); isValid = false; } else companySelect.classList.remove('input-error');
 
                     // Account is only required if Data Real is set
