@@ -306,6 +306,16 @@ exports.createIncome = async (req, res, next) => {
         const installmentValues = calculateInstallments(valorDecimal, count, type);
         const installmentDates = calculateDates(dataPrevistaRecebimento, count, interval);
 
+        // Calculate fact dates based on type
+        let factDates;
+        if (type === 'replicar') {
+            // For REPLICAR: data_fato increments with each interval
+            factDates = calculateDates(dataFato, count, interval);
+        } else {
+            // For DIVIDIR or TOTAL: data_fato stays the same for all installments
+            factDates = Array(count).fill(dataFato);
+        }
+
         const createdIds = [];
 
         // Create each installment
@@ -319,7 +329,7 @@ exports.createIncome = async (req, res, next) => {
                 (data_fato, data_prevista_recebimento, data_real_recebimento, data_atraso, valor, descricao, tipo_entrada_id, company_id, account_id, project_id, comprovante_url, forma_pagamento) 
                 VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
                 [
-                    dataFato,
+                    factDates[i],  // <- CHANGED: now uses calculated fact date
                     installmentDates[i],
                     dataRealRecebimento || null,
                     dataAtraso || null,
