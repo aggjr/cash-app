@@ -110,14 +110,42 @@ export const IncomeModal = {
                                 </select>
                             </div>
 
-                            <!-- Row 3: Valor (Span 3), Comprovante (Span 3) -->
-                            <div class="form-group" style="grid-column: span 3;">
+                            <!-- Row 3: Valor (Span 2), Tipo de Lançamento (Span 2), Parcelas (Span 1), Intervalo (Span 1) -->
+                            <div class="form-group" style="grid-column: span 2;">
                                 <label for="income-valor">Valor (R$) <span class="required">*</span></label>
                                 <input type="text" id="income-valor" class="form-input" 
                                     placeholder="R$ 0,00" required />
                             </div>
 
-                            <div class="form-group" style="grid-column: span 3;">
+                            <div class="form-group" style="grid-column: span 2;">
+                                <label for="income-installment-type">Tipo de Lançamento</label>
+                                <select id="income-installment-type" class="form-input">
+                                    <option value="total">Total (Único)</option>
+                                    <option value="dividir">Dividir (Parcelar)</option>
+                                    <option value="replicar">Replicar (Recorrente)</option>
+                                </select>
+                            </div>
+
+                            <div class="form-group" id="installment-count-group" style="grid-column: span 1; display: none;">
+                                <label for="income-installment-count">Nº Parcelas</label>
+                                <input type="number" id="income-installment-count" class="form-input" 
+                                    min="2" max="120" value="2" />
+                            </div>
+
+                            <div class="form-group" id="installment-interval-group" style="grid-column: span 1; display: none;">
+                                <label for="income-installment-interval">Intervalo</label>
+                                <select id="income-installment-interval" class="form-input">
+                                    <option value="semanal">Semanal</option>
+                                    <option value="quinzenal">Quinzenal</option>
+                                    <option value="mensal" selected>Mensal</option>
+                                    <option value="trimestral">Trimestral</option>
+                                    <option value="semestral">Semestral</option>
+                                    <option value="anual">Anual</option>
+                                </select>
+                            </div>
+
+                            <!-- Row 4: Comprovante (Span 6) -->
+                            <div class="form-group" style="grid-column: span 6;">
                                 <label for="income-comprovante">Comprovante</label>
                                 <input type="file" id="income-comprovante" style="display: none;" accept="image/*,application/pdf" />
                                 <input type="hidden" id="income-comprovante-url" value="${income?.comprovante_url || ''}" />
@@ -195,6 +223,11 @@ export const IncomeModal = {
                 const dataRealInput = modal.querySelector('#income-data-real');
                 const dataAtrasoInput = modal.querySelector('#income-data-atraso');
                 const valorInput = modal.querySelector('#income-valor');
+                const installmentTypeSelect = modal.querySelector('#income-installment-type');
+                const installmentCountInput = modal.querySelector('#income-installment-count');
+                const installmentIntervalSelect = modal.querySelector('#income-installment-interval');
+                const installmentCountGroup = modal.querySelector('#installment-count-group');
+                const installmentIntervalGroup = modal.querySelector('#installment-interval-group');
                 const comprovanteInput = modal.querySelector('#income-comprovante');
                 const comprovanteUrlInput = modal.querySelector('#income-comprovante-url');
                 const comprovantePreview = modal.querySelector('#comprovante-preview');
@@ -289,6 +322,32 @@ export const IncomeModal = {
                     if (clean !== val) e.target.value = clean;
                     validate();
                 });
+
+                // Installment Fields Toggle Logic
+                const toggleInstallmentFields = () => {
+                    const type = installmentTypeSelect.value;
+                    const showFields = (type === 'dividir' || type === 'replicar');
+
+                    installmentCountGroup.style.display = showFields ? 'block' : 'none';
+                    installmentIntervalGroup.style.display = showFields ? 'block' : 'none';
+
+                    if (!showFields) {
+                        installmentCountInput.value = 2;
+                        installmentIntervalSelect.value = 'mensal';
+                    }
+                };
+
+                // Initialize visibility
+                toggleInstallmentFields();
+
+                // Listen for changes
+                installmentTypeSelect.addEventListener('change', () => {
+                    toggleInstallmentFields();
+                    markAsDirty();
+                });
+
+                installmentCountInput.addEventListener('change', markAsDirty);
+                installmentIntervalSelect.addEventListener('change', markAsDirty);
 
                 setTimeout(() => { dataFatoInput.focus(); }, 100);
 
@@ -589,7 +648,11 @@ export const IncomeModal = {
                             companyId: parseInt(companySelect.value),
                             accountId: parseInt(accountSelect.value),
                             comprovanteUrl: comprovanteUrlInput.value || null,
-                            formaPagamento: modal.querySelector('input[name="forma_pagamento"]:checked')?.value || null
+                            formaPagamento: modal.querySelector('input[name="forma_pagamento"]:checked')?.value || null,
+                            // Installment data
+                            installmentType: installmentTypeSelect.value,
+                            installmentCount: installmentTypeSelect.value === 'total' ? 1 : parseInt(installmentCountInput.value),
+                            installmentInterval: installmentTypeSelect.value === 'total' ? null : installmentIntervalSelect.value
                         };
                         if (isEdit) {
                             data.id = income.id;

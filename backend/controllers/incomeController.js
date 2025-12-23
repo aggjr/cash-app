@@ -188,6 +188,77 @@ exports.listIncomes = async (req, res, next) => {
     }
 };
 
+// Helper functions for installment calculation
+const calculateInstallments = (totalValue, count, type) => {
+    if (type === 'total') return [totalValue];
+
+    if (type === 'dividir') {
+        // Divide the total value into equal parts
+        const baseValue = Math.floor((totalValue * 100) / count) / 100;
+        const remainder = Math.round((totalValue - (baseValue * count)) * 100) / 100;
+
+        // First installment gets the remainder (rounding difference)
+        const installments = [baseValue + remainder];
+        for (let i = 1; i < count; i++) {
+            installments.push(baseValue);
+        }
+        return installments;
+    }
+
+    if (type === 'replicar') {
+        // Replicate the full value for each installment
+        return Array(count).fill(totalValue);
+    }
+
+    return [totalValue];
+};
+
+const calculateDates = (baseDate, count, interval) => {
+    const dates = [baseDate];
+
+    for (let i = 1; i < count; i++) {
+        const prevDate = new Date(dates[i - 1]);
+        let nextDate;
+
+        switch (interval) {
+            case 'semanal':
+                nextDate = new Date(prevDate);
+                nextDate.setDate(prevDate.getDate() + 7);
+                break;
+            case 'quinzenal':
+                nextDate = new Date(prevDate);
+                nextDate.setDate(prevDate.getDate() + 15);
+                break;
+            case 'mensal':
+                nextDate = new Date(prevDate);
+                nextDate.setMonth(prevDate.getMonth() + 1);
+                break;
+            case 'trimestral':
+                nextDate = new Date(prevDate);
+                nextDate.setMonth(prevDate.getMonth() + 3);
+                break;
+            case 'semestral':
+                nextDate = new Date(prevDate);
+                nextDate.setMonth(prevDate.getMonth() + 6);
+                break;
+            case 'anual':
+                nextDate = new Date(prevDate);
+                nextDate.setFullYear(prevDate.getFullYear() + 1);
+                break;
+            default:
+                nextDate = prevDate;
+        }
+
+        // Format to YYYY-MM-DD
+        const year = nextDate.getFullYear();
+        const month = String(nextDate.getMonth() + 1).padStart(2, '0');
+        const day = String(nextDate.getDate()).padStart(2, '0');
+        dates.push(`${year}-${month}-${day}`);
+    }
+
+    return dates;
+};
+
 exports.createIncome = async (req, res, next) => {
     let connection;
     try {
@@ -203,11 +274,13 @@ exports.createIncome = async (req, res, next) => {
             accountId,
             projectId,
             formaPagamento,
-            comprovanteUrl
+            comprovanteUrl,
+            installmentType,
+            installmentCount,
+            installmentInterval
         } = req.body;
 
         // Validations
-        // Account ID is mandatory only if there is a Real Date (Receivement happened)
         if (!dataFato || !dataPrevistaRecebimento || !valor || !tipoEntradaId || !companyId || !projectId) {
             throw new AppError('VAL-002');
         }
@@ -224,36 +297,64 @@ exports.createIncome = async (req, res, next) => {
         connection = await db.getConnection();
         await connection.beginTransaction();
 
-        const [result] = await connection.query(
-            `INSERT INTO entradas 
-            (data_fato, data_prevista_recebimento, data_real_recebimento, data_atraso, valor, descricao, tipo_entrada_id, company_id, account_id, project_id, comprovante_url, forma_pagamento) 
-            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
-            [dataFato, dataPrevistaRecebimento, dataRealRecebimento || null, dataAtraso || null, valorDecimal, descricao, tipoEntradaId, companyId, accountId, projectId, comprovanteUrl || null, formaPagamento || null]
-        );
+        // Determine installment parameters
+        const type = installmentType || 'total';
+        const count = (type === 'total') ? 1 : (parseInt(installmentCount) || 1);
+        const interval = installmentInterval || 'mensal';
 
-        // Update account balance
-        await connection.query(
-            'UPDATE contas SET current_balance = current_balance + ? WHERE id = ?',
-            [valorDecimal, accountId]
-        );
+        // Calculate installments and dates
+        const installmentValues = calculateInstallments(valorDecimal, count, type);
+        const installmentDates = calculateDates(dataPrevistaRecebimento, count, interval);
+
+        const createdIds = [];
+
+        // Create each installment
+        for (let i = 0; i < count; i++) {
+            const installmentDesc = count > 1
+                ? `${descricao || ''} - Parcela ${i + 1}/${count}`.trim()
+                : descricao;
+
+            const [result] = await connection.query(
+                `INSERT INTO entradas 
+                (data_fato, data_prevista_recebimento, data_real_recebimento, data_atraso, valor, descricao, tipo_entrada_id, company_id, account_id, project_id, comprovante_url, forma_pagamento) 
+                VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+                [
+                    dataFato,
+                    installmentDates[i],
+                    dataRealRecebimento || null,
+                    dataAtraso || null,
+                    installmentValues[i],
+                    installmentDesc,
+                    tipoEntradaId,
+                    companyId,
+                    accountId,
+                    projectId,
+                    comprovanteUrl || null,
+                    formaPagamento || null
+                ]
+            );
+
+            createdIds.push(result.insertId);
+
+            // Update account balance only if there's a real receipt date
+            if (dataRealRecebimento && accountId) {
+                await connection.query(
+                    'UPDATE contas SET current_balance = current_balance + ? WHERE id = ?',
+                    [installmentValues[i], accountId]
+                );
+            }
+        }
 
         await connection.commit();
 
         res.status(201).json({
-            id: result.insertId,
-            data_fato: dataFato,
-            data_prevista_recebimento: dataPrevistaRecebimento,
-            data_real_recebimento: dataRealRecebimento || null,
-            data_atraso: dataAtraso || null,
-            valor: valorDecimal,
-            descricao,
-            tipo_entrada_id: tipoEntradaId,
-            company_id: companyId,
-            account_id: accountId,
-            project_id: projectId,
-            active: 1,
-            comprovante_url: comprovanteUrl || null,
-            forma_pagamento: formaPagamento || null
+            success: true,
+            ids: createdIds,
+            count: createdIds.length,
+            installmentType: type,
+            message: count > 1
+                ? `${count} ${type === 'dividir' ? 'parcelas criadas' : 'entradas recorrentes criadas'} com sucesso`
+                : 'Entrada criada com sucesso'
         });
     } catch (error) {
         if (connection) await connection.rollback();
