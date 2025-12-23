@@ -437,43 +437,76 @@ export const ProducaoRevendaManager = (project) => {
     container.querySelector('#btn-new-item').addEventListener('click', createItem);
 
     // Export Handlers
-    container.querySelector('#btn-excel').onclick = () => {
+    container.querySelector('#btn-excel').onclick = async () => {
         try {
-            console.log('Excel export clicked');
-            console.log('Items:', items);
-            console.log('Items length:', items?.length);
+            console.log('=== EXCEL EXPORT DEBUG START ===');
+            console.log('Step 1: Button clicked');
+            console.log('Step 2: Items =', items);
+            console.log('Step 3: Items type =', typeof items);
+            console.log('Step 4: Is array =', Array.isArray(items));
+            console.log('Step 5: Length =', items?.length);
 
-            if (!items || items.length === 0) {
+            if (!items) {
+                console.error('ERROR: items is null/undefined');
+                showToast('Erro: Dados não carregados', 'error');
+                return;
+            }
+
+            if (!Array.isArray(items)) {
+                console.error('ERROR: items is not array, type:', typeof items);
+                showToast('Erro: Formato de dados inválido', 'error');
+                return;
+            }
+
+            if (items.length === 0) {
+                console.warn('No items to export');
                 showToast('Sem dados para exportar', 'warning');
                 return;
             }
 
-            const exportData = items.map(item => ({
-                ...item
-            }));
+            console.log('Step 6: Preparing export data...');
+            const exportData = items.map(item => ({ ...item }));
+            console.log('Step 7: Data prepared -', exportData.length, 'items');
+            console.log('Step 8: Sample item =', exportData[0]);
 
-            console.log('Export data prepared:', exportData.length, 'items');
-
+            console.log('Step 9: Filtering columns...');
             const filteredColumns = columns.filter(c => c.key !== 'actions' && c.key !== 'link').map(c => ({
                 header: c.label,
                 key: c.key,
                 width: parseInt(c.width) / 7 || 15,
                 type: c.type
             }));
+            console.log('Step 10: Columns count =', filteredColumns.length);
+            console.log('Step 11: Column keys =', filteredColumns.map(c => c.key));
 
-            console.log('Columns for export:', filteredColumns);
-            console.log('Calling ExcelExporter.exportTable...');
+            console.log('Step 12: Checking ExcelExporter...');
+            if (!ExcelExporter) {
+                console.error('ERROR: ExcelExporter undefined');
+                showToast('Erro: Módulo de exportação não carregado', 'error');
+                return;
+            }
+            if (!ExcelExporter.exportTable) {
+                console.error('ERROR: exportTable function missing');
+                showToast('Erro: Função de exportação não disponível', 'error');
+                return;
+            }
 
-            ExcelExporter.exportTable(
+            console.log('Step 13: Calling ExcelExporter.exportTable...');
+            await ExcelExporter.exportTable(
                 exportData,
                 filteredColumns,
                 'Relatório de Produção/Revenda',
                 'producao_revenda'
             );
 
-            console.log('ExcelExporter.exportTable completed');
+            console.log('Step 14: SUCCESS - Export completed');
+            console.log('=== EXCEL EXPORT DEBUG END ===');
+
         } catch (error) {
-            console.error('Error during Excel export:', error);
+            console.error('=== EXCEL EXPORT ERROR ===');
+            console.error('Error:', error);
+            console.error('Message:', error.message);
+            console.error('Stack:', error.stack);
             showToast(`Erro ao exportar: ${error.message}`, 'error');
         }
     };
