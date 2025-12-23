@@ -213,11 +213,17 @@ const calculateInstallments = (totalValue, count, type) => {
     return [totalValue];
 };
 
+// Helper to parse date string as local time (not UTC)
+const parseLocalDate = (dateString) => {
+    const [year, month, day] = dateString.split('-').map(num => parseInt(num));
+    return new Date(year, month - 1, day); // month is 0-indexed
+};
+
 const calculateDates = (baseDate, count, interval, customDays = null) => {
     const dates = [baseDate];
 
     for (let i = 1; i < count; i++) {
-        const prevDate = new Date(dates[i - 1]);
+        const prevDate = parseLocalDate(dates[i - 1]);
         let nextDate;
 
         switch (interval) {
