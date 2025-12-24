@@ -151,25 +151,35 @@ export const PrevisaoFluxoManager = (project) => {
                 let dayCells = '';
                 days.forEach(d => {
                     const val = node.dailyTotals[d] || 0;
-                    let color = '#9CA3AF';
+                    const overdueVal = node.dailyOverdue?.[d] || 0;
+
+                    let cellContent = '';
+
+                    // Render normal value (green/red based on flow)
                     if (Math.abs(val) > 0.001) {
-                        // Color Logic:
-                        // Positive Flow Items (Entradas, Aportes): >0 Green, <0 Red
-                        // Negative Flow Items (Saidas, Producao, Retiradas): >0 Red, <0 Green
                         const isPositiveFlow = node.id && (
                             node.id.toString().startsWith('entradas') ||
                             node.id.toString().includes('tipo_entrada') ||
                             node.id.toString().startsWith('aportes')
                         );
 
-                        if (isPositiveFlow) {
-                            color = val >= 0 ? '#10B981' : '#EF4444';
-                        } else {
-                            // Negative Flow (Saidas, Retiradas, Producao)
-                            color = val >= 0 ? '#EF4444' : '#10B981';
-                        }
+                        const color = isPositiveFlow
+                            ? (val >= 0 ? '#10B981' : '#EF4444')
+                            : (val >= 0 ? '#EF4444' : '#10B981');
+
+                        cellContent += `<span style="color: ${color}; font-weight: 600;">${formatCurrency(val)}</span>`;
                     }
-                    dayCells += `<td style="padding: 0.5rem 1rem; text-align: right; border-bottom: 1px solid #f3f4f6; color: ${color}; font-weight: 600;">${val !== 0 ? formatCurrency(val) : '-'}</td>`;
+
+                    // Render overdue value (gray, italic, informational)
+                    if (Math.abs(overdueVal) > 0.001) {
+                        if (cellContent) cellContent += '<br>';
+                        cellContent += `<span style="color: #999; font-style: italic; font-size: 0.85em;" title="Não efetivado - apenas informativo">⚠ ${formatCurrency(overdueVal)}</span>`;
+                    }
+
+                    // Default to '-' if both are zero
+                    if (!cellContent) cellContent = '-';
+
+                    dayCells += `<td style="padding: 0.5rem 1rem; text-align: right; border-bottom: 1px solid #f3f4f6;">${cellContent}</td>`;
                 });
 
                 html += `

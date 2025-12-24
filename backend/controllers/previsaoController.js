@@ -244,15 +244,6 @@ exports.getDailyForecast = async (req, res, next) => {
                     `;
             const [items] = await db.execute(query, [projectId, startDate, endDate]);
 
-            // DEBUG: Log query results for troubleshooting
-            if (dataTable === 'entradas') {
-                console.log(`\n=== ENTRADAS DEBUG ===`);
-                console.log(`Query returned ${items.length} items`);
-                console.log(`First item sample:`, items[0]);
-                console.log(`Date range: ${startDate} to ${endDate}`);
-            }
-
-
             // Map & Aggregate
             const typeMap = new Map();
             types.forEach(t => {
@@ -261,7 +252,8 @@ exports.getDailyForecast = async (req, res, next) => {
                     name: t.label,
                     parentId: t.parent_id ? `${typeTable}_${t.parent_id} ` : null,
                     children: [],
-                    dailyTotals: {}, // Key: YYYY-MM-DD
+                    dailyTotals: {}, // Key: YYYY-MM-DD - valores normais (somados)
+                    dailyOverdue: {}, // Key: YYYY-MM-DD - valores atrasados (informativos, NÃO somados)
                     total: 0
                 });
             });
@@ -283,9 +275,30 @@ exports.getDailyForecast = async (req, res, next) => {
                         : '';
 
                     if (dateKey) {
-                        node.dailyTotals[dateKey] = (node.dailyTotals[dateKey] || 0) + val;
+                        // Check if item is overdue (predicted date in past with no real date)
+                        const today = new Date().toISOString().split('T')[0];
+                        let isOverdue = false;
+
+                        if (dateKey < today) {
+                            if (dataTable === 'entradas') {
+                                isOverdue = !item.data_real_recebimento;
+                            } else if (dataTable === 'saidas') {
+                                isOverdue = !item.data_real_pagamento;
+                            } else if (dataTable === 'producao_revenda') {
+                                isOverdue = !item.data_real_pagamento;
+                            }
+                        }
+
+                        if (isOverdue) {
+                            node.dailyOverdue[dateKey] = (node.dailyOverdue[dateKey] || 0) + val;
+                        } else {
+                            node.dailyTotals[dateKey] = (node.dailyTotals[dateKey] || 0) + val;
+                            node.total += val;
+                        }
+                    } else {
+                        // No valid date, add to total anyway
+                        node.total += val;
                     }
-                    node.total += val;
                 }
             });
 
@@ -301,10 +314,18 @@ exports.getDailyForecast = async (req, res, next) => {
             const calculateRollup = (node) => {
                 node.children.forEach(child => {
                     calculateRollup(child);
+
+                    // Rollup normal totals
                     for (const [day, value] of Object.entries(child.dailyTotals)) {
                         node.dailyTotals[day] = (node.dailyTotals[day] || 0) + value;
                     }
-                    node.total += child.total;
+
+                    // Rollup overdue totals (informational)
+                    for (const [day, value] of Object.entries(child.dailyOverdue)) {
+                        node.dailyOverdue[day] = (node.dailyOverdue[day] || 0) + value;
+                    }
+
+                    node.total += child.total; // Total does NOT include overdue
                 });
             };
             rootNodes.forEach(root => calculateRollup(root));
@@ -324,6 +345,7 @@ exports.getDailyForecast = async (req, res, next) => {
             const [items] = await db.execute(`
             SELECT
             valor,
+                data_real,
                 ${dateExpr} as raw_date
                 FROM ${table}
                 WHERE project_id = ?
@@ -333,6 +355,7 @@ exports.getDailyForecast = async (req, res, next) => {
                 `, [projectId, startDate, endDate]);
 
             const dailyTotals = {};
+            const dailyOverdue = {};
             let total = 0;
             items.forEach(item => {
                 const val = parseFloat(item.valor) || 0;
@@ -343,9 +366,18 @@ exports.getDailyForecast = async (req, res, next) => {
                     : '';
 
                 if (dateKey) {
-                    dailyTotals[dateKey] = (dailyTotals[dateKey] || 0) + val;
+                    const today = new Date().toISOString().split('T')[0];
+                    const isOverdue = (dateKey < today) && !item.data_real;
+
+                    if (isOverdue) {
+                        dailyOverdue[dateKey] = (dailyOverdue[dateKey] || 0) + val;
+                    } else {
+                        dailyTotals[dateKey] = (dailyTotals[dateKey] || 0) + val;
+                        total += val;
+                    }
+                } else {
+                    total += val;
                 }
-                total += val;
             });
 
             return {
@@ -353,6 +385,7 @@ exports.getDailyForecast = async (req, res, next) => {
                 name: label,
                 children: [],
                 dailyTotals,
+                dailyOverdue,
                 total
             };
         };
