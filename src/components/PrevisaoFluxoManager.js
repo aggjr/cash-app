@@ -153,9 +153,9 @@ export const PrevisaoFluxoManager = (project) => {
                 // IMPORTANT: Calculate this ONCE per row, outside all conditional blocks
                 const baseFontSize = 16; // base size in pixels
                 const fontSize = Math.max(baseFontSize - (level * 2), 12); // reduce 2px per level, min 12px
-                if (level > 0) {
-                    console.log(`[FONT SIZE] Level ${level}, Node: ${node.name}, Font: ${fontSize}px`);
-                }
+                console.log(`[FONT SIZE DEBUG] Level: ${level}, Node: ${node.name}, Font: ${fontSize}px, ID: ${node.id}`);
+                console.log(`[NODE DATA] Total: ${node.total}, Has dailyOverdue: ${!!node.dailyOverdue}, dailyOverdue keys: ${Object.keys(node.dailyOverdue || {}).length}`);
+
 
                 let dayCells = '';
                 days.forEach(d => {
@@ -181,6 +181,7 @@ export const PrevisaoFluxoManager = (project) => {
 
                     // Render overdue value (gray, italic, informational)
                     if (Math.abs(overdueVal) > 0.001) {
+                        console.log(`[OVERDUE RENDER] Day: ${d}, Node: ${node.name}, Overdue: ${overdueVal}, fontSize: ${fontSize}`);
                         if (cellContent) cellContent += '<br>';
                         cellContent += `<span style="color: #999; font-style: italic; font-size: ${fontSize - 2}px;" title="Não efetivado - apenas informativo">⚠ ${formatCurrency(overdueVal)}</span>`;
                     }
