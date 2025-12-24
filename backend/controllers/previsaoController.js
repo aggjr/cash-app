@@ -397,7 +397,6 @@ exports.getDailyForecast = async (req, res, next) => {
         // --- Helper to Create Virtual Root ---
         const createVirtualRoot = (id, name, children) => {
             const node = { id, name, children, dailyTotals: {}, dailyOverdue: {}, total: 0 };
-            console.log(`[CREATE VIRTUAL ROOT] ID: ${id}, Name: ${name}, Children count: ${children.length}`);
             children.forEach(child => {
                 node.total += child.total;
                 // Rollup normal totals
@@ -406,11 +405,9 @@ exports.getDailyForecast = async (req, res, next) => {
                 }
                 // Rollup overdue totals (informational)
                 for (const [day, val] of Object.entries(child.dailyOverdue || {})) {
-                    console.log(`[ROLLUP OVERDUE] From child ${child.id || child.name}, Day: ${day}, Value: ${val}`);
                     node.dailyOverdue[day] = (node.dailyOverdue[day] || 0) + val;
                 }
             });
-            console.log(`[VIRTUAL ROOT RESULT] ID: ${id}, Total overdue days: ${Object.keys(node.dailyOverdue).length}`, node.dailyOverdue);
             return node;
         };
 
