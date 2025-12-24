@@ -258,6 +258,7 @@ exports.getDailyForecast = async (req, res, next) => {
                 });
             });
 
+
             items.forEach(item => {
                 const node = typeMap.get(item.type_id);
                 if (node) {
@@ -275,22 +276,26 @@ exports.getDailyForecast = async (req, res, next) => {
                         : '';
 
                     if (dateKey) {
-                        // Check if item is overdue (predicted date in past with no real date)
+                        // Check if item is overdue (ORIGINAL predicted date in past with no real date)
+                        // IMPORTANT: Use original predicted date, NOT effective date (which includes data_atraso)
                         const today = new Date().toISOString().split('T')[0];
                         let isOverdue = false;
+                        let originalPredictedDate = '';
 
-                        if (dateKey < today) {
-                            if (dataTable === 'entradas') {
-                                isOverdue = !item.data_real_recebimento;
-                            } else if (dataTable === 'saidas') {
-                                isOverdue = !item.data_real_pagamento;
-                            } else if (dataTable === 'producao_revenda') {
-                                isOverdue = !item.data_real_pagamento;
-                            }
+                        if (dataTable === 'entradas') {
+                            originalPredictedDate = item.data_prevista_recebimento;
+                            // Overdue if: no real date AND original predicted date < today
+                            isOverdue = !item.data_real_recebimento && originalPredictedDate && originalPredictedDate < today;
+                        } else if (dataTable === 'saidas') {
+                            originalPredictedDate = item.data_prevista_pagamento;
+                            isOverdue = !item.data_real_pagamento && originalPredictedDate && originalPredictedDate < today;
+                        } else if (dataTable === 'producao_revenda') {
+                            originalPredictedDate = item.data_prevista_pagamento;
+                            isOverdue = !item.data_real_pagamento && originalPredictedDate && originalPredictedDate < today;
                         }
 
                         if (isOverdue) {
-                            console.log(`[OVERDUE DETECTED] Table: ${dataTable}, ID: ${item.id}, Date: ${dateKey}, Value: ${val}, data_real: ${item.data_real_recebimento || item.data_real_pagamento || 'null'}`);
+                            console.log(`[OVERDUE DETECTED] Table: ${dataTable}, ID: ${item.id}, Original Predicted: ${originalPredictedDate}, Effective: ${dateKey}, Value: ${val}`);
                             node.dailyOverdue[dateKey] = (node.dailyOverdue[dateKey] || 0) + val;
                         } else {
                             node.dailyTotals[dateKey] = (node.dailyTotals[dateKey] || 0) + val;
@@ -343,10 +348,17 @@ exports.getDailyForecast = async (req, res, next) => {
             const dateExpr = effectiveDateSql(table);
             const validExpr = validitySql(table);
 
+            // Determine which columns to select based on table
+            let selectCols = 'valor, data_real';
+            if (table === 'aportes') {
+                selectCols = 'valor, data_real, data_fato';
+            } else if (table === 'retiradas') {
+                selectCols = 'valor, data_real, data_prevista';
+            }
+
             const [items] = await db.execute(`
             SELECT
-            valor,
-                data_real,
+                ${selectCols},
                 ${dateExpr} as raw_date
                 FROM ${table}
                 WHERE project_id = ?
@@ -368,9 +380,19 @@ exports.getDailyForecast = async (req, res, next) => {
 
                 if (dateKey) {
                     const today = new Date().toISOString().split('T')[0];
-                    const isOverdue = (dateKey < today) && !item.data_real;
+
+                    // Check original predicted date, not effective date
+                    let originalPredictedDate = '';
+                    if (table === 'aportes') {
+                        originalPredictedDate = item.data_fato;
+                    } else if (table === 'retiradas') {
+                        originalPredictedDate = item.data_prevista;
+                    }
+
+                    const isOverdue = !item.data_real && originalPredictedDate && originalPredictedDate < today;
 
                     if (isOverdue) {
+                        console.log(`[OVERDUE DETECTED] Table: ${table}, Original Predicted: ${originalPredictedDate}, Effective: ${dateKey}, Value: ${val}`);
                         dailyOverdue[dateKey] = (dailyOverdue[dateKey] || 0) + val;
                     } else {
                         dailyTotals[dateKey] = (dailyTotals[dateKey] || 0) + val;
