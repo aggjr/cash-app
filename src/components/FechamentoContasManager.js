@@ -295,7 +295,7 @@ export const FechamentoContasManager = (project) => {
                 else if (val < 0) td.style.color = '#EF4444'; // Red
                 else td.style.color = '#9ca3af'; // Gray for zero
 
-                td.addEventListener('mouseenter', () => td.style.backgroundColor = '#e0f2fe');
+                td.addEventListener('mouseenter', () => td.style.backgroundColor = 'rgba(218, 177, 119, 0.5)');
                 td.addEventListener('mouseleave', () => td.style.backgroundColor = bgColor);
 
                 tr.appendChild(td);
