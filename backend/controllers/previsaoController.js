@@ -118,27 +118,15 @@ exports.getDailyForecast = async (req, res, next) => {
             return `COALESCE(${realCol}, ${prevCol})`;
         };
 
+
         // Helper to get Validity SQL Condition
-        // Logic:
-        // Record is VALID if:
-        // 1. It has a Real Date (it happened).
-        // OR
-        // 2. It has NO Real Date BUT Effective Predicted Date (Atraso or Prevista) >= Today.
+        // IMPORTANT: Removed the filter that excluded entries with past predicted dates
+        // We NEED those entries to show overdue warnings!
+        // Now we simply check if the entry is active - date filtering is handled separately
         const getValiditySql = (table) => {
-            let realCol = 'data_real';
-            let prevCol = 'data_prevista';
-
-            if (table === 'entradas') {
-                realCol = 'data_real_recebimento';
-                prevCol = 'COALESCE(data_atraso, data_prevista_recebimento)';
-            }
-            else if (table === 'saidas') { realCol = 'data_real_pagamento'; prevCol = 'data_prevista_pagamento'; }
-            else if (table === 'producao_revenda') { realCol = 'data_real_pagamento'; prevCol = 'data_prevista_pagamento'; }
-            else if (table === 'aportes') { realCol = 'data_real'; prevCol = 'data_fato'; }
-            else if (table === 'retiradas') { realCol = 'data_real'; prevCol = 'data_prevista'; }
-
-            // Logic: Include if (Real is Set) OR (Predicted/Atraso >= CurrentDate)
-            return `(${realCol} IS NOT NULL OR ${prevCol} >= CURDATE())`;
+            // Return a condition that is always true - we rely on active=1 and date range filtering
+            // The overdue logic in buildDailyTree will handle showing warnings for past dates
+            return '1=1';
         };
 
         const effectiveDateSql = (table) => getEffectiveDateSql(table);
