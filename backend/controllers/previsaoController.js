@@ -290,6 +290,7 @@ exports.getDailyForecast = async (req, res, next) => {
                         }
 
                         if (isOverdue) {
+                            console.log(`[OVERDUE DETECTED] Table: ${dataTable}, ID: ${item.id}, Date: ${dateKey}, Value: ${val}, data_real: ${item.data_real_recebimento || item.data_real_pagamento || 'null'}`);
                             node.dailyOverdue[dateKey] = (node.dailyOverdue[dateKey] || 0) + val;
                         } else {
                             node.dailyTotals[dateKey] = (node.dailyTotals[dateKey] || 0) + val;
@@ -395,11 +396,16 @@ exports.getDailyForecast = async (req, res, next) => {
 
         // --- Helper to Create Virtual Root ---
         const createVirtualRoot = (id, name, children) => {
-            const node = { id, name, children, dailyTotals: {}, total: 0 };
+            const node = { id, name, children, dailyTotals: {}, dailyOverdue: {}, total: 0 };
             children.forEach(child => {
                 node.total += child.total;
+                // Rollup normal totals
                 for (const [day, val] of Object.entries(child.dailyTotals)) {
                     node.dailyTotals[day] = (node.dailyTotals[day] || 0) + val;
+                }
+                // Rollup overdue totals (informational)
+                for (const [day, val] of Object.entries(child.dailyOverdue || {})) {
+                    node.dailyOverdue[day] = (node.dailyOverdue[day] || 0) + val;
                 }
             });
             return node;

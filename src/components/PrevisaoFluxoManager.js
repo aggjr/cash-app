@@ -65,6 +65,7 @@ export const PrevisaoFluxoManager = (project) => {
             if (!response.ok) throw new Error('Falha ao carregar previsão');
 
             forecastData = await response.json();
+            console.log('[FORECAST DATA]', forecastData.data?.find(n => n.id === 'entradas_root'));
             if (renderTable) renderTable();
 
         } catch (error) {
@@ -148,6 +149,14 @@ export const PrevisaoFluxoManager = (project) => {
                 const fontWeight = level === 0 ? '700' : (hasChildren ? '600' : '400');
                 const rowClass = (hasChildren ? 'expandable-row' : '') + ' data-row';
 
+                // Calculate font size based on hierarchy level (smaller for deeper levels)
+                // IMPORTANT: Calculate this ONCE per row, outside all conditional blocks
+                const baseFontSize = 16; // base size in pixels
+                const fontSize = Math.max(baseFontSize - (level * 2), 12); // reduce 2px per level, min 12px
+                if (level > 0) {
+                    console.log(`[FONT SIZE] Level ${level}, Node: ${node.name}, Font: ${fontSize}px`);
+                }
+
                 let dayCells = '';
                 days.forEach(d => {
                     const val = node.dailyTotals[d] || 0;
@@ -167,13 +176,13 @@ export const PrevisaoFluxoManager = (project) => {
                             ? (val >= 0 ? '#10B981' : '#EF4444')
                             : (val >= 0 ? '#EF4444' : '#10B981');
 
-                        cellContent += `<span style="color: ${color}; font-weight: 600;">${formatCurrency(val)}</span>`;
+                        cellContent += `<span style="color: ${color}; font-weight: 600; font-size: ${fontSize}px;">${formatCurrency(val)}</span>`;
                     }
 
                     // Render overdue value (gray, italic, informational)
                     if (Math.abs(overdueVal) > 0.001) {
                         if (cellContent) cellContent += '<br>';
-                        cellContent += `<span style="color: #999; font-style: italic; font-size: 0.85em;" title="Não efetivado - apenas informativo">⚠ ${formatCurrency(overdueVal)}</span>`;
+                        cellContent += `<span style="color: #999; font-style: italic; font-size: ${fontSize - 2}px;" title="Não efetivado - apenas informativo">⚠ ${formatCurrency(overdueVal)}</span>`;
                     }
 
                     // Default to '-' if both are zero
@@ -184,7 +193,7 @@ export const PrevisaoFluxoManager = (project) => {
 
                 html += `
                     <tr class="${rowClass}" data-id="${node.id}" style="background-color: ${bgColor}; cursor: ${hasChildren ? 'pointer' : 'default'}; transition: background-color 0.2s;">
-                        <td class="sticky-col" style="padding: 0.5rem 1rem 0.5rem ${paddingLeft}rem; border-bottom: 1px solid #f3f4f6; font-weight: ${fontWeight}; display: flex; align-items: center; gap: 0.5rem; position: sticky; left: 0; z-index: 5; background-color: ${bgColor}; transition: background-color 0.2s;">
+                        <td class="sticky-col" style="padding: 0.5rem 1rem 0.5rem ${paddingLeft}rem; border-bottom: 1px solid #f3f4f6; font-weight: ${fontWeight}; font-size: ${fontSize}px; display: flex; align-items: center; gap: 0.5rem; position: sticky; left: 0; z-index: 5; background-color: ${bgColor}; transition: background-color 0.2s;">
                             ${hasChildren ? `<span style="font-size: 0.8rem; transform: rotate(${isExpanded ? '90deg' : '0deg'}); transition: transform 0.2s;">▶</span>` : ''}
                             ${node.name}
                         </td>
