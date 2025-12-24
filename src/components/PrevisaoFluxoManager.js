@@ -169,16 +169,20 @@ export const PrevisaoFluxoManager = (project) => {
                         node.id.toString().startsWith('aportes')
                     );
 
-                    // Render normal value (green/red based on flow)
-                    if (Math.abs(val) > 0.001) {
-                        const color = isPositiveFlow
-                            ? (val >= 0 ? '#10B981' : '#EF4444')
-                            : (val >= 0 ? '#EF4444' : '#10B981');
+                    // Calculate total to display (val includes delayedVal in backend)
+                    // If there's a delayed value, we need to subtract it from val to avoid showing twice
+                    const normalVal = val - delayedVal;
 
-                        cellContent += `<span style="color: ${color}; font-weight: 600; font-size: ${fontSize}px;">${formatCurrency(val)}</span>`;
+                    // Render normal value (green/red based on flow, NO warning icon)
+                    if (Math.abs(normalVal) > 0.001) {
+                        const color = isPositiveFlow
+                            ? (normalVal >= 0 ? '#10B981' : '#EF4444')
+                            : (normalVal >= 0 ? '#EF4444' : '#10B981');
+
+                        cellContent += `<span style="color: ${color}; font-weight: 600; font-size: ${fontSize}px;">${formatCurrency(normalVal)}</span>`;
                     }
 
-                    // Render delayed value (normal colors + warning icon)
+                    // Render delayed value (normal colors + warning icon ⚠)
                     if (Math.abs(delayedVal) > 0.001) {
                         if (cellContent) cellContent += '<br>';
                         const color = isPositiveFlow
