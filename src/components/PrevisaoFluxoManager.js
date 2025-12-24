@@ -157,23 +157,34 @@ export const PrevisaoFluxoManager = (project) => {
                 let dayCells = '';
                 days.forEach(d => {
                     const val = node.dailyTotals[d] || 0;
+                    const delayedVal = node.dailyDelayed?.[d] || 0;
                     const overdueVal = node.dailyOverdue?.[d] || 0;
 
                     let cellContent = '';
 
+                    // Determine if this is a positive flow node (for color logic)
+                    const isPositiveFlow = node.id && (
+                        node.id.toString().startsWith('entradas') ||
+                        node.id.toString().includes('tipo_entrada') ||
+                        node.id.toString().startsWith('aportes')
+                    );
+
                     // Render normal value (green/red based on flow)
                     if (Math.abs(val) > 0.001) {
-                        const isPositiveFlow = node.id && (
-                            node.id.toString().startsWith('entradas') ||
-                            node.id.toString().includes('tipo_entrada') ||
-                            node.id.toString().startsWith('aportes')
-                        );
-
                         const color = isPositiveFlow
                             ? (val >= 0 ? '#10B981' : '#EF4444')
                             : (val >= 0 ? '#EF4444' : '#10B981');
 
                         cellContent += `<span style="color: ${color}; font-weight: 600; font-size: ${fontSize}px;">${formatCurrency(val)}</span>`;
+                    }
+
+                    // Render delayed value (normal colors + warning icon)
+                    if (Math.abs(delayedVal) > 0.001) {
+                        if (cellContent) cellContent += '<br>';
+                        const color = isPositiveFlow
+                            ? (delayedVal >= 0 ? '#10B981' : '#EF4444')
+                            : (delayedVal >= 0 ? '#EF4444' : '#10B981');
+                        cellContent += `<span style="color: ${color}; font-weight: 600; font-size: ${fontSize}px;" title="Data prevista passou, mas adiado">⚠ ${formatCurrency(delayedVal)}</span>`;
                     }
 
                     // Render overdue value (gray, italic, informational)
@@ -182,7 +193,7 @@ export const PrevisaoFluxoManager = (project) => {
                         cellContent += `<span style="color: #999; font-style: italic; font-size: ${fontSize - 2}px;" title="Não efetivado - apenas informativo">⚠ ${formatCurrency(overdueVal)}</span>`;
                     }
 
-                    // Default to '-' if both are zero
+                    // Default to '-' if all are zero
                     if (!cellContent) cellContent = '-';
 
                     dayCells += `<td style="padding: 0.5rem 1rem; text-align: right; border-bottom: 1px solid #f3f4f6; position: relative; z-index: 1;">${cellContent}</td>`;

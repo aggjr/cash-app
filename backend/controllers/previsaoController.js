@@ -241,6 +241,7 @@ exports.getDailyForecast = async (req, res, next) => {
                     parentId: t.parent_id ? `${typeTable}_${t.parent_id} ` : null,
                     children: [],
                     dailyTotals: {}, // Key: YYYY-MM-DD - valores normais (somados)
+                    dailyDelayed: {}, // Key: YYYY-MM-DD - valores adiados (somados, com aviso)
                     dailyOverdue: {}, // Key: YYYY-MM-DD - valores atrasados (informativos, NÃO somados)
                     total: 0
                 });
@@ -264,28 +265,42 @@ exports.getDailyForecast = async (req, res, next) => {
                         : '';
 
                     if (dateKey) {
-                        // Check if item is overdue (ORIGINAL predicted date in past with no real date)
-                        // IMPORTANT: Use original predicted date, NOT effective date (which includes data_atraso)
+                        // Differentiate between delayed (has data_atraso >= today) and truly overdue
                         const today = new Date().toISOString().split('T')[0];
-                        let isOverdue = false;
                         let originalPredictedDate = '';
+                        let hasRealDate = false;
+                        let hasDelay = false;
 
                         if (dataTable === 'entradas') {
                             originalPredictedDate = item.data_prevista_recebimento;
-                            // Overdue if: no real date AND original predicted date < today
-                            isOverdue = !item.data_real_recebimento && originalPredictedDate && originalPredictedDate < today;
+                            hasRealDate = !!item.data_real_recebimento;
+                            hasDelay = item.data_atraso && item.data_atraso >= today;
                         } else if (dataTable === 'saidas') {
                             originalPredictedDate = item.data_prevista_pagamento;
-                            isOverdue = !item.data_real_pagamento && originalPredictedDate && originalPredictedDate < today;
+                            hasRealDate = !!item.data_real_pagamento;
+                            hasDelay = false; // saidas doesn't have data_atraso
                         } else if (dataTable === 'producao_revenda') {
                             originalPredictedDate = item.data_prevista_pagamento;
-                            isOverdue = !item.data_real_pagamento && originalPredictedDate && originalPredictedDate < today;
+                            hasRealDate = !!item.data_real_pagamento;
+                            hasDelay = false; // producao doesn't have data_atraso
                         }
 
-                        if (isOverdue) {
-                            console.log(`[OVERDUE DETECTED] Table: ${dataTable}, ID: ${item.id}, Original Predicted: ${originalPredictedDate}, Effective: ${dateKey}, Value: ${val}`);
-                            node.dailyOverdue[dateKey] = (node.dailyOverdue[dateKey] || 0) + val;
+                        const isOriginalDatePassed = originalPredictedDate && originalPredictedDate < today;
+
+                        if (!hasRealDate && isOriginalDatePassed) {
+                            if (hasDelay) {
+                                // Delayed: original date passed but rescheduled to future
+                                // Show with normal colors + warning on the delayed date
+                                node.dailyDelayed[dateKey] = (node.dailyDelayed[dateKey] || 0) + val;
+                                node.dailyTotals[dateKey] = (node.dailyTotals[dateKey] || 0) + val;
+                                node.total += val;
+                            } else {
+                                // Truly overdue: original date passed, no delay, no real date
+                                // Show gray/italic + warning, don't include in balance
+                                node.dailyOverdue[dateKey] = (node.dailyOverdue[dateKey] || 0) + val;
+                            }
                         } else {
+                            // Normal entry: either has real date or future predicted date
                             node.dailyTotals[dateKey] = (node.dailyTotals[dateKey] || 0) + val;
                             node.total += val;
                         }
@@ -312,6 +327,11 @@ exports.getDailyForecast = async (req, res, next) => {
                     // Rollup normal totals
                     for (const [day, value] of Object.entries(child.dailyTotals)) {
                         node.dailyTotals[day] = (node.dailyTotals[day] || 0) + value;
+                    }
+
+                    // Rollup delayed totals (included in balance, with warning)
+                    for (const [day, value] of Object.entries(child.dailyDelayed || {})) {
+                        node.dailyDelayed[day] = (node.dailyDelayed[day] || 0) + value;
                     }
 
                     // Rollup overdue totals (informational)
@@ -406,12 +426,16 @@ exports.getDailyForecast = async (req, res, next) => {
 
         // --- Helper to Create Virtual Root ---
         const createVirtualRoot = (id, name, children) => {
-            const node = { id, name, children, dailyTotals: {}, dailyOverdue: {}, total: 0 };
+            const node = { id, name, children, dailyTotals: {}, dailyDelayed: {}, dailyOverdue: {}, total: 0 };
             children.forEach(child => {
                 node.total += child.total;
                 // Rollup normal totals
                 for (const [day, val] of Object.entries(child.dailyTotals)) {
                     node.dailyTotals[day] = (node.dailyTotals[day] || 0) + val;
+                }
+                // Rollup delayed totals
+                for (const [day, val] of Object.entries(child.dailyDelayed || {})) {
+                    node.dailyDelayed[day] = (node.dailyDelayed[day] || 0) + val;
                 }
                 // Rollup overdue totals (informational)
                 for (const [day, val] of Object.entries(child.dailyOverdue || {})) {
