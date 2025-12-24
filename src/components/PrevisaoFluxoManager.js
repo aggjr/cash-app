@@ -293,7 +293,7 @@ export const PrevisaoFluxoManager = (project) => {
         // Listeners: Hover Effect (Gold)
         tableContainer.querySelectorAll('.data-row').forEach(row => {
             row.addEventListener('mouseenter', () => {
-                const color = 'rgb(218, 177, 119)'; // Gold solid color (no opacity)
+                const color = '#DAB177'; // Gold from style.css --color-gold
                 row.style.backgroundColor = color;
                 const sticky = row.querySelector('.sticky-col');
                 if (sticky) sticky.style.backgroundColor = color;
