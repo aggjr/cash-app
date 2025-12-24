@@ -185,7 +185,7 @@ export const PrevisaoFluxoManager = (project) => {
                     // Default to '-' if both are zero
                     if (!cellContent) cellContent = '-';
 
-                    dayCells += `<td style="padding: 0.5rem 1rem; text-align: right; border-bottom: 1px solid #f3f4f6;">${cellContent}</td>`;
+                    dayCells += `<td style="padding: 0.5rem 1rem; text-align: right; border-bottom: 1px solid #f3f4f6; position: relative; z-index: 1;">${cellContent}</td>`;
                 });
 
                 html += `
