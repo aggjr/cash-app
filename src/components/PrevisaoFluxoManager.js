@@ -205,7 +205,7 @@ export const PrevisaoFluxoManager = (project) => {
 
                 html += `
                     <tr class="${rowClass}" data-id="${node.id}" style="background-color: ${bgColor}; cursor: ${hasChildren ? 'pointer' : 'default'}; transition: background-color 0.2s;">
-                        <td class="sticky-col" style="padding: 0; border-bottom: 1px solid #f3f4f6; position: sticky; left: 0; z-index: 10; background-color: ${bgColor}; transition: background-color 0.2s;">
+                        <td class="sticky-col" style="padding: 0; border-bottom: 1px solid #f3f4f6; position: sticky; left: 0; z-index: 10; background-color: #ffffff; transition: background-color 0.2s;">
                             <div style="display: flex; align-items: center; gap: 0.5rem; padding: 0.5rem 1rem 0.5rem ${paddingLeft}rem; font-weight: ${fontWeight}; font-size: ${fontSize}px; min-height: 100%;">
                                 ${hasChildren ? `<span style="font-size: 0.8rem; transform: rotate(${isExpanded ? '90deg' : '0deg'}); transition: transform 0.2s;">▶</span>` : ''}
                                 ${node.name}
