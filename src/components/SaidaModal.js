@@ -221,7 +221,7 @@ export const SaidaModal = {
 
                             <!-- Row 3.5: Payment Method Radio Buttons (Span 6) -->
                             <div class="form-group" style="grid-column: span 6;">
-                                <label>Forma de Entrada</label>
+                                <label>Forma de Saída</label>
                                 <div style="display: flex; flex-wrap: wrap; gap: 1.5rem; padding: 0.5rem 0;">
                                     ${['Pix', 'Ted', 'DOC', 'Boleto', 'Verificar', 'Dinheiro', 'Cartão'].map(opt => `
                                         <div style="display: flex; align-items: center; gap: 0.3rem;">
@@ -243,7 +243,7 @@ export const SaidaModal = {
                             <div class="form-group" style="grid-column: span 4; display: flex; flex-direction: column; min-height: 150px;">
                                 <label>Tipo de Saída <span class="required">*</span></label>
                                 <div id="tree-selector-container" style="flex: 1;"></div>
-                                <input type="hidden" id="saida-tipo-entrada-id" value="${saida?.tipo_saida_id || ''}" />
+                                <input type="hidden" id="saida-tipo-saida-id" value="${saida?.tipo_saida_id || ''}" />
                             </div>
 
                         </div>
@@ -252,7 +252,7 @@ export const SaidaModal = {
                     <div class="account-modal-footer" style="padding: 1rem; position: relative; z-index: 100;">
                         <button class="btn-secondary" id="modal-cancel" type="button">Cancelar</button>
                         <button class="btn-primary" id="modal-save" type="button">
-                            ${isEdit ? 'Salvar Alterações' : 'Criar Entrada'}
+                            ${isEdit ? 'Salvar Alterações' : 'Criar Saída'}
                         </button>
                     </div>
                 `;
@@ -279,7 +279,7 @@ export const SaidaModal = {
                 const comprovantePreview = modal.querySelector('#comprovante-preview');
                 const boletoInput = modal.querySelector('#saida-boleto');
                 const boletoUrlInput = modal.querySelector('#saida-boleto-url');
-                const tipoEntradaIdInput = modal.querySelector('#saida-tipo-entrada-id');
+                const tipoSaidaIdInput = modal.querySelector('#saida-tipo-saida-id');
                 const treeContainer = modal.querySelector('#tree-selector-container');
                 const companySelect = modal.querySelector('#saida-company');
                 const accountSelect = modal.querySelector('#saida-account');
