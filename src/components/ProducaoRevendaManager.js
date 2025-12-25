@@ -332,7 +332,7 @@ export const ProducaoRevendaManager = (project) => {
 
     const createItem = async () => {
         await ProducaoRevendaModal.show({
-            item: null,
+            producaoRevenda: null,
             projectId: project.id,
             onSave: async (itemData) => {
                 try {
@@ -361,7 +361,7 @@ export const ProducaoRevendaManager = (project) => {
 
     const updateItem = async (item) => {
         await ProducaoRevendaModal.show({
-            item: item,
+            producaoRevenda: item,
             projectId: project.id,
             onSave: async (itemData) => {
                 try {
