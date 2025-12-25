@@ -1,9 +1,8 @@
-import { TreeSelector } from './TreeSelector.js';
+﻿import { TreeSelector } from './TreeSelector.js';
 import { getApiBaseUrl } from '../utils/apiConfig.js';
-// Refresh Sync
 
 export const ProducaoRevendaModal = {
-    show({ item = null, projectId, onSave, onCancel }) {
+    show({ producaoRevenda = null, projectId, onSave, onCancel }) {
         return new Promise(async (resolve) => {
             try {
                 const API_BASE_URL = getApiBaseUrl();
@@ -14,7 +13,7 @@ export const ProducaoRevendaModal = {
                     document.body.appendChild(container);
                 }
 
-                const isEdit = item !== null;
+                const isEdit = income !== null;
                 let hasChanges = false;
 
                 // Mark as dirty helper
@@ -22,7 +21,7 @@ export const ProducaoRevendaModal = {
 
                 // Fetch data
                 const token = localStorage.getItem('token');
-                let tipos = [];
+                let tipoProducaoRevenda = [];
                 let companies = [];
                 let accounts = [];
 
@@ -35,7 +34,7 @@ export const ProducaoRevendaModal = {
 
                     if (tipoResponse.ok) {
                         const json = await tipoResponse.json();
-                        tipos = Array.isArray(json) ? json : [];
+                        tipoProducaoRevenda = Array.isArray(json) ? json : [];
                     }
                     if (companyResponse.ok) {
                         const json = await companyResponse.json();
@@ -47,6 +46,7 @@ export const ProducaoRevendaModal = {
                     }
                 } catch (error) {
                     console.error('Error loading data:', error);
+                    // Defer alert slightly to ensure DOM is ready or just use standard alert for fatal load error
                     alert('Erro ao carregar dados do servidor: ' + error.message);
                 }
 
@@ -55,6 +55,8 @@ export const ProducaoRevendaModal = {
 
                 const modal = document.createElement('div');
                 modal.className = 'account-modal animate-float-in';
+                modal.style.maxWidth = '900px';
+                modal.style.width = '95%';
 
                 const formatDateForInput = (dateString) => {
                     if (!dateString) return '';
@@ -63,64 +65,133 @@ export const ProducaoRevendaModal = {
                 };
 
                 modal.innerHTML = `
-                    <div class="account-modal-body" style="padding: 1rem; overflow-y: hidden; max-height: 95vh;">
-                        <h3 style="margin: 0 0 1rem 0; color: var(--color-primary); font-size: 1.1rem;">${isEdit ? 'Editar Produção / Revenda' : 'Nova Produção / Revenda'}</h3>
+                    <div class="account-modal-body" style="padding: 1rem; overflow-y: auto; max-height: 85vh;">
+                        <h3 style="margin: 0 0 1rem 0; color: var(--color-primary); font-size: 1.1rem;">${isEdit ? 'Editar Produção/Revenda' : 'Nova Produção/Revenda'}</h3>
                         
-                        <div class="form-grid" style="display: grid; grid-template-columns: repeat(6, 1fr); gap: 0.75rem;">
+                        <div class="form-grid" style="display: grid; grid-template-columns: repeat(8, 1fr); gap: 0.75rem;">
                             
-                            <!-- Row 1: Dates (Span 2 each) -->
+                            <!-- Row 1: All Dates (2+2+2+2 = 8 cols) -->
                             <div class="form-group" style="grid-column: span 2;">
-                                <label for="prod-data-fato">Data do Fato <span class="required">*</span></label>
-                                <input type="date" id="prod-data-fato" class="form-input" 
-                                    value="${formatDateForInput(item?.data_fato)}" required />
+                                <label for="producao-revenda-data-fato">Data do Fato <span class="required">*</span></label>
+                                <input type="date" id="producao-revenda-data-fato" class="form-input" 
+                                    value="${formatDateForInput(producaoRevenda?.data_fato)}" required />
                             </div>
 
                             <div class="form-group" style="grid-column: span 2;">
-                                <label for="prod-data-prevista">Data Prevista <span class="required">*</span></label>
-                                <input type="date" id="prod-data-prevista" class="form-input" 
-                                    value="${formatDateForInput(item?.data_prevista_pagamento)}" required />
+                                <label for="producao-revenda-data-prevista">Data Prevista <span class="required">*</span></label>
+                                <input type="date" id="producao-revenda-data-prevista" class="form-input" 
+                                    value="${formatDateForInput(producaoRevenda?.data_prevista_pagamento)}" required />
                             </div>
 
                             <div class="form-group" style="grid-column: span 2;">
-                                <label for="prod-data-atraso">Data Atraso</label>
-                                <input type="date" id="prod-data-atraso" class="form-input" 
-                                    value="${formatDateForInput(item?.data_prevista_atraso)}" />
-                            </div>
-
-                            <!-- Row 2: Data Real, Company, Account (Span 2 each) -->
-                            <div class="form-group" style="grid-column: span 2;">
-                                <label for="prod-data-real">Data Real</label>
-                                <input type="date" id="prod-data-real" class="form-input" 
-                                    value="${formatDateForInput(item?.data_real_pagamento)}" />
+                                <label for="producao-revenda-data-atraso">Data Atraso</label>
+                                <input type="date" id="producao-revenda-data-atraso" class="form-input" 
+                                    value="${formatDateForInput(producaoRevenda?.data_atraso)}" />
                             </div>
 
                             <div class="form-group" style="grid-column: span 2;">
-                                <label for="prod-company">Empresa <span class="required">*</span></label>
-                                <select id="prod-company" class="form-input" required>
+                                <label for="producao-revenda-data-real">Data Real</label>
+                                <input type="date" id="producao-revenda-data-real" class="form-input" 
+                                    value="${formatDateForInput(producaoRevenda?.data_real_pagamento)}" />
+                            </div>
+
+                            <!-- Row 2: Empresa (2), Conta (2), Valor (2), Tipo (2) = 8 cols -->
+                            <div class="form-group" style="grid-column: span 2;">
+                                <label for="producao-revenda-company">Empresa <span class="required">*</span></label>
+                                <select id="producao-revenda-company" class="form-input" required>
                                     <option value="">Selecione...</option>
-                                    ${companies.map(c => `<option value="${c.id}" ${item?.company_id == c.id ? 'selected' : ''}>${c.name}</option>`).join('')}
+                                    ${companies.map(c => `
+                                        <option value="${c.id}" ${producaoRevenda?.company_id === c.id ? 'selected' : ''}>${c.name}</option>
+                                    `).join('')}
                                 </select>
                             </div>
 
                             <div class="form-group" style="grid-column: span 2;">
-                                <label for="prod-account">Conta <span id="account-required-asterisk" class="required" style="display: none;">*</span></label>
-                                <select id="prod-account" class="form-input" style="background-color: var(--color-background-disabled); color: #9CA3AF;" disabled>
+                                <label for="producao-revenda-account">Conta <span id="account-required-asterisk" style="display: ${producaoRevenda?.data_real_pagamento ? 'inline' : 'none'};">*</span></label>
+                                <select id="producao-revenda-account" class="form-input">
                                     <option value="">Selecione...</option>
-                                    ${accounts.map(a => `<option value="${a.id}" ${item?.account_id == a.id ? 'selected' : ''}>${a.name}</option>`).join('')}
                                 </select>
                             </div>
 
-                            <!-- Row 3: Valor (Span 3), Comprovante (Span 3) -->
-                            <div class="form-group" style="grid-column: span 3;">
-                                <label for="prod-valor">Valor (R$) <span class="required">*</span></label>
-                                <input type="text" id="prod-valor" class="form-input" 
+                            <div class="form-group" style="grid-column: span 2;">
+                                <label for="producao-revenda-valor">Valor (R$) <span class="required">*</span></label>
+                                <input type="text" id="producao-revenda-valor" class="form-input" 
                                     placeholder="R$ 0,00" required />
                             </div>
 
-                            <div class="form-group" style="grid-column: span 3;">
-                                <label for="prod-comprovante">Comprovante</label>
-                                <input type="file" id="prod-comprovante" style="display: none;" accept="image/*,application/pdf" />
-                                <input type="hidden" id="prod-comprovante-url" value="${item?.comprovante_url || ''}" />
+                            <div class="form-group" style="grid-column: span 2;">
+                                <label for="producao-revenda-installment-type">Tipo de Lançamento</label>
+                                <select id="producao-revenda-installment-type" class="form-input">
+                                    <option value="total">Lançamento Único</option>
+                                    <option value="dividir">Dividir (Parcelar)</option>
+                                    <option value="replicar">Replicar (Recorrente)</option>
+                                </select>
+                            </div>
+
+                            <!-- Row 3 (Conditional): Parcelas, Intervalo, Dias - Only shows when Dividir/Replicar -->
+                            <div class="form-group" id="installment-count-group" style="grid-column: span 2; display: none;">
+                                <label for="producao-revenda-installment-count">Nº Parcelas</label>
+                                <input type="number" id="producao-revenda-installment-count" class="form-input" 
+                                    min="2" max="120" value="2" />
+                            </div>
+
+                            <div class="form-group" id="installment-interval-group" style="grid-column: span 2; display: none;">
+                                <label for="producao-revenda-installment-interval">Intervalo</label>
+                                <select id="producao-revenda-installment-interval" class="form-input">
+                                    <option value="semanal">Semanal</option>
+                                    <option value="quinzenal">Quinzenal</option>
+                                    <option value="mensal" selected>Mensal</option>
+                                    <option value="trimestral">Trimestral</option>
+                                    <option value="semestral">Semestral</option>
+                                    <option value="anual">Anual</option>
+                                    <option value="personalizado">Personalizado</option>
+                                </select>
+                            </div>
+
+                            <div class="form-group" id="custom-days-group" style="grid-column: span 2; display: none;">
+                                <label for="producao-revenda-custom-days">Dias</label>
+                                <input type="number" id="producao-revenda-custom-days" class="form-input" 
+                                    min="1" max="365" value="10" placeholder="Ex: 10" />
+                            </div>
+
+                            <!-- Spacer to fill remaining columns when installments are visible -->
+                            <div id="installment-spacer" style="grid-column: span 2; display: none;"></div>
+
+                            <!-- Row 4: Boleto/Cobrança (4), Comprovante (4) = 8 cols -->
+                            <div class="form-group" style="grid-column: span 4;">
+                                <label for="producao-revenda-boleto">Boleto/Cobrança</label>
+                                <input type="file" id="producao-revenda-boleto" style="display: none;" accept="image/*,application/pdf" />
+                                <input type="hidden" id="producao-revenda-boleto-url" value="${producaoRevenda?.boleto_url || ''}" />
+                                
+                                <div id="boleto-container" class="form-input" style="
+                                    display: flex; 
+                                    align-items: center; 
+                                    justify-content: space-between; 
+                                    cursor: pointer; 
+                                    padding: 0.5rem; 
+                                    background: white;
+                                ">
+                                    <div id="boleto-display-area" style="display: flex; align-items: center; gap: 8px; flex: 1; overflow: hidden;">
+                                        <span id="boleto-placeholder-text" style="color: #9CA3AF; font-style: italic; font-size: 0.9rem;">
+                                            ${producaoRevenda?.boleto_url ? '' : 'Clique no clipe para anexar...'}
+                                        </span>
+                                        <a id="boleto-link" href="${producaoRevenda?.boleto_url ? API_BASE_URL + income.boleto_url : '#'}" target="_blank" 
+                                           style="display: ${producaoRevenda?.boleto_url ? 'block' : 'none'}; color: var(--color-primary); text-decoration: underline; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; font-size: 0.9rem;">
+                                           ${producaoRevenda?.boleto_url ? income.boleto_url.split('/').pop().split('-').slice(1).join('-') : ''}
+                                        </a>
+                                    </div>
+
+                                    <div style="display: flex; align-items: center; gap: 10px;">
+                                        <span id="btn-boleto-attach" style="cursor: pointer; font-size: 1.2rem; display: ${producaoRevenda?.boleto_url ? 'none' : 'block'};" title="Anexar Boleto">📎</span>
+                                        <span id="btn-boleto-remove" style="cursor: pointer; font-size: 1.2rem; display: ${producaoRevenda?.boleto_url ? 'block' : 'none'};" title="Remover Boleto">🗑️</span>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <div class="form-group" style="grid-column: span 4;">
+                                <label for="producao-revenda-comprovante">Comprovante</label>
+                                <input type="file" id="producao-revenda-comprovante" style="display: none;" accept="image/*,application/pdf" />
+                                <input type="hidden" id="producao-revenda-comprovante-url" value="${producaoRevenda?.comprovante_url || ''}" />
                                 
                                 <div id="comprovante-container" class="form-input" style="
                                     display: flex; 
@@ -132,47 +203,47 @@ export const ProducaoRevendaModal = {
                                 ">
                                     <div id="file-display-area" style="display: flex; align-items: center; gap: 8px; flex: 1; overflow: hidden;">
                                         <span id="placeholder-text" style="color: #9CA3AF; font-style: italic; font-size: 0.9rem;">
-                                            ${item?.comprovante_url ? '' : 'Clique no clipe para anexar...'}
+                                            ${producaoRevenda?.comprovante_url ? '' : 'Clique no clipe para anexar...'}
                                         </span>
-                                        <a id="file-link" href="${item?.comprovante_url ? API_BASE_URL + item.comprovante_url : '#'}" target="_blank" 
-                                           style="display: ${item?.comprovante_url ? 'block' : 'none'}; color: var(--color-primary); text-decoration: underline; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; font-size: 0.9rem;">
-                                           ${item?.comprovante_url ? item.comprovante_url.split('/').pop().split('-').slice(1).join('-') : ''}
+                                        <a id="file-link" href="${producaoRevenda?.comprovante_url ? API_BASE_URL + income.comprovante_url : '#'}" target="_blank" 
+                                           style="display: ${producaoRevenda?.comprovante_url ? 'block' : 'none'}; color: var(--color-primary); text-decoration: underline; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; font-size: 0.9rem;">
+                                           ${producaoRevenda?.comprovante_url ? income.comprovante_url.split('/').pop().split('-').slice(1).join('-') : ''}
                                         </a>
                                     </div>
 
                                     <div style="display: flex; align-items: center; gap: 10px;">
-                                        <span id="btn-attach" style="cursor: pointer; font-size: 1.2rem; display: ${item?.comprovante_url ? 'none' : 'block'};" title="Anexar Arquivo">📎</span>
-                                        <span id="btn-remove" style="cursor: pointer; font-size: 1.2rem; display: ${item?.comprovante_url ? 'block' : 'none'};" title="Remover Arquivo">🗑️</span>
+                                        <span id="btn-attach" style="cursor: pointer; font-size: 1.2rem; display: ${producaoRevenda?.comprovante_url ? 'none' : 'block'};" title="Anexar Arquivo">📎</span>
+                                        <span id="btn-remove" style="cursor: pointer; font-size: 1.2rem; display: ${producaoRevenda?.comprovante_url ? 'block' : 'none'};" title="Remover Arquivo">🗑️</span>
                                     </div>
                                 </div>
                                 <div id="comprovante-preview" style="margin-top: 5px; font-size: 0.85rem; display: none;"></div>
                             </div>
 
-                            <!-- Row 3.5: Payment Methods -->
+                            <!-- Row 3.5: Payment Method Radio Buttons (Span 6) -->
                             <div class="form-group" style="grid-column: span 6;">
                                 <label>Forma de Pagamento</label>
                                 <div style="display: flex; flex-wrap: wrap; gap: 1.5rem; padding: 0.5rem 0;">
                                     ${['Pix', 'Ted', 'DOC', 'Boleto', 'Verificar', 'Dinheiro', 'Cartão'].map(opt => `
                                         <div style="display: flex; align-items: center; gap: 0.3rem;">
                                             <input type="radio" name="forma_pagamento" id="fp-${opt}" value="${opt}" 
-                                                ${item?.forma_pagamento === opt ? 'checked' : ''} style="cursor: pointer;">
+                                                ${producaoRevenda?.forma_pagamento === opt ? 'checked' : ''} style="cursor: pointer;">
                                             <label for="fp-${opt}" style="margin: 0; cursor: pointer; font-weight: normal;">${opt}</label>
                                         </div>
                                     `).join('')}
                                 </div>
                             </div>
 
-                            <!-- Row 4: Description (Span 3) and Tree (Span 3) Side-by-Side Symmetrical -->
+                            <!-- Row 4: Description (Span 4) and Tree (Span 4) Side-by-Side Symmetrical (Full width) -->
                             
-                            <div class="form-group" style="grid-column: span 3; display: flex; flex-direction: column; min-height: 150px;">
-                                <label for="prod-descricao">Descrição</label>
-                                <textarea id="prod-descricao" class="form-input" placeholder="Opcional" style="resize: none; flex: 1; box-sizing: border-box; font-family: inherit;">${item?.descricao || ''}</textarea>
+                            <div class="form-group" style="grid-column: span 4; display: flex; flex-direction: column; min-height: 150px;">
+                                <label for="producao-revenda-descricao">Descrição</label>
+                                <textarea id="producao-revenda-descricao" class="form-input" placeholder="Opcional" style="resize: none; flex: 1; box-sizing: border-box; font-family: inherit;">${producaoRevenda?.descricao || ''}</textarea>
                             </div>
 
-                            <div class="form-group" style="grid-column: span 3; display: flex; flex-direction: column; min-height: 150px;">
-                                <label>Tipo Produção / Revenda <span class="required">*</span></label>
+                            <div class="form-group" style="grid-column: span 4; display: flex; flex-direction: column; min-height: 150px;">
+                                <label>Tipo de Produção/Revenda <span class="required">*</span></label>
                                 <div id="tree-selector-container" style="flex: 1;"></div>
-                                <input type="hidden" id="prod-tipo-id" value="${item?.tipo_producao_revenda_id || ''}" />
+                                <input type="hidden" id="producao-revenda-tipo-entrada-id" value="${producaoRevenda?.tipo_entrada_id || ''}" />
                             </div>
 
                         </div>
@@ -181,7 +252,7 @@ export const ProducaoRevendaModal = {
                     <div class="account-modal-footer" style="padding: 1rem; position: relative; z-index: 100;">
                         <button class="btn-secondary" id="modal-cancel" type="button">Cancelar</button>
                         <button class="btn-primary" id="modal-save" type="button">
-                            ${isEdit ? 'Salvar Alterações' : 'Criar Item'}
+                            ${isEdit ? 'Salvar Alterações' : 'Criar Entrada'}
                         </button>
                     </div>
                 `;
@@ -190,40 +261,71 @@ export const ProducaoRevendaModal = {
                 container.appendChild(overlay);
 
                 // Elements
-                const dataFatoInput = modal.querySelector('#prod-data-fato');
-                const dataPrevistaInput = modal.querySelector('#prod-data-prevista');
-                const dataAtrasoInput = modal.querySelector('#prod-data-atraso');
-                const dataRealInput = modal.querySelector('#prod-data-real');
-                const valorInput = modal.querySelector('#prod-valor');
-                const tipoIdInput = modal.querySelector('#prod-tipo-id');
+                const dataFatoInput = modal.querySelector('#producao-revenda-data-fato');
+                const dataPrevistaInput = modal.querySelector('#producao-revenda-data-prevista');
+                const dataRealInput = modal.querySelector('#producao-revenda-data-real');
+                const dataAtrasoInput = modal.querySelector('#producao-revenda-data-atraso');
+                const valorInput = modal.querySelector('#producao-revenda-valor');
+                const installmentTypeSelect = modal.querySelector('#producao-revenda-installment-type');
+                const installmentCountInput = modal.querySelector('#producao-revenda-installment-count');
+                const installmentIntervalSelect = modal.querySelector('#producao-revenda-installment-interval');
+                const installmentCountGroup = modal.querySelector('#installment-count-group');
+                const installmentIntervalGroup = modal.querySelector('#installment-interval-group');
+                const customDaysInput = modal.querySelector('#producao-revenda-custom-days');
+                const customDaysGroup = modal.querySelector('#custom-days-group');
+                const installmentSpacer = modal.querySelector('#installment-spacer');
+                const comprovanteInput = modal.querySelector('#producao-revenda-comprovante');
+                const comprovanteUrlInput = modal.querySelector('#producao-revenda-comprovante-url');
+                const comprovantePreview = modal.querySelector('#comprovante-preview');
+                const boletoInput = modal.querySelector('#producao-revenda-boleto');
+                const boletoUrlInput = modal.querySelector('#producao-revenda-boleto-url');
+                const tipoProducaoRevendaIdInput = modal.querySelector('#producao-revenda-tipo-entrada-id');
                 const treeContainer = modal.querySelector('#tree-selector-container');
-                const companySelect = modal.querySelector('#prod-company');
-                const accountSelect = modal.querySelector('#prod-account');
-                const descricaoInput = modal.querySelector('#prod-descricao');
+                const companySelect = modal.querySelector('#producao-revenda-company');
+                const accountSelect = modal.querySelector('#producao-revenda-account');
+                const descricaoInput = modal.querySelector('#producao-revenda-descricao');
                 const saveBtn = modal.querySelector('#modal-save');
                 const cancelBtn = modal.querySelector('#modal-cancel');
-                const comprovanteInput = modal.querySelector('#prod-comprovante');
-                const comprovanteUrlInput = modal.querySelector('#prod-comprovante-url');
 
                 const validate = () => {
                     let isValid = true;
                     if (!dataFatoInput.value) { dataFatoInput.classList.add('input-error'); isValid = false; } else dataFatoInput.classList.remove('input-error');
                     if (!dataPrevistaInput.value) { dataPrevistaInput.classList.add('input-error'); isValid = false; } else dataPrevistaInput.classList.remove('input-error');
                     if (!valorInput.value) { valorInput.classList.add('input-error'); isValid = false; } else valorInput.classList.remove('input-error');
-                    if (!tipoIdInput.value) { treeContainer.style.border = '1px solid #EF4444'; isValid = false; } else treeContainer.style.border = '1px solid var(--color-border-light)';
+                    if (!tipoProducaoRevendaIdInput.value) {
+                        // Apply ONLY to inner element to avoid double border/background issues
+                        treeContainer.style.border = '';
+                        treeContainer.classList.remove('input-error');
+
+                        const innerTree = treeContainer.querySelector('.tree-selector');
+                        if (innerTree) innerTree.classList.add('input-error');
+                        isValid = false;
+                    } else {
+                        treeContainer.classList.remove('input-error');
+                        treeContainer.style.border = '';
+                        const innerTree = treeContainer.querySelector('.tree-selector');
+                        if (innerTree) innerTree.classList.remove('input-error');
+                    }
                     if (!companySelect.value) { companySelect.classList.add('input-error'); isValid = false; } else companySelect.classList.remove('input-error');
-                    // Account is only required if Data Real is filled
-                    if (dataRealInput.value && !accountSelect.value) { accountSelect.classList.add('input-error'); isValid = false; } else accountSelect.classList.remove('input-error');
+
+                    // Account is only required if Data Real is set
+                    if (dataRealInput.value && !accountSelect.value) {
+                        accountSelect.classList.add('input-error');
+                        isValid = false;
+                    } else {
+                        accountSelect.classList.remove('input-error');
+                    }
                     return isValid;
                 };
 
                 // Initialize Tree Selector
-                const initialTipoId = parseInt(tipoIdInput.value);
-                TreeSelector.render(treeContainer, tipos, initialTipoId, (selectedId) => {
+                const initialTipoId = parseInt(tipoProducaoRevendaIdInput.value);
+                // Safe check ensures tipoProducaoRevenda is array
+                TreeSelector.render(treeContainer, tipoProducaoRevenda, initialTipoId, (selectedId) => {
                     if (initialTipoId !== selectedId) {
                         hasChanges = true;
                     }
-                    tipoIdInput.value = selectedId;
+                    tipoProducaoRevendaIdInput.value = selectedId;
                     validate();
                 });
 
@@ -244,13 +346,14 @@ export const ProducaoRevendaModal = {
 
                 const parseCurrency = (str) => {
                     if (!str) return 0;
+                    // Works for both "R$ 1.000,00" and "1000,00"
                     let clean = str.replace(/[^0-9,-]+/g, "");
                     clean = clean.replace(',', '.');
                     return parseFloat(clean) || 0;
                 };
 
-                if (item?.valor !== undefined && item?.valor !== null) {
-                    valorInput.value = formatFloat(Number(item.valor));
+                if (producaoRevenda?.valor !== undefined && producaoRevenda?.valor !== null) {
+                    valorInput.value = formatFloat(Number(income.valor));
                 }
 
                 // On Focus: Show raw value for easy editing
@@ -281,6 +384,44 @@ export const ProducaoRevendaModal = {
                     validate();
                 });
 
+                // Installment Fields Toggle Logic
+                const toggleInstallmentFields = () => {
+                    const type = installmentTypeSelect.value;
+                    const showFields = (type === 'dividir' || type === 'replicar');
+
+                    installmentCountGroup.style.display = showFields ? 'block' : 'none';
+                    installmentIntervalGroup.style.display = showFields ? 'block' : 'none';
+                    installmentSpacer.style.display = showFields ? 'block' : 'none';
+
+                    // Show custom days field only when interval is 'personalizado'
+                    const showCustomDays = showFields && installmentIntervalSelect.value === 'personalizado';
+                    customDaysGroup.style.display = showCustomDays ? 'block' : 'none';
+
+                    if (!showFields) {
+                        installmentCountInput.value = 2;
+                        installmentIntervalSelect.value = 'mensal';
+                        customDaysInput.value = 10;
+                    }
+                };
+
+                // Initialize visibility
+                toggleInstallmentFields();
+
+                // Listen for changes
+                installmentTypeSelect.addEventListener('change', () => {
+                    toggleInstallmentFields();
+                    markAsDirty();
+                });
+
+                installmentCountInput.addEventListener('change', markAsDirty);
+
+                installmentIntervalSelect.addEventListener('change', () => {
+                    toggleInstallmentFields(); // Re-toggle to show/hide custom days
+                    markAsDirty();
+                });
+
+                customDaysInput.addEventListener('change', markAsDirty);
+
                 setTimeout(() => { dataFatoInput.focus(); }, 100);
 
                 // File Upload Logic
@@ -290,6 +431,7 @@ export const ProducaoRevendaModal = {
                 const fileLink = modal.querySelector('#file-link');
                 const placeholderText = modal.querySelector('#placeholder-text');
 
+                // Helper to update UI state
                 const updateFileUI = (url, filename) => {
                     if (url) {
                         placeholderText.style.display = 'none';
@@ -305,29 +447,34 @@ export const ProducaoRevendaModal = {
                         fileLink.textContent = '';
                         btnAttach.style.display = 'block';
                         btnRemove.style.display = 'none';
-                        comprovanteInput.value = '';
+                        comprovanteInput.value = ''; // Reset file input
                         comprovanteUrlInput.value = '';
                     }
                 };
 
                 if (comprovanteInput) {
+                    // Trigger file select on clip click
                     btnAttach.addEventListener('click', (e) => {
                         e.stopPropagation();
                         comprovanteInput.click();
                     });
 
+                    // Trigger file select on container click (if empty)
                     comprovanteContainer.addEventListener('click', (e) => {
                         if (!comprovanteUrlInput.value && e.target !== btnRemove && e.target !== fileLink) {
                             comprovanteInput.click();
                         }
                     });
 
+                    // Remove file
                     btnRemove.addEventListener('click', (e) => {
                         e.stopPropagation();
+                        // If it's a freshly uploaded file vs existing, logic is same: clear field
                         updateFileUI(null, null);
                         markAsDirty();
                     });
 
+                    // Handle File Selection
                     comprovanteInput.addEventListener('change', async (e) => {
                         const file = e.target.files[0];
                         if (!file) return;
@@ -349,6 +496,7 @@ export const ProducaoRevendaModal = {
 
                             const result = await response.json();
 
+                            // Reset placeholder style
                             placeholderText.textContent = 'Clique no clipe para anexar...';
                             placeholderText.style.color = '#9CA3AF';
 
@@ -365,7 +513,115 @@ export const ProducaoRevendaModal = {
                     });
                 }
 
+                // Boleto Upload Logic (duplicate of comprovante)
+                const boletoContainer = modal.querySelector('#boleto-container');
+                const btnBoletoAttach = modal.querySelector('#btn-boleto-attach');
+                const btnBoletoRemove = modal.querySelector('#btn-boleto-remove');
+                const boletoLink = modal.querySelector('#boleto-link');
+                const boletoPlaceholderText = modal.querySelector('#boleto-placeholder-text');
+
+                const updateBoletoUI = (url, filename) => {
+                    if (url) {
+                        boletoPlaceholderText.style.display = 'none';
+                        boletoLink.style.display = 'block';
+                        boletoLink.href = `${API_BASE_URL}${url}`;
+                        boletoLink.textContent = filename || 'Boleto Anexado';
+                        btnBoletoAttach.style.display = 'none';
+                        btnBoletoRemove.style.display = 'block';
+                    } else {
+                        boletoPlaceholderText.style.display = 'block';
+                        boletoLink.style.display = 'none';
+                        boletoLink.href = '#';
+                        boletoLink.textContent = '';
+                        btnBoletoAttach.style.display = 'block';
+                        btnBoletoRemove.style.display = 'none';
+                        boletoInput.value = '';
+                        boletoUrlInput.value = '';
+                    }
+                };
+
+                if (boletoInput) {
+                    btnBoletoAttach.addEventListener('click', (e) => {
+                        e.stopPropagation();
+                        boletoInput.click();
+                    });
+
+                    boletoContainer.addEventListener('click', (e) => {
+                        if (!boletoUrlInput.value && e.target !== btnBoletoRemove && e.target !== boletoLink) {
+                            boletoInput.click();
+                        }
+                    });
+
+                    btnBoletoRemove.addEventListener('click', (e) => {
+                        e.stopPropagation();
+                        updateBoletoUI(null, null);
+                        markAsDirty();
+                    });
+
+                    boletoInput.addEventListener('change', async (e) => {
+                        const file = e.target.files[0];
+                        if (!file) return;
+
+                        const formData = new FormData();
+                        formData.append('file', file);
+
+                        try {
+                            boletoPlaceholderText.textContent = 'Enviando...';
+                            boletoPlaceholderText.style.color = 'var(--color-gold)';
+
+                            const response = await fetch(`${API_BASE_URL}/upload`, {
+                                method: 'POST',
+                                headers: { 'Authorization': `Bearer ${token}` },
+                                body: formData
+                            });
+
+                            if (!response.ok) throw new Error('Falha no upload');
+
+                            const result = await response.json();
+
+                            boletoPlaceholderText.textContent = 'Clique no clipe para anexar...';
+                            boletoPlaceholderText.style.color = '#9CA3AF';
+
+                            boletoUrlInput.value = result.fileUrl;
+                            updateBoletoUI(result.fileUrl, result.originalName);
+                            markAsDirty();
+
+                        } catch (error) {
+                            console.error('Upload error:', error);
+                            boletoPlaceholderText.textContent = 'Erro ao enviar. Tente novamente.';
+                            boletoPlaceholderText.style.color = '#EF4444';
+                            boletoInput.value = '';
+                        }
+                    });
+                }
+
                 const accountAsterisk = modal.querySelector('#account-required-asterisk');
+
+                // Account Logic
+                const updateAccountList = () => {
+                    const selectedCompanyId = parseInt(companySelect.value);
+                    const currentAccountId = parseInt(accountSelect.value || producaoRevenda?.account_id || 0);
+
+                    // Clear options
+                    accountSelect.innerHTML = '<option value="">Selecione...</option>';
+
+                    if (selectedCompanyId) {
+                        const filteredAccounts = accounts.filter(acc => acc.company_id === selectedCompanyId);
+
+                        filteredAccounts.forEach(acc => {
+                            const option = document.createElement('option');
+                            option.value = acc.id;
+                            option.textContent = acc.name;
+                            if (acc.id === currentAccountId) {
+                                option.selected = true;
+                            }
+                            accountSelect.appendChild(option);
+                        });
+                    }
+
+                    // Re-trigger validation or state toggle if needed
+                    toggleAccountState();
+                };
 
                 const toggleAccountState = () => {
                     if (dataRealInput.value) {
@@ -375,26 +631,35 @@ export const ProducaoRevendaModal = {
                         accountAsterisk.style.display = 'inline';
                     } else {
                         accountSelect.disabled = true;
-                        accountSelect.value = ''; // Clear account selection when Data Real is empty
-                        accountSelect.style.backgroundColor = 'var(--color-background-disabled)';
+                        accountSelect.style.backgroundColor = 'var(--color-background-disabled)'; // Ensure this var exists or use #F3F4F6
                         accountSelect.style.color = '#9CA3AF';
                         accountAsterisk.style.display = 'none';
+                        // accountSelect.value = ''; // Keep value logic as is
                         accountSelect.classList.remove('input-error');
                     }
                 };
 
+                // Initial State Check
+                updateAccountList(); // Populate accounts based on initial company
                 toggleAccountState();
 
+                // Listen for Company changes
+                companySelect.addEventListener('change', () => {
+                    updateAccountList();
+                    markAsDirty();
+                });
+
+                // Listen for Data Real changes
                 dataRealInput.addEventListener('change', () => {
                     toggleAccountState();
                     markAsDirty();
                 });
                 dataRealInput.addEventListener('input', () => {
-                    toggleAccountState();
+                    toggleAccountState(); // Immediate feedback
                 });
 
                 // Change Tracking
-                [dataFatoInput, dataPrevistaInput, dataAtrasoInput, dataRealInput, valorInput, companySelect, accountSelect, descricaoInput].forEach(el => {
+                [dataFatoInput, dataPrevistaInput, dataAtrasoInput, valorInput, companySelect, accountSelect, descricaoInput].forEach(el => {
                     if (el) {
                         el.addEventListener('input', markAsDirty);
                         el.addEventListener('change', markAsDirty);
@@ -411,13 +676,15 @@ export const ProducaoRevendaModal = {
                     }, 200);
                 };
 
+                // Custom Confirm Dialog Helper (Internal)
                 const showCustomConfirm = (message, confirmText = 'Sim, Cancelar') => {
                     return new Promise((resolveConfirm) => {
                         const confirmOverlay = document.createElement('div');
-                        confirmOverlay.className = 'dialog-overlay';
-                        confirmOverlay.style.zIndex = '100000';
+                        confirmOverlay.className = 'dialog-overlay'; // Reuse class for centering
+                        confirmOverlay.style.zIndex = '100000'; // Higher than modal
                         confirmOverlay.style.backgroundColor = 'rgba(0,0,0,0.4)';
 
+                        // Use a simple white box structure manually to be sure
                         const confirmBox = document.createElement('div');
                         confirmBox.style.background = 'white';
                         confirmBox.style.padding = '24px';
@@ -460,7 +727,6 @@ export const ProducaoRevendaModal = {
 
                         if (btnNo) btnNo.onclick = () => closeConfirm(false);
                         if (btnYes) btnYes.onclick = () => closeConfirm(true);
-                        confirmOverlay.onclick = (e) => { if (e.target === confirmOverlay) closeConfirm(false); };
                     });
                 };
 
@@ -512,9 +778,11 @@ export const ProducaoRevendaModal = {
                     });
                 };
 
+                // Close / Cancel Logic
                 const requestClose = async () => {
                     try {
                         if (hasChanges) {
+                            // Use Custom Confirm
                             const confirmed = await showCustomConfirm('Tem certeza que deseja cancelar? As alterações não salvas serão perdidas.');
                             if (!confirmed) return;
                         }
@@ -522,7 +790,7 @@ export const ProducaoRevendaModal = {
                         if (onCancel) onCancel();
                     } catch (e) {
                         console.error('Cancel Error:', e);
-                        close(null);
+                        close(null); // Force close on error
                     }
                 };
 
@@ -559,20 +827,26 @@ export const ProducaoRevendaModal = {
 
                         const data = {
                             dataFato: dataFatoInput.value,
-                            dataPrevistaPagamento: dataPrevistaInput.value,
-                            dataPrevistaAtraso: dataAtrasoInput.value || null,
-                            dataRealPagamento: dataRealInput.value || null,
+                            dataPrevistaRecebimento: dataPrevistaInput.value,
+                            dataRealRecebimento: dataRealInput.value || null,
+                            dataAtraso: dataAtrasoInput.value || null,
                             valor: parseCurrency(valorInput.value),
                             descricao: descricaoInput.value.trim(),
-                            tipoId: parseInt(tipoIdInput.value),
+                            tipoProducaoRevendaId: parseInt(tipoProducaoRevendaIdInput.value),
                             companyId: parseInt(companySelect.value),
-                            accountId: dataRealInput.value ? parseInt(accountSelect.value) : null,
+                            accountId: parseInt(accountSelect.value),
                             comprovanteUrl: comprovanteUrlInput.value || null,
-                            formaPagamento: modal.querySelector('input[name="forma_pagamento"]:checked')?.value || null
+                            boletoUrl: boletoUrlInput.value || null,
+                            formaPagamento: modal.querySelector('input[name="forma_pagamento"]:checked')?.value || null,
+                            // Installment data
+                            installmentType: installmentTypeSelect.value,
+                            installmentCount: installmentTypeSelect.value === 'total' ? 1 : parseInt(installmentCountInput.value),
+                            installmentInterval: installmentTypeSelect.value === 'total' ? null : installmentIntervalSelect.value,
+                            customDays: installmentIntervalSelect.value === 'personalizado' ? parseInt(customDaysInput.value) : null
                         };
                         if (isEdit) {
-                            data.id = item.id;
-                            data.active = item.active !== undefined ? item.active : true;
+                            data.id = income.id;
+                            data.active = income.active !== undefined ? income.active : true;
                         }
                         close(data);
                         if (onSave) onSave(data);
@@ -581,13 +855,17 @@ export const ProducaoRevendaModal = {
                     }
                 });
 
+                // Robust Listener Attachment
                 if (cancelBtn) {
                     cancelBtn.onclick = null;
                     cancelBtn.addEventListener('click', (e) => {
                         e.preventDefault();
                         e.stopPropagation();
+                        console.log('Cancel clicked (custom logic)');
                         requestClose();
                     });
+                } else {
+                    console.error('Cancel button missing');
                 }
 
                 overlay.addEventListener('click', (e) => {
@@ -596,9 +874,11 @@ export const ProducaoRevendaModal = {
 
             } catch (fatalError) {
                 console.error('Modal Fatal Error:', fatalError);
+                // Can't use custom alert here if basic DOM setup failed, but try fallback
                 alert('Erro crítico ao abrir a janela: ' + fatalError.message);
-                resolve(null);
+                resolve(null); // Resolve to unblock caller
             }
         });
     }
 };
+
