@@ -1,9 +1,17 @@
 export const Sidebar = () => {
   const menuItems = [
     {
+      id: 'configuracoes',
+      label: 'Configurações do Sistema',
+      icon: '⚙️',
+      children: [
+        { id: 'parametros-gerais', label: 'Parâmetros Gerais', icon: '📝' }
+      ]
+    },
+    {
       id: 'cadastros',
       label: 'Cadastros',
-      icon: '⚙️',
+      icon: '📋',
       children: [
         { id: 'empresa', label: 'Empresa', icon: '🏢' },
         { id: 'contas', label: 'Contas', icon: '💳' },

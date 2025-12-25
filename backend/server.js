@@ -21,6 +21,7 @@ const extratoRoutes = require('./routes/extrato');
 const fechamentoRoutes = require('./routes/fechamento');
 const consolidadasRoutes = require('./routes/consolidadas');
 const debugRoutes = require('./routes/debug');
+const settingsRoutes = require('./routes/settings');
 
 const app = express();
 const PORT = process.env.PORT || 3001;
@@ -55,6 +56,7 @@ apiRouter.use('/consolidadas', consolidadasRoutes);
 apiRouter.use('/previsao', require('./routes/previsao'));
 apiRouter.use('/upload', require('./routes/upload'));
 apiRouter.use('/debug', debugRoutes);
+apiRouter.use('/settings', settingsRoutes);
 
 // Static Uploads Serving
 // Static Uploads Serving
@@ -101,6 +103,7 @@ const migrateComprovanteUrl = require('./migrate-add-comprovante-url');
 const migrateTransferenciaComprovante = require('./migrate_add_comprovante_transferencias');
 const migrateFixTransferenciaNulls = require('./migrate_fix_transferencia_nulls');
 const migrateInstallmentColumns = require('./migrate_add_installment_columns');
+const migrateSystemSettings = require('./migrate_add_system_settings');
 
 loadErrorCatalog()
     .then(() => migrateFixAccounts())
@@ -110,6 +113,7 @@ loadErrorCatalog()
     .then(() => migrateTransferenciaComprovante())
     .then(() => migrateFixTransferenciaNulls())
     .then(() => migrateInstallmentColumns())
+    .then(() => migrateSystemSettings())
     .then(() => {
         startServer();
     })

@@ -22,6 +22,7 @@ import { ExtratoContaManager } from './components/ExtratoContaManager.js'
 import { ConsolidadasManager } from './components/ConsolidadasManager.js'
 import { PrevisaoFluxoManager } from './components/PrevisaoFluxoManager.js'
 import { AIConsultant } from './components/AIConsultant.js'
+import { ParametrosGeraisManager } from './components/ParametrosGeraisManager.js'
 
 console.log('═══════════════════════════════════════');
 console.log('💰 CASH Frontend Starting');
@@ -354,6 +355,15 @@ function initAppLogic() {
           const mainElement = document.querySelector('main');
           mainElement.innerHTML = '';
           mainElement.appendChild(UserManager(currentProject));
+        } else {
+          Dialogs.alert('Selecione um projeto primeiro', 'Aviso');
+        }
+      } else if (itemId === 'parametros-gerais') {
+        const { currentProject } = checkAuth();
+        if (currentProject) {
+          const mainElement = document.querySelector('main');
+          mainElement.innerHTML = '';
+          mainElement.appendChild(ParametrosGeraisManager(currentProject));
         } else {
           Dialogs.alert('Selecione um projeto primeiro', 'Aviso');
         }
