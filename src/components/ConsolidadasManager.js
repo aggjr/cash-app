@@ -98,13 +98,13 @@ export const ConsolidadasManager = (project) => {
             <table style="width: auto; min-width: 50%; border-collapse: separate; border-spacing: 0;">
                 <thead style="position: sticky; top: 0; z-index: 10; background-color: #00425F; color: white;">
                     <tr>
-                        <th style="padding: 1rem; text-align: left; border-bottom: 2px solid #e5e7eb; min-width: 300px; position: sticky; left: 0; background-color: #00425F; z-index: 11;">TRANSAÇÕES</th>
+                        <th style="padding: 1rem; text-align: center; border-bottom: 2px solid #e5e7eb; min-width: 300px; position: sticky; left: 0; background-color: #00425F; z-index: 11;">TRANSAÇÕES</th>
+                        <th style="padding: 1rem; text-align: center; border-bottom: 2px solid #e5e7eb; min-width: 120px; position: sticky; left: 300px; background-color: #00425F; z-index: 11;">MÉDIA</th>
+                        <th style="padding: 1rem; text-align: center; border-bottom: 2px solid #e5e7eb; min-width: 120px; position: sticky; left: 420px; background-color: #00425F; z-index: 11;">TOTAL</th>
                         ${months.map(m => {
             const [y, mo] = m.split('-');
             return `<th style="padding: 1rem; text-align: center; border-bottom: 2px solid #e5e7eb; min-width: 120px;">${mo}/${y}</th>`;
         }).join('')}
-                        <th style="padding: 1rem; text-align: center; border-bottom: 2px solid #e5e7eb; min-width: 120px;">Total</th>
-                        <th style="padding: 1rem; text-align: center; border-bottom: 2px solid #e5e7eb; min-width: 120px;">MÉDIA</th>
                     </tr>
                 </thead>
                 <tbody>
@@ -190,14 +190,14 @@ export const ConsolidadasManager = (project) => {
                     }
                 }
 
-                const totalCell = `<td style="padding: 0.5rem 1rem; text-align: right; border-bottom: 1px solid #f3f4f6; font-weight: bold; color: ${totalColor}; text-align: center;">${node.total !== 0 ? formatCurrency(node.total) : '-'}</td>`;
+                const totalCell = `<td style="padding: 0.5rem 1rem; text-align: right; border-bottom: 1px solid #f3f4f6; font-weight: bold; color: ${totalColor}; text-align: center; position: sticky; left: 420px; background-color: ${rowBg}; z-index: 1;">${node.total !== 0 ? formatCurrency(node.total) : '-'}</td>`;
 
                 // Average Calculation
                 let average = 0;
                 if (months.length > 0) {
                     average = node.total / months.length;
                 }
-                const averageCell = `<td style="padding: 0.5rem 1rem; text-align: right; border-bottom: 1px solid #f3f4f6; font-weight: bold; color: ${totalColor}; text-align: center;">${average !== 0 ? formatCurrency(average) : '-'}</td>`;
+                const averageCell = `<td style="padding: 0.5rem 1rem; text-align: right; border-bottom: 1px solid #f3f4f6; font-weight: bold; color: ${totalColor}; text-align: center; position: sticky; left: 300px; background-color: ${rowBg}; z-index: 1;">${average !== 0 ? formatCurrency(average) : '-'}</td>`;
 
                 // Row HTML
                 html += `
@@ -206,9 +206,9 @@ export const ConsolidadasManager = (project) => {
                             ${hasChildren ? `<span style="font-size: 0.8rem; transform: rotate(${isExpanded ? '90deg' : '0deg'}); transition: transform 0.2s;">▶</span>` : ''}
                             ${node.name}
                         </td>
-                        ${monthCells}
-                        ${totalCell}
                         ${averageCell}
+                        ${totalCell}
+                        ${monthCells}
                     </tr>
                 `;
 
