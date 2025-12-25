@@ -554,10 +554,15 @@ export const ConsolidadasManager = (project) => {
                     const exportData = [];
 
                     // Flatten hierarchy function
-                    const flattenNodes = (nodes, level = 0) => {
+                    const flattenNodes = (nodes, level = 0, parentPath = []) => {
                         nodes.forEach(node => {
-                            const indent = '  '.repeat(level);
-                            const row = { 'Categoria': indent + node.name };
+                            const row = {};
+
+                            // Hierarchical columns
+                            const currentPath = [...parentPath, node.name];
+                            row['Nível 1'] = currentPath[0] || '';
+                            row['Nível 2'] = currentPath[1] || '';
+                            row['Nível 3'] = currentPath[2] || '';
 
                             months.forEach(m => {
                                 const [y, mo] = m.split('-');
@@ -565,13 +570,13 @@ export const ConsolidadasManager = (project) => {
                                 row[label] = node.monthlyTotals[m] || 0;
                             });
 
-                            row['Total'] = node.total || 0;
                             row['Média'] = months.length > 0 ? (node.total / months.length) : 0;
+                            row['Total'] = node.total || 0;
 
                             exportData.push(row);
 
                             if (node.children && node.children.length > 0) {
-                                flattenNodes(node.children, level + 1);
+                                flattenNodes(node.children, level + 1, currentPath);
                             }
                         });
                     };
@@ -580,7 +585,9 @@ export const ConsolidadasManager = (project) => {
 
                     // Define columns
                     const columns = [
-                        { header: 'Categoria', key: 'Categoria', width: 40, type: 'text' }
+                        { header: 'Nível 1', key: 'Nível 1', width: 25, type: 'text' },
+                        { header: 'Nível 2', key: 'Nível 2', width: 25, type: 'text' },
+                        { header: 'Nível 3', key: 'Nível 3', width: 25, type: 'text' }
                     ];
 
                     months.forEach(m => {
@@ -595,8 +602,8 @@ export const ConsolidadasManager = (project) => {
                     });
 
                     columns.push(
-                        { header: 'Total', key: 'Total', width: 15, type: 'currency' },
-                        { header: 'Média', key: 'Média', width: 15, type: 'currency' }
+                        { header: 'Média', key: 'Média', width: 15, type: 'currency' },
+                        { header: 'Total', key: 'Total', width: 15, type: 'currency' }
                     );
 
                     await ExcelExporter.exportTable(
