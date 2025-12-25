@@ -98,13 +98,13 @@ export const ConsolidadasManager = (project) => {
             <table style="width: auto; min-width: 50%; border-collapse: separate; border-spacing: 0;">
                 <thead style="position: sticky; top: 0; z-index: 10; background-color: #00425F; color: white;">
                     <tr>
-                        <th style="padding: 1rem; text-align: center; border-bottom: 2px solid #e5e7eb; min-width: 300px; position: sticky; left: 0; background-color: #00425F; z-index: 11;">TRANSAÇÕES</th>
-                        <th style="padding: 1rem; text-align: center; border-bottom: 2px solid #e5e7eb; min-width: 120px; position: sticky; left: 300px; background-color: #00425F; z-index: 11;">MÉDIA</th>
-                        <th style="padding: 1rem; text-align: center; border-bottom: 2px solid #e5e7eb; min-width: 120px; position: sticky; left: 420px; background-color: #00425F; z-index: 11;">TOTAL</th>
+                        <th style="padding: 1rem; text-align: left; border-bottom: 2px solid #e5e7eb; min-width: 300px;">TRANSAÇÕES</th>
                         ${months.map(m => {
             const [y, mo] = m.split('-');
             return `<th style="padding: 1rem; text-align: center; border-bottom: 2px solid #e5e7eb; min-width: 120px;">${mo}/${y}</th>`;
         }).join('')}
+                        <th style="padding: 1rem; text-align: center; border-bottom: 2px solid #e5e7eb; min-width: 120px;">Total</th>
+                        <th style="padding: 1rem; text-align: center; border-bottom: 2px solid #e5e7eb; min-width: 120px;">MÉDIA</th>
                     </tr>
                 </thead>
                 <tbody>
@@ -190,25 +190,25 @@ export const ConsolidadasManager = (project) => {
                     }
                 }
 
-                const totalCell = `<td style="padding: 0.5rem 1rem; text-align: right; border-bottom: 1px solid #f3f4f6; font-weight: bold; color: ${totalColor}; text-align: center; position: sticky; left: 420px; background-color: ${rowBg}; z-index: 1;">${node.total !== 0 ? formatCurrency(node.total) : '-'}</td>`;
+                const totalCell = `<td style="padding: 0.5rem 1rem; text-align: right; border-bottom: 1px solid #f3f4f6; font-weight: bold; color: ${totalColor}; text-align: center;">${node.total !== 0 ? formatCurrency(node.total) : '-'}</td>`;
 
                 // Average Calculation
                 let average = 0;
                 if (months.length > 0) {
                     average = node.total / months.length;
                 }
-                const averageCell = `<td style="padding: 0.5rem 1rem; text-align: right; border-bottom: 1px solid #f3f4f6; font-weight: bold; color: ${totalColor}; text-align: center; position: sticky; left: 300px; background-color: ${rowBg}; z-index: 1;">${average !== 0 ? formatCurrency(average) : '-'}</td>`;
+                const averageCell = `<td style="padding: 0.5rem 1rem; text-align: right; border-bottom: 1px solid #f3f4f6; font-weight: bold; color: ${totalColor}; text-align: center;">${average !== 0 ? formatCurrency(average) : '-'}</td>`;
 
                 // Row HTML
                 html += `
                     <tr class="${rowClass}" data-id="${node.id}" style="background-color: ${rowBg}; cursor: ${hasChildren ? 'pointer' : 'default'};">
-                        <td style="padding: 0.5rem 1rem 0.5rem ${paddingLeft}rem; border-bottom: 1px solid #f3f4f6; font-weight: ${fontWeight}; display: flex; align-items: center; gap: 0.5rem; position: sticky; left: 0; background-color: ${rowBg}; z-index: 1;">
+                        <td style="padding: 0.5rem 1rem 0.5rem ${paddingLeft}rem; border-bottom: 1px solid #f3f4f6; font-weight: ${fontWeight}; display: flex; align-items: center; gap: 0.5rem;">
                             ${hasChildren ? `<span style="font-size: 0.8rem; transform: rotate(${isExpanded ? '90deg' : '0deg'}); transition: transform 0.2s;">▶</span>` : ''}
                             ${node.name}
                         </td>
-                        ${averageCell}
-                        ${totalCell}
                         ${monthCells}
+                        ${totalCell}
+                        ${averageCell}
                     </tr>
                 `;
 
@@ -554,15 +554,10 @@ export const ConsolidadasManager = (project) => {
                     const exportData = [];
 
                     // Flatten hierarchy function
-                    const flattenNodes = (nodes, level = 0, parentPath = []) => {
+                    const flattenNodes = (nodes, level = 0) => {
                         nodes.forEach(node => {
-                            const row = {};
-
-                            // Hierarchical columns
-                            const currentPath = [...parentPath, node.name];
-                            row['Nível 1'] = currentPath[0] || '';
-                            row['Nível 2'] = currentPath[1] || '';
-                            row['Nível 3'] = currentPath[2] || '';
+                            const indent = '  '.repeat(level);
+                            const row = { 'Categoria': indent + node.name };
 
                             months.forEach(m => {
                                 const [y, mo] = m.split('-');
@@ -570,13 +565,13 @@ export const ConsolidadasManager = (project) => {
                                 row[label] = node.monthlyTotals[m] || 0;
                             });
 
-                            row['Média'] = months.length > 0 ? (node.total / months.length) : 0;
                             row['Total'] = node.total || 0;
+                            row['Média'] = months.length > 0 ? (node.total / months.length) : 0;
 
                             exportData.push(row);
 
                             if (node.children && node.children.length > 0) {
-                                flattenNodes(node.children, level + 1, currentPath);
+                                flattenNodes(node.children, level + 1);
                             }
                         });
                     };
@@ -585,9 +580,7 @@ export const ConsolidadasManager = (project) => {
 
                     // Define columns
                     const columns = [
-                        { header: 'Nível 1', key: 'Nível 1', width: 25, type: 'text' },
-                        { header: 'Nível 2', key: 'Nível 2', width: 25, type: 'text' },
-                        { header: 'Nível 3', key: 'Nível 3', width: 25, type: 'text' }
+                        { header: 'Categoria', key: 'Categoria', width: 40, type: 'text' }
                     ];
 
                     months.forEach(m => {
@@ -602,8 +595,8 @@ export const ConsolidadasManager = (project) => {
                     });
 
                     columns.push(
-                        { header: 'Média', key: 'Média', width: 15, type: 'currency' },
-                        { header: 'Total', key: 'Total', width: 15, type: 'currency' }
+                        { header: 'Total', key: 'Total', width: 15, type: 'currency' },
+                        { header: 'Média', key: 'Média', width: 15, type: 'currency' }
                     );
 
                     await ExcelExporter.exportTable(

@@ -317,57 +317,7 @@ export const ExcelExporter = {
             });
         });
 
-        // 3. Merge Hierarchical Cells (Nível 1, 2, 3)
-        // Find hierarchy columns by header name
-        const hierarchyColumns = [];
-        columns.forEach((col, idx) => {
-            if (col.header === 'Nível 1' || col.header === 'Nível 2' || col.header === 'Nível 3') {
-                hierarchyColumns.push({ colIdx: idx + 1, header: col.header });
-            }
-        });
-
-        if (hierarchyColumns.length > 0 && data.length > 0) {
-            hierarchyColumns.forEach(({ colIdx, header }) => {
-                let startRow = 2; // Data starts at row 2 (row 1 is header)
-                let currentValue = null;
-
-                for (let rowIdx = 2; rowIdx <= data.length + 1; rowIdx++) {
-                    const cell = sheet.getCell(rowIdx, colIdx);
-                    const cellValue = cell.value || '';
-
-                    if (cellValue !== currentValue) {
-                        // Value changed - merge previous range if needed
-                        if (currentValue !== null && rowIdx - startRow > 1) {
-                            // Merge cells from startRow to rowIdx-1
-                            sheet.mergeCells(startRow, colIdx, rowIdx - 1, colIdx);
-
-                            // Center the merged cell
-                            const mergedCell = sheet.getCell(startRow, colIdx);
-                            mergedCell.alignment = {
-                                vertical: 'middle',
-                                horizontal: 'center'
-                            };
-                        }
-
-                        // Start new range
-                        startRow = rowIdx;
-                        currentValue = cellValue;
-                    }
-                }
-
-                // Handle last range
-                if (currentValue !== null && data.length + 1 - startRow > 0) {
-                    sheet.mergeCells(startRow, colIdx, data.length + 1, colIdx);
-                    const mergedCell = sheet.getCell(startRow, colIdx);
-                    mergedCell.alignment = {
-                        vertical: 'middle',
-                        horizontal: 'center'
-                    };
-                }
-            });
-        }
-
-        // 4. Write and Download
+        // 3. Write and Download
         const buffer = await workbook.xlsx.writeBuffer();
         const blob = new Blob([buffer], { type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' });
 
