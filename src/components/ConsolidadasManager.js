@@ -130,10 +130,10 @@ export const ConsolidadasManager = (project) => {
                 let rowBg = level === 0 ? '#f0f9ff' : '#ffffff';
                 let fontWeight = level === 0 ? '700' : (hasChildren ? '600' : '400');
 
-                // Font size based on hierarchy level: base 1rem, -2pts per level
-                // 1rem = 16px, 2pts ≈ 0.125rem (2/16)
+                // Font size based on hierarchy level: base 1rem, -1pt per level
+                // 1rem = 16px, 1pt ≈ 0.063rem (1/16)
                 const baseSizeRem = 1;
-                const decreasePerLevel = 0.125; // 2pts in rem
+                const decreasePerLevel = 0.063; // 1pt in rem
                 const fontSize = `${baseSizeRem - (level * decreasePerLevel)}rem`;
 
                 // Special Highlights for Totals and Final Rows
@@ -176,7 +176,7 @@ export const ConsolidadasManager = (project) => {
                         }
                     }
 
-                    monthCells += `<td style="padding: 0.5rem 1rem; text-align: right; border-bottom: 1px solid #f3f4f6; color: ${color}; font-weight: 600;">${val !== 0 ? formatCurrency(val) : '-'}</td>`;
+                    monthCells += `<td style="padding: 0.5rem 1rem; text-align: right; border-bottom: 1px solid #f3f4f6; color: ${color}; font-weight: 600; font-size: ${fontSize};">${val !== 0 ? formatCurrency(val) : '-'}</td>`;
                 });
 
                 // Total Cell Color
@@ -196,14 +196,14 @@ export const ConsolidadasManager = (project) => {
                     }
                 }
 
-                const totalCell = `<td style="padding: 0.5rem 1rem; text-align: right; border-bottom: 1px solid #f3f4f6; font-weight: bold; color: ${totalColor};">${node.total !== 0 ? formatCurrency(node.total) : '-'}</td>`;
+                const totalCell = `<td style="padding: 0.5rem 1rem; text-align: right; border-bottom: 1px solid #f3f4f6; font-weight: bold; color: ${totalColor}; font-size: ${fontSize};">${node.total !== 0 ? formatCurrency(node.total) : '-'}</td>`;
 
                 // Average Calculation
                 let average = 0;
                 if (months.length > 0) {
                     average = node.total / months.length;
                 }
-                const averageCell = `<td style="padding: 0.5rem 1rem; text-align: right; border-bottom: 1px solid #f3f4f6; font-weight: bold; color: ${totalColor};">${average !== 0 ? formatCurrency(average) : '-'}</td>`;
+                const averageCell = `<td style="padding: 0.5rem 1rem; text-align: right; border-bottom: 1px solid #f3f4f6; font-weight: bold; color: ${totalColor}; font-size: ${fontSize};">${average !== 0 ? formatCurrency(average) : '-'}</td>`;
 
                 // Row HTML
                 html += `
