@@ -130,6 +130,12 @@ export const ConsolidadasManager = (project) => {
                 let rowBg = level === 0 ? '#f0f9ff' : '#ffffff';
                 let fontWeight = level === 0 ? '700' : (hasChildren ? '600' : '400');
 
+                // Font size based on hierarchy level: base 1rem, -2pts per level
+                // 1rem = 16px, 2pts ≈ 0.125rem (2/16)
+                const baseSizeRem = 1;
+                const decreasePerLevel = 0.125; // 2pts in rem
+                const fontSize = `${baseSizeRem - (level * decreasePerLevel)}rem`;
+
                 // Special Highlights for Totals and Final Rows
                 if (node.id === 'total_saidas_root' || node.id === 'resultado_operacional_root') {
                     rowBg = '#e0f2fe'; // Blue highlight
@@ -190,19 +196,19 @@ export const ConsolidadasManager = (project) => {
                     }
                 }
 
-                const totalCell = `<td style="padding: 0.5rem 1rem; text-align: right; border-bottom: 1px solid #f3f4f6; font-weight: bold; color: ${totalColor}; text-align: center;">${node.total !== 0 ? formatCurrency(node.total) : '-'}</td>`;
+                const totalCell = `<td style="padding: 0.5rem 1rem; text-align: right; border-bottom: 1px solid #f3f4f6; font-weight: bold; color: ${totalColor};">${node.total !== 0 ? formatCurrency(node.total) : '-'}</td>`;
 
                 // Average Calculation
                 let average = 0;
                 if (months.length > 0) {
                     average = node.total / months.length;
                 }
-                const averageCell = `<td style="padding: 0.5rem 1rem; text-align: right; border-bottom: 1px solid #f3f4f6; font-weight: bold; color: ${totalColor}; text-align: center;">${average !== 0 ? formatCurrency(average) : '-'}</td>`;
+                const averageCell = `<td style="padding: 0.5rem 1rem; text-align: right; border-bottom: 1px solid #f3f4f6; font-weight: bold; color: ${totalColor};">${average !== 0 ? formatCurrency(average) : '-'}</td>`;
 
                 // Row HTML
                 html += `
                     <tr class="${rowClass}" data-id="${node.id}" style="background-color: ${rowBg}; cursor: ${hasChildren ? 'pointer' : 'default'};">
-                        <td style="padding: 0.5rem 1rem 0.5rem ${paddingLeft}rem; border-bottom: 1px solid #f3f4f6; font-weight: ${fontWeight}; display: flex; align-items: center; gap: 0.5rem;">
+                        <td style="padding: 0.5rem 1rem 0.5rem ${paddingLeft}rem; border-bottom: 1px solid #f3f4f6; font-weight: ${fontWeight}; font-size: ${fontSize}; display: flex; align-items: center; gap: 0.5rem;">
                             ${hasChildren ? `<span style="font-size: 0.8rem; transform: rotate(${isExpanded ? '90deg' : '0deg'}); transition: transform 0.2s;">▶</span>` : ''}
                             ${node.name}
                         </td>
