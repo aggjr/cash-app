@@ -153,11 +153,12 @@ exports.login = async (req, res, next) => {
             throw new AppError('AUTH-003');
         }
 
-        // Generate Token with projectId
+        // Generate Token with projectId and role
         const token = jwt.sign({
             id: user.id,
             email: user.email,
-            projectId: parseInt(projectId)
+            projectId: parseInt(projectId),
+            role: user.role
         }, JWT_SECRET, { expiresIn: '24h' });
 
         // Update last_login_at

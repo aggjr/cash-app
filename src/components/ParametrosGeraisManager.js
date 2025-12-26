@@ -47,10 +47,23 @@ export const ParametrosGeraisManager = (project) => {
 
     const loadSettings = async () => {
         try {
+            console.log('🔄 Loading settings from API...');
+            console.log('API URL:', `${API_BASE_URL}/settings`);
+
             const response = await fetch(`${API_BASE_URL}/settings`, {
                 headers: getHeaders()
             });
+
+            console.log('Response status:', response.status);
+
+            if (!response.ok) {
+                const errorText = await response.text();
+                console.error('API Error:', errorText);
+                throw new Error(`HTTP ${response.status}: ${errorText}`);
+            }
+
             const settings = await response.json();
+            console.log('✅ Settings loaded:', settings);
 
             originalSettings = {
                 numero_dias: settings.numero_dias,
@@ -58,9 +71,12 @@ export const ParametrosGeraisManager = (project) => {
             };
             currentSettings = { ...originalSettings };
 
+            console.log('Original settings:', originalSettings);
+            console.log('Current settings:', currentSettings);
+
             renderSettings();
         } catch (error) {
-            console.error('Error loading settings:', error);
+            console.error('❌ Error loading settings:', error);
             showToast('Erro ao carregar configurações', 'error');
         }
     };
