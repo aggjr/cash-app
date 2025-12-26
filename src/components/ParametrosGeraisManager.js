@@ -75,6 +75,39 @@ export const ParametrosGeraisManager = (project) => {
             console.log('Current settings:', currentSettings);
 
             renderSettings();
+
+            // Check if there's an active unlock
+            if (settings.unlock_expires_at) {
+                const expiresAt = new Date(settings.unlock_expires_at);
+                const now = new Date();
+
+                console.log('🔍 Checking unlock status...');
+                console.log('  unlock_expires_at:', expiresAt);
+                console.log('  now:', now);
+                console.log('  still valid:', expiresAt > now);
+
+                if (expiresAt > now) {
+                    // Unlock is still active, restore countdown
+                    console.log('✅ Restoring active unlock countdown');
+                    unlockExpiresAt = expiresAt;
+                    startCountdown();
+                } else {
+                    // Unlock expired, clear it on server
+                    console.log('⏰ Unlock expired, clearing...');
+                    try {
+                        await fetch(`${API_BASE_URL}/settings/unlock/cancel`, {
+                            method: 'POST',
+                            headers: getHeaders()
+                        });
+                        console.log('✓ Expired unlock cleared');
+                    } catch (err) {
+                        console.warn('Could not clear expired unlock:', err);
+                    }
+                }
+            } else {
+                console.log('🔒 No active unlock - starting in LOCK mode');
+            }
+
         } catch (error) {
             console.error('❌ Error loading settings:', error);
             showToast('Erro ao carregar configurações', 'error');
@@ -336,6 +369,7 @@ export const ParametrosGeraisManager = (project) => {
                             class="settings-input"
                             value="${currentSettings.numero_dias}"
                             min="1"
+                            style="max-width: 150px;"
                         />
                         <button 
                             id="save-numero_dias"
@@ -347,10 +381,11 @@ export const ParametrosGeraisManager = (project) => {
                                 color: white;
                                 border: none;
                                 border-radius: 8px;
-                                font-size: 1.2rem;
+                                font-size: 1.3rem;
                                 cursor: not-allowed;
                                 opacity: 0.4;
                                 transition: all 0.2s;
+                                min-width: 50px;
                             "
                             title="Salvar alteração"
                         >✓</button>
@@ -372,6 +407,7 @@ export const ParametrosGeraisManager = (project) => {
                             class="settings-input"
                             value="${currentSettings.tempo_minutos_liberacao}"
                             min="1"
+                            style="max-width: 150px;"
                         />
                         <button 
                             id="save-tempo_minutos_liberacao"
@@ -383,10 +419,11 @@ export const ParametrosGeraisManager = (project) => {
                                 color: white;
                                 border: none;
                                 border-radius: 8px;
-                                font-size: 1.2rem;
+                                font-size: 1.3rem;
                                 cursor: not-allowed;
                                 opacity: 0.4;
                                 transition: all 0.2s;
+                                min-width: 50px;
                             "
                             title="Salvar alteração"
                         >✓</button>
