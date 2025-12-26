@@ -237,6 +237,29 @@ export const ParametrosGeraisManager = (project) => {
 
     const renderSettings = () => {
         container.innerHTML = `
+            <style>
+                .settings-input {
+                    flex: 1;
+                    padding: 0.75rem;
+                    border: 1px solid #D1D5DB;
+                    border-radius: 8px;
+                    font-size: 1rem;
+                    background: var(--color-bg);
+                    color: var(--color-text);
+                    transition: border-color 0.2s, box-shadow 0.2s;
+                    outline: none;
+                }
+                
+                .settings-input:focus {
+                    border-color: #3B82F6;
+                    box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.1);
+                }
+                
+                .settings-input:hover:not(:focus) {
+                    border-color: #9CA3AF;
+                }
+            </style>
+            
             <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 2rem;">
                 <h2>⚙️ Parâmetros Gerais</h2>
             </div>
@@ -252,9 +275,9 @@ export const ParametrosGeraisManager = (project) => {
                         <input 
                             type="number" 
                             id="input-numero_dias" 
+                            class="settings-input"
                             value="${currentSettings.numero_dias}"
                             min="1"
-                            style="flex: 1; padding: 0.75rem; border: 1px solid var(--color-border); border-radius: 8px; font-size: 1rem; background: var(--color-bg);"
                         />
                         <button 
                             id="save-numero_dias"
@@ -288,9 +311,9 @@ export const ParametrosGeraisManager = (project) => {
                         <input 
                             type="number" 
                             id="input-tempo_minutos_liberacao" 
+                            class="settings-input"
                             value="${currentSettings.tempo_minutos_liberacao}"
                             min="1"
-                            style="flex: 1; padding: 0.75rem; border: 1px solid var(--color-border); border-radius: 8px; font-size: 1rem; background: var(--color-bg);"
                         />
                         <button 
                             id="save-tempo_minutos_liberacao"
