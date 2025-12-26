@@ -1,5 +1,6 @@
 const db = require('../config/database');
 const AppError = require('../utils/AppError');
+const { validateDateWithinRange } = require('../utils/dateValidation');
 
 const getOrderByClause = (sortBy, order = 'asc') => {
     const direction = order.toUpperCase() === 'DESC' ? 'DESC' : 'ASC';
@@ -305,6 +306,14 @@ exports.createIncome = async (req, res, next) => {
             throw new AppError('VAL-001', 'Valor inválido.');
         }
 
+        // Validate dataRealRecebimento if provided
+        if (dataRealRecebimento) {
+            const validation = await validateDateWithinRange(dataRealRecebimento, projectId);
+            if (!validation.isValid) {
+                throw new AppError('VAL-DATE', validation.error);
+            }
+        }
+
         connection = await db.getConnection();
         await connection.beginTransaction();
 
@@ -426,6 +435,14 @@ exports.updateIncome = async (req, res, next) => {
         }
 
         const oldData = oldIncome[0];
+
+        // Validate dataRealRecebimento if provided
+        if (dataRealRecebimento !== undefined && dataRealRecebimento !== null) {
+            const validation = await validateDateWithinRange(dataRealRecebimento, oldData.project_id || req.user.projectId);
+            if (!validation.isValid) {
+                throw new AppError('VAL-DATE', validation.error);
+            }
+        }
 
         // Check if this is the first installment of a group and if predicted date is being changed
         if (oldData.installment_group_id &&
