@@ -23,8 +23,8 @@ async function addSystemSettings() {
             CREATE TABLE system_settings (
                 id INT AUTO_INCREMENT PRIMARY KEY,
                 project_id INT NOT NULL,
-                numero_dias INT DEFAULT 30,
-                tempo_minutos_liberacao INT DEFAULT 15,
+                numero_dias INT DEFAULT 3,
+                tempo_minutos_liberacao INT DEFAULT 5,
                 unlock_expires_at TIMESTAMP NULL DEFAULT NULL,
                 created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
                 updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
@@ -40,7 +40,7 @@ async function addSystemSettings() {
 
         await connection.query(`
             INSERT INTO system_settings (project_id, numero_dias, tempo_minutos_liberacao)
-            SELECT id, 30, 15
+            SELECT id, 3, 5
             FROM projects
             WHERE id NOT IN (SELECT project_id FROM system_settings)
         `);

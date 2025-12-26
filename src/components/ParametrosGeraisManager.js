@@ -112,7 +112,17 @@ export const ParametrosGeraisManager = (project) => {
         }
     };
 
+    let unlockTimer = null;
+    let unlockCountdownInterval = null;
+    let unlockExpiresAt = null;
+
     const activateUnlock = async () => {
+        // Se já está ativo, cancelar
+        if (unlockTimer) {
+            cancelUnlock();
+            return;
+        }
+
         const minutes = currentSettings.tempo_minutos_liberacao;
         const confirmed = await Dialogs.confirm(
             `Você está prestes a liberar edições em qualquer data do sistema por ${minutes} minutos. Deseja continuar?`,
@@ -129,6 +139,8 @@ export const ParametrosGeraisManager = (project) => {
 
             if (response.ok) {
                 const result = await response.json();
+                unlockExpiresAt = new Date(result.expires_at);
+                startCountdown();
                 showToast(`✓ ${result.message}`, 'success');
             } else {
                 const error = await response.json();
@@ -137,6 +149,89 @@ export const ParametrosGeraisManager = (project) => {
         } catch (error) {
             console.error('Error activating unlock:', error);
             showToast('Erro de conexão', 'error');
+        }
+    };
+
+    const cancelUnlock = () => {
+        if (unlockCountdownInterval) {
+            clearInterval(unlockCountdownInterval);
+            unlockCountdownInterval = null;
+        }
+        if (unlockTimer) {
+            clearTimeout(unlockTimer);
+            unlockTimer = null;
+        }
+        unlockExpiresAt = null;
+        updateUnlockButton(false, 0);
+        showToast('Liberação temporária cancelada', 'info');
+    };
+
+    const startCountdown = () => {
+        updateUnlockButton(true, getRemainingTime());
+
+        unlockCountdownInterval = setInterval(() => {
+            const remaining = getRemainingTime();
+            if (remaining <= 0) {
+                cancelUnlock();
+                showToast('Liberação temporária expirada', 'info');
+            } else {
+                updateUnlockButton(true, remaining);
+            }
+        }, 1000);
+    };
+
+    const getRemainingTime = () => {
+        if (!unlockExpiresAt) return 0;
+        const now = new Date();
+        const diff = unlockExpiresAt - now;
+        return Math.max(0, Math.ceil(diff / 1000));
+    };
+
+    const formatTime = (seconds) => {
+        const mins = Math.floor(seconds / 60);
+        const secs = seconds % 60;
+        return `${mins}:${secs.toString().padStart(2, '0')}`;
+    };
+
+    const updateUnlockButton = (isActive, remainingSeconds) => {
+        const button = container.querySelector('#btn-activate-unlock');
+        const timerDisplay = container.querySelector('#unlock-timer-display');
+
+        if (!button) return;
+
+        if (isActive) {
+            // Estado ATIVO (desbloqueado)
+            button.innerHTML = `🔓 Cancelar Liberação`;
+            button.style.background = 'linear-gradient(135deg, #DAB177 0%, #C9A366 100%)';
+            button.style.color = '#1F2937';
+            button.onmouseover = function () {
+                this.style.background = 'linear-gradient(135deg, #C9A366 0%, #B89355 100%)';
+            };
+            button.onmouseout = function () {
+                this.style.background = 'linear-gradient(135deg, #DAB177 0%, #C9A366 100%)';
+            };
+
+            if (timerDisplay) {
+                timerDisplay.textContent = `Tempo restante: ${formatTime(remainingSeconds)}`;
+                timerDisplay.style.display = 'block';
+                timerDisplay.style.color = '#DAB177';
+                timerDisplay.style.fontWeight = '600';
+            }
+        } else {
+            // Estado PADRÃO (bloqueado)
+            button.innerHTML = `<span style="color: #4B5563; font-size: 1.1rem;">🔒</span> Liberar Edições Temporariamente`;
+            button.style.background = '#E5E7EB';
+            button.style.color = '#1F2937';
+            button.onmouseover = function () {
+                this.style.background = '#D1D5DB';
+            };
+            button.onmouseout = function () {
+                this.style.background = '#E5E7EB';
+            };
+
+            if (timerDisplay) {
+                timerDisplay.style.display = 'none';
+            }
         }
     };
 
@@ -187,7 +282,7 @@ export const ParametrosGeraisManager = (project) => {
                 <!-- Tempo em Minutos -->
                 <div style="margin-bottom: 2rem;">
                     <label style="display: block; font-weight: 500; margin-bottom: 0.5rem; color: var(--color-text);">
-                        ⏱️ Tempo em minutos para liberação
+                        ⏱️ Tempo em minutos para usar o sistema sem regras de datas
                     </label>
                     <div style="display: flex; align-items: center; gap: 0.75rem;">
                         <input 
@@ -227,12 +322,12 @@ export const ParametrosGeraisManager = (project) => {
                 <div>
                     <button 
                         id="btn-activate-unlock"
-                        class="btn-warning"
+                        class="btn-unlock"
                         style="
                             width: 100%;
                             padding: 1rem;
-                            background: #F59E0B;
-                            color: white;
+                            background: #E5E7EB;
+                            color: #1F2937;
                             border: none;
                             border-radius: 8px;
                             font-size: 1rem;
@@ -244,11 +339,12 @@ export const ParametrosGeraisManager = (project) => {
                             justify-content: center;
                             gap: 0.5rem;
                         "
-                        onmouseover="this.style.background='#D97706'"
-                        onmouseout="this.style.background='#F59E0B'"
+                        onmouseover="this.style.background='#D1D5DB'"
+                        onmouseout="this.style.background='#E5E7EB'"
                     >
-                        🔓 Liberar Edições Temporariamente
+                        <span style="color: #4B5563; font-size: 1.1rem;">🔒</span> Liberar Edições Temporariamente
                     </button>
+                    <div id="unlock-timer-display" style="display: none; margin-top: 0.75rem; text-align: center; font-size: 1.1rem;"></div>
                     <small style="display: block; margin-top: 0.75rem; color: var(--color-text-muted); text-align: center;">
                         Permite editar registros em qualquer data por tempo limitado
                     </small>

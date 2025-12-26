@@ -1,9 +1,14 @@
 export const Sidebar = () => {
-  const menuItems = [
+  // Get user role from localStorage
+  const userData = localStorage.getItem('user');
+  const userRole = userData ? JSON.parse(userData).role : null;
+
+  const allMenuItems = [
     {
       id: 'configuracoes',
       label: 'Configurações do Sistema',
       icon: '⚙️',
+      masterOnly: true, // Only MASTER users can see this
       children: [
         { id: 'parametros-gerais', label: 'Parâmetros Gerais', icon: '📝' }
       ]
@@ -44,30 +49,26 @@ export const Sidebar = () => {
       ]
     },
     {
-      id: 'fechamento',
-      label: 'Fechamento Contas',
-      icon: '🎚️',
-      children: []
-    },
-    {
-      id: 'extrato-conta',
-      label: 'Extrato de Conta',
-      icon: '🧾',
-      children: []
-    },
-    {
-      id: 'consolidadas',
-      label: 'Consolidadas',
-      icon: '📑',
-      children: []
-    },
-    {
-      id: 'previsao',
-      label: 'Previsão Fluxo',
-      icon: '📊',
-      children: []
+      id: 'analise-financeira',
+      label: 'Análise Financeira',
+      icon: '📈',
+      children: [
+        { id: 'fechamento', label: 'Fechamento Contas', icon: '🎚️' },
+        { id: 'extrato-conta', label: 'Extrato de Conta', icon: '🧾' },
+        { id: 'consolidadas', label: 'Consolidadas', icon: '📑' },
+        { id: 'previsao', label: 'Previsão Fluxo', icon: '📊' }
+      ]
     }
   ];
+
+  // Filter menu items based on user role
+  const menuItems = allMenuItems.filter(item => {
+    // If item requires MASTER role and user is not MASTER, hide it
+    if (item.masterOnly && userRole !== 'master') {
+      return false;
+    }
+    return true;
+  });
 
   const renderMenuItem = (item, level = 0) => {
     const hasChildren = item.children && item.children.length > 0;

@@ -14,15 +14,15 @@ const getSettings = async (req, res) => {
         if (settings.length === 0) {
             // Initialize default settings if not exists
             await connection.query(
-                'INSERT INTO system_settings (project_id, numero_dias, tempo_minutos_liberacao) VALUES (?, 30, 15)',
+                'INSERT INTO system_settings (project_id, numero_dias, tempo_minutos_liberacao) VALUES (?, 3, 5)',
                 [projectId]
             );
 
             return res.json({
                 id: null,
                 project_id: projectId,
-                numero_dias: 30,
-                tempo_minutos_liberacao: 15,
+                numero_dias: 3,
+                tempo_minutos_liberacao: 5,
                 unlock_expires_at: null
             });
         }

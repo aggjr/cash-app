@@ -1,11 +1,11 @@
 const express = require('express');
 const router = express.Router();
 const settingsController = require('../controllers/settingsController');
-const auth = require('../middleware/auth');
+const { authMaster } = require('../middleware/auth');
 
-router.get('/', auth, settingsController.getSettings);
-router.put('/:field', auth, settingsController.updateSetting);
-router.post('/unlock', auth, settingsController.activateTemporaryUnlock);
-router.get('/unlock-status', auth, settingsController.checkUnlockStatus);
+router.get('/', authMaster, settingsController.getSettings);
+router.put('/:field', authMaster, settingsController.updateSetting);
+router.post('/unlock', authMaster, settingsController.activateTemporaryUnlock);
+router.get('/unlock-status', authMaster, settingsController.checkUnlockStatus);
 
 module.exports = router;
