@@ -134,12 +134,15 @@ export const ParametrosGeraisManager = (project) => {
 
     const activateUnlock = async () => {
         console.log('[ACTIVATE UNLOCK] Button clicked!');
-        console.log('[ACTIVATE UNLOCK] Current unlockTimer:', unlockTimer);
+        console.log('[ACTIVATE UNLOCK] unlockCountdownInterval:', unlockCountdownInterval);
+        console.log('[ACTIVATE UNLOCK] unlockExpiresAt:', unlockExpiresAt);
 
-        // Se já está ativo, cancelar
-        if (unlockTimer) {
-            console.log('[ACTIVATE UNLOCK] Unlock is active, calling cancelUnlock...');
-            cancelUnlock();
+        // Se já está ativo, cancelar (verifica se tem countdown ativo OU se ainda não expirou)
+        const isActive = unlockCountdownInterval !== null || (unlockExpiresAt && new Date(unlockExpiresAt) > new Date());
+
+        if (isActive) {
+            console.log('[ACTIVATE UNLOCK] Unlock is ACTIVE, calling cancelUnlock...');
+            await cancelUnlock();
             return;
         }
 
