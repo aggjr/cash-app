@@ -125,8 +125,17 @@ export const ParametrosGeraisManager = (project) => {
         const isDirty = currentValue !== originalValue;
 
         saveBtn.disabled = !isDirty;
-        saveBtn.style.opacity = isDirty ? '1' : '0.4';
-        saveBtn.style.cursor = isDirty ? 'pointer' : 'not-allowed';
+
+        // Change background color instead of opacity for better visibility
+        if (isDirty) {
+            saveBtn.style.background = 'var(--color-success)';
+            saveBtn.style.cursor = 'pointer';
+            saveBtn.style.opacity = '1';
+        } else {
+            saveBtn.style.background = '#D1D5DB'; // Gray when disabled
+            saveBtn.style.cursor = 'not-allowed';
+            saveBtn.style.opacity = '1'; // Always visible
+        }
     };
 
     const saveSetting = async (field) => {
@@ -377,13 +386,12 @@ export const ParametrosGeraisManager = (project) => {
                             disabled
                             style="
                                 padding: 0.75rem 1.5rem;
-                                background: var(--color-success);
+                                background: #D1D5DB;
                                 color: white;
                                 border: none;
                                 border-radius: 8px;
                                 font-size: 1.3rem;
                                 cursor: not-allowed;
-                                opacity: 0.4;
                                 transition: all 0.2s;
                                 min-width: 50px;
                             "
@@ -415,13 +423,12 @@ export const ParametrosGeraisManager = (project) => {
                             disabled
                             style="
                                 padding: 0.75rem 1.5rem;
-                                background: var(--color-success);
+                                background: #D1D5DB;
                                 color: white;
                                 border: none;
                                 border-radius: 8px;
                                 font-size: 1.3rem;
                                 cursor: not-allowed;
-                                opacity: 0.4;
                                 transition: all 0.2s;
                                 min-width: 50px;
                             "
