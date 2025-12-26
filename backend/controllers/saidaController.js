@@ -1,5 +1,6 @@
 const db = require('../config/database');
 const AppError = require('../utils/AppError');
+const { validateDateWithinRange } = require('../utils/dateValidation');
 
 // Helper function to generate dynamic ORDER BY clause
 const getOrderByClause = (sortBy, order = 'desc') => {
@@ -193,6 +194,14 @@ exports.createSaida = async (req, res, next) => {
             throw new AppError('VAL-001', 'Valor inválido.');
         }
 
+        // Validate dataRealPagamento if provided
+        if (dataRealPagamento) {
+            const validation = await validateDateWithinRange(dataRealPagamento, projectId);
+            if (!validation.isValid) {
+                throw new AppError('VAL-DATE', validation.error);
+            }
+        }
+
         connection = await db.getConnection();
         await connection.beginTransaction();
 
@@ -263,6 +272,14 @@ exports.updateSaida = async (req, res, next) => {
 
         if (!oldSaida.length) {
             throw new AppError('RES-001', 'Saída não encontrada.');
+        }
+
+        // Validate dataRealPagamento if provided
+        if (dataRealPagamento !== undefined && dataRealPagamento !== null) {
+            const validation = await validateDateWithinRange(dataRealPagamento, req.user.projectId);
+            if (!validation.isValid) {
+                throw new AppError('VAL-DATE', validation.error);
+            }
         }
 
         const updates = [];

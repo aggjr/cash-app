@@ -1,5 +1,6 @@
 const db = require('../config/database');
 const AppError = require('../utils/AppError');
+const { validateDateWithinRange } = require('../utils/dateValidation');
 
 // Helper for Sorting
 const getOrderByClause = (sortBy, order) => {
@@ -161,6 +162,14 @@ exports.createAporte = async (req, res, next) => {
             throw new AppError('VAL-001', 'Valor inválido.');
         }
 
+        // Validate dataReal if provided
+        if (dataReal) {
+            const validation = await validateDateWithinRange(dataReal, projectId);
+            if (!validation.isValid) {
+                throw new AppError('VAL-DATE', validation.error);
+            }
+        }
+
         connection = await db.getConnection();
         await connection.beginTransaction();
 
@@ -238,6 +247,14 @@ exports.updateAporte = async (req, res, next) => {
 
         if (!oldAporte.length) {
             throw new AppError('RES-001', 'Aporte não encontrado.');
+        }
+
+        // Validate dataReal if provided
+        if (dataReal !== undefined && dataReal !== null) {
+            const validation = await validateDateWithinRange(dataReal, req.user.projectId);
+            if (!validation.isValid) {
+                throw new AppError('VAL-DATE', validation.error);
+            }
         }
 
         const updates = [];
