@@ -133,19 +133,27 @@ export const ParametrosGeraisManager = (project) => {
     let unlockExpiresAt = null;
 
     const activateUnlock = async () => {
+        console.log('[ACTIVATE UNLOCK] Button clicked!');
+        console.log('[ACTIVATE UNLOCK] Current unlockTimer:', unlockTimer);
+
         // Se já está ativo, cancelar
         if (unlockTimer) {
+            console.log('[ACTIVATE UNLOCK] Unlock is active, calling cancelUnlock...');
             cancelUnlock();
             return;
         }
 
+        console.log('[ACTIVATE UNLOCK] Unlock is inactive, activating...');
         const minutes = currentSettings.tempo_minutos_liberacao;
         const confirmed = await Dialogs.confirm(
             `Você está prestes a liberar edições em qualquer data do sistema por ${minutes} minutos. Deseja continuar?`,
             '⚠️ Atenção: Liberação Temporária'
         );
 
-        if (!confirmed) return;
+        if (!confirmed) {
+            console.log('[ACTIVATE UNLOCK] User canceled confirmation');
+            return;
+        }
 
         try {
             const response = await fetch(`${API_BASE_URL}/settings/unlock`, {
@@ -156,6 +164,7 @@ export const ParametrosGeraisManager = (project) => {
             if (response.ok) {
                 const result = await response.json();
                 unlockExpiresAt = new Date(result.expires_at);
+                console.log('[ACTIVATE UNLOCK] Unlock activated until:', unlockExpiresAt);
                 startCountdown();
                 showToast(`✓ ${result.message}`, 'success');
             } else {
@@ -163,7 +172,7 @@ export const ParametrosGeraisManager = (project) => {
                 showToast(error.error || 'Erro ao ativar liberação', 'error');
             }
         } catch (error) {
-            console.error('Error activating unlock:', error);
+            console.error('[ACTIVATE UNLOCK] Error:', error);
             showToast('Erro de conexão', 'error');
         }
     };
