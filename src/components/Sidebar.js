@@ -1,7 +1,7 @@
 export const Sidebar = () => {
-  // Get user role from localStorage
-  const userData = localStorage.getItem('user');
-  const userRole = userData ? JSON.parse(userData).role : null;
+  // Get user role from currentProject (role is project-specific)
+  const projectData = localStorage.getItem('currentProject');
+  const userRole = projectData ? JSON.parse(projectData).role : null;
 
   const allMenuItems = [
     {
@@ -61,10 +61,15 @@ export const Sidebar = () => {
     }
   ];
 
+  // Debug: log the role detection
+  console.log('Sidebar Debug - projectData:', localStorage.getItem('currentProject'));
+  console.log('Sidebar Debug - userRole:', userRole);
+
   // Filter menu items based on user role
   const menuItems = allMenuItems.filter(item => {
     // If item requires MASTER role and user is not MASTER, hide it
-    if (item.masterOnly && userRole !== 'master') {
+    if (item.masterOnly && userRole?.toLowerCase() !== 'master') {
+      console.log(`Filtering out ${item.label} - masterOnly:${item.masterOnly}, userRole:${userRole}`);
       return false;
     }
     return true;
