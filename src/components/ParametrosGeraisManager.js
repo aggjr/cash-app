@@ -168,7 +168,8 @@ export const ParametrosGeraisManager = (project) => {
         }
     };
 
-    const cancelUnlock = () => {
+    const cancelUnlock = async () => {
+        // Clear local timers
         if (unlockCountdownInterval) {
             clearInterval(unlockCountdownInterval);
             unlockCountdownInterval = null;
@@ -179,7 +180,24 @@ export const ParametrosGeraisManager = (project) => {
         }
         unlockExpiresAt = null;
         updateUnlockButton(false, 0);
-        showToast('Liberação temporária cancelada', 'info');
+
+        // Call backend to clear unlock in database
+        try {
+            const response = await fetch(`${API_BASE_URL}/settings/unlock/cancel`, {
+                method: 'POST',
+                headers: getHeaders()
+            });
+
+            if (response.ok) {
+                showToast('✓ Liberação temporária cancelada. Sistema retornou ao modo normal', 'success');
+            } else {
+                // Even if backend fails, we already cleared locally
+                showToast('Liberação temporária cancelada localmente', 'info');
+            }
+        } catch (error) {
+            console.error('Error canceling unlock on server:', error);
+            showToast('Liberação temporária cancelada localmente', 'info');
+        }
     };
 
     const startCountdown = () => {

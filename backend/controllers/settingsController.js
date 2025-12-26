@@ -117,6 +117,30 @@ const activateTemporaryUnlock = async (req, res) => {
     } finally {
         connection.release();
     }
+}; // Close activateTemporaryUnlock
+
+// Cancel temporary unlock
+const cancelTemporaryUnlock = async (req, res) => {
+    const connection = await db.getConnection();
+    try {
+        const projectId = req.user.projectId;
+
+        // Clear unlock expiration (set to NULL)
+        await connection.query(
+            'UPDATE system_settings SET unlock_expires_at = NULL WHERE project_id = ?',
+            [projectId]
+        );
+
+        res.json({
+            success: true,
+            message: 'Liberação temporária cancelada. Sistema retornou ao modo normal'
+        });
+    } catch (error) {
+        console.error('Error canceling unlock:', error);
+        res.status(500).json({ error: 'Erro ao cancelar liberação temporária' });
+    } finally {
+        connection.release();
+    }
 };
 
 // Check unlock status
@@ -161,5 +185,6 @@ module.exports = {
     getSettings,
     updateSetting,
     activateTemporaryUnlock,
+    cancelTemporaryUnlock,
     checkUnlockStatus
 };
