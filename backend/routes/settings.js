@@ -6,6 +6,7 @@ const { authMaster } = require('../middleware/auth');
 router.get('/', authMaster, settingsController.getSettings);
 router.put('/:field', authMaster, settingsController.updateSetting);
 router.post('/unlock', authMaster, settingsController.activateTemporaryUnlock);
+router.post('/unlock/cancel', authMaster, settingsController.cancelTemporaryUnlock);
 router.get('/unlock-status', authMaster, settingsController.checkUnlockStatus);
 
 module.exports = router;
