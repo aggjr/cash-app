@@ -126,15 +126,15 @@ export const ParametrosGeraisManager = (project) => {
 
         saveBtn.disabled = !isDirty;
 
-        // Change background color instead of opacity for better visibility
+        // Always use blue, just different shades
         if (isDirty) {
-            saveBtn.style.background = 'var(--color-success)';
+            saveBtn.style.background = 'var(--color-primary)'; // Dark blue when enabled
+            saveBtn.style.border = 'none';
             saveBtn.style.cursor = 'pointer';
-            saveBtn.style.opacity = '1';
         } else {
-            saveBtn.style.background = '#D1D5DB'; // Gray when disabled
+            saveBtn.style.background = '#93C5FD'; // Light blue when disabled
+            saveBtn.style.border = '2px solid #60A5FA'; // Blue border
             saveBtn.style.cursor = 'not-allowed';
-            saveBtn.style.opacity = '1'; // Always visible
         }
     };
 
@@ -386,9 +386,9 @@ export const ParametrosGeraisManager = (project) => {
                             disabled
                             style="
                                 padding: 0.75rem 1.5rem;
-                                background: #D1D5DB;
+                                background: #93C5FD;
                                 color: white;
-                                border: none;
+                                border: 2px solid #60A5FA;
                                 border-radius: 8px;
                                 font-size: 1.3rem;
                                 cursor: not-allowed;
@@ -423,9 +423,9 @@ export const ParametrosGeraisManager = (project) => {
                             disabled
                             style="
                                 padding: 0.75rem 1.5rem;
-                                background: #D1D5DB;
+                                background: #93C5FD;
                                 color: white;
-                                border: none;
+                                border: 2px solid #60A5FA;
                                 border-radius: 8px;
                                 font-size: 1.3rem;
                                 cursor: not-allowed;
@@ -451,8 +451,8 @@ export const ParametrosGeraisManager = (project) => {
                         style="
                             width: 100%;
                             padding: 1rem;
-                            background: #E5E7EB;
-                            color: #1F2937;
+                            background: var(--color-primary);
+                            color: white;
                             border: none;
                             border-radius: 8px;
                             font-size: 1rem;
@@ -464,10 +464,11 @@ export const ParametrosGeraisManager = (project) => {
                             justify-content: center;
                             gap: 0.5rem;
                         "
-                        onmouseover="this.style.background='#D1D5DB'"
-                        onmouseout="this.style.background='#E5E7EB'"
+                        onmouseover="this.style.background='#1D4ED8'"
+                        onmouseout="this.style.background='var(--color-primary)'"
                     >
-                        <span style="color: #4B5563; font-size: 1.1rem;">🔒</span> Liberar Edições Temporariamente
+                        <span style="color: white; font-size: 1.1rem;">🔒</span> Liberar Edições Temporariamente
+                    </button>
                     </button>
                     <div id="unlock-timer-display" style="display: none; margin-top: 0.75rem; text-align: center; font-size: 1.1rem;"></div>
                     <small style="display: block; margin-top: 0.75rem; color: var(--color-text-muted); text-align: center;">
