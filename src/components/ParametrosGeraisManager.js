@@ -169,19 +169,30 @@ export const ParametrosGeraisManager = (project) => {
     };
 
     const cancelUnlock = async () => {
-        // Clear local timers
+        console.log('[CANCEL UNLOCK] Starting cancel process...');
+        console.log('[CANCEL UNLOCK] Current interval:', unlockCountdownInterval);
+        console.log('[CANCEL UNLOCK] Current timer:', unlockTimer);
+
+        // Clear local timers IMMEDIATELY (synchronous)
         if (unlockCountdownInterval) {
+            console.log('[CANCEL UNLOCK] Clearing interval...');
             clearInterval(unlockCountdownInterval);
             unlockCountdownInterval = null;
         }
         if (unlockTimer) {
+            console.log('[CANCEL UNLOCK] Clearing timeout...');
             clearTimeout(unlockTimer);
             unlockTimer = null;
         }
+
+        // Clear expiration date
         unlockExpiresAt = null;
+
+        // Update button to default state
+        console.log('[CANCEL UNLOCK] Updating button to inactive state');
         updateUnlockButton(false, 0);
 
-        // Call backend to clear unlock in database
+        // Call backend to clear unlock in database (async, but doesn't affect UI)
         try {
             const response = await fetch(`${API_BASE_URL}/settings/unlock/cancel`, {
                 method: 'POST',
@@ -189,13 +200,14 @@ export const ParametrosGeraisManager = (project) => {
             });
 
             if (response.ok) {
+                console.log('[CANCEL UNLOCK] Backend cleared successfully');
                 showToast('✓ Liberação temporária cancelada. Sistema retornou ao modo normal', 'success');
             } else {
-                // Even if backend fails, we already cleared locally
+                console.warn('[CANCEL UNLOCK] Backend error, but local state already cleared');
                 showToast('Liberação temporária cancelada localmente', 'info');
             }
         } catch (error) {
-            console.error('Error canceling unlock on server:', error);
+            console.error('[CANCEL UNLOCK] Error canceling on server:', error);
             showToast('Liberação temporária cancelada localmente', 'info');
         }
     };
