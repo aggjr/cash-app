@@ -292,7 +292,7 @@ export const SaidaModal = {
                     if (!dataFatoInput.value) { dataFatoInput.classList.add('input-error'); isValid = false; } else dataFatoInput.classList.remove('input-error');
                     if (!dataPrevistaInput.value) { dataPrevistaInput.classList.add('input-error'); isValid = false; } else dataPrevistaInput.classList.remove('input-error');
                     if (!valorInput.value) { valorInput.classList.add('input-error'); isValid = false; } else valorInput.classList.remove('input-error');
-                    if (!tipoEntradaIdInput.value) {
+                    if (!tipoSaidaIdInput.value) {
                         // Apply ONLY to inner element to avoid double border/background issues
                         treeContainer.style.border = '';
                         treeContainer.classList.remove('input-error');
