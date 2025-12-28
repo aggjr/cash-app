@@ -344,9 +344,7 @@ exports.createIncome = async (req, res, next) => {
 
         // Create each installment
         for (let i = 0; i < count; i++) {
-            const installmentDesc = count > 1
-                ? `${descricao || ''} - Parcela ${i + 1}/${count}`.trim()
-                : descricao;
+            const installmentDesc = descricao;
 
             const [result] = await connection.query(
                 `INSERT INTO entradas 
@@ -827,9 +825,18 @@ exports.batchUpdateIncome = async (req, res, next) => {
             return res.json({ success: true, message: 'Registro atualizado com sucesso', updated: 1 });
         }
 
-        const interval = currentData.installment_interval;
-        const customDays = currentData.installment_custom_days;
-        const isReplicar = interval !== null;
+        const interval = currentData.installment_interval || 'mensal';
+        const isReplicar = true; // Always replicate logic for groups unless explicitly 'dividir' (which is not stored as interval) -> actually interval null meant single before? 
+        // If interval is null in DB but it IS a group, we assume standard monthly replication if not specified.
+        // But wait, if type was 'dividir', interval might be null? 
+        // In createIncome, 'dividir' sets interval to NULL?
+        // createIncome: count > 1 ? interval : null. 
+        // If type is 'dividir', interval (installmentInterval default 'mensal') is passed?
+        // Let's check createIncome again. 
+        // const interval = installmentInterval || 'mensal';
+        // VALUES (..., count > 1 ? interval : null, ...)
+        // So 'dividir' saves the interval too!
+        // So if interval is null, it's definitely an error or old data. 'mensal' is safe default.
 
         let updatedCount = 0;
         let skippedCount = 0;
@@ -844,7 +851,7 @@ exports.batchUpdateIncome = async (req, res, next) => {
         // If we have dates to update and this is a group operation, calculate the base date
         if ((scope === 'all' || scope === 'future') && interval) {
             // Calculate how many intervals to subtract to get to base installment
-            const intervalsToSubtract = baseInstallmentNumber - 1;
+            const intervalsToSubtract = currentData.installment_number - baseInstallmentNumber;
 
             // Calculate base date by going backwards from the provided date
             if (baseDataFato && intervalsToSubtract > 0) {
