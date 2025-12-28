@@ -37,7 +37,8 @@ export const Sidebar = () => {
         { id: 'entrada', label: 'Entrada', icon: '💰' },
         { id: 'saida', label: 'Saída', icon: '💸' },
         { id: 'producao-revenda', label: 'Produção / Revenda', icon: '🏭' },
-        { id: 'transferencias', label: 'Transferencias', icon: '↔️' }
+        { id: 'transferencias', label: 'Transferencias', icon: '↔️' },
+        { id: 'dividas-emprestimos', label: 'Dívidas/Empréstimos', icon: '💳' }
       ]
     },
     {

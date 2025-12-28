@@ -24,6 +24,7 @@ import { PrevisaoFluxoManager } from './components/PrevisaoFluxoManager.js'
 import { AIConsultant } from './components/AIConsultant.js'
 import { ParametrosGeraisManager } from './components/ParametrosGeraisManager.js'
 import { LogAlteracoesManager } from './components/LogAlteracoesManager.js'
+import { DividasEmprestimosManager } from './components/DividasEmprestimosManager.js'
 
 console.log('═══════════════════════════════════════');
 console.log('💰 CASH Frontend Starting');
@@ -374,6 +375,15 @@ function initAppLogic() {
           const mainElement = document.querySelector('main');
           mainElement.innerHTML = '';
           mainElement.appendChild(LogAlteracoesManager(currentProject));
+        } else {
+          Dialogs.alert('Selecione um projeto primeiro', 'Aviso');
+        }
+      } else if (itemId === 'dividas-emprestimos') {
+        const { currentProject } = checkAuth();
+        if (currentProject) {
+          const mainElement = document.querySelector('main');
+          mainElement.innerHTML = '';
+          mainElement.appendChild(DividasEmprestimosManager());
         } else {
           Dialogs.alert('Selecione um projeto primeiro', 'Aviso');
         }
