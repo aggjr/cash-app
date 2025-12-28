@@ -82,13 +82,8 @@ app.get('/health', (req, res) => {
 app.use(errorHandler);
 
 // API Root response (for health checks on /)
-app.get('/', (req, res) => {
-    res.json({
-        service: 'CASH Backend API',
-        status: 'running',
-        timestamp: new Date()
-    });
-});
+// API Root response moved to /health or handled by static files
+// app.get('/', ...) check removed to allow frontend serving
 
 // Serve static files from the React frontend app
 const frontendPath = path.join(__dirname, 'public');
