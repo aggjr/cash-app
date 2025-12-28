@@ -775,14 +775,44 @@ exports.batchUpdateIncome = async (req, res, next) => {
                 const updates = [];
                 const values = [];
 
+                // Get installment info to check if it's replicated
+                const [installmentInfo] = await connection.query(
+                    'SELECT installment_number, installment_interval, installment_custom_days FROM entradas WHERE id = ?',
+                    [updateId]
+                );
+
+                const isReplicar = installmentInfo.length && installmentInfo[0].installment_interval !== null;
+                const installmentNumber = installmentInfo.length ? installmentInfo[0].installment_number : 1;
+                const interval = installmentInfo.length ? installmentInfo[0].installment_interval : null;
+                const customDays = installmentInfo.length ? installmentInfo[0].installment_custom_days : null;
+
+                // For replicated entries, we need to calculate the offset date
                 if (updateData.dataFato !== undefined) {
+                    let finalDataFato = updateData.dataFato;
+
+                    if (isReplicar && installmentNumber > 1) {
+                        // Calculate offset for this installment (start from base date + offset)
+                        const baseDates = calculateDates(updateData.dataFato, installmentNumber, interval, customDays);
+                        finalDataFato = baseDates[installmentNumber - 1];
+                    }
+
                     updates.push('data_fato = ?');
-                    values.push(updateData.dataFato);
+                    values.push(finalDataFato);
                 }
+
                 if (updateData.dataPrevistaRecebimento !== undefined) {
+                    let finalDataPrevista = updateData.dataPrevistaRecebimento;
+
+                    if (installmentNumber > 1 && interval) {
+                        // Always calculate offset for data_prevista in installments
+                        const baseDates = calculateDates(updateData.dataPrevistaRecebimento, installmentNumber, interval, customDays);
+                        finalDataPrevista = baseDates[installmentNumber - 1];
+                    }
+
                     updates.push('data_prevista_recebimento = ?');
-                    values.push(updateData.dataPrevistaRecebimento);
+                    values.push(finalDataPrevista);
                 }
+
                 if (updateData.dataRealRecebimento !== undefined) {
                     updates.push('data_real_recebimento = ?');
                     values.push(updateData.dataRealRecebimento || null);
