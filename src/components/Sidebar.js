@@ -26,7 +26,7 @@ export const Sidebar = () => {
         { id: 'tipo-saida', label: 'Tipo de Saída', icon: '💸' },
         { id: 'tipo-producao-revenda', label: 'Tipo Producao Revenda', icon: '🏭' },
         { id: 'centros-custo', label: 'Centros Custo', icon: '🏢', disabled: true },
-        { id: 'cnpj-tomador', label: 'Cnpj Tomador', icon: '📝', disabled: true }
+
       ]
     },
     {
