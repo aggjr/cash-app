@@ -227,7 +227,9 @@ export class SharedTable {
                      <span style="${spanStyle}">${col.label}</span>
                      <div style="display: flex; flex-direction: column; align-items: center; margin-left: 0; width: 14px; flex-shrink: 0;">
                          <div class="filter-trigger" data-key="${col.key}" style="cursor: pointer; line-height: 0; margin-bottom: 2px;" title="Filtrar">
-                             <span style="color: ${color}">${FILTER_ICON}</span>
+                             <span style="color: ${color}">
+                                 <svg viewBox="0 0 24 24" fill="${color}" class="filter-icon" width="14" height="14"><path d="M10 18h4v-2h-4v2zM3 6v2h18V6H3zm3 7h12v-2H6v2z"/></svg>
+                             </span>
                          </div>
                          <div class="sort-toggle" data-key="${col.key}" style="cursor: pointer; line-height: 1; font-size: 0.75rem; user-select: none; color: white;" title="Alternar Ordenação">
                              ${isSortKey ? (isAsc ? '▲' : '▼') : '⇅'}

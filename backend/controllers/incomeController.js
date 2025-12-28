@@ -220,6 +220,18 @@ const parseLocalDate = (dateString) => {
     return new Date(year, month - 1, day); // month is 0-indexed
 };
 
+// Helper to safely add months (handling 31st -> 28th/30th rollover)
+const addMonths = (date, months) => {
+    const d = new Date(date);
+    const day = d.getDate();
+    d.setMonth(d.getMonth() + months);
+    // If day changed, it meant we overflowed (e.g. Jan 31 -> Feb 03), so snap back to last day of intended month
+    if (d.getDate() !== day) {
+        d.setDate(0);
+    }
+    return d;
+};
+
 const calculateDates = (baseDate, count, interval, customDays = null) => {
     const dates = [baseDate];
 
@@ -237,20 +249,16 @@ const calculateDates = (baseDate, count, interval, customDays = null) => {
                 nextDate.setDate(prevDate.getDate() + 15);
                 break;
             case 'mensal':
-                nextDate = new Date(prevDate);
-                nextDate.setMonth(prevDate.getMonth() + 1);
+                nextDate = addMonths(prevDate, 1);
                 break;
             case 'trimestral':
-                nextDate = new Date(prevDate);
-                nextDate.setMonth(prevDate.getMonth() + 3);
+                nextDate = addMonths(prevDate, 3);
                 break;
             case 'semestral':
-                nextDate = new Date(prevDate);
-                nextDate.setMonth(prevDate.getMonth() + 6);
+                nextDate = addMonths(prevDate, 6);
                 break;
             case 'anual':
-                nextDate = new Date(prevDate);
-                nextDate.setFullYear(prevDate.getFullYear() + 1);
+                nextDate = addMonths(prevDate, 12);
                 break;
             case 'personalizado':
                 nextDate = new Date(prevDate);
@@ -866,16 +874,16 @@ exports.batchUpdateIncome = async (req, res, next) => {
                         calculatedBaseDate.setDate(calculatedBaseDate.getDate() - (15 * intervalsToSubtract));
                         break;
                     case 'mensal':
-                        calculatedBaseDate.setMonth(calculatedBaseDate.getMonth() - intervalsToSubtract);
+                        calculatedBaseDate = addMonths(calculatedBaseDate, -intervalsToSubtract);
                         break;
                     case 'trimestral':
-                        calculatedBaseDate.setMonth(calculatedBaseDate.getMonth() - (3 * intervalsToSubtract));
+                        calculatedBaseDate = addMonths(calculatedBaseDate, -(3 * intervalsToSubtract));
                         break;
                     case 'semestral':
-                        calculatedBaseDate.setMonth(calculatedBaseDate.getMonth() - (6 * intervalsToSubtract));
+                        calculatedBaseDate = addMonths(calculatedBaseDate, -(6 * intervalsToSubtract));
                         break;
                     case 'anual':
-                        calculatedBaseDate.setFullYear(calculatedBaseDate.getFullYear() - intervalsToSubtract);
+                        calculatedBaseDate = addMonths(calculatedBaseDate, -(12 * intervalsToSubtract));
                         break;
                     case 'personalizado':
                         if (customDays) {
