@@ -397,7 +397,7 @@ exports.updateSaida = async (req, res, next) => {
 
         // Get old saida data
         const [oldSaida] = await connection.query(
-            'SELECT valor, account_id FROM saidas WHERE id = ?',
+            'SELECT valor, account_id, data_real_pagamento FROM saidas WHERE id = ?',
             [id]
         );
 
@@ -405,11 +405,22 @@ exports.updateSaida = async (req, res, next) => {
             throw new AppError('RES-001', 'Saída não encontrada.');
         }
 
-        // Validate dataRealPagamento if provided
-        if (dataRealPagamento !== undefined && dataRealPagamento !== null) {
-            const validation = await validateDateWithinRange(dataRealPagamento, req.user.projectId);
-            if (!validation.isValid) {
-                throw new AppError('VAL-DATE', validation.error);
+        // Validate dataRealPagamento if provided AND changed
+        const oldData = oldSaida[0];
+        let shouldUpdateRealDate = false;
+
+        if (dataRealPagamento !== undefined) {
+            const newDate = dataRealPagamento ? dataRealPagamento.split('T')[0] : null;
+            const oldDate = oldData.data_real_pagamento ? new Date(oldData.data_real_pagamento).toISOString().split('T')[0] : null;
+
+            if (newDate !== oldDate) {
+                shouldUpdateRealDate = true;
+                if (newDate) {
+                    const validation = await validateDateWithinRange(dataRealPagamento, req.user.projectId);
+                    if (!validation.isValid) {
+                        throw new AppError('VAL-DATE', validation.error);
+                    }
+                }
             }
         }
 
@@ -424,7 +435,7 @@ exports.updateSaida = async (req, res, next) => {
             updates.push('data_prevista_pagamento = ?');
             values.push(dataPrevistaPagamento);
         }
-        if (dataRealPagamento !== undefined) {
+        if (shouldUpdateRealDate) {
             updates.push('data_real_pagamento = ?');
             values.push(dataRealPagamento || null);
         }

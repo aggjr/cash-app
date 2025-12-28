@@ -954,17 +954,30 @@ exports.batchUpdateIncome = async (req, res, next) => {
                 if (!oldIncome.length) continue;
                 const oldData = oldIncome[0];
 
-                // Validate dataRealRecebimento if provided
-                if (updateData.dataRealRecebimento !== undefined && updateData.dataRealRecebimento !== null) {
-                    const validation = await validateDateWithinRange(
-                        updateData.dataRealRecebimento,
-                        currentData.project_id
-                    );
+                // Validate dataRealRecebimento if provided AND changed
+                let shouldUpdateRealDate = false;
+                if (updateData.dataRealRecebimento !== undefined) {
+                    const newDate = updateData.dataRealRecebimento ? updateData.dataRealRecebimento.split('T')[0] : null;
+                    const oldDate = oldData.data_real_recebimento ? new Date(oldData.data_real_recebimento).toISOString().split('T')[0] : null;
 
-                    if (!validation.isValid) {
-                        skippedCount++;
-                        errors.push(`Parcela ${installmentNum}: ${validation.error}`);
-                        continue;
+                    if (newDate !== oldDate) {
+                        shouldUpdateRealDate = true;
+                        // Only validate if we are actually CHANGING the date (or setting it for the first time)
+                        // If it's already set and we are changing it, we must validate.
+                        // If it's null and we are setting it, we must validate.
+
+                        if (newDate) { // validates only if setting a date (clearing is usually allowed? actually clearing might be restricted too depending on rules, but typically "lock" prevents changing INTO or OUT OF lock period. Let's validate the NEW date. The old date lock check is implicitly: if I can't touch the record, I shouldn't be here? No, user wants to edit OTHER fields.)
+                            const validation = await validateDateWithinRange(
+                                updateData.dataRealRecebimento,
+                                currentData.project_id
+                            );
+
+                            if (!validation.isValid) {
+                                skippedCount++;
+                                errors.push(`Parcela ${installmentNum}: ${validation.error}`);
+                                continue;
+                            }
+                        }
                     }
                 }
 
@@ -1007,7 +1020,7 @@ exports.batchUpdateIncome = async (req, res, next) => {
                     values.push(finalDataPrevista);
                 }
 
-                if (updateData.dataRealRecebimento !== undefined) {
+                if (shouldUpdateRealDate) {
                     updates.push('data_real_recebimento = ?');
                     values.push(updateData.dataRealRecebimento || null);
                 }
@@ -1117,11 +1130,20 @@ async function executeSingleUpdate(connection, id, updateData, projectId) {
 
     const oldData = oldIncome[0];
 
-    // Validate dataRealRecebimento if provided
-    if (updateData.dataRealRecebimento !== undefined && updateData.dataRealRecebimento !== null) {
-        const validation = await validateDateWithinRange(updateData.dataRealRecebimento, projectId);
-        if (!validation.isValid) {
-            throw new AppError('VAL-DATE', validation.error);
+    // Validate dataRealRecebimento if provided AND changed
+    let shouldUpdateRealDate = false;
+    if (updateData.dataRealRecebimento !== undefined) {
+        const newDate = updateData.dataRealRecebimento ? updateData.dataRealRecebimento.split('T')[0] : null;
+        const oldDate = oldData.data_real_recebimento ? new Date(oldData.data_real_recebimento).toISOString().split('T')[0] : null;
+
+        if (newDate !== oldDate) {
+            shouldUpdateRealDate = true;
+            if (newDate) {
+                const validation = await validateDateWithinRange(updateData.dataRealRecebimento, projectId);
+                if (!validation.isValid) {
+                    throw new AppError('VAL-DATE', validation.error);
+                }
+            }
         }
     }
 
@@ -1136,7 +1158,7 @@ async function executeSingleUpdate(connection, id, updateData, projectId) {
         updates.push('data_prevista_recebimento = ?');
         values.push(updateData.dataPrevistaRecebimento);
     }
-    if (updateData.dataRealRecebimento !== undefined) {
+    if (shouldUpdateRealDate) {
         updates.push('data_real_recebimento = ?');
         values.push(updateData.dataRealRecebimento || null);
     }

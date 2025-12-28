@@ -408,7 +408,7 @@ exports.updateProducaoRevenda = async (req, res, next) => {
         await connection.beginTransaction();
 
         const [oldItem] = await connection.query(
-            'SELECT valor, account_id FROM producao_revenda WHERE id = ?',
+            'SELECT valor, account_id, data_real_pagamento FROM producao_revenda WHERE id = ?',
             [id]
         );
 
@@ -417,10 +417,22 @@ exports.updateProducaoRevenda = async (req, res, next) => {
         }
 
         // Validate dataRealPagamento if provided
-        if (updates.dataRealPagamento !== undefined && updates.dataRealPagamento !== null) {
-            const validation = await validateDateWithinRange(updates.dataRealPagamento, req.user.projectId);
-            if (!validation.isValid) {
-                throw new AppError('VAL-DATE', validation.error);
+        // Validate dataRealPagamento if provided AND changed
+        const oldData = oldItem[0];
+        let shouldUpdateRealDate = false;
+
+        if (updates.dataRealPagamento !== undefined) {
+            const newDate = updates.dataRealPagamento ? updates.dataRealPagamento.split('T')[0] : null;
+            const oldDate = oldData.data_real_pagamento ? new Date(oldData.data_real_pagamento).toISOString().split('T')[0] : null;
+
+            if (newDate !== oldDate) {
+                shouldUpdateRealDate = true;
+                if (newDate) {
+                    const validation = await validateDateWithinRange(updates.dataRealPagamento, req.user.projectId);
+                    if (!validation.isValid) {
+                        throw new AppError('VAL-DATE', validation.error);
+                    }
+                }
             }
         }
 
@@ -445,9 +457,17 @@ exports.updateProducaoRevenda = async (req, res, next) => {
 
         for (const [key, val] of Object.entries(updates)) {
             if (map[key] && val !== undefined) {
+                // Skip data_real_pagamento here, handle it based on shouldUpdateRealDate
+                if (key === 'dataRealPagamento') continue;
+
                 fields.push(`${map[key]} = ?`);
                 values.push(val);
             }
+        }
+
+        if (shouldUpdateRealDate) {
+            fields.push('data_real_pagamento = ?');
+            values.push(updates.dataRealPagamento || null);
         }
 
         if (fields.length > 0) {

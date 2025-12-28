@@ -241,7 +241,7 @@ exports.updateAporte = async (req, res, next) => {
 
         // Get old aporte data
         const [oldAporte] = await connection.query(
-            'SELECT valor, account_id FROM aportes WHERE id = ?',
+            'SELECT valor, account_id, data_real FROM aportes WHERE id = ?',
             [id]
         );
 
@@ -249,11 +249,22 @@ exports.updateAporte = async (req, res, next) => {
             throw new AppError('RES-001', 'Aporte não encontrado.');
         }
 
-        // Validate dataReal if provided
-        if (dataReal !== undefined && dataReal !== null) {
-            const validation = await validateDateWithinRange(dataReal, req.user.projectId);
-            if (!validation.isValid) {
-                throw new AppError('VAL-DATE', validation.error);
+        // Validate dataReal if provided AND changed
+        const oldData = oldAporte[0];
+        let shouldUpdateRealDate = false;
+
+        if (dataReal !== undefined) {
+            const newDate = dataReal ? dataReal.split('T')[0] : null;
+            const oldDate = oldData.data_real ? new Date(oldData.data_real).toISOString().split('T')[0] : null;
+
+            if (newDate !== oldDate) {
+                shouldUpdateRealDate = true;
+                if (newDate) {
+                    const validation = await validateDateWithinRange(dataReal, req.user.projectId);
+                    if (!validation.isValid) {
+                        throw new AppError('VAL-DATE', validation.error);
+                    }
+                }
             }
         }
 
@@ -264,7 +275,7 @@ exports.updateAporte = async (req, res, next) => {
             updates.push('data_fato = ?');
             values.push(dataFato);
         }
-        if (dataReal !== undefined) {
+        if (shouldUpdateRealDate) {
             updates.push('data_real = ?');
             values.push(dataReal || null);
         }

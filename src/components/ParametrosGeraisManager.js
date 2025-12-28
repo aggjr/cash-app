@@ -128,13 +128,15 @@ export const ParametrosGeraisManager = (project) => {
 
         // Always use blue, just different shades
         if (isDirty) {
-            saveBtn.style.background = 'var(--color-primary)'; // Dark blue when enabled
-            saveBtn.style.border = 'none';
+            saveBtn.style.opacity = '1';
             saveBtn.style.cursor = 'pointer';
+            saveBtn.style.transform = 'translateY(-1px)';
+            saveBtn.style.boxShadow = 'var(--shadow-md)';
         } else {
-            saveBtn.style.background = '#93C5FD'; // Light blue when disabled
-            saveBtn.style.border = '2px solid #60A5FA'; // Blue border
+            saveBtn.style.opacity = '0.5';
             saveBtn.style.cursor = 'not-allowed';
+            saveBtn.style.transform = 'none';
+            saveBtn.style.boxShadow = 'none';
         }
     };
 
@@ -385,15 +387,16 @@ export const ParametrosGeraisManager = (project) => {
                             class="btn-save-setting"
                             disabled
                             style="
-                                padding: 0.75rem 1.5rem;
-                                background: #93C5FD;
+                                padding: 0.75rem;
+                                background: var(--color-primary);
+                                opacity: 0.5;
                                 color: white;
-                                border: 2px solid #60A5FA;
+                                border: none;
                                 border-radius: 8px;
-                                font-size: 1.3rem;
+                                font-size: 1.1rem;
                                 cursor: not-allowed;
                                 transition: all 0.2s;
-                                min-width: 50px;
+                                min-width: 48px;
                             "
                             title="Salvar alteração"
                         >✓</button>
@@ -422,15 +425,16 @@ export const ParametrosGeraisManager = (project) => {
                             class="btn-save-setting"
                             disabled
                             style="
-                                padding: 0.75rem 1.5rem;
-                                background: #93C5FD;
+                                padding: 0.75rem;
+                                background: var(--color-primary);
+                                opacity: 0.5;
                                 color: white;
-                                border: 2px solid #60A5FA;
+                                border: none;
                                 border-radius: 8px;
-                                font-size: 1.3rem;
+                                font-size: 1.1rem;
                                 cursor: not-allowed;
                                 transition: all 0.2s;
-                                min-width: 50px;
+                                min-width: 48px;
                             "
                             title="Salvar alteração"
                         >✓</button>
