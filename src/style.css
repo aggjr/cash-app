@@ -72,11 +72,11 @@
   --col-xlarge: 340px;
   /* Previously 400px */
 
-  /* Standardized Row Padding (reduced by 15% for better density) */
-  --row-padding-vertical: 0.64rem;
-  /* Previously 0.75rem */
-  --row-padding-horizontal: 0.43rem;
-  /* Previously 0.5rem */
+  /* Standardized Row Padding (reduced by additional 10% for max density) */
+  --row-padding-vertical: 0.576rem;
+  /* Previously 0.64rem (orig 0.75rem) */
+  --row-padding-horizontal: 0.387rem;
+  /* Previously 0.43rem (orig 0.5rem) */
   --row-padding: var(--row-padding-vertical) var(--row-padding-horizontal);
 
   /* Effects */
