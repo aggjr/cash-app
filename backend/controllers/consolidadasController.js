@@ -117,12 +117,23 @@ exports.getConsolidatedData = async (req, res) => {
         };
 
         // --- Execute for tables (with proper date fields) ---
-        // For caixa: saidas/producao use data_real_pagamento, entradas use data_real_recebimento
-        const saidasDateField = viewType === 'caixa' ? 'data_real_pagamento' : 'data_fato';
-        const entradasDateField = viewType === 'caixa' ? 'data_real_recebimento' : 'data_fato';
+        // --- Execute for tables (with proper date fields) ---
+        let saidasDateField = 'data_fato';
+        let entradasDateField = 'data_fato';
+        let producaoDateField = 'data_fato';
+
+        if (viewType === 'caixa') {
+            saidasDateField = 'data_real_pagamento';
+            entradasDateField = 'data_real_recebimento';
+            producaoDateField = 'data_real_pagamento'; // Producao specifically uses data_real_pagamento for caixa
+        } else if (viewType === 'previsto') {
+            saidasDateField = 'data_prevista_pagamento';
+            entradasDateField = 'data_prevista_recebimento';
+            producaoDateField = 'data_prevista_pagamento';
+        }
 
         const saidasRoots = await buildTreeForTable('tipo_saida', 'saidas', 'tipo_saida_id', saidasDateField);
-        const producaoRoots = await buildTreeForTable('tipo_producao_revenda', 'producao_revenda', 'tipo_id', 'data_fato');
+        const producaoRoots = await buildTreeForTable('tipo_producao_revenda', 'producao_revenda', 'tipo_id', producaoDateField);
         const entradasRoots = await buildTreeForTable('tipo_entrada', 'entradas', 'tipo_entrada_id', entradasDateField);
 
         // --- Helper: Create Virtual Root ---
@@ -175,7 +186,15 @@ exports.getConsolidatedData = async (req, res) => {
         const entradasVirtual = createVirtualRoot('entradas_root', 'ENTRADAS', entradasRoots);
 
         // 5. FETCH APORTES (Non-operational contributions)
-        const aportesDateField = viewType === 'caixa' ? 'data_real' : 'data_fato';
+        let aportesDateField = 'data_fato';
+        if (viewType === 'caixa') {
+            aportesDateField = 'data_real';
+        } else if (viewType === 'previsto') {
+            // Aportes might not have a dedicated prevista, usually real=prevista unless specified
+            // Using data_fato as fallback for previsto if separate col doesnt exist
+            aportesDateField = 'data_fato';
+        }
+
         let aportesFilter = '';
         const aportesParams = [projectId];
 
@@ -201,7 +220,13 @@ exports.getConsolidatedData = async (req, res) => {
         `, aportesParams);
 
         // 6. FETCH RETIRADAS (Non-operational withdrawals)
-        const retiradasDateField = viewType === 'caixa' ? 'data_real' : 'data_fato';
+        let retiradasDateField = 'data_fato';
+        if (viewType === 'caixa') {
+            retiradasDateField = 'data_real';
+        } else if (viewType === 'previsto') {
+            retiradasDateField = 'data_prevista';
+        }
+
         let retiradasFilter = '';
         const retiradasParams = [projectId];
 
