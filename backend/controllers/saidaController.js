@@ -164,12 +164,94 @@ exports.listSaidas = async (req, res, next) => {
     }
 };
 
+// Helper functions for installment calculation
+const calculateInstallments = (totalValue, count, type) => {
+    if (type === 'total') return [totalValue];
+
+    if (type === 'dividir') {
+        // Divide the total value into equal parts
+        const baseValue = Math.floor((totalValue * 100) / count) / 100;
+        const remainder = Math.round((totalValue - (baseValue * count)) * 100) / 100;
+
+        // First installment gets the remainder (rounding difference)
+        const installments = [baseValue + remainder];
+        for (let i = 1; i < count; i++) {
+            installments.push(baseValue);
+        }
+        return installments;
+    }
+
+    if (type === 'replicar') {
+        // Replicate the full value for each installment
+        return Array(count).fill(totalValue);
+    }
+
+    return [totalValue];
+};
+
+// Helper to parse date string as local time (not UTC)
+const parseLocalDate = (dateString) => {
+    const [year, month, day] = dateString.split('-').map(num => parseInt(num));
+    return new Date(year, month - 1, day); // month is 0-indexed
+};
+
+const calculateDates = (baseDate, count, interval, customDays = null) => {
+    const dates = [baseDate];
+
+    for (let i = 1; i < count; i++) {
+        const prevDate = parseLocalDate(dates[i - 1]);
+        let nextDate;
+
+        switch (interval) {
+            case 'semanal':
+                nextDate = new Date(prevDate);
+                nextDate.setDate(prevDate.getDate() + 7);
+                break;
+            case 'quinzenal':
+                nextDate = new Date(prevDate);
+                nextDate.setDate(prevDate.getDate() + 15);
+                break;
+            case 'mensal':
+                nextDate = new Date(prevDate);
+                nextDate.setMonth(prevDate.getMonth() + 1);
+                break;
+            case 'trimestral':
+                nextDate = new Date(prevDate);
+                nextDate.setMonth(prevDate.getMonth() + 3);
+                break;
+            case 'semestral':
+                nextDate = new Date(prevDate);
+                nextDate.setMonth(prevDate.getMonth() + 6);
+                break;
+            case 'anual':
+                nextDate = new Date(prevDate);
+                nextDate.setFullYear(prevDate.getFullYear() + 1);
+                break;
+            case 'personalizado':
+                nextDate = new Date(prevDate);
+                nextDate.setDate(prevDate.getDate() + (customDays || 1));
+                break;
+            default:
+                nextDate = prevDate;
+        }
+
+        // Format to YYYY-MM-DD
+        const year = nextDate.getFullYear();
+        const month = String(nextDate.getMonth() + 1).padStart(2, '0');
+        const day = String(nextDate.getDate()).padStart(2, '0');
+        dates.push(`${year}-${month}-${day}`);
+    }
+
+    return dates;
+};
+
 exports.createSaida = async (req, res, next) => {
     let connection;
     try {
         const {
             dataFato,
             dataPrevistaPagamento,
+            dataAtraso,
             dataRealPagamento,
             valor,
             descricao,
@@ -178,9 +260,14 @@ exports.createSaida = async (req, res, next) => {
             accountId,
             projectId,
             comprovanteUrl,
-            formaPagamento
+            formaPagamento,
+            installmentType,
+            installmentCount,
+            installmentInterval,
+            customDays
         } = req.body;
 
+        // Validations
         if (!dataFato || !dataPrevistaPagamento || !valor || !tipoSaidaId || !companyId || !projectId) {
             throw new AppError('VAL-002');
         }
@@ -205,35 +292,79 @@ exports.createSaida = async (req, res, next) => {
         connection = await db.getConnection();
         await connection.beginTransaction();
 
-        const [result] = await connection.query(
-            `INSERT INTO saidas 
-            (data_fato, data_prevista_pagamento, data_real_pagamento, valor, descricao, tipo_saida_id, company_id, account_id, project_id, comprovante_url, forma_pagamento) 
-            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
-            [dataFato, dataPrevistaPagamento, dataRealPagamento || null, valorDecimal, descricao, tipoSaidaId, companyId, accountId, projectId, comprovanteUrl || null, formaPagamento || null]
-        );
+        // Determine installment parameters
+        const type = installmentType || 'total';
+        const count = (type === 'total') ? 1 : (parseInt(installmentCount) || 1);
+        const interval = installmentInterval || 'mensal';
+        const days = customDays ? parseInt(customDays) : null;
 
-        // Update account balance - SUBTRACT for expenses
-        await connection.query(
-            'UPDATE contas SET current_balance = current_balance - ? WHERE id = ?',
-            [valorDecimal, accountId]
-        );
+        // Calculate installments and dates
+        const installmentValues = calculateInstallments(valorDecimal, count, type);
+        const installmentDates = calculateDates(dataPrevistaPagamento, count, interval, days);
+
+        // Calculate fact dates based on type
+        let factDates;
+        if (type === 'replicar') {
+            // For REPLICAR: data_fato increments with each interval (recorrente)
+            factDates = calculateDates(dataFato, count, interval, days);
+        } else {
+            // For DIVIDIR or TOTAL: data_fato stays the same for all installments (parcelamento)
+            factDates = Array(count).fill(dataFato);
+        }
+
+        const createdIds = [];
+
+        // Generate group ID for installments if count > 1
+        const groupId = count > 1 ? `${Date.now()}-${Math.random().toString(36).substr(2, 9)}` : null;
+
+        // Create each installment
+        for (let i = 0; i < count; i++) {
+            const installmentDesc = count > 1
+                ? `${descricao || ''} - Parcela ${i + 1}/${count}`.trim()
+                : descricao;
+
+            const [result] = await connection.query(
+                `INSERT INTO saidas 
+                (data_fato, data_prevista_pagamento, data_real_pagamento, data_atraso, valor, descricao, tipo_saida_id, company_id, account_id, project_id, comprovante_url, forma_pagamento, installment_group_id, installment_number, installment_total, installment_interval, installment_custom_days) 
+                VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+                [
+                    factDates[i],
+                    installmentDates[i],
+                    dataRealPagamento || null,
+                    dataAtraso || null,
+                    installmentValues[i],
+                    installmentDesc,
+                    tipoSaidaId,
+                    companyId,
+                    accountId,
+                    projectId,
+                    comprovanteUrl || null,
+                    formaPagamento || null,
+                    groupId,
+                    count > 1 ? i + 1 : null,
+                    count > 1 ? count : null,
+                    count > 1 ? interval : null,
+                    count > 1 && interval === 'personalizado' ? days : null
+                ]
+            );
+
+            createdIds.push(result.insertId);
+
+            // Update account balance only if there's a real payment date - SUBTRACT for expenses
+            if (dataRealPagamento && accountId) {
+                await connection.query(
+                    'UPDATE contas SET current_balance = current_balance - ? WHERE id = ?',
+                    [installmentValues[i], accountId]
+                );
+            }
+        }
 
         await connection.commit();
 
         res.status(201).json({
-            id: result.insertId,
-            data_fato: dataFato,
-            data_prevista_pagamento: dataPrevistaPagamento,
-            data_real_pagamento: dataRealPagamento || null,
-            valor: valorDecimal,
-            descricao,
-            tipo_saida_id: tipoSaidaId,
-            company_id: companyId,
-            account_id: accountId,
-            project_id: projectId,
-            comprovante_url: comprovanteUrl || null,
-            forma_pagamento: formaPagamento || null,
-            active: 1
+            message: `${count} saída(s) criada(s) com sucesso`,
+            ids: createdIds,
+            count: createdIds.length
         });
     } catch (error) {
         if (connection) await connection.rollback();

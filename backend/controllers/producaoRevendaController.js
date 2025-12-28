@@ -165,6 +165,87 @@ exports.listProducaoRevenda = async (req, res, next) => {
     }
 };
 
+// Helper functions for installment calculation
+const calculateInstallments = (totalValue, count, type) => {
+    if (type === 'total') return [totalValue];
+
+    if (type === 'dividir') {
+        // Divide the total value into equal parts
+        const baseValue = Math.floor((totalValue * 100) / count) / 100;
+        const remainder = Math.round((totalValue - (baseValue * count)) * 100) / 100;
+
+        // First installment gets the remainder (rounding difference)
+        const installments = [baseValue + remainder];
+        for (let i = 1; i < count; i++) {
+            installments.push(baseValue);
+        }
+        return installments;
+    }
+
+    if (type === 'replicar') {
+        // Replicate the full value for each installment
+        return Array(count).fill(totalValue);
+    }
+
+    return [totalValue];
+};
+
+// Helper to parse date string as local time (not UTC)
+const parseLocalDate = (dateString) => {
+    const [year, month, day] = dateString.split('-').map(num => parseInt(num));
+    return new Date(year, month - 1, day); // month is 0-indexed
+};
+
+const calculateDates = (baseDate, count, interval, customDays = null) => {
+    const dates = [baseDate];
+
+    for (let i = 1; i < count; i++) {
+        const prevDate = parseLocalDate(dates[i - 1]);
+        let nextDate;
+
+        switch (interval) {
+            case 'semanal':
+                nextDate = new Date(prevDate);
+                nextDate.setDate(prevDate.getDate() + 7);
+                break;
+            case 'quinzenal':
+                nextDate = new Date(prevDate);
+                nextDate.setDate(prevDate.getDate() + 15);
+                break;
+            case 'mensal':
+                nextDate = new Date(prevDate);
+                nextDate.setMonth(prevDate.getMonth() + 1);
+                break;
+            case 'trimestral':
+                nextDate = new Date(prevDate);
+                nextDate.setMonth(prevDate.getMonth() + 3);
+                break;
+            case 'semestral':
+                nextDate = new Date(prevDate);
+                nextDate.setMonth(prevDate.getMonth() + 6);
+                break;
+            case 'anual':
+                nextDate = new Date(prevDate);
+                nextDate.setFullYear(prevDate.getFullYear() + 1);
+                break;
+            case 'personalizado':
+                nextDate = new Date(prevDate);
+                nextDate.setDate(prevDate.getDate() + (customDays || 1));
+                break;
+            default:
+                nextDate = prevDate;
+        }
+
+        // Format to YYYY-MM-DD
+        const year = nextDate.getFullYear();
+        const month = String(nextDate.getMonth() + 1).padStart(2, '0');
+        const day = String(nextDate.getDate()).padStart(2, '0');
+        dates.push(`${year}-${month}-${day}`);
+    }
+
+    return dates;
+};
+
 exports.createProducaoRevenda = async (req, res, next) => {
     console.log('=== CREATE PRODUCAO/REVENDA START ===');
     console.log('Request body:', JSON.stringify(req.body, null, 2));
@@ -183,7 +264,11 @@ exports.createProducaoRevenda = async (req, res, next) => {
             accountId,
             comprovanteUrl,
             projectId,
-            formaPagamento
+            formaPagamento,
+            installmentType,
+            installmentCount,
+            installmentInterval,
+            customDays
         } = req.body;
 
         console.log('Extracted fields:', {
@@ -198,10 +283,13 @@ exports.createProducaoRevenda = async (req, res, next) => {
             accountId,
             comprovanteUrl,
             projectId,
-            formaPagamento
+            formaPagamento,
+            installmentType,
+            installmentCount,
+            installmentInterval
         });
 
-        // accountId is optional if dataRealPagamento is null
+        // Validations
         if (!dataFato || !dataPrevistaPagamento || !valor || !tipoId || !companyId || !projectId) {
             console.log('Validation failed - missing required fields');
             throw new AppError('VAL-002');
@@ -224,30 +312,82 @@ exports.createProducaoRevenda = async (req, res, next) => {
         connection = await db.getConnection();
         await connection.beginTransaction();
 
-        const [result] = await connection.query(
-            `INSERT INTO producao_revenda 
-            (data_fato, data_prevista_pagamento, data_prevista_atraso, data_real_pagamento, valor, descricao, tipo_id, company_id, account_id, comprovante_url, project_id, forma_pagamento) 
-            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
-            [dataFato, dataPrevistaPagamento, dataPrevistaAtraso || null, dataRealPagamento || null, valorDecimal, descricao, tipoId, companyId, accountId || null, comprovanteUrl || null, projectId, formaPagamento || null]
-        );
+        // Determine installment parameters
+        const type = installmentType || 'total';
+        const count = (type === 'total') ? 1 : (parseInt(installmentCount) || 1);
+        const interval = installmentInterval || 'mensal';
+        const days = customDays ? parseInt(customDays) : null;
 
-        console.log('Item created with ID:', result.insertId);
+        // Calculate installments and dates
+        const installmentValues = calculateInstallments(valorDecimal, count, type);
+        const installmentDates = calculateDates(dataPrevistaPagamento, count, interval, days);
 
-        // SUBTRACT from account balance (Cost) - only if accountId provided
-        if (accountId) {
-            await connection.query(
-                'UPDATE contas SET current_balance = current_balance - ? WHERE id = ?',
-                [valorDecimal, accountId]
+        // Calculate fact dates based on type
+        let factDates;
+        if (type === 'replicar') {
+            // For REPLICAR: data_fato increments with each interval (recorrente)
+            factDates = calculateDates(dataFato, count, interval, days);
+        } else {
+            // For DIVIDIR or TOTAL: data_fato stays the same for all installments (parcelamento)
+            factDates = Array(count).fill(dataFato);
+        }
+
+        const createdIds = [];
+
+        // Generate group ID for installments if count > 1
+        const groupId = count > 1 ? `${Date.now()}-${Math.random().toString(36).substr(2, 9)}` : null;
+
+        // Create each installment
+        for (let i = 0; i < count; i++) {
+            const installmentDesc = count > 1
+                ? `${descricao || ''} - Parcela ${i + 1}/${count}`.trim()
+                : descricao;
+
+            const [result] = await connection.query(
+                `INSERT INTO producao_revenda 
+                (data_fato, data_prevista_pagamento, data_prevista_atraso, data_real_pagamento, valor, descricao, tipo_id, company_id, account_id, comprovante_url, project_id, forma_pagamento, installment_group_id, installment_number, installment_total, installment_interval, installment_custom_days) 
+                VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+                [
+                    factDates[i],
+                    installmentDates[i],
+                    dataPrevistaAtraso || null,
+                    dataRealPagamento || null,
+                    installmentValues[i],
+                    installmentDesc,
+                    tipoId,
+                    companyId,
+                    accountId || null,
+                    comprovanteUrl || null,
+                    projectId,
+                    formaPagamento || null,
+                    groupId,
+                    count > 1 ? i + 1 : null,
+                    count > 1 ? count : null,
+                    count > 1 ? interval : null,
+                    count > 1 && interval === 'personalizado' ? days : null
+                ]
             );
-            console.log('Account balance updated');
+
+            console.log('Item created with ID:', result.insertId);
+            createdIds.push(result.insertId);
+
+            // SUBTRACT from account balance (Cost) - only if accountId provided
+            if (accountId) {
+                await connection.query(
+                    'UPDATE contas SET current_balance = current_balance - ? WHERE id = ?',
+                    [installmentValues[i], accountId]
+                );
+                console.log('Account balance updated');
+            }
         }
 
         await connection.commit();
         console.log('=== CREATE PRODUCAO/REVENDA SUCCESS ===');
 
         res.status(201).json({
-            id: result.insertId,
-            message: 'Criado com sucesso'
+            message: `${count} item(ns) criado(s) com sucesso`,
+            ids: createdIds,
+            count: createdIds.length
         });
     } catch (error) {
         console.error('=== CREATE PRODUCAO/REVENDA ERROR ===', error);
