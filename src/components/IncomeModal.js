@@ -162,10 +162,10 @@ export const IncomeModal = {
 
                             <div class="form-group" style="grid-column: span 2;">
                                 <label for="income-installment-type">Tipo de Lançamento</label>
-                                <select id="income-installment-type" class="form-input" ${isEdit ? 'disabled' : ''}>
+                                <select id="income-installment-type" class="form-input" ${isInstallment ? 'disabled' : ''}>
                                     <option value="total" ${isInstallment ? '' : 'selected'}>Entrada Única</option>
-                                    <option value="dividir" ${isInstallment && income.installment_interval ? 'selected' : ''}>Dividir (Parcelar)</option>
-                                    <option value="replicar" ${isInstallment && !income.installment_interval ? 'selected' : ''}>Replicar (Recorrente)</option>
+                                    <option value="dividir" ${isInstallment && !income.installment_interval ? 'selected' : ''}>Dividir (Parcelar)</option>
+                                    <option value="replicar" ${isInstallment && income.installment_interval ? 'selected' : ''}>Replicar (Recorrente)</option>
                                 </select>
                             </div>
 
