@@ -126,14 +126,15 @@ export const ParametrosGeraisManager = (project) => {
 
         saveBtn.disabled = !isDirty;
 
-        // Always use blue, just different shades
         if (isDirty) {
-            saveBtn.style.opacity = '1';
+            saveBtn.style.background = 'var(--color-primary)';
+            saveBtn.style.color = 'white';
             saveBtn.style.cursor = 'pointer';
             saveBtn.style.transform = 'translateY(-1px)';
             saveBtn.style.boxShadow = 'var(--shadow-md)';
         } else {
-            saveBtn.style.opacity = '0.5';
+            saveBtn.style.background = '#e5e7eb';
+            saveBtn.style.color = '#9ca3af';
             saveBtn.style.cursor = 'not-allowed';
             saveBtn.style.transform = 'none';
             saveBtn.style.boxShadow = 'none';
@@ -373,30 +374,33 @@ export const ParametrosGeraisManager = (project) => {
                     <label style="display: block; font-weight: 500; margin-bottom: 0.5rem; color: var(--color-text);">
                         📅 Número de Dias
                     </label>
-                    <div style="display: flex; align-items: center; gap: 0.75rem;">
+                    <div style="display: flex; align-items: center; gap: 0.75rem; height: 45px;">
                         <input 
                             type="number" 
                             id="input-numero_dias" 
                             class="settings-input"
                             value="${currentSettings.numero_dias}"
                             min="1"
-                            style="max-width: 150px;"
+                            style="max-width: 150px; height: 100%; box-sizing: border-box;"
                         />
                         <button 
                             id="save-numero_dias"
                             class="btn-save-setting"
                             disabled
                             style="
-                                padding: 0.75rem;
-                                background: var(--color-primary);
-                                opacity: 0.5;
-                                color: white;
+                                height: 100%;
+                                aspect-ratio: 1;
+                                padding: 0;
+                                display: flex;
+                                align-items: center;
+                                justify-content: center;
+                                background: #e5e7eb;
+                                color: #9ca3af;
                                 border: none;
                                 border-radius: 8px;
-                                font-size: 1.1rem;
+                                font-size: 1.2rem;
                                 cursor: not-allowed;
                                 transition: all 0.2s;
-                                min-width: 48px;
                             "
                             title="Salvar alteração"
                         >✓</button>
@@ -411,30 +415,33 @@ export const ParametrosGeraisManager = (project) => {
                     <label style="display: block; font-weight: 500; margin-bottom: 0.5rem; color: var(--color-text);">
                         ⏱️ Tempo em minutos para usar o sistema sem regras de datas
                     </label>
-                    <div style="display: flex; align-items: center; gap: 0.75rem;">
+                    <div style="display: flex; align-items: center; gap: 0.75rem; height: 45px;">
                         <input 
                             type="number" 
                             id="input-tempo_minutos_liberacao" 
                             class="settings-input"
                             value="${currentSettings.tempo_minutos_liberacao}"
                             min="1"
-                            style="max-width: 150px;"
+                            style="max-width: 150px; height: 100%; box-sizing: border-box;"
                         />
                         <button 
                             id="save-tempo_minutos_liberacao"
                             class="btn-save-setting"
                             disabled
                             style="
-                                padding: 0.75rem;
-                                background: var(--color-primary);
-                                opacity: 0.5;
-                                color: white;
+                                height: 100%;
+                                aspect-ratio: 1;
+                                padding: 0;
+                                display: flex;
+                                align-items: center;
+                                justify-content: center;
+                                background: #e5e7eb;
+                                color: #9ca3af;
                                 border: none;
                                 border-radius: 8px;
-                                font-size: 1.1rem;
+                                font-size: 1.2rem;
                                 cursor: not-allowed;
                                 transition: all 0.2s;
-                                min-width: 48px;
                             "
                             title="Salvar alteração"
                         >✓</button>
