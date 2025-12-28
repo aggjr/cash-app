@@ -769,8 +769,90 @@ exports.batchUpdateIncome = async (req, res, next) => {
         const errors = [];
 
         // Calculate base dates for the base installment (first for 'all', current for 'future')
+        // IMPORTANT: If user edits installment #7 and changes date, we need to calculate what installment #1 would be
+        // by subtracting the intervals backwards
         let baseDataFato = updateData.dataFato;
         let baseDataPrevista = updateData.dataPrevistaRecebimento;
+
+        // If we have dates to update and this is a group operation, calculate the base date
+        if ((scope === 'all' || scope === 'future') && interval) {
+            // Calculate how many intervals to subtract to get to base installment
+            const intervalsToSubtract = baseInstallmentNumber - 1;
+
+            // Calculate base date by going backwards from the provided date
+            if (baseDataFato && intervalsToSubtract > 0) {
+                const providedDate = parseLocalDate(baseDataFato);
+                let calculatedBaseDate = new Date(providedDate);
+
+                switch (interval) {
+                    case 'semanal':
+                        calculatedBaseDate.setDate(calculatedBaseDate.getDate() - (7 * intervalsToSubtract));
+                        break;
+                    case 'quinzenal':
+                        calculatedBaseDate.setDate(calculatedBaseDate.getDate() - (15 * intervalsToSubtract));
+                        break;
+                    case 'mensal':
+                        calculatedBaseDate.setMonth(calculatedBaseDate.getMonth() - intervalsToSubtract);
+                        break;
+                    case 'trimestral':
+                        calculatedBaseDate.setMonth(calculatedBaseDate.getMonth() - (3 * intervalsToSubtract));
+                        break;
+                    case 'semestral':
+                        calculatedBaseDate.setMonth(calculatedBaseDate.getMonth() - (6 * intervalsToSubtract));
+                        break;
+                    case 'anual':
+                        calculatedBaseDate.setFullYear(calculatedBaseDate.getFullYear() - intervalsToSubtract);
+                        break;
+                    case 'personalizado':
+                        if (customDays) {
+                            calculatedBaseDate.setDate(calculatedBaseDate.getDate() - (parseInt(customDays) * intervalsToSubtract));
+                        }
+                        break;
+                }
+
+                const year = calculatedBaseDate.getFullYear();
+                const month = String(calculatedBaseDate.getMonth() + 1).padStart(2, '0');
+                const day = String(calculatedBaseDate.getDate()).padStart(2, '0');
+                baseDataFato = `${year}-${month}-${day}`;
+            }
+
+            // Same for data_prevista
+            if (baseDataPrevista && intervalsToSubtract > 0) {
+                const providedDate = parseLocalDate(baseDataPrevista);
+                let calculatedBaseDate = new Date(providedDate);
+
+                switch (interval) {
+                    case 'semanal':
+                        calculatedBaseDate.setDate(calculatedBaseDate.getDate() - (7 * intervalsToSubtract));
+                        break;
+                    case 'quinzenal':
+                        calculatedBaseDate.setDate(calculatedBaseDate.getDate() - (15 * intervalsToSubtract));
+                        break;
+                    case 'mensal':
+                        calculatedBaseDate.setMonth(calculatedBaseDate.getMonth() - intervalsToSubtract);
+                        break;
+                    case 'trimestral':
+                        calculatedBaseDate.setMonth(calculatedBaseDate.getMonth() - (3 * intervalsToSubtract));
+                        break;
+                    case 'semestral':
+                        calculatedBaseDate.setMonth(calculatedBaseDate.getMonth() - (6 * intervalsToSubtract));
+                        break;
+                    case 'anual':
+                        calculatedBaseDate.setFullYear(calculatedBaseDate.getFullYear() - intervalsToSubtract);
+                        break;
+                    case 'personalizado':
+                        if (customDays) {
+                            calculatedBaseDate.setDate(calculatedBaseDate.getDate() - (parseInt(customDays) * intervalsToSubtract));
+                        }
+                        break;
+                }
+
+                const year = calculatedBaseDate.getFullYear();
+                const month = String(calculatedBaseDate.getMonth() + 1).padStart(2, '0');
+                const day = String(calculatedBaseDate.getDate()).padStart(2, '0');
+                baseDataPrevista = `${year}-${month}-${day}`;
+            }
+        }
 
         // Update each installment
         for (const installment of installmentsToUpdate) {
