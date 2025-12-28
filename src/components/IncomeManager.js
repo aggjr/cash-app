@@ -26,28 +26,28 @@ export const IncomeManager = (project) => {
 
     // Define Columns for SharedTable
     const columns = [
-        { key: 'data_fato', label: 'Dt Fato', width: '70px', align: 'left', type: 'date' },
+        { key: 'data_fato', label: 'Dt Fato', width: 'var(--col-date)', align: 'left', type: 'date' },
         {
             key: 'data_prevista_recebimento',
             label: 'Dt Prevista',
-            width: '70px',
+            width: 'var(--col-date)',
             align: 'left',
             type: 'date'
         },
-        { key: 'data_atraso', label: 'Dt Atraso', width: '70px', align: 'left', type: 'date' },
+        { key: 'data_atraso', label: 'Dt Atraso', width: 'var(--col-date)', align: 'left', type: 'date' },
         {
             key: 'data_real_recebimento',
             label: 'Dt Real',
-            width: '70px',
+            width: 'var(--col-date)',
             align: 'left',
             type: 'date'
         },
-        { key: 'tipo_entrada_name', label: 'Tipo Entrada', width: '200px', align: 'left', type: 'text' },
+        { key: 'tipo_entrada_name', label: 'Tipo Entrada', width: 'var(--col-medium)', align: 'left', type: 'text' },
         { key: 'descricao', label: 'Descrição', width: 'auto', align: 'left', type: 'text' },
         {
             key: 'installment_info',
             label: '📋',
-            width: '50px',
+            width: 'var(--col-icon)',
             align: 'center',
             noFilter: true,
             render: (item) => {
@@ -63,13 +63,13 @@ export const IncomeManager = (project) => {
                 return span;
             }
         },
-        { key: 'company_name', label: 'Empresa', width: '150px', align: 'left', type: 'text' },
-        { key: 'account_name', label: 'Conta', width: '150px', align: 'center', type: 'text' },
-        { key: 'valor', label: 'Valor', width: '120px', align: 'right', type: 'currency', colorLogic: 'inflow' },
+        { key: 'company_name', label: 'Empresa', width: 'var(--col-small)', align: 'left', type: 'text' },
+        { key: 'account_name', label: 'Conta', width: 'var(--col-small)', align: 'center', type: 'text' },
+        { key: 'valor', label: 'Valor', width: 'var(--col-value)', align: 'right', type: 'currency', colorLogic: 'inflow' },
         {
             key: 'link',
             label: 'Link',
-            width: '60px',
+            width: 'var(--col-link)',
             align: 'center',
             type: 'link', // Explicit type for filter logic
             render: (item) => {

@@ -48,6 +48,30 @@
   --text-xl: 3.5rem;
   --text-xxl: 5rem;
 
+  /* Standardized Column Widths (reduced by 15% for better density) */
+  --col-date: 60px;
+  /* Previously 70px */
+  --col-date-short: 51px;
+  /* Previously 60px */
+  --col-icon: 43px;
+  /* Previously 50px */
+  --col-link: 51px;
+  /* Previously 60px */
+  --col-actions: 68px;
+  /* Previously 80px */
+  --col-value: 102px;
+  /* Previously 120px */
+  --col-counter: 51px;
+  /* Previously 60px */
+  --col-small: 128px;
+  /* Previously 150px */
+  --col-medium: 170px;
+  /* Previously 200px */
+  --col-large: 255px;
+  /* Previously 300px */
+  --col-xlarge: 340px;
+  /* Previously 400px */
+
   /* Effects */
   --shadow-sm: 0 1px 2px 0 rgba(0, 0, 0, 0.05);
   --shadow-md: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
