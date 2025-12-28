@@ -155,7 +155,7 @@ export const IncomeModal = {
                             </div>
 
                             <div class="form-group" style="grid-column: span 2;">
-                                <label for="income-valor">Valor (R$) <span class="required">*</span> ${isInstallment ? '<span style="font-size: 0.75rem; color: #6B7280; font-weight: normal;">(Valor Total)</span>' : ''}</label>
+                                <label for="income-valor">Valor (R$) <span class="required">*</span> ${isInstallment ? '<span style="font-size: 0.75rem; color: #6B7280; font-weight: normal;">(Desta Parcela)</span>' : ''}</label>
                                 <input type="text" id="income-valor" class="form-input" 
                                     placeholder="R$ 0,00" required />
                             </div>
@@ -163,9 +163,9 @@ export const IncomeModal = {
                             <div class="form-group" style="grid-column: span 2;">
                                 <label for="income-installment-type">Tipo de Lançamento</label>
                                 <select id="income-installment-type" class="form-input" ${isEdit ? 'disabled' : ''}>
-                                    <option value="total">Entrada Única</option>
-                                    <option value="dividir">Dividir (Parcelar)</option>
-                                    <option value="replicar">Replicar (Recorrente)</option>
+                                    <option value="total" ${isInstallment ? '' : 'selected'}>Entrada Única</option>
+                                    <option value="dividir" ${isInstallment && income.installment_interval ? 'selected' : ''}>Dividir (Parcelar)</option>
+                                    <option value="replicar" ${isInstallment && !income.installment_interval ? 'selected' : ''}>Replicar (Recorrente)</option>
                                 </select>
                             </div>
 
@@ -393,10 +393,9 @@ export const IncomeModal = {
                     return parseFloat(clean) || 0;
                 };
 
-                // Set valor - use total value if editing installment
+                // Set valor - always show individual record value
                 if (income?.valor !== undefined && income?.valor !== null) {
-                    const displayValue = isInstallment ? totalInstallmentValue : Number(income.valor);
-                    valorInput.value = formatFloat(displayValue);
+                    valorInput.value = formatFloat(Number(income.valor));
                 }
 
                 // On Focus: Show raw value for easy editing
