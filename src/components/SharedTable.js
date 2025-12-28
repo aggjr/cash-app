@@ -201,7 +201,7 @@ export class SharedTable {
 
         return this.columns.map(col => {
             const isActive = this.activeFilters[col.key];
-            const color = isActive ? 'white' : 'rgba(255, 255, 255, 0.6)';
+            const color = isActive ? 'var(--color-gold)' : 'white';
 
             // Sort State
             const isSortKey = this.sortConfig.key === col.key;
