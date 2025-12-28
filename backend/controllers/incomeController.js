@@ -664,312 +664,315 @@ exports.getDistinctValues = async (req, res, next) => {
         const [rows] = await db.query(query, params);
         res.json(rows.map(r => r.val).filter(v => v !== null && v !== ''));
 
-    };
+    } catch (error) {
+        next(error);
+    }
+};
 
-    // Get all installments in a group
-    exports.getInstallmentGroup = async (req, res, next) => {
-        try {
-            const { groupId } = req.params;
-            const { currentId } = req.query;
+// Get all installments in a group
+exports.getInstallmentGroup = async (req, res, next) => {
+    try {
+        const { groupId } = req.params;
+        const { currentId } = req.query;
 
-            const [installments] = await db.query(
-                `SELECT id, installment_number, installment_total, descricao, data_prevista_recebimento, valor 
+        const [installments] = await db.query(
+            `SELECT id, installment_number, installment_total, descricao, data_prevista_recebimento, valor 
              FROM entradas 
              WHERE installment_group_id = ? AND active = 1 
              ORDER BY installment_number`,
-                [groupId]
-            );
+            [groupId]
+        );
 
-            if (installments.length === 0) {
-                return res.status(404).json({ error: 'Grupo de parcelas não encontrado' });
-            }
-
-            const currentIndex = installments.findIndex(i => i.id.toString() === currentId);
-
-            res.json({
-                installments,
-                currentIndex: currentIndex >= 0 ? currentIndex : 0,
-                totalCount: installments.length
-            });
-        } catch (error) {
-            next(error);
+        if (installments.length === 0) {
+            return res.status(404).json({ error: 'Grupo de parcelas não encontrado' });
         }
-    };
 
-    // Batch update incomes based on scope
-    exports.batchUpdateIncome = async (req, res, next) => {
-        let connection;
-        try {
-            const { id } = req.params;
-            const { scope, ...updateData } = req.body;
+        const currentIndex = installments.findIndex(i => i.id.toString() === currentId);
 
-            if (!['single', 'all', 'future'].includes(scope)) {
-                throw new AppError('VAL-002', 'Escopo inválido. Use: single, all ou future');
-            }
+        res.json({
+            installments,
+            currentIndex: currentIndex >= 0 ? currentIndex : 0,
+            totalCount: installments.length
+        });
+    } catch (error) {
+        next(error);
+    }
+};
 
-            connection = await db.getConnection();
-            await connection.beginTransaction();
+// Batch update incomes based on scope
+exports.batchUpdateIncome = async (req, res, next) => {
+    let connection;
+    try {
+        const { id } = req.params;
+        const { scope, ...updateData } = req.body;
 
-            // Get the current record's installment info
-            const [current] = await connection.query(
-                'SELECT installment_group_id, installment_number, installment_total, project_id FROM entradas WHERE id = ?',
-                [id]
+        if (!['single', 'all', 'future'].includes(scope)) {
+            throw new AppError('VAL-002', 'Escopo inválido. Use: single, all ou future');
+        }
+
+        connection = await db.getConnection();
+        await connection.beginTransaction();
+
+        // Get the current record's installment info
+        const [current] = await connection.query(
+            'SELECT installment_group_id, installment_number, installment_total, project_id FROM entradas WHERE id = ?',
+            [id]
+        );
+
+        if (!current.length) {
+            throw new AppError('RES-001', 'Registro não encontrado');
+        }
+
+        const currentData = current[0];
+        let idsToUpdate = [id];
+
+        // Determine which IDs to update based on scope
+        if (scope === 'all' && currentData.installment_group_id) {
+            const [allInstallments] = await connection.query(
+                'SELECT id FROM entradas WHERE installment_group_id = ? AND active = 1',
+                [currentData.installment_group_id]
             );
+            idsToUpdate = allInstallments.map(i => i.id);
+        } else if (scope === 'future' && currentData.installment_group_id) {
+            const [futureInstallments] = await connection.query(
+                'SELECT id FROM entradas WHERE installment_group_id = ? AND installment_number >= ? AND active = 1',
+                [currentData.installment_group_id, currentData.installment_number]
+            );
+            idsToUpdate = futureInstallments.map(i => i.id);
+        }
 
-            if (!current.length) {
-                throw new AppError('RES-001', 'Registro não encontrado');
-            }
+        let updatedCount = 0;
+        let skippedCount = 0;
+        const errors = [];
 
-            const currentData = current[0];
-            let idsToUpdate = [id];
-
-            // Determine which IDs to update based on scope
-            if (scope === 'all' && currentData.installment_group_id) {
-                const [allInstallments] = await connection.query(
-                    'SELECT id FROM entradas WHERE installment_group_id = ? AND active = 1',
-                    [currentData.installment_group_id]
+        // Update each record
+        for (const updateId of idsToUpdate) {
+            try {
+                // Get old data for balance calculation
+                const [oldIncome] = await connection.query(
+                    'SELECT valor, account_id, data_real_recebimento, project_id FROM entradas WHERE id = ?',
+                    [updateId]
                 );
-                idsToUpdate = allInstallments.map(i => i.id);
-            } else if (scope === 'future' && currentData.installment_group_id) {
-                const [futureInstallments] = await connection.query(
-                    'SELECT id FROM entradas WHERE installment_group_id = ? AND installment_number >= ? AND active = 1',
-                    [currentData.installment_group_id, currentData.installment_number]
-                );
-                idsToUpdate = futureInstallments.map(i => i.id);
-            }
 
-            let updatedCount = 0;
-            let skippedCount = 0;
-            const errors = [];
+                if (!oldIncome.length) continue;
 
-            // Update each record
-            for (const updateId of idsToUpdate) {
-                try {
-                    // Get old data for balance calculation
-                    const [oldIncome] = await connection.query(
-                        'SELECT valor, account_id, data_real_recebimento, project_id FROM entradas WHERE id = ?',
-                        [updateId]
+                const oldData = oldIncome[0];
+
+                // Validate dataRealRecebimento if provided
+                if (updateData.dataRealRecebimento !== undefined && updateData.dataRealRecebimento !== null) {
+                    const validation = await validateDateWithinRange(
+                        updateData.dataRealRecebimento,
+                        oldData.project_id || currentData.project_id
                     );
 
-                    if (!oldIncome.length) continue;
-
-                    const oldData = oldIncome[0];
-
-                    // Validate dataRealRecebimento if provided
-                    if (updateData.dataRealRecebimento !== undefined && updateData.dataRealRecebimento !== null) {
-                        const validation = await validateDateWithinRange(
-                            updateData.dataRealRecebimento,
-                            oldData.project_id || currentData.project_id
-                        );
-
-                        if (!validation.isValid) {
-                            skippedCount++;
-                            errors.push(`Parcela ${updateId}: ${validation.error}`);
-                            continue; // Skip this one, move to next
-                        }
+                    if (!validation.isValid) {
+                        skippedCount++;
+                        errors.push(`Parcela ${updateId}: ${validation.error}`);
+                        continue; // Skip this one, move to next
                     }
-
-                    const updates = [];
-                    const values = [];
-
-                    if (updateData.dataFato !== undefined) {
-                        updates.push('data_fato = ?');
-                        values.push(updateData.dataFato);
-                    }
-                    if (updateData.dataPrevistaRecebimento !== undefined) {
-                        updates.push('data_prevista_recebimento = ?');
-                        values.push(updateData.dataPrevistaRecebimento);
-                    }
-                    if (updateData.dataRealRecebimento !== undefined) {
-                        updates.push('data_real_recebimento = ?');
-                        values.push(updateData.dataRealRecebimento || null);
-                    }
-                    if (updateData.dataAtraso !== undefined) {
-                        updates.push('data_atraso = ?');
-                        values.push(updateData.dataAtraso || null);
-                    }
-
-                    let newValor = oldData.valor;
-                    if (updateData.valor !== undefined) {
-                        const valorDecimal = parseFloat(updateData.valor);
-                        if (!isNaN(valorDecimal)) {
-                            updates.push('valor = ?');
-                            values.push(valorDecimal);
-                            newValor = valorDecimal;
-                        }
-                    }
-
-                    if (updateData.descricao !== undefined) {
-                        updates.push('descricao = ?');
-                        values.push(updateData.descricao);
-                    }
-                    if (updateData.tipoEntradaId !== undefined) {
-                        updates.push('tipo_entrada_id = ?');
-                        values.push(updateData.tipoEntradaId);
-                    }
-                    if (updateData.companyId !== undefined) {
-                        updates.push('company_id = ?');
-                        values.push(updateData.companyId);
-                    }
-
-                    let newAccountId = oldData.account_id;
-                    if (updateData.accountId !== undefined) {
-                        updates.push('account_id = ?');
-                        values.push(updateData.accountId);
-                        newAccountId = updateData.accountId;
-                    }
-
-                    if (updateData.comprovanteUrl !== undefined) {
-                        updates.push('comprovante_url = ?');
-                        values.push(updateData.comprovanteUrl);
-                    }
-                    if (updateData.formaPagamento !== undefined) {
-                        updates.push('forma_pagamento = ?');
-                        values.push(updateData.formaPagamento || null);
-                    }
-
-                    if (updates.length > 0) {
-                        values.push(updateId);
-                        await connection.query(
-                            `UPDATE entradas SET ${updates.join(', ')} WHERE id = ?`,
-                            values
-                        );
-
-                        // Update balances if needed
-                        if (oldData.account_id && oldData.data_real_recebimento) {
-                            await connection.query(
-                                'UPDATE contas SET current_balance = current_balance - ? WHERE id = ?',
-                                [oldData.valor, oldData.account_id]
-                            );
-                        }
-
-                        if (newAccountId && (updateData.dataRealRecebimento || oldData.data_real_recebimento)) {
-                            await connection.query(
-                                'UPDATE contas SET current_balance = current_balance + ? WHERE id = ?',
-                                [newValor, newAccountId]
-                            );
-                        }
-
-                        updatedCount++;
-                    }
-                } catch (error) {
-                    console.error(`Error updating installment ${updateId}:`, error);
-                    skippedCount++;
-                    errors.push(`Parcela ${updateId}: ${error.message}`);
                 }
-            }
 
-            await connection.commit();
+                const updates = [];
+                const values = [];
 
-            res.json({
-                success: true,
-                message: `${updatedCount} de ${idsToUpdate.length} registro(s) atualizado(s)`,
-                updated: updatedCount,
-                skipped: skippedCount,
-                total: idsToUpdate.length,
-                errors: errors.length > 0 ? errors : undefined
-            });
+                if (updateData.dataFato !== undefined) {
+                    updates.push('data_fato = ?');
+                    values.push(updateData.dataFato);
+                }
+                if (updateData.dataPrevistaRecebimento !== undefined) {
+                    updates.push('data_prevista_recebimento = ?');
+                    values.push(updateData.dataPrevistaRecebimento);
+                }
+                if (updateData.dataRealRecebimento !== undefined) {
+                    updates.push('data_real_recebimento = ?');
+                    values.push(updateData.dataRealRecebimento || null);
+                }
+                if (updateData.dataAtraso !== undefined) {
+                    updates.push('data_atraso = ?');
+                    values.push(updateData.dataAtraso || null);
+                }
 
-        } catch (error) {
-            if (connection) await connection.rollback();
-            next(error);
-        } finally {
-            if (connection) connection.release();
-        }
-    };
+                let newValor = oldData.valor;
+                if (updateData.valor !== undefined) {
+                    const valorDecimal = parseFloat(updateData.valor);
+                    if (!isNaN(valorDecimal)) {
+                        updates.push('valor = ?');
+                        values.push(valorDecimal);
+                        newValor = valorDecimal;
+                    }
+                }
 
-    // Batch delete incomes based on scope
-    exports.batchDeleteIncome = async (req, res, next) => {
-        let connection;
-        try {
-            const { id } = req.params;
-            const { scope } = req.body;
+                if (updateData.descricao !== undefined) {
+                    updates.push('descricao = ?');
+                    values.push(updateData.descricao);
+                }
+                if (updateData.tipoEntradaId !== undefined) {
+                    updates.push('tipo_entrada_id = ?');
+                    values.push(updateData.tipoEntradaId);
+                }
+                if (updateData.companyId !== undefined) {
+                    updates.push('company_id = ?');
+                    values.push(updateData.companyId);
+                }
 
-            if (!['single', 'all', 'future'].includes(scope)) {
-                throw new AppError('VAL-002', 'Escopo inválido. Use: single, all ou future');
-            }
+                let newAccountId = oldData.account_id;
+                if (updateData.accountId !== undefined) {
+                    updates.push('account_id = ?');
+                    values.push(updateData.accountId);
+                    newAccountId = updateData.accountId;
+                }
 
-            connection = await db.getConnection();
-            await connection.beginTransaction();
+                if (updateData.comprovanteUrl !== undefined) {
+                    updates.push('comprovante_url = ?');
+                    values.push(updateData.comprovanteUrl);
+                }
+                if (updateData.formaPagamento !== undefined) {
+                    updates.push('forma_pagamento = ?');
+                    values.push(updateData.formaPagamento || null);
+                }
 
-            // Get the current record's installment info
-            const [current] = await connection.query(
-                'SELECT installment_group_id, installment_number FROM entradas WHERE id = ? AND active = 1',
-                [id]
-            );
-
-            if (!current.length) {
-                throw new AppError('RES-001', 'Registro não encontrado');
-            }
-
-            const currentData = current[0];
-            let idsToDelete = [id];
-
-            // Determine which IDs to delete based on scope
-            if (scope === 'all' && currentData.installment_group_id) {
-                const [allInstallments] = await connection.query(
-                    'SELECT id FROM entradas WHERE installment_group_id = ? AND active = 1',
-                    [currentData.installment_group_id]
-                );
-                idsToDelete = allInstallments.map(i => i.id);
-            } else if (scope === 'future' && currentData.installment_group_id) {
-                const [futureInstallments] = await connection.query(
-                    'SELECT id FROM entradas WHERE installment_group_id = ? AND installment_number >= ? AND active = 1',
-                    [currentData.installment_group_id, currentData.installment_number]
-                );
-                idsToDelete = futureInstallments.map(i => i.id);
-            }
-
-            let deletedCount = 0;
-            let skippedCount = 0;
-            const errors = [];
-
-            // Delete each record
-            for (const deleteId of idsToDelete) {
-                try {
-                    // Get income details for balance adjustment
-                    const [income] = await connection.query(
-                        'SELECT valor, account_id, data_real_recebimento FROM entradas WHERE id = ? AND active = 1',
-                        [deleteId]
+                if (updates.length > 0) {
+                    values.push(updateId);
+                    await connection.query(
+                        `UPDATE entradas SET ${updates.join(', ')} WHERE id = ?`,
+                        values
                     );
 
-                    if (income.length === 0) continue;
-
-                    // Soft delete
-                    await connection.query('UPDATE entradas SET active = 0 WHERE id = ?', [deleteId]);
-
-                    // Decrease account balance only if it was already received
-                    if (income[0].account_id && income[0].data_real_recebimento) {
+                    // Update balances if needed
+                    if (oldData.account_id && oldData.data_real_recebimento) {
                         await connection.query(
                             'UPDATE contas SET current_balance = current_balance - ? WHERE id = ?',
-                            [income[0].valor, income[0].account_id]
+                            [oldData.valor, oldData.account_id]
                         );
                     }
 
-                    deletedCount++;
-                } catch (error) {
-                    console.error(`Error deleting installment ${deleteId}:`, error);
-                    skippedCount++;
-                    errors.push(`Parcela ${deleteId}: ${error.message}`);
+                    if (newAccountId && (updateData.dataRealRecebimento || oldData.data_real_recebimento)) {
+                        await connection.query(
+                            'UPDATE contas SET current_balance = current_balance + ? WHERE id = ?',
+                            [newValor, newAccountId]
+                        );
+                    }
+
+                    updatedCount++;
                 }
+            } catch (error) {
+                console.error(`Error updating installment ${updateId}:`, error);
+                skippedCount++;
+                errors.push(`Parcela ${updateId}: ${error.message}`);
             }
-
-            await connection.commit();
-
-            res.json({
-                success: true,
-                message: `${deletedCount} de ${idsToDelete.length} registro(s) excluído(s)`,
-                deleted: deletedCount,
-                skipped: skippedCount,
-                total: idsToDelete.length,
-                errors: errors.length > 0 ? errors : undefined
-            });
-
-        } catch (error) {
-            if (connection) await connection.rollback();
-            next(error);
-        } finally {
-            if (connection) connection.release();
         }
-    };
+
+        await connection.commit();
+
+        res.json({
+            success: true,
+            message: `${updatedCount} de ${idsToUpdate.length} registro(s) atualizado(s)`,
+            updated: updatedCount,
+            skipped: skippedCount,
+            total: idsToUpdate.length,
+            errors: errors.length > 0 ? errors : undefined
+        });
+
+    } catch (error) {
+        if (connection) await connection.rollback();
+        next(error);
+    } finally {
+        if (connection) connection.release();
+    }
+};
+
+// Batch delete incomes based on scope
+exports.batchDeleteIncome = async (req, res, next) => {
+    let connection;
+    try {
+        const { id } = req.params;
+        const { scope } = req.body;
+
+        if (!['single', 'all', 'future'].includes(scope)) {
+            throw new AppError('VAL-002', 'Escopo inválido. Use: single, all ou future');
+        }
+
+        connection = await db.getConnection();
+        await connection.beginTransaction();
+
+        // Get the current record's installment info
+        const [current] = await connection.query(
+            'SELECT installment_group_id, installment_number FROM entradas WHERE id = ? AND active = 1',
+            [id]
+        );
+
+        if (!current.length) {
+            throw new AppError('RES-001', 'Registro não encontrado');
+        }
+
+        const currentData = current[0];
+        let idsToDelete = [id];
+
+        // Determine which IDs to delete based on scope
+        if (scope === 'all' && currentData.installment_group_id) {
+            const [allInstallments] = await connection.query(
+                'SELECT id FROM entradas WHERE installment_group_id = ? AND active = 1',
+                [currentData.installment_group_id]
+            );
+            idsToDelete = allInstallments.map(i => i.id);
+        } else if (scope === 'future' && currentData.installment_group_id) {
+            const [futureInstallments] = await connection.query(
+                'SELECT id FROM entradas WHERE installment_group_id = ? AND installment_number >= ? AND active = 1',
+                [currentData.installment_group_id, currentData.installment_number]
+            );
+            idsToDelete = futureInstallments.map(i => i.id);
+        }
+
+        let deletedCount = 0;
+        let skippedCount = 0;
+        const errors = [];
+
+        // Delete each record
+        for (const deleteId of idsToDelete) {
+            try {
+                // Get income details for balance adjustment
+                const [income] = await connection.query(
+                    'SELECT valor, account_id, data_real_recebimento FROM entradas WHERE id = ? AND active = 1',
+                    [deleteId]
+                );
+
+                if (income.length === 0) continue;
+
+                // Soft delete
+                await connection.query('UPDATE entradas SET active = 0 WHERE id = ?', [deleteId]);
+
+                // Decrease account balance only if it was already received
+                if (income[0].account_id && income[0].data_real_recebimento) {
+                    await connection.query(
+                        'UPDATE contas SET current_balance = current_balance - ? WHERE id = ?',
+                        [income[0].valor, income[0].account_id]
+                    );
+                }
+
+                deletedCount++;
+            } catch (error) {
+                console.error(`Error deleting installment ${deleteId}:`, error);
+                skippedCount++;
+                errors.push(`Parcela ${deleteId}: ${error.message}`);
+            }
+        }
+
+        await connection.commit();
+
+        res.json({
+            success: true,
+            message: `${deletedCount} de ${idsToDelete.length} registro(s) excluído(s)`,
+            deleted: deletedCount,
+            skipped: skippedCount,
+            total: idsToDelete.length,
+            errors: errors.length > 0 ? errors : undefined
+        });
+
+    } catch (error) {
+        if (connection) await connection.rollback();
+        next(error);
+    } finally {
+        if (connection) connection.release();
+    }
+};
 
