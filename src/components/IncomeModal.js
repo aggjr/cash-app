@@ -16,6 +16,11 @@ export const IncomeModal = {
                 const isEdit = income !== null;
                 let hasChanges = false;
 
+                // Check if editing an installment
+                const isInstallment = income && income.installment_group_id && income.installment_number && income.installment_total;
+                let installmentGroup = [];
+                let totalInstallmentValue = income?.valor || 0;
+
                 // Mark as dirty helper
                 const markAsDirty = () => { hasChanges = true; };
 
@@ -26,11 +31,24 @@ export const IncomeModal = {
                 let accounts = [];
 
                 try {
-                    const [tipoResponse, companyResponse, accountResponse] = await Promise.all([
+                    const fetchPromises = [
                         fetch(`${API_BASE_URL}/tipo_entrada?projectId=${projectId}`, { headers: { 'Authorization': `Bearer ${token}` } }),
                         fetch(`${API_BASE_URL}/companies?projectId=${projectId}`, { headers: { 'Authorization': `Bearer ${token}` } }),
                         fetch(`${API_BASE_URL}/accounts?projectId=${projectId}`, { headers: { 'Authorization': `Bearer ${token}` } })
-                    ]);
+                    ];
+
+                    // If editing installment, fetch the group data
+                    if (isInstallment) {
+                        fetchPromises.push(
+                            fetch(`${API_BASE_URL}/incomes/group/${income.installment_group_id}?currentId=${income.id}`, {
+                                headers: { 'Authorization': `Bearer ${token}` }
+                            })
+                        );
+                    }
+
+                    const responses = await Promise.all(fetchPromises);
+
+                    const [tipoResponse, companyResponse, accountResponse, groupResponse] = responses;
 
                     if (tipoResponse.ok) {
                         const json = await tipoResponse.json();
@@ -43,6 +61,14 @@ export const IncomeModal = {
                     if (accountResponse.ok) {
                         const json = await accountResponse.json();
                         accounts = Array.isArray(json) ? json : [];
+                    }
+
+                    // Process installment group data
+                    if (groupResponse && groupResponse.ok) {
+                        const groupData = await groupResponse.json();
+                        installmentGroup = groupData.installments || [];
+                        // Calculate total value (sum all installments)
+                        totalInstallmentValue = installmentGroup.reduce((sum, inst) => sum + parseFloat(inst.valor || 0), 0);
                     }
                 } catch (error) {
                     console.error('Error loading data:', error);
@@ -67,6 +93,21 @@ export const IncomeModal = {
                 modal.innerHTML = `
                     <div class="account-modal-body" style="padding: 1rem; overflow-y: auto; max-height: 85vh;">
                         <h3 style="margin: 0 0 1rem 0; color: var(--color-primary); font-size: 1.1rem;">${isEdit ? 'Editar Entrada' : 'Nova Entrada'}</h3>
+                        
+                        ${isInstallment ? `
+                            <div style="background: linear-gradient(135deg, #3B82F6 0%, #1E40AF 100%); color: white; padding: 1rem; border-radius: 8px; margin-bottom: 1rem; box-shadow: 0 2px 8px rgba(59, 130, 246, 0.3);">
+                                <div style="display: flex; align-items: center; gap: 0.75rem; margin-bottom: 0.5rem;">
+                                    <span style="font-size: 1.5rem;">📋</span>
+                                    <div style="flex: 1;">
+                                        <div style="font-weight: 700; font-size: 1.1rem;">Editando Parcela ${income.installment_number} de ${income.installment_total}</div>
+                                        <div style="font-size: 0.9rem; opacity: 0.95; margin-top: 0.25rem;">Parcelamento - Valor Total: ${new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(totalInstallmentValue)}</div>
+                                    </div>
+                                </div>
+                                <div style="font-size: 0.85rem; opacity: 0.9; background: rgba(255,255,255,0.15); padding: 0.5rem; border-radius: 4px;">
+                                    ⚠️ <strong>Importante:</strong> Ao editar ou excluir, você pode escolher aplicar a alteração apenas nesta parcela, em todas as parcelas, ou nesta e nas futuras.
+                                </div>
+                            </div>
+                        ` : ''}
                         
                         <div class="form-grid" style="display: grid; grid-template-columns: repeat(8, 1fr); gap: 0.75rem;">
                             
@@ -114,14 +155,14 @@ export const IncomeModal = {
                             </div>
 
                             <div class="form-group" style="grid-column: span 2;">
-                                <label for="income-valor">Valor (R$) <span class="required">*</span></label>
+                                <label for="income-valor">Valor (R$) <span class="required">*</span> ${isInstallment ? '<span style="font-size: 0.75rem; color: #6B7280; font-weight: normal;">(Valor Total)</span>' : ''}</label>
                                 <input type="text" id="income-valor" class="form-input" 
                                     placeholder="R$ 0,00" required />
                             </div>
 
                             <div class="form-group" style="grid-column: span 2;">
                                 <label for="income-installment-type">Tipo de Lançamento</label>
-                                <select id="income-installment-type" class="form-input">
+                                <select id="income-installment-type" class="form-input" ${isEdit ? 'disabled' : ''}>
                                     <option value="total">Entrada Única</option>
                                     <option value="dividir">Dividir (Parcelar)</option>
                                     <option value="replicar">Replicar (Recorrente)</option>
@@ -352,8 +393,10 @@ export const IncomeModal = {
                     return parseFloat(clean) || 0;
                 };
 
+                // Set valor - use total value if editing installment
                 if (income?.valor !== undefined && income?.valor !== null) {
-                    valorInput.value = formatFloat(Number(income.valor));
+                    const displayValue = isInstallment ? totalInstallmentValue : Number(income.valor);
+                    valorInput.value = formatFloat(displayValue);
                 }
 
                 // On Focus: Show raw value for easy editing
