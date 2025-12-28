@@ -3,6 +3,8 @@ import { SharedTable } from './SharedTable.js';
 import { showToast } from '../utils/toast.js';
 import { getApiBaseUrl } from '../utils/apiConfig.js';
 import { ExcelExporter } from '../utils/ExcelExporter.js';
+import { BatchOperationDialog } from './BatchOperationDialog.js';
+
 
 export const IncomeManager = (project) => {
     const container = document.createElement('div');
@@ -42,6 +44,25 @@ export const IncomeManager = (project) => {
         },
         { key: 'tipo_entrada_name', label: 'Tipo Entrada', width: '200px', align: 'left', type: 'text' },
         { key: 'descricao', label: 'Descrição', width: 'auto', align: 'left', type: 'text' },
+        {
+            key: 'installment_info',
+            label: '📋',
+            width: '50px',
+            align: 'center',
+            noFilter: true,
+            render: (item) => {
+                if (!item.installment_group_id || !item.installment_number) {
+                    return document.createTextNode('');
+                }
+                const span = document.createElement('span');
+                span.textContent = `${item.installment_number}/${item.installment_total}`;
+                span.style.fontSize = '0.8rem';
+                span.style.color = 'var(--color-text-muted, #6B7280)';
+                span.style.fontWeight = '600';
+                span.title = `Parcela ${item.installment_number} de ${item.installment_total}`;
+                return span;
+            }
+        },
         { key: 'company_name', label: 'Empresa', width: '150px', align: 'left', type: 'text' },
         { key: 'account_name', label: 'Conta', width: '150px', align: 'center', type: 'text' },
         { key: 'valor', label: 'Valor', width: '120px', align: 'right', type: 'currency', colorLogic: 'inflow' },
@@ -103,7 +124,7 @@ export const IncomeManager = (project) => {
                 btnDelete.style.border = 'none';
                 btnDelete.style.cursor = 'pointer';
                 btnDelete.style.fontSize = '1.1rem';
-                btnDelete.onclick = (e) => { e.stopPropagation(); deleteIncome(item.id, item.descricao); };
+                btnDelete.onclick = (e) => { e.stopPropagation(); deleteIncome(item.id, item.descricao, item); };
 
                 div.appendChild(btnEdit);
                 div.appendChild(btnDelete);
@@ -358,19 +379,51 @@ export const IncomeManager = (project) => {
     };
 
     const updateIncome = async (income) => {
+        // Check if this is part of an installment group
+        let scope = 'single';
+        if (income.installment_group_id && income.installment_number && income.installment_total) {
+            scope = await BatchOperationDialog.show({
+                operation: 'edit',
+                currentNumber: income.installment_number,
+                totalCount: income.installment_total,
+                description: income.descricao
+            });
+
+            if (!scope) return; // User cancelled
+        }
+
         await IncomeModal.show({
             income: income,
             projectId: project.id,
             onSave: async (incomeData) => {
                 try {
-                    const response = await fetch(`${API_BASE_URL}/incomes/${income.id}`, {
+                    // Use batch endpoint if scope is not 'single'
+                    const url = scope === 'single'
+                        ? `${API_BASE_URL}/incomes/${income.id}`
+                        : `${API_BASE_URL}/incomes/${income.id}/batch`;
+
+                    const body = scope === 'single'
+                        ? incomeData
+                        : { ...incomeData, scope };
+
+                    const response = await fetch(url, {
                         method: 'PUT',
                         headers: getHeaders(),
-                        body: JSON.stringify(incomeData)
+                        body: JSON.stringify(body)
                     });
 
                     if (response.ok) {
-                        showToast('Entrada atualizada com sucesso!', 'success');
+                        const result = await response.json();
+                        const message = result.message || 'Entrada atualizada com sucesso!';
+                        showToast(message, 'success');
+
+                        // Show warning if some were skipped
+                        if (result.skipped && result.skipped > 0) {
+                            setTimeout(() => {
+                                showToast(`⚠️ ${result.skipped} parcela(s) não puderam ser atualizadas (restrição de data)`, 'warning');
+                            }, 2000);
+                        }
+
                         loadIncomes();
                     } else {
                         const error = await response.json();
@@ -383,20 +436,58 @@ export const IncomeManager = (project) => {
         });
     };
 
-    const deleteIncome = async (id, description) => {
-        // Show custom confirmation dialog
-        const confirmed = await showCustomConfirm(`Tem certeza que deseja excluir "${description || 'Parcela 1/2'}"?`, 'Sim, Excluir');
+    const deleteIncome = async (id, description, item = null) => {
+        // Check if this is part of an installment group
+        let scope = 'single';
+        if (item && item.installment_group_id && item.installment_number && item.installment_total) {
+            scope = await BatchOperationDialog.show({
+                operation: 'delete',
+                currentNumber: item.installment_number,
+                totalCount: item.installment_total,
+                description: description
+            });
 
+            if (!scope) return; // User cancelled
+        }
+
+        // Show confirmation dialog
+        const confirmMessage = scope === 'single'
+            ? `Tem certeza que deseja excluir "${description}"?`
+            : scope === 'all'
+                ? `Tem certeza que deseja excluir TODAS as ${item?.installment_total || 'X'} parcelas?`
+                : `Tem certeza que deseja excluir esta e as próximas parcelas?`;
+
+        const confirmed = await showCustomConfirm(confirmMessage, 'Sim, Excluir');
         if (!confirmed) return;
 
         try {
-            const response = await fetch(`${API_BASE_URL}/incomes/${id}`, {
+            const url = scope === 'single'
+                ? `${API_BASE_URL}/incomes/${id}`
+                : `${API_BASE_URL}/incomes/${id}/batch`;
+
+            const options = {
                 method: 'DELETE',
                 headers: getHeaders()
-            });
+            };
+
+            if (scope !== 'single') {
+                options.body = JSON.stringify({ scope });
+            }
+
+            const response = await fetch(url, options);
 
             if (response.ok) {
-                showToast('Entrada excluída com sucesso!', 'success');
+                const result = await response.json();
+                const message = result.message || 'Entrada excluída com sucesso!';
+                showToast(message, 'success');
+
+                // Show info if some were skipped
+                if (result.skipped && result.skipped > 0) {
+                    setTimeout(() => {
+                        showToast(`ℹ️ ${result.skipped} parcela(s) não puderam ser excluídas`, 'info');
+                    }, 2000);
+                }
+
                 loadIncomes();
             } else {
                 const error = await response.json();

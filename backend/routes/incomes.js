@@ -20,4 +20,13 @@ router.put('/:id', auth, incomeController.updateIncome);
 // DELETE /api/incomes/:id - Delete income (soft delete)
 router.delete('/:id', auth, incomeController.deleteIncome);
 
+// GET /api/incomes/group/:groupId - Get all installments in a group
+router.get('/group/:groupId', auth, incomeController.getInstallmentGroup);
+
+// PUT /api/incomes/:id/batch - Batch update with scope
+router.put('/:id/batch', auth, incomeController.batchUpdateIncome);
+
+// DELETE /api/incomes/:id/batch - Batch delete with scope
+router.delete('/:id/batch', auth, incomeController.batchDeleteIncome);
+
 module.exports = router;
