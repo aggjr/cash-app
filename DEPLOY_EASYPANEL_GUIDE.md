@@ -71,7 +71,7 @@ git push -u origin main
 3. **Build**:
    - **Build Method**: `Docker`
    - **Docker Context**: `/` (raiz)
-   - **Dockerfile Path**: `Dockerfile` (ou `Dockerfile.prod` se preferir a versão de produção)
+   - **Dockerfile Path**: `Dockerfile` (Agora configurado para construir Frontend + Backend juntos no mesmo container)
 
 4. **Environment Variables** (Variáveis de Ambiente):
    
