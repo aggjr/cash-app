@@ -715,7 +715,7 @@ exports.batchUpdateIncome = async (req, res, next) => {
 
         // Get the current record's installment info
         const [current] = await connection.query(
-            'SELECT installment_group_id, installment_number, installment_total, project_id FROM entradas WHERE id = ?',
+            'SELECT installment_group_id, installment_number, installment_total, installment_interval, installment_custom_days, project_id FROM entradas WHERE id = ?',
             [id]
         );
 
@@ -724,89 +724,119 @@ exports.batchUpdateIncome = async (req, res, next) => {
         }
 
         const currentData = current[0];
-        let idsToUpdate = [id];
 
-        // Determine which IDs to update based on scope
+        // For scope 'single', just update the current record normally
+        if (scope === 'single') {
+            // Use the existing updateIncome logic - reuse code
+            const updateResult = await executeSingleUpdate(connection, id, updateData, currentData.project_id);
+            await connection.commit();
+            return res.json({ success: true, message: 'Registro atualizado com sucesso', updated: 1 });
+        }
+
+        // For 'all' and 'future', we need to fetch all relevant installments
+        let baseInstallmentNumber;
+        let installmentsToUpdate;
+
         if (scope === 'all' && currentData.installment_group_id) {
+            // Start from installment #1
+            baseInstallmentNumber = 1;
             const [allInstallments] = await connection.query(
-                'SELECT id FROM entradas WHERE installment_group_id = ? AND active = 1',
+                'SELECT id, installment_number FROM entradas WHERE installment_group_id = ? AND active = 1 ORDER BY installment_number ASC',
                 [currentData.installment_group_id]
             );
-            idsToUpdate = allInstallments.map(i => i.id);
+            installmentsToUpdate = allInstallments;
         } else if (scope === 'future' && currentData.installment_group_id) {
+            // Start from current installment
+            baseInstallmentNumber = currentData.installment_number;
             const [futureInstallments] = await connection.query(
-                'SELECT id FROM entradas WHERE installment_group_id = ? AND installment_number >= ? AND active = 1',
+                'SELECT id, installment_number FROM entradas WHERE installment_group_id = ? AND installment_number >= ? AND active = 1 ORDER BY installment_number ASC',
                 [currentData.installment_group_id, currentData.installment_number]
             );
-            idsToUpdate = futureInstallments.map(i => i.id);
+            installmentsToUpdate = futureInstallments;
+        } else {
+            // No installment group, treat as single
+            const updateResult = await executeSingleUpdate(connection, id, updateData, currentData.project_id);
+            await connection.commit();
+            return res.json({ success: true, message: 'Registro atualizado com sucesso', updated: 1 });
         }
+
+        const interval = currentData.installment_interval;
+        const customDays = currentData.installment_custom_days;
+        const isReplicar = interval !== null;
 
         let updatedCount = 0;
         let skippedCount = 0;
         const errors = [];
 
-        // Update each record
-        for (const updateId of idsToUpdate) {
+        // Calculate base dates for the base installment (first for 'all', current for 'future')
+        let baseDataFato = updateData.dataFato;
+        let baseDataPrevista = updateData.dataPrevistaRecebimento;
+
+        // Update each installment
+        for (const installment of installmentsToUpdate) {
             try {
+                const installmentId = installment.id;
+                const installmentNum = installment.installment_number;
+
+                // Calculate offset from base
+                const offsetFromBase = installmentNum - baseInstallmentNumber;
+
                 // Get old data for balance calculation
                 const [oldIncome] = await connection.query(
-                    'SELECT valor, account_id, data_real_recebimento, project_id FROM entradas WHERE id = ?',
-                    [updateId]
+                    'SELECT valor, account_id, data_real_recebimento, data_fato, data_prevista_recebimento FROM entradas WHERE id = ?',
+                    [installmentId]
                 );
 
                 if (!oldIncome.length) continue;
-
                 const oldData = oldIncome[0];
 
                 // Validate dataRealRecebimento if provided
                 if (updateData.dataRealRecebimento !== undefined && updateData.dataRealRecebimento !== null) {
                     const validation = await validateDateWithinRange(
                         updateData.dataRealRecebimento,
-                        oldData.project_id || currentData.project_id
+                        currentData.project_id
                     );
 
                     if (!validation.isValid) {
                         skippedCount++;
-                        errors.push(`Parcela ${updateId}: ${validation.error}`);
-                        continue; // Skip this one, move to next
+                        errors.push(`Parcela ${installmentNum}: ${validation.error}`);
+                        continue;
                     }
                 }
 
                 const updates = [];
                 const values = [];
 
-                // Get installment info to check if it's replicated
-                const [installmentInfo] = await connection.query(
-                    'SELECT installment_number, installment_interval, installment_custom_days FROM entradas WHERE id = ?',
-                    [updateId]
-                );
+                // Calculate dates for this installment
+                if (baseDataFato !== undefined) {
+                    let finalDataFato;
 
-                const isReplicar = installmentInfo.length && installmentInfo[0].installment_interval !== null;
-                const installmentNumber = installmentInfo.length ? installmentInfo[0].installment_number : 1;
-                const interval = installmentInfo.length ? installmentInfo[0].installment_interval : null;
-                const customDays = installmentInfo.length ? installmentInfo[0].installment_custom_days : null;
-
-                // For replicated entries, we need to calculate the offset date
-                if (updateData.dataFato !== undefined) {
-                    let finalDataFato = updateData.dataFato;
-
-                    if (isReplicar && installmentNumber > 1) {
-                        // Calculate offset for this installment (start from base date + offset)
-                        const baseDates = calculateDates(updateData.dataFato, installmentNumber, interval, customDays);
-                        finalDataFato = baseDates[installmentNumber - 1];
+                    if (offsetFromBase === 0) {
+                        // Base installment: use the value directly
+                        finalDataFato = baseDataFato;
+                    } else if (isReplicar) {
+                        // Replicated: calculate offset from base date
+                        const allDates = calculateDates(baseDataFato, offsetFromBase + 1, interval, customDays);
+                        finalDataFato = allDates[offsetFromBase];
+                    } else {
+                        // Dividir (parcelado): data_fato stays same
+                        finalDataFato = baseDataFato;
                     }
 
                     updates.push('data_fato = ?');
                     values.push(finalDataFato);
                 }
 
-                if (updateData.dataPrevistaRecebimento !== undefined) {
-                    let finalDataPrevista = updateData.dataPrevistaRecebimento;
+                if (baseDataPrevista !== undefined) {
+                    let finalDataPrevista;
 
-                    if (installmentNumber > 1 && interval) {
-                        // Always calculate offset for data_prevista in installments
-                        const baseDates = calculateDates(updateData.dataPrevistaRecebimento, installmentNumber, interval, customDays);
-                        finalDataPrevista = baseDates[installmentNumber - 1];
+                    if (offsetFromBase === 0) {
+                        // Base installment: use the value directly
+                        finalDataPrevista = baseDataPrevista;
+                    } else {
+                        // All installments: data_prevista advances with interval
+                        const allDates = calculateDates(baseDataPrevista, offsetFromBase + 1, interval, customDays);
+                        finalDataPrevista = allDates[offsetFromBase];
                     }
 
                     updates.push('data_prevista_recebimento = ?');
@@ -862,7 +892,7 @@ exports.batchUpdateIncome = async (req, res, next) => {
                 }
 
                 if (updates.length > 0) {
-                    values.push(updateId);
+                    values.push(installmentId);
                     await connection.query(
                         `UPDATE entradas SET ${updates.join(', ')} WHERE id = ?`,
                         values
@@ -886,9 +916,9 @@ exports.batchUpdateIncome = async (req, res, next) => {
                     updatedCount++;
                 }
             } catch (error) {
-                console.error(`Error updating installment ${updateId}:`, error);
+                console.error(`Error updating installment ${installment.id}:`, error);
                 skippedCount++;
-                errors.push(`Parcela ${updateId}: ${error.message}`);
+                errors.push(`Parcela ${installment.installment_number}: ${error.message}`);
             }
         }
 
@@ -896,10 +926,9 @@ exports.batchUpdateIncome = async (req, res, next) => {
 
         res.json({
             success: true,
-            message: `${updatedCount} de ${idsToUpdate.length} registro(s) atualizado(s)`,
+            message: `${updatedCount} de ${installmentsToUpdate.length} registro(s) atualizado(s)`,
             updated: updatedCount,
             skipped: skippedCount,
-            total: idsToUpdate.length,
             errors: errors.length > 0 ? errors : undefined
         });
 
@@ -910,6 +939,112 @@ exports.batchUpdateIncome = async (req, res, next) => {
         if (connection) connection.release();
     }
 };
+
+// Helper function for single update
+async function executeSingleUpdate(connection, id, updateData, projectId) {
+    const [oldIncome] = await connection.query(
+        'SELECT valor, account_id, data_real_recebimento FROM entradas WHERE id = ?',
+        [id]
+    );
+
+    if (!oldIncome.length) {
+        throw new AppError('RES-001', 'Registro não encontrado');
+    }
+
+    const oldData = oldIncome[0];
+
+    // Validate dataRealRecebimento if provided
+    if (updateData.dataRealRecebimento !== undefined && updateData.dataRealRecebimento !== null) {
+        const validation = await validateDateWithinRange(updateData.dataRealRecebimento, projectId);
+        if (!validation.isValid) {
+            throw new AppError('VAL-DATE', validation.error);
+        }
+    }
+
+    const updates = [];
+    const values = [];
+
+    if (updateData.dataFato !== undefined) {
+        updates.push('data_fato = ?');
+        values.push(updateData.dataFato);
+    }
+    if (updateData.dataPrevistaRecebimento !== undefined) {
+        updates.push('data_prevista_recebimento = ?');
+        values.push(updateData.dataPrevistaRecebimento);
+    }
+    if (updateData.dataRealRecebimento !== undefined) {
+        updates.push('data_real_recebimento = ?');
+        values.push(updateData.dataRealRecebimento || null);
+    }
+    if (updateData.dataAtraso !== undefined) {
+        updates.push('data_atraso = ?');
+        values.push(updateData.dataAtraso || null);
+    }
+
+    let newValor = oldData.valor;
+    if (updateData.valor !== undefined) {
+        const valorDecimal = parseFloat(updateData.valor);
+        if (!isNaN(valorDecimal)) {
+            updates.push('valor = ?');
+            values.push(valorDecimal);
+            newValor = valorDecimal;
+        }
+    }
+
+    if (updateData.descricao !== undefined) {
+        updates.push('descricao = ?');
+        values.push(updateData.descricao);
+    }
+    if (updateData.tipoEntradaId !== undefined) {
+        updates.push('tipo_entrada_id = ?');
+        values.push(updateData.tipoEntradaId);
+    }
+    if (updateData.companyId !== undefined) {
+        updates.push('company_id = ?');
+        values.push(updateData.companyId);
+    }
+
+    let newAccountId = oldData.account_id;
+    if (updateData.accountId !== undefined) {
+        updates.push('account_id = ?');
+        values.push(updateData.accountId);
+        newAccountId = updateData.accountId;
+    }
+
+    if (updateData.comprovanteUrl !== undefined) {
+        updates.push('comprovante_url = ?');
+        values.push(updateData.comprovanteUrl);
+    }
+    if (updateData.formaPagamento !== undefined) {
+        updates.push('forma_pagamento = ?');
+        values.push(updateData.formaPagamento || null);
+    }
+
+    if (updates.length > 0) {
+        values.push(id);
+        await connection.query(
+            `UPDATE entradas SET ${updates.join(', ')} WHERE id = ?`,
+            values
+        );
+
+        // Update balances
+        if (oldData.account_id && oldData.data_real_recebimento) {
+            await connection.query(
+                'UPDATE contas SET current_balance = current_balance - ? WHERE id = ?',
+                [oldData.valor, oldData.account_id]
+            );
+        }
+
+        if (newAccountId && (updateData.dataRealRecebimento || oldData.data_real_recebimento)) {
+            await connection.query(
+                'UPDATE contas SET current_balance = current_balance + ? WHERE id = ?',
+                [newValor, newAccountId]
+            );
+        }
+    }
+
+    return true;
+}
 
 // Batch delete incomes based on scope
 exports.batchDeleteIncome = async (req, res, next) => {
