@@ -229,11 +229,8 @@ export class SharedTable {
                          <div class="filter-trigger" data-key="${col.key}" style="cursor: pointer; line-height: 0; margin-bottom: 2px;" title="Filtrar">
                              <span style="color: ${color}">${FILTER_ICON}</span>
                          </div>
-                         <div class="sort-controls" style="display: flex; gap: 4px; line-height: 1; font-size: 0.6rem;">
-                             <span class="sort-btn" data-key="${col.key}" data-dir="asc" title="Ordenar Crescente" 
-                                   style="cursor: pointer; opacity: ${ascOpacity}; color: white; user-select: none;">▲</span>
-                             <span class="sort-btn" data-key="${col.key}" data-dir="desc" title="Ordenar Decrescente"
-                                   style="cursor: pointer; opacity: ${descOpacity}; color: white; user-select: none;">▼</span>
+                         <div class="sort-toggle" data-key="${col.key}" style="cursor: pointer; line-height: 1; font-size: 0.75rem; user-select: none; color: white;" title="Alternar Ordenação">
+                             ${isSortKey ? (isAsc ? '▲' : '▼') : '⇅'}
                          </div>
                      </div>
                    </div>`;
@@ -277,11 +274,22 @@ export class SharedTable {
             };
         });
 
-        headerRow.querySelectorAll('.sort-btn').forEach(btn => {
-            btn.onclick = (e) => {
+        headerRow.querySelectorAll('.sort-toggle').forEach(toggle => {
+            toggle.onclick = (e) => {
                 e.stopPropagation(); // Prevents triggering header-sort-trigger
-                const key = btn.dataset.key;
-                const dir = btn.dataset.dir;
+                const key = toggle.dataset.key;
+                const col = this.columns.find(c => c.key === key);
+                if (!col) return;
+
+                // Toggle direction
+                let dir = 'asc';
+                if (this.sortConfig.key === key) {
+                    dir = this.sortConfig.direction === 'asc' ? 'desc' : 'asc';
+                } else {
+                    // Default for new column - Smart Defaults
+                    if (col.type === 'date' || col.type === 'datetime') dir = 'desc';
+                }
+
                 this.sortConfig = { key, direction: dir };
                 if (this.onSortChange) this.onSortChange(this.sortConfig);
             };
