@@ -90,7 +90,25 @@ app.get('/', (req, res) => {
     });
 });
 
-// 404 for unknown routes (instead of SPA fallback)
+// Serve static files from the React frontend app
+const frontendPath = path.join(__dirname, 'public');
+app.use(express.static(frontendPath));
+
+// Handle SPA fallback
+app.get('*', (req, res, next) => {
+    // Skip API routes to let them 404 if not found
+    if (req.url.startsWith('/api')) {
+        return next();
+    }
+    const indexFile = path.join(frontendPath, 'index.html');
+    res.sendFile(indexFile, (err) => {
+        if (err) {
+            res.status(404).json({ error: 'Frontend not found or 404' });
+        }
+    });
+});
+
+// 404 for unknown API routes
 app.use((req, res) => {
     res.status(404).json({ error: 'Not Found' });
 });

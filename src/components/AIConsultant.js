@@ -15,7 +15,7 @@ export const AIConsultant = () => {
     container.id = 'ai-consultant-wrapper';
     container.style.position = 'fixed';
     container.style.bottom = '40px';
-    container.style.right = '20px';
+    container.style.right = '-25px';
     container.style.zIndex = '9999';
     container.style.fontFamily = 'var(--font-main, sans-serif)';
 
