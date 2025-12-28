@@ -915,7 +915,7 @@ export const IncomeModal = {
                             installmentType: installmentTypeSelect.value,
                             installmentCount: installmentTypeSelect.value === 'total' ? 1 : parseInt(installmentCountInput.value),
                             installmentInterval: installmentTypeSelect.value === 'total' ? null : installmentIntervalSelect.value,
-                            customDays: installmentIntervalSelect.value === 'personalizado' ? parseInt(customDaysInput.value) : null
+                            installmentCustomDays: installmentIntervalSelect.value === 'personalizado' ? parseInt(customDaysInput.value) : null
                         };
                         if (isEdit) {
                             data.id = income.id;

@@ -563,6 +563,73 @@ exports.updateIncome = async (req, res, next) => {
             [newValor, newAccountId]
         );
 
+        // Check if converting from single entry to installments
+        if (req.body.installmentType && req.body.installmentType !== 'total' && !oldData.installment_group_id) {
+            console.log('🔄 Converting single entry to installments...');
+
+            const { installmentType, installmentCount, installmentInterval, installmentCustomDays } = req.body;
+            const totalInstallments = parseInt(installmentCount) || 2;
+
+            if (totalInstallments < 2 || totalInstallments > 120) {
+                throw new AppError('VAL-001', 'Número de parcelas inválido (2-120).');
+            }
+
+            // Generate unique group ID
+            const groupId = `grp_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
+
+            // Calculate dates for all installments
+            const baseDateFato = dataFato || oldData.data_fato;
+            const baseDatePrevista = dataPrevistaRecebimento || oldData.data_prevista_recebimento;
+
+            const datesPrevist = calculateDates(baseDatePrevista, totalInstallments, installmentInterval, installmentCustomDays);
+            const datesFato = installmentType === 'replicar'
+                ? calculateDates(baseDateFato, totalInstallments, installmentInterval, installmentCustomDays)
+                : Array(totalInstallments).fill(baseDateFato);
+
+            // Update current entry to be installment #1
+            await connection.query(
+                `UPDATE entradas SET 
+                    installment_group_id = ?,
+                    installment_number = 1,
+                    installment_total = ?,
+                    installment_interval = ?,
+                    installment_custom_days = ?
+                WHERE id = ?`,
+                [groupId, totalInstallments, installmentInterval, installmentCustomDays || null, id]
+            );
+
+            // Create remaining installments (2 to N)
+            for (let i = 2; i <= totalInstallments; i++) {
+                await connection.query(
+                    `INSERT INTO entradas (
+                        data_fato, data_prevista_recebimento, valor, descricao,
+                        tipo_entrada_id, company_id, account_id,
+                        installment_group_id, installment_number, installment_total,
+                        installment_interval, installment_custom_days,
+                        project_id, active
+                    ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 1)`,
+                    [
+                        datesFato[i - 1],
+                        datesPrevist[i - 1],
+                        newValor,
+                        descricao || oldData.descricao,
+                        tipoEntradaId || oldData.tipo_entrada_id,
+                        companyId || oldData.company_id,
+                        null, // No account for future installments
+                        groupId,
+                        i,
+                        totalInstallments,
+                        installmentInterval,
+                        installmentCustomDays || null,
+                        req.user.projectId
+                    ]
+                );
+                console.log(`✅ Created installment ${i} of ${totalInstallments}`);
+            }
+
+            console.log(`✅ Successfully converted to ${totalInstallments} installments`);
+        }
+
         await connection.commit();
         res.json({ message: 'Income updated successfully' });
     } catch (error) {
