@@ -23,6 +23,7 @@ import { ConsolidadasManager } from './components/ConsolidadasManager.js'
 import { PrevisaoFluxoManager } from './components/PrevisaoFluxoManager.js'
 import { AIConsultant } from './components/AIConsultant.js'
 import { ParametrosGeraisManager } from './components/ParametrosGeraisManager.js'
+import { LogAlteracoesManager } from './components/LogAlteracoesManager.js'
 
 console.log('═══════════════════════════════════════');
 console.log('💰 CASH Frontend Starting');
@@ -364,6 +365,15 @@ function initAppLogic() {
           const mainElement = document.querySelector('main');
           mainElement.innerHTML = '';
           mainElement.appendChild(ParametrosGeraisManager(currentProject));
+        } else {
+          Dialogs.alert('Selecione um projeto primeiro', 'Aviso');
+        }
+      } else if (itemId === 'log-alteracoes') {
+        const { currentProject } = checkAuth();
+        if (currentProject) {
+          const mainElement = document.querySelector('main');
+          mainElement.innerHTML = '';
+          mainElement.appendChild(LogAlteracoesManager(currentProject));
         } else {
           Dialogs.alert('Selecione um projeto primeiro', 'Aviso');
         }

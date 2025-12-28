@@ -10,7 +10,8 @@ export const Sidebar = () => {
       icon: '⚙️',
       masterOnly: true, // Only MASTER users can see this
       children: [
-        { id: 'parametros-gerais', label: 'Parâmetros Gerais', icon: '📝' }
+        { id: 'parametros-gerais', label: 'Parâmetros Gerais', icon: '📝' },
+        { id: 'log-alteracoes', label: 'Log de Alterações', icon: '📜' }
       ]
     },
     {

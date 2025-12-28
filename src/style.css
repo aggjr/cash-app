@@ -1479,7 +1479,8 @@ body.dark-mode h6,
 body.dark-mode p,
 body.dark-mode label,
 body.dark-mode li,
-body.dark-mode td {
+body.dark-mode td,
+body.dark-mode th {
   color: var(--color-text-dark);
 }
 
@@ -1490,4 +1491,27 @@ body.dark-mode textarea {
   color: var(--color-text-dark);
   background-color: var(--color-bg-secondary);
   border-color: var(--color-border-light);
+}
+
+/* Table-specific dark mode fixes for maximum visibility */
+body.dark-mode table {
+  color: var(--color-text-dark);
+}
+
+body.dark-mode table th {
+  color: var(--color-text-dark) !important;
+  background-color: var(--color-bg-card) !important;
+}
+
+body.dark-mode table td {
+  color: var(--color-text-dark) !important;
+}
+
+/* Ensure zebra striping is visible in dark mode */
+body.dark-mode tr:nth-child(even) {
+  background-color: rgba(255, 255, 255, 0.03);
+}
+
+body.dark-mode tr:nth-child(odd) {
+  background-color: rgba(255, 255, 255, 0.01);
 }
