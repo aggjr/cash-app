@@ -72,6 +72,13 @@
   --col-xlarge: 340px;
   /* Previously 400px */
 
+  /* Standardized Row Padding (reduced by 15% for better density) */
+  --row-padding-vertical: 0.64rem;
+  /* Previously 0.75rem */
+  --row-padding-horizontal: 0.43rem;
+  /* Previously 0.5rem */
+  --row-padding: var(--row-padding-vertical) var(--row-padding-horizontal);
+
   /* Effects */
   --shadow-sm: 0 1px 2px 0 rgba(0, 0, 0, 0.05);
   --shadow-md: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
@@ -524,7 +531,7 @@ button {
 .tree-node-content {
   display: flex;
   align-items: center;
-  padding: 0.32rem 0.5rem;
+  padding: var(--row-padding);
   border-radius: 6px;
   cursor: grab;
   transition: all 0.2s ease;

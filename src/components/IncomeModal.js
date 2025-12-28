@@ -464,6 +464,37 @@ export const IncomeModal = {
 
                 customDaysInput.addEventListener('change', markAsDirty);
 
+                // Disable installment fields when editing an existing installment
+                if (isInstallment) {
+                    installmentTypeSelect.disabled = true;
+                    installmentCountInput.disabled = true;
+                    installmentIntervalSelect.disabled = true;
+                    customDaysInput.disabled = true;
+
+                    // Set the correct values to show current configuration
+                    if (income.installment_interval) {
+                        installmentTypeSelect.value = 'replicar';
+                    } else {
+                        installmentTypeSelect.value = 'dividir';
+                    }
+                    installmentCountInput.value = income.installment_total || 2;
+                    installmentIntervalSelect.value = income.installment_interval || 'mensal';
+                    if (income.installment_custom_days) {
+                        customDaysInput.value = income.installment_custom_days;
+                    }
+
+                    // Show fields but greyed out
+                    toggleInstallmentFields();
+
+                    // Add visual indicator
+                    [installmentTypeSelect, installmentCountInput, installmentIntervalSelect, customDaysInput].forEach(field => {
+                        if (field) {
+                            field.style.backgroundColor = '#f3f4f6';
+                            field.style.cursor = 'not-allowed';
+                        }
+                    });
+                }
+
                 setTimeout(() => { dataFatoInput.focus(); }, 100);
 
                 // File Upload Logic

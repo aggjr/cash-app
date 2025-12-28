@@ -24,31 +24,31 @@ export const ProducaoRevendaManager = (project) => {
 
     // Define Columns for SharedTable
     const columns = [
-        { key: 'data_fato', label: 'Dt Fato', width: '70px', align: 'left', type: 'date' },
+        { key: 'data_fato', label: 'Dt Fato', width: 'var(--col-date)', align: 'left', type: 'date' },
         {
             key: 'data_prevista_pagamento',
             label: 'Dt Prevista',
-            width: '70px',
+            width: 'var(--col-date)',
             align: 'left',
             type: 'date'
         },
-        { key: 'data_prevista_atraso', label: 'Dt Atraso', width: '70px', align: 'left', type: 'date' },
+        { key: 'data_prevista_atraso', label: 'Dt Atraso', width: 'var(--col-date)', align: 'left', type: 'date' },
         {
             key: 'data_real_pagamento',
             label: 'Dt Real',
-            width: '70px',
+            width: 'var(--col-date)',
             align: 'left',
             type: 'date'
         },
-        { key: 'tipo_name', label: 'Tipo', width: '200px', align: 'left', type: 'text' },
+        { key: 'tipo_name', label: 'Tipo', width: 'var(--col-medium)', align: 'left', type: 'text' },
         { key: 'descricao', label: 'Descrição', width: 'auto', align: 'left', type: 'text' },
-        { key: 'company_name', label: 'Empresa', width: '150px', align: 'left', type: 'text' },
-        { key: 'account_name', label: 'Conta', width: '150px', align: 'center', type: 'text' },
-        { key: 'valor', label: 'Valor', width: '120px', align: 'right', type: 'currency', colorLogic: 'outflow' },
+        { key: 'company_name', label: 'Empresa', width: 'var(--col-small)', align: 'left', type: 'text' },
+        { key: 'account_name', label: 'Conta', width: 'var(--col-small)', align: 'center', type: 'text' },
+        { key: 'valor', label: 'Valor', width: 'var(--col-value)', align: 'right', type: 'currency', colorLogic: 'outflow' },
         {
             key: 'link',
             label: 'Link',
-            width: '60px',
+            width: 'var(--col-link)',
             align: 'center',
             type: 'link',
             noTextSearch: true,
@@ -77,7 +77,7 @@ export const ProducaoRevendaManager = (project) => {
         {
             key: 'actions',
             label: 'Ações',
-            width: '100px',
+            width: 'var(--col-actions)',
             align: 'center',
             noFilter: true,
             render: (item) => {
@@ -112,7 +112,7 @@ export const ProducaoRevendaManager = (project) => {
         {
             key: 'status',
             label: '',
-            width: '60px',
+            width: 'var(--col-date-short)',
             align: 'center',
             noFilter: true,
             render: (item) => {

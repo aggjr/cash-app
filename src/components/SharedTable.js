@@ -142,7 +142,7 @@ export class SharedTable {
 
                 this.columns.forEach(col => {
                     const td = document.createElement('td');
-                    td.style.padding = '0.75rem 0.5rem';
+                    td.style.padding = 'var(--row-padding)';
                     td.style.textAlign = col.align || 'left';
                     td.style.whiteSpace = 'nowrap';
                     if (col.width) td.style.width = col.width;
@@ -238,7 +238,7 @@ export class SharedTable {
                      </div>
                    </div>`;
 
-            return `<th style="text-align: ${col.align || 'left'}; padding: 0.75rem 0.5rem; font-size: 0.9rem; width: ${col.width || 'auto'}; vertical-align: middle; color: white;">${content}</th>`;
+            return `<th style="text-align: ${col.align || 'left'}; padding: var(--row-padding); font-size: 0.9rem; width: ${col.width || 'auto'}; vertical-align: middle; color: white;">${content}</th>`;
         }).join('');
     }
 
