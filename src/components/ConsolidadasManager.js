@@ -16,23 +16,10 @@ export const ConsolidadasManager = (project) => {
     container.style.color = '#1f2937';
 
     // --- State ---
-    // --- State ---
     const today = new Date();
     // User Request: Default to 'caixa'
     let viewType = 'caixa';
     let startMonth = localStorage.getItem('consolidadas_startMonth') || `${today.getFullYear()}-01`;
-    // ... (skip lines) ...
-    const createRadio = (lbl, val) => {
-        const d = document.createElement('label');
-        d.style.cssText = 'display:flex; align-items:center; gap:0.5rem; cursor:pointer; margin-bottom:0;';
-        const inp = document.createElement('input');
-        inp.type = 'radio'; inp.name = 'viewType'; inp.value = val; inp.checked = (viewType === val); inp.style.accentColor = '#00425F';
-        inp.onchange = (e) => { if (e.target.checked) { viewType = val; loadData(); } };
-        const spn = document.createElement('span'); spn.textContent = lbl; spn.style.cssText = 'font-weight:500; color:#374151; font-size:0.95rem;';
-        d.append(inp, spn); return d;
-    };
-    // User Request: Caixa comes FIRST
-    radioGroup.append(createRadio('Visão de Caixa', 'caixa'), createRadio('Visão de Competência', 'competencia'));
     let endMonth = localStorage.getItem('consolidadas_endMonth') || `${today.getFullYear()}-12`;
     let expandedNodes = new Set();
 
