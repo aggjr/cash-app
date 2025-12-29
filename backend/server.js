@@ -59,6 +59,7 @@ apiRouter.use('/upload', require('./routes/upload'));
 apiRouter.use('/debug', debugRoutes);
 apiRouter.use('/settings', settingsRoutes);
 apiRouter.use('/audit-logs', auditRoutes);
+apiRouter.use('/loans', require('./routes/loans'));
 
 // Static Uploads Serving
 // Static Uploads Serving
