@@ -37,14 +37,13 @@ exports.getConsolidatedData = async (req, res) => {
                 // --- CAIXA VIEW ---
                 if (isCaixa) {
                     if (isProvisioned) {
-                        // Logic Update: Show ALL items (Paid + Unpaid) using Predicted Date
-                        // filter = `AND ${colReal} IS NULL`; // REMOVED to show all
+                        // Logic Update: Show ALL items. Priority: Real > Atraso > Prevista
                         filter = '';
                         if (table === 'entradas') {
-                            dateField = 'COALESCE(data_prevista_atraso, data_prevista_recebimento)';
+                            dateField = 'COALESCE(data_real_recebimento, data_prevista_atraso, data_prevista_recebimento)';
                         } else {
                             // Saidas / Producao
-                            dateField = 'COALESCE(data_prevista_atraso, data_prevista_pagamento)';
+                            dateField = 'COALESCE(data_real_pagamento, data_prevista_atraso, data_prevista_pagamento)';
                         }
                     } else {
                         // Logic: Paid, use Real
@@ -56,8 +55,7 @@ exports.getConsolidatedData = async (req, res) => {
                 else {
                     dateField = 'data_fato';
                     if (isProvisioned) {
-                        // Logic Update: Show ALL items for Competence Provisioned too
-                        filter = ''; // REMOVED `AND ${colReal} IS NULL`
+                        filter = '';
                     } else {
                         filter = `AND ${colReal} IS NOT NULL`;
                     }
@@ -164,7 +162,7 @@ exports.getConsolidatedData = async (req, res) => {
                 // Determine Date Field
                 let dateField = 'data_fato'; // Default
                 if (isCaixa) {
-                    if (isProvisioned) dateField = 'data_prevista'; // Use Predicted for Provisioned Grid
+                    if (isProvisioned) dateField = 'COALESCE(data_real, data_prevista)'; // Priority: Real > Prevista
                     else dateField = 'COALESCE(data_real, data_fato)'; // Use Real (or Fato fallback) for Realized
                 } else {
                     // Competencia
