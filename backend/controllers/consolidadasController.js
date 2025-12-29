@@ -40,7 +40,7 @@ exports.getConsolidatedData = async (req, res) => {
                         // Logic: Unpaid, prioritize Atraso > Prevista (date)
                         filter = `AND ${colReal} IS NULL`;
                         if (table === 'entradas') {
-                            dateField = 'date'; // Entradas doesn't have data_prevista_atraso
+                            dateField = 'COALESCE(data_prevista_atraso, data_prevista_recebimento)';
                         } else {
                             // Saidas / Producao
                             dateField = 'COALESCE(data_prevista_atraso, data_prevista_pagamento)';

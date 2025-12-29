@@ -61,8 +61,9 @@ export const AIConsultant = () => {
     // 1. Floating Button (The Robot)
     const fab = document.createElement('button');
     fab.className = 'ai-fab';
-    fab.style.width = '160px';
-    fab.style.height = '160px';
+    // User Request: Reduce size by 20% (160 * 0.8 = 128)
+    fab.style.width = '128px';
+    fab.style.height = '128px';
     fab.style.borderRadius = '50%';
     fab.style.border = 'none';
     fab.style.cursor = 'pointer';
