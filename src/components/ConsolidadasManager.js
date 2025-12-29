@@ -262,21 +262,21 @@ export const ConsolidadasManager = (project) => {
     controls.innerHTML = '';
     controls.style.display = 'flex';
     controls.style.flexDirection = 'column';
-    controls.style.gap = '1rem';
-    controls.style.padding = '1rem 0.5rem';
-    controls.style.marginBottom = '0'; // Remove margin as padding handles spacing
+    controls.style.gap = '0.5rem';
+    controls.style.padding = '1rem 0.5rem 0.5rem 0.5rem';
+    controls.style.marginBottom = '0';
     // Sticky styles
     controls.style.position = 'sticky';
     controls.style.top = '0';
-    controls.style.zIndex = '40'; // Higher than table header
-    controls.style.backgroundColor = '#ffffff'; // Solid background to cover scroll
-    controls.style.borderBottom = '1px solid #e5e7eb'; // Visual separation
+    controls.style.zIndex = '40';
+    controls.style.backgroundColor = '#ffffff';
+    controls.style.borderBottom = '1px solid #e5e7eb';
 
-    // Top Row: Title + Radio Buttons
-    const topRow = document.createElement('div');
-    topRow.style.display = 'flex';
-    topRow.style.justifyContent = 'space-between';
-    topRow.style.alignItems = 'center';
+    // 1. Header Row (Title Top Right)
+    const headerRow = document.createElement('div');
+    headerRow.style.display = 'flex';
+    headerRow.style.justifyContent = 'flex-end'; // Align to right
+    headerRow.style.marginBottom = '0.5rem';
 
     const title = document.createElement('div');
     title.innerHTML = '📑 Consolidadas';
@@ -284,14 +284,31 @@ export const ConsolidadasManager = (project) => {
     title.style.fontWeight = 'bold';
     title.style.color = '#00425F';
 
+    headerRow.appendChild(title);
+
+    // 2. Controls Row (Radios - Dates - Exports)
+    const controlsRow = document.createElement('div');
+    controlsRow.style.display = 'flex';
+    controlsRow.style.alignItems = 'center';
+    controlsRow.style.justifyContent = 'space-between';
+    controlsRow.style.flexWrap = 'wrap';
+    controlsRow.style.gap = '1rem';
+
+    // Group: Radios + Dates
+    const leftControls = document.createElement('div');
+    leftControls.style.display = 'flex';
+    leftControls.style.alignItems = 'center';
+    leftControls.style.gap = '1.5rem';
+
     // Radio Group
     const radioGroup = document.createElement('div');
     radioGroup.style.display = 'flex';
     radioGroup.style.gap = '1.5rem';
     radioGroup.style.alignItems = 'center';
     radioGroup.style.backgroundColor = '#f3f4f6';
-    radioGroup.style.padding = '0.5rem 1rem';
+    radioGroup.style.padding = '0.25rem 1rem'; // Compact padding
     radioGroup.style.borderRadius = '8px';
+    radioGroup.style.height = '40px';
 
     const createRadio = (label, value) => {
         const wrapper = document.createElement('label');
@@ -299,12 +316,14 @@ export const ConsolidadasManager = (project) => {
         wrapper.style.alignItems = 'center';
         wrapper.style.gap = '0.5rem';
         wrapper.style.cursor = 'pointer';
+        wrapper.style.marginBottom = '0';
 
         const input = document.createElement('input');
         input.type = 'radio';
         input.name = 'viewType';
         input.value = value;
         input.checked = (viewType === value);
+        input.style.accentColor = '#00425F'; // Brand color match
         input.onchange = (e) => {
             if (e.target.checked) {
                 viewType = value;
@@ -314,8 +333,9 @@ export const ConsolidadasManager = (project) => {
 
         const span = document.createElement('span');
         span.textContent = label;
-        span.style.fontWeight = '600';
+        span.style.fontWeight = '500';
         span.style.color = '#374151';
+        span.style.fontSize = '0.95rem';
 
         wrapper.appendChild(input);
         wrapper.appendChild(span);
@@ -324,15 +344,6 @@ export const ConsolidadasManager = (project) => {
 
     radioGroup.appendChild(createRadio('Visão de Competência', 'competencia'));
     radioGroup.appendChild(createRadio('Visão de Caixa', 'caixa'));
-
-    topRow.appendChild(title);
-    topRow.appendChild(radioGroup);
-
-    // Bottom Row: Filters + Exports
-    const bottomRow = document.createElement('div');
-    bottomRow.style.display = 'flex';
-    bottomRow.style.justifyContent = 'space-between';
-    bottomRow.style.alignItems = 'center';
 
     // Date Pickers Group
     const dateGroup = document.createElement('div');
@@ -365,14 +376,27 @@ export const ConsolidadasManager = (project) => {
     dateGroup.appendChild(lblAte);
     dateGroup.appendChild(endPicker);
 
-    // Export Buttons
+    leftControls.appendChild(radioGroup);
+    leftControls.appendChild(dateGroup);
+
+    // Export Buttons (Right side)
     const exportDiv = document.createElement('div');
     exportDiv.style.display = 'flex';
-    exportDiv.style.gap = '0.5rem';
+    exportDiv.style.gap = '1rem'; // More spacing
+    exportDiv.style.alignItems = 'center';
 
     const btnExcel = document.createElement('button');
     btnExcel.className = 'btn-outline';
-    btnExcel.textContent = '📊 Excel';
+    btnExcel.innerHTML = '<span style="margin-right:0.25rem">📊</span> Excel';
+    btnExcel.style.border = 'none';
+    btnExcel.style.background = 'transparent';
+    btnExcel.style.padding = '0.25rem 0.5rem';
+    btnExcel.style.boxShadow = 'none';
+    btnExcel.style.fontWeight = '600';
+    btnExcel.style.color = '#374151';
+    btnExcel.onmouseover = () => btnExcel.style.color = '#1f2937';
+    btnExcel.onmouseout = () => btnExcel.style.color = '#374151';
+
     btnExcel.onclick = () => {
         if (!currentData || currentData.length === 0) {
             showToast('Sem dados para exportar.', 'info');
@@ -398,17 +422,24 @@ export const ConsolidadasManager = (project) => {
 
     const btnPdf = document.createElement('button');
     btnPdf.className = 'btn-outline';
-    btnPdf.textContent = '🖨️ PDF';
+    btnPdf.innerHTML = '<span style="margin-right:0.25rem">🖨️</span> PDF';
+    btnPdf.style.border = 'none';
+    btnPdf.style.background = 'transparent';
+    btnPdf.style.padding = '0.25rem 0.5rem';
+    btnPdf.style.boxShadow = 'none';
+    btnPdf.style.fontWeight = '600';
+    btnPdf.style.color = '#374151';
     btnPdf.onclick = () => window.print();
 
     exportDiv.appendChild(btnExcel);
     exportDiv.appendChild(btnPdf);
 
-    bottomRow.appendChild(dateGroup);
-    bottomRow.appendChild(exportDiv);
+    // Assemble
+    controlsRow.appendChild(leftControls);
+    controlsRow.appendChild(exportDiv);
 
-    controls.appendChild(topRow);
-    controls.appendChild(bottomRow);
+    controls.appendChild(headerRow);
+    controls.appendChild(controlsRow);
 
 
     // --- Container Assembly ---
