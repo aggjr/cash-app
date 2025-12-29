@@ -28,6 +28,11 @@ export const ConsolidadasManager = (project) => {
         return new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(val || 0);
     };
 
+    // --- Helper: Format Percentage ---
+    const formatPercent = (val) => {
+        return new Intl.NumberFormat('pt-BR', { style: 'percent', minimumFractionDigits: 2, maximumFractionDigits: 2 }).format(val || 0);
+    };
+
     // --- Helper: Generate Month Keys between Start and End ---
     const getMonthKeys = () => {
         const months = [];
@@ -88,73 +93,76 @@ export const ConsolidadasManager = (project) => {
 
         // Helper to generate a single table HTML
         const generateTableHtml = (data, title, type) => {
-            let html = `
-                <div style="margin-bottom: 2rem;">
-                    <div style="background-color: #00425F; color: white; padding: 0.5rem 1rem; font-weight: bold; border-radius: 8px 8px 0 0; text-align: center;">
-                        ${title}
-                    </div>
-                    <table style="width: 100%; border-collapse: separate; border-spacing: 0; min-width: 100%;">
-                        <thead style="position: sticky; top: 0; z-index: 10; background-color: #00425F; color: white;">
-                            <tr>
-                                <th style="padding: 1rem; text-align: center; border-bottom: 2px solid #e5e7eb; min-width: 300px; position: sticky; left: 0; z-index: 11; background-color: #00425F;">TRANSAÇÕES</th>
-                                <th style="padding: 1rem; text-align: center; border-bottom: 2px solid #e5e7eb; min-width: 120px; position: sticky; left: 300px; z-index: 11; background-color: #00425F;">MÉDIA</th>
-                                <th style="padding: 1rem; text-align: center; border-bottom: 2px solid #e5e7eb; min-width: 120px; position: sticky; left: 420px; z-index: 11; background-color: #00425F;">TOTAL</th>
-                                ${months.map(m => {
-                const [y, mo] = m.split('-');
-                return `<th style="padding: 1rem; text-align: center; border-bottom: 2px solid #e5e7eb; min-width: 120px;">${mo}/${y}</th>`;
-            }).join('')}
-                            </tr>
-                        </thead>
-                        <tbody>
-            `;
+            <div style="margin-bottom: 2rem;">
+                <table style="width: 100%; border-collapse: separate; border-spacing: 0; min-width: 100%;">
+                    <thead style="position: sticky; top: 0; z-index: 10; background-color: #00425F; color: white;">
+                        <!-- Main Title Row spanning all columns -->
+                        <tr>
+                            <th colspan="${months.length + 3}" style="padding: 0.5rem 1rem; text-align: center; border-bottom: 1px solid #ffffff33; background-color: #00425F; border-radius: 8px 8px 0 0;">
+                                ${title}
+                            </th>
+                        </tr>
+                        <!-- Column Headers -->
+                        <tr>
+                            <th style="padding: 1rem; text-align: center; border-bottom: 2px solid #e5e7eb; min-width: 300px; position: sticky; left: 0; z-index: 11; background-color: #00425F;"></th>
+                            <th style="padding: 1rem; text-align: center; border-bottom: 2px solid #e5e7eb; min-width: 120px; position: sticky; left: 300px; z-index: 11; background-color: #00425F;">MÉDIA</th>
+                            <th style="padding: 1rem; text-align: center; border-bottom: 2px solid #e5e7eb; min-width: 120px; position: sticky; left: 420px; z-index: 11; background-color: #00425F;">TOTAL</th>
+                            ${months.map(m => {
+                                const [y, mo] = m.split('-');
+                                return `<th style="padding: 1rem; text-align: center; border-bottom: 2px solid #e5e7eb; min-width: 120px;">${mo}/${y}</th>`;
+                            }).join('')}
+                        </tr>
+                    </thead>
+                    <tbody>
+                        `;
 
             // Recursive Row Renderer (Scoped to this table gen)
             const renderRows = (nodes, level = 0) => {
-                let rowsHtml = '';
+                            let rowsHtml = '';
                 nodes.forEach(node => {
                     const isRoot = ['saidas_root', 'producao_root', 'total_saidas_root', 'entradas_root', 'resultado_operacional_root', 'aportes_root', 'retiradas_root', 'resultado_final_root'].includes(node.id);
 
-                    // Hide non-root items with effectively zero values to keep clean
-                    if (!isRoot && Math.abs(node.total) < 0.01) return;
+                        // Hide non-root items with effectively zero values to keep clean
+                        if (!isRoot && Math.abs(node.total) < 0.01) return;
 
                     const hasChildren = node.children && node.children.length > 0;
-                    const isExpanded = expandedNodes.has(node.id);
-                    const paddingLeft = level * 1.5 + 1;
+                        const isExpanded = expandedNodes.has(node.id);
+                        const paddingLeft = level * 1.5 + 1;
 
-                    let rowBg = level === 0 ? '#f0f9ff' : '#ffffff';
-                    let fontWeight = level === 0 ? '700' : (hasChildren ? '600' : '400');
-                    const baseSizeRem = 1;
-                    const decreasePerLevel = 0.063;
-                    const fontSize = `${baseSizeRem - (level * decreasePerLevel)}rem`;
+                        let rowBg = level === 0 ? '#f0f9ff' : '#ffffff';
+                        let fontWeight = level === 0 ? '700' : (hasChildren ? '600' : '400');
+                        const baseSizeRem = 1;
+                        const decreasePerLevel = 0.063;
+                        const fontSize = `${baseSizeRem - (level * decreasePerLevel)}rem`;
 
-                    if (node.id === 'total_saidas_root' || node.id === 'resultado_operacional_root') {
-                        rowBg = '#e0f2fe';
+                        if (node.id === 'total_saidas_root' || node.id === 'resultado_operacional_root') {
+                            rowBg = '#e0f2fe';
                         fontWeight = '800';
                     }
-                    if (node.id === 'resultado_final_root') {
-                        rowBg = '#dbeafe';
+                        if (node.id === 'resultado_final_root') {
+                            rowBg = '#dbeafe';
                         fontWeight = '800';
                     }
 
-                    const rowClass = hasChildren ? 'expandable-row' : '';
+                        const rowClass = hasChildren ? 'expandable-row' : '';
 
-                    let monthCells = '';
+                        let monthCells = '';
                     months.forEach(m => {
                         const val = node.monthlyTotals[m] || 0;
                         let color = '#9CA3AF';
                         if (Math.abs(val) > 0.001) {
                             if (node.id === 'aportes_root') color = '#10B981';
-                            else if (node.id === 'retiradas_root') color = '#EF4444';
-                            else if (node.id === 'resultado_operacional_root' || node.id === 'resultado_final_root' || (node.id && (node.id.toString().startsWith('entradas') || node.id.toString().includes('tipo_entrada')))) {
-                                color = val >= 0 ? '#10B981' : '#EF4444';
+                        else if (node.id === 'retiradas_root') color = '#EF4444';
+                        else if (node.id === 'resultado_operacional_root' || node.id === 'resultado_final_root' || (node.id && (node.id.toString().startsWith('entradas') || node.id.toString().includes('tipo_entrada')))) {
+                            color = val >= 0 ? '#10B981' : '#EF4444';
                             } else {
-                                color = val >= 0 ? '#EF4444' : '#10B981';
+                            color = val >= 0 ? '#EF4444' : '#10B981';
                             }
                         }
                         monthCells += `<td style="padding: 0.5rem 1rem; text-align: right; border-bottom: 1px solid #f3f4f6; color: ${color}; font-weight: 600; font-size: ${fontSize};">${val !== 0 ? formatCurrency(val) : '-'}</td>`;
                     });
 
-                    let totalColor = '#9CA3AF';
+                        let totalColor = '#9CA3AF';
                     if (Math.abs(node.total) > 0.001) {
                         // Same color logic for totals
                         const val = node.total;
@@ -167,12 +175,12 @@ export const ConsolidadasManager = (project) => {
                         }
                     }
 
-                    const totalCell = `<td style="padding: 0.5rem 1rem; text-align: right; border-bottom: 1px solid #f3f4f6; font-weight: bold; color: ${totalColor}; font-size: ${fontSize}; position: sticky; left: 420px; background-color: ${rowBg}; z-index: 1;">${node.total !== 0 ? formatCurrency(node.total) : '-'}</td>`;
+                        const totalCell = `<td style="padding: 0.5rem 1rem; text-align: right; border-bottom: 1px solid #f3f4f6; font-weight: bold; color: ${totalColor}; font-size: ${fontSize}; position: sticky; left: 420px; background-color: ${rowBg}; z-index: 1;">${node.total !== 0 ? formatCurrency(node.total) : '-'}</td>`;
 
                     let average = months.length > 0 ? (node.total / months.length) : 0;
-                    const averageCell = `<td style="padding: 0.5rem 1rem; text-align: right; border-bottom: 1px solid #f3f4f6; font-weight: bold; color: ${totalColor}; font-size: ${fontSize}; position: sticky; left: 300px; background-color: ${rowBg}; z-index: 1;">${average !== 0 ? formatCurrency(average) : '-'}</td>`;
+                        const averageCell = `<td style="padding: 0.5rem 1rem; text-align: right; border-bottom: 1px solid #f3f4f6; font-weight: bold; color: ${totalColor}; font-size: ${fontSize}; position: sticky; left: 300px; background-color: ${rowBg}; z-index: 1;">${average !== 0 ? formatCurrency(average) : '-'}</td>`;
 
-                    rowsHtml += `
+                        rowsHtml += `
                         <tr class="${rowClass}" data-id="${node.id}" style="background-color: ${rowBg}; cursor: ${hasChildren ? 'pointer' : 'default'};">
                             <td style="padding: 0.5rem 1rem 0.5rem ${paddingLeft}rem; border-bottom: 1px solid #f3f4f6; font-weight: ${fontWeight}; font-size: ${fontSize}; display: flex; align-items: center; gap: 0.5rem; position: sticky; left: 0; background-color: ${rowBg}; z-index: 1;">
                                 ${hasChildren ? `<span style="font-size: 0.8rem; transform: rotate(${isExpanded ? '90deg' : '0deg'}); transition: transform 0.2s;">▶</span>` : ''}
@@ -182,22 +190,22 @@ export const ConsolidadasManager = (project) => {
                             ${totalCell}
                             ${monthCells}
                         </tr>
-                    `;
+                        `;
 
-                    if (hasChildren && isExpanded) {
-                        rowsHtml += renderRows(node.children, level + 1);
+                        if (hasChildren && isExpanded) {
+                            rowsHtml += renderRows(node.children, level + 1);
                     }
                 });
-                return rowsHtml;
+                        return rowsHtml;
             };
 
-            if (data.length === 0) {
-                html += `<tr><td colspan="${months.length + 3}" style="padding: 3rem; text-align: center; color: #6B7280;">Nenhum dado encontrado para o período.</td></tr>`;
+                        if (data.length === 0) {
+                            html += `<tr><td colspan="${months.length + 3}" style="padding: 3rem; text-align: center; color: #6B7280;">Nenhum dado encontrado para o período.</td></tr>`;
             } else {
-                html += renderRows(data);
+                            html += renderRows(data);
             }
 
-            html += '</tbody></table></div>';
+                        html += '</tbody></table></div>';
             return html;
         };
 

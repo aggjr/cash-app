@@ -157,120 +157,106 @@ exports.getConsolidatedData = async (req, res) => {
             return virtual;
         };
 
-        // 1. SAÍDAS
-        const saidasVirtual = createVirtualRoot('saidas_root', 'SAÍDAS', saidasRoots);
+        // --- FINANCIAL CALCULATIONS & ORDERING ---
+
+        // 1. ENTRADAS (Moved to top)
+        const entradasVirtual = createVirtualRoot('entradas_root', 'ENTRADAS', entradasRoots);
 
         // 2. PRODUÇÃO / REVENDA
         const producaoVirtual = createVirtualRoot('producao_root', 'PRODUÇÃO / REVENDA', producaoRoots);
 
-        // 3. TOTAL SAÍDAS DE CAIXA (Calculated)
-        const totalSaidasVirtual = {
-            id: 'total_saidas_root',
-            name: 'TOTAL SAÍDAS DE CAIXA',
-            children: [], // Leaf node, essentially
-            monthlyTotals: {},
-            total: 0,
-            isTotal: true // Flag for frontend styling
-        };
-
-        // Sum Saidas + Producao
-        [saidasVirtual, producaoVirtual].forEach(v => {
-            for (const [month, value] of Object.entries(v.monthlyTotals)) {
-                totalSaidasVirtual.monthlyTotals[month] = (totalSaidasVirtual.monthlyTotals[month] || 0) + value;
-            }
-            totalSaidasVirtual.total += v.total;
-        });
-
-
-        // 4. ENTRADAS
-        const entradasVirtual = createVirtualRoot('entradas_root', 'ENTRADAS', entradasRoots);
-
-        // 5. FETCH APORTES (Non-operational contributions)
-        let aportesDateField = 'data_fato';
-        if (viewType === 'caixa') {
-            aportesDateField = 'data_real';
-        } else if (viewType === 'previsto') {
-            // Aportes might not have a dedicated prevista, usually real=prevista unless specified
-            // Using data_fato as fallback for previsto if separate col doesnt exist
-            aportesDateField = 'data_fato';
-        }
-
-        let aportesFilter = '';
-        const aportesParams = [projectId];
-
-        if (startMonth) {
-            aportesFilter += ` AND DATE_FORMAT(${aportesDateField}, '%Y-%m') >= ?`;
-            aportesParams.push(startMonth);
-        }
-        if (endMonth) {
-            aportesFilter += ` AND DATE_FORMAT(${aportesDateField}, '%Y-%m') <= ?`;
-            aportesParams.push(endMonth);
-        }
-        if (viewType === 'caixa') {
-            aportesFilter += ` AND ${aportesDateField} IS NOT NULL`;
-        }
-
-        const [aportesData] = await db.execute(`
-            SELECT 
-                DATE_FORMAT(${aportesDateField}, '%Y-%m') AS month_key,
-                SUM(valor) AS total
-            FROM aportes
-            WHERE project_id = ? AND active = 1 ${aportesFilter}
-           GROUP BY month_key
-        `, aportesParams);
-
-        // 6. FETCH RETIRADAS (Non-operational withdrawals)
-        let retiradasDateField = 'data_fato';
-        if (viewType === 'caixa') {
-            retiradasDateField = 'data_real';
-        } else if (viewType === 'previsto') {
-            retiradasDateField = 'data_prevista';
-        }
-
-        let retiradasFilter = '';
-        const retiradasParams = [projectId];
-
-        if (startMonth) {
-            retiradasFilter += ` AND DATE_FORMAT(${retiradasDateField}, '%Y-%m') >= ?`;
-            retiradasParams.push(startMonth);
-        }
-        if (endMonth) {
-            retiradasFilter += ` AND DATE_FORMAT(${retiradasDateField}, '%Y-%m') <= ?`;
-            retiradasParams.push(endMonth);
-        }
-        if (viewType === 'caixa') {
-            retiradasFilter += ` AND ${retiradasDateField} IS NOT NULL`;
-        }
-
-        const [retiradasData] = await db.execute(`
-            SELECT 
-                DATE_FORMAT(${retiradasDateField}, '%Y-%m') AS month_key,
-                SUM(valor) AS total
-            FROM retiradas
-            WHERE project_id = ? AND active = 1 ${retiradasFilter}
-            GROUP BY month_key
-        `, retiradasParams);
-
-        // 7. RESULTADO OPERACIONAL (Entradas - Total Saídas)
-        const resultadoOperacionalVirtual = {
-            id: 'resultado_operacional_root',
-            name: 'RESULTADO OPERACIONAL',
+        // 3. LUCRO BRUTO (Entradas - Produção)
+        const lucroBrutoVirtual = {
+            id: 'lucro_bruto_root',
+            name: '= LUCRO BRUTO',
             children: [],
             monthlyTotals: {},
             total: 0,
             isTotal: true
         };
 
-        // Calculate: Entradas - Total Saídas
         for (const [month, value] of Object.entries(entradasVirtual.monthlyTotals)) {
+            lucroBrutoVirtual.monthlyTotals[month] = value;
+        }
+        lucroBrutoVirtual.total = entradasVirtual.total;
+
+        for (const [month, value] of Object.entries(producaoVirtual.monthlyTotals)) {
+            lucroBrutoVirtual.monthlyTotals[month] = (lucroBrutoVirtual.monthlyTotals[month] || 0) - value;
+        }
+        lucroBrutoVirtual.total -= producaoVirtual.total;
+
+        // 4. MARGEM BRUTA% (Lucro Bruto / Entradas)
+        const margemBrutaVirtual = {
+            id: 'margem_bruta_root',
+            name: '% MARGEM BRUTA',
+            children: [],
+            monthlyTotals: {},
+            total: 0,
+            isPercentage: true,
+            isTotal: false // Styled differently
+        };
+
+        // Calculate monthly margins
+        for (const [month, lucro] of Object.entries(lucroBrutoVirtual.monthlyTotals)) {
+            const entrada = entradasVirtual.monthlyTotals[month] || 0;
+            if (Math.abs(entrada) > 0.01) {
+                margemBrutaVirtual.monthlyTotals[month] = (lucro / entrada);
+            } else {
+                margemBrutaVirtual.monthlyTotals[month] = 0;
+            }
+        }
+        // Calculate total margin
+        if (Math.abs(entradasVirtual.total) > 0.01) {
+            margemBrutaVirtual.total = (lucroBrutoVirtual.total / entradasVirtual.total);
+        }
+
+        // 5. SAÍDAS (Despesas Operacionais)
+        const saidasVirtual = createVirtualRoot('saidas_root', 'SAÍDAS OPERACIONAIS', saidasRoots);
+
+        // 6. RESULTADO OPERACIONAL (Lucro Bruto - Saídas)
+        const resultadoOperacionalVirtual = {
+            id: 'resultado_operacional_root',
+            name: '= RESULTADO OPERACIONAL',
+            children: [],
+            monthlyTotals: {},
+            total: 0,
+            isTotal: true
+        };
+
+        for (const [month, value] of Object.entries(lucroBrutoVirtual.monthlyTotals)) {
             resultadoOperacionalVirtual.monthlyTotals[month] = value;
         }
-        resultadoOperacionalVirtual.total = entradasVirtual.total;
+        resultadoOperacionalVirtual.total = lucroBrutoVirtual.total;
 
-        for (const [month, value] of Object.entries(totalSaidasVirtual.monthlyTotals)) {
+        for (const [month, value] of Object.entries(saidasVirtual.monthlyTotals)) {
             resultadoOperacionalVirtual.monthlyTotals[month] = (resultadoOperacionalVirtual.monthlyTotals[month] || 0) - value;
         }
-        resultadoOperacionalVirtual.total -= totalSaidasVirtual.total;
+        resultadoOperacionalVirtual.total -= saidasVirtual.total;
+
+
+        // 7. MARGEM OPERACIONAL% (Resultado Operacional / Entradas)
+        const margemOperacionalVirtual = {
+            id: 'margem_operacional_root',
+            name: '% MARGEM OPERACIONAL',
+            children: [],
+            monthlyTotals: {},
+            total: 0,
+            isPercentage: true,
+            isTotal: false
+        };
+
+        for (const [month, resOp] of Object.entries(resultadoOperacionalVirtual.monthlyTotals)) {
+            const entrada = entradasVirtual.monthlyTotals[month] || 0;
+            if (Math.abs(entrada) > 0.01) {
+                margemOperacionalVirtual.monthlyTotals[month] = (resOp / entrada);
+            } else {
+                margemOperacionalVirtual.monthlyTotals[month] = 0;
+            }
+        }
+        if (Math.abs(entradasVirtual.total) > 0.01) {
+            margemOperacionalVirtual.total = (resultadoOperacionalVirtual.total / entradasVirtual.total);
+        }
+
 
         // 8. APORTES (formatted as row)
         const aportesVirtual = {
@@ -304,10 +290,10 @@ exports.getConsolidatedData = async (req, res) => {
             retiradasVirtual.total += val;
         });
 
-        // 10. RESULTADO FINAL (Resultado Operacional + Aportes - Retiradas)
-        const resultadoFinalVirtual = {
-            id: 'resultado_final_root',
-            name: '= RESULTADO FINAL',
+        // 10. FLUXO FINANCEIRO MENSAL (Resultado Operacional + Aportes - Retiradas)
+        const fluxoFinanceiroVirtual = {
+            id: 'fluxo_financeiro_root',
+            name: '= FLUXO FINANCEIRO MENSAL',
             children: [],
             monthlyTotals: {},
             total: 0,
@@ -317,33 +303,35 @@ exports.getConsolidatedData = async (req, res) => {
 
         // Start with Resultado Operacional
         for (const [month, value] of Object.entries(resultadoOperacionalVirtual.monthlyTotals)) {
-            resultadoFinalVirtual.monthlyTotals[month] = value;
+            fluxoFinanceiroVirtual.monthlyTotals[month] = value;
         }
-        resultadoFinalVirtual.total = resultadoOperacionalVirtual.total;
+        fluxoFinanceiroVirtual.total = resultadoOperacionalVirtual.total;
 
         // Add Aportes
         for (const [month, value] of Object.entries(aportesVirtual.monthlyTotals)) {
-            resultadoFinalVirtual.monthlyTotals[month] = (resultadoFinalVirtual.monthlyTotals[month] || 0) + value;
+            fluxoFinanceiroVirtual.monthlyTotals[month] = (fluxoFinanceiroVirtual.monthlyTotals[month] || 0) + value;
         }
-        resultadoFinalVirtual.total += aportesVirtual.total;
+        fluxoFinanceiroVirtual.total += aportesVirtual.total;
 
         // Subtract Retiradas
         for (const [month, value] of Object.entries(retiradasVirtual.monthlyTotals)) {
-            resultadoFinalVirtual.monthlyTotals[month] = (resultadoFinalVirtual.monthlyTotals[month] || 0) - value;
+            fluxoFinanceiroVirtual.monthlyTotals[month] = (fluxoFinanceiroVirtual.monthlyTotals[month] || 0) - value;
         }
-        resultadoFinalVirtual.total -= retiradasVirtual.total;
+        fluxoFinanceiroVirtual.total -= retiradasVirtual.total;
 
 
-        // Return combined list in order
+        // Return combined list in CORRECT REORDERED FORMAT
         res.json([
-            saidasVirtual,
-            producaoVirtual,
-            totalSaidasVirtual,
             entradasVirtual,
+            producaoVirtual,
+            lucroBrutoVirtual,
+            margemBrutaVirtual,
+            saidasVirtual,
             resultadoOperacionalVirtual,
+            margemOperacionalVirtual,
             aportesVirtual,
             retiradasVirtual,
-            resultadoFinalVirtual
+            fluxoFinanceiroVirtual
         ]);
 
     } catch (error) {
