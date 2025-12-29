@@ -154,7 +154,8 @@ export const ConsolidadasManager = (project) => {
                         const val = node.monthlyTotals[m] || 0;
                         let color = '#374151'; // Default dark gray
 
-                        if (Math.abs(val) > 0.001 || node.isPercentage) {
+                        if (Math.abs(val) > 0.001 || (node.isPercentage && Math.abs(val) > 0.0001)) {
+                            // ... existing color logic ...
                             if (node.isPercentage) {
                                 color = '#4B5563';
                             } else if (node.id === 'aportes_root') {
@@ -170,12 +171,17 @@ export const ConsolidadasManager = (project) => {
                             color = '#9CA3AF'; // Zero/Light
                         }
 
-                        const displayVal = node.isPercentage ? formatPercent(val) : (val !== 0 ? formatCurrency(val) : '-');
+                        let displayVal = '-';
+                        if (node.isPercentage) {
+                            displayVal = Math.abs(val) > 0.0001 ? formatPercent(val) : '-';
+                        } else {
+                            displayVal = val !== 0 ? formatCurrency(val) : '-';
+                        }
                         monthCells += `<td style="padding: 0.5rem 1rem; text-align: right; border-bottom: 1px solid #f3f4f6; color: ${color}; font-weight: 600; font-size: ${fontSize}; white-space: nowrap;">${displayVal}</td>`;
                     });
 
                     let totalColor = '#374151';
-                    if (Math.abs(node.total) > 0.001 || node.isPercentage) {
+                    if (Math.abs(node.total) > 0.001 || (node.isPercentage && Math.abs(node.total) > 0.0001)) {
                         const val = node.total;
                         if (node.isPercentage) {
                             totalColor = '#111827';
@@ -192,7 +198,12 @@ export const ConsolidadasManager = (project) => {
                         totalColor = '#9CA3AF';
                     }
 
-                    const displayTotal = node.isPercentage ? formatPercent(node.total) : (node.total !== 0 ? formatCurrency(node.total) : '-');
+                    let displayTotal = '-';
+                    if (node.isPercentage) {
+                        displayTotal = Math.abs(node.total) > 0.0001 ? formatPercent(node.total) : '-';
+                    } else {
+                        displayTotal = node.total !== 0 ? formatCurrency(node.total) : '-';
+                    }
                     const totalCell = `<td style="padding: 0.5rem 1rem; text-align: right; border-bottom: 1px solid #f3f4f6; font-weight: bold; color: ${totalColor}; font-size: ${fontSize}; position: sticky; left: 460px; background-color: ${rowBg}; z-index: 1; white-space: nowrap;">${displayTotal}</td>`;
 
                     // Simple average
@@ -200,13 +211,20 @@ export const ConsolidadasManager = (project) => {
                     if (node.isPercentage) {
                         let sumPercents = 0;
                         let count = 0;
-                        months.forEach(m => { sumPercents += (node.monthlyTotals[m] || 0); count++; });
+                        months.forEach(m => {
+                            sumPercents += (node.monthlyTotals[m] || 0); count++;
+                        });
                         average = count > 0 ? sumPercents / count : 0;
                     } else {
                         average = months.length > 0 ? (node.total / months.length) : 0;
                     }
 
-                    const displayAvg = node.isPercentage ? formatPercent(average) : (average !== 0 ? formatCurrency(average) : '-');
+                    let displayAvg = '-';
+                    if (node.isPercentage) {
+                        displayAvg = Math.abs(average) > 0.0001 ? formatPercent(average) : '-';
+                    } else {
+                        displayAvg = average !== 0 ? formatCurrency(average) : '-';
+                    }
                     const averageCell = `<td style="padding: 0.5rem 1rem; text-align: right; border-bottom: 1px solid #f3f4f6; font-weight: bold; color: ${totalColor}; font-size: ${fontSize}; position: sticky; left: 320px; background-color: ${rowBg}; z-index: 1; white-space: nowrap;">${displayAvg}</td>`;
 
                     rowsHtml += `
