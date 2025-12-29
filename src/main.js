@@ -383,7 +383,7 @@ function initAppLogic() {
         if (currentProject) {
           const mainElement = document.querySelector('main');
           mainElement.innerHTML = '';
-          mainElement.appendChild(DividasEmprestimosManager());
+          mainElement.appendChild(DividasEmprestimosManager(currentProject));
         } else {
           Dialogs.alert('Selecione um projeto primeiro', 'Aviso');
         }

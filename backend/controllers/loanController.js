@@ -16,6 +16,28 @@ const getOrderByClause = (sortBy, order) => {
     }
 };
 
+// Helper to get or create a category
+const getOrCreateType = async (connection, tableName, projectId, label) => {
+    try {
+        // 1. Check existing
+        const [rows] = await connection.query(
+            `SELECT id FROM ${tableName} WHERE project_id = ? AND label = ? AND active = 1 LIMIT 1`,
+            [projectId, label]
+        );
+        if (rows.length > 0) return rows[0].id;
+
+        // 2. If not found, create as root node
+        const [res] = await connection.query(
+            `INSERT INTO ${tableName} (project_id, label, parent_id, active) VALUES (?, ?, NULL, 1)`,
+            [projectId, label]
+        );
+        return res.insertId;
+    } catch (e) {
+        console.error(`Error in getOrCreateType for ${label}:`, e);
+        return null; // Fail safe
+    }
+};
+
 exports.createLoan = async (req, res, next) => {
     let connection;
     try {
@@ -49,14 +71,17 @@ exports.createLoan = async (req, res, next) => {
         );
         const loanId = loanResult.insertId;
 
-        // 2. Create Entrada (Cash Inflow) - Optional
+        // 2. Resolve Types (Ensure categories exist)
+        const tipoEntradaId = await getOrCreateType(connection, 'tipo_entrada', projectId, 'Empréstimos');
+        const tipoSaidaId = await getOrCreateType(connection, 'tipo_saida', projectId, 'Pagamento Empréstimo');
+
+        // 3. Create Entrada (Cash Inflow) - Optional
         if (registerEntry && accountId) {
-            // Check/Create "Empréstimos" Tipo Entrada? For now leave null or generic.
             await connection.query(
                 `INSERT INTO entradas 
-                (project_id, company_id, account_id, description, valor, data_fato, data_real_recebimento, active, loan_id)
-                VALUES (?, ?, ?, ?, ?, ?, ?, 1, ?)`,
-                [projectId, companyId, accountId, `Empréstimo: ${description}`, principalValue, contractDate, contractDate, loanId]
+                (project_id, company_id, account_id, description, valor, data_fato, data_real_recebimento, active, loan_id, tipo_entrada_id)
+                VALUES (?, ?, ?, ?, ?, ?, ?, 1, ?, ?)`,
+                [projectId, companyId, accountId, `Empréstimo: ${description}`, principalValue, contractDate, contractDate, loanId, tipoEntradaId]
             );
 
             // Update Account Balance (Inflow)
@@ -66,14 +91,7 @@ exports.createLoan = async (req, res, next) => {
             );
         }
 
-        // 3. Create Saidas (Installments)
-        // Using totalValue for the sum of installments
-        const installmentVal = totalValue / installments;
-        // Note: Simple division. Rounding issues might occur.
-        // Better: calculateInstallments util (if it handles rounding) or distributing remainder.
-        // I'll assume calculateInstallments handles it or I do a manual distribution.
-
-        // Let's use robust manual distribution to ensure sum == totalValue
+        // 4. Create Saidas (Installments)
         const baseVal = Math.floor((totalValue / installments) * 100) / 100;
         const remainder = totalValue - (baseVal * installments);
 
@@ -89,13 +107,13 @@ exports.createLoan = async (req, res, next) => {
                 val = parseFloat(val.toFixed(2));
             }
 
-            const desc = `${description} - Parcela ${i + 1}/${installments}`;
+            const descriptionText = `${description} - Parcela ${i + 1}/${installments}`;
 
             await connection.query(
                 `INSERT INTO saidas 
-                (project_id, company_id, account_id, description, valor, data_fato, data_prevista_pagamento, active, loan_id, installment_group_id, installment_number, installment_total)
-                VALUES (?, ?, ?, ?, ?, ?, ?, 1, ?, ?, ?, ?)`,
-                [projectId, companyId, accountId, desc, val, contractDate, dates[i], loanId, groupId, i + 1, installments]
+                (project_id, company_id, account_id, description, valor, data_fato, data_prevista_pagamento, active, loan_id, installment_group_id, installment_number, installment_total, tipo_saida_id)
+                VALUES (?, ?, ?, ?, ?, ?, ?, 1, ?, ?, ?, ?, ?)`,
+                [projectId, companyId, accountId, descriptionText, val, contractDate, dates[i], loanId, groupId, i + 1, installments, tipoSaidaId]
             );
         }
 
@@ -137,9 +155,6 @@ exports.listInstallments = async (req, res, next) => {
             where += ' AND s.data_prevista_pagamento <= ?';
             params.push(req.query.data_prevista_pagamentoEnd);
         }
-
-        // Status Filter (Pending/Paid/Overdue) handles in frontend via data_real check?
-        // Or specific filter.
 
         // Count
         const [countResult] = await db.query(
