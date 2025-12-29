@@ -1,5 +1,6 @@
 const db = require('../config/database');
 const AppError = require('../utils/AppError');
+const { logAudit } = require('../utils/auditLogger');
 
 exports.listTransferencias = async (req, res, next) => {
     try {
@@ -267,6 +268,9 @@ exports.createTransferencia = async (req, res, next) => {
             message: 'Transferência gerada com sucesso'
         });
 
+        // Log Audit
+        logAudit(req, 'CREATE', 'transferencias', newId, { valor, description: descricao, source: sourceAccountId, destination: destinationAccountId });
+
     } catch (error) {
         await connection.rollback();
         next(error);
@@ -351,6 +355,7 @@ exports.updateTransferencia = async (req, res, next) => {
 
         await connection.commit();
         res.json({ message: 'Transferência atualizada com sucesso' });
+        logAudit(req, 'UPDATE', 'transferencias', id, { updates: updates.length });
 
     } catch (error) {
         await connection.rollback();
@@ -388,6 +393,7 @@ exports.deleteTransferencia = async (req, res, next) => {
 
         await connection.commit();
         res.json({ message: 'Transferência excluída com sucesso' });
+        logAudit(req, 'DELETE', 'transferencias', id, {});
 
     } catch (error) {
         await connection.rollback();

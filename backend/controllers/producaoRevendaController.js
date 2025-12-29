@@ -1,5 +1,6 @@
 const db = require('../config/database');
 const AppError = require('../utils/AppError');
+const { logAudit } = require('../utils/auditLogger');
 const { validateDateWithinRange } = require('../utils/dateValidation');
 
 // Helper function to generate dynamic ORDER BY clause
@@ -397,6 +398,12 @@ exports.createProducaoRevenda = async (req, res, next) => {
             ids: createdIds,
             count: createdIds.length
         });
+
+        // Log Audit (Multiple items potentially)
+        // We log the batch creation as a single entry or multiple? 
+        // Let's log the first ID as reference and indicate count in details
+        logAudit(req, 'CREATE', 'producao_revenda', createdIds[0], { count: createdIds.length, totalValue: valorDecimal * count, description });
+
     } catch (error) {
         console.error('=== CREATE PRODUCAO/REVENDA ERROR ===', error);
         if (connection) await connection.rollback();
@@ -511,6 +518,7 @@ exports.updateProducaoRevenda = async (req, res, next) => {
 
         await connection.commit();
         res.json({ message: 'Atualizado com sucesso' });
+        logAudit(req, 'UPDATE', 'producao_revenda', id, { updates: Object.keys(updates).length });
     } catch (error) {
         if (connection) await connection.rollback();
         next(error);
@@ -546,6 +554,7 @@ exports.deleteProducaoRevenda = async (req, res, next) => {
 
         await connection.commit();
         res.json({ message: 'Excluído com sucesso' });
+        logAudit(req, 'DELETE', 'producao_revenda', id, {});
     } catch (error) {
         if (connection) await connection.rollback();
         next(error);

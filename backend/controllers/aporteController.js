@@ -1,5 +1,6 @@
 const db = require('../config/database');
 const AppError = require('../utils/AppError');
+const { logAudit } = require('../utils/auditLogger');
 const { validateDateWithinRange } = require('../utils/dateValidation');
 
 // Helper for Sorting
@@ -212,6 +213,8 @@ exports.createAporte = async (req, res, next) => {
             comprovante_url,
             forma_pagamento: formaPagamento || null
         });
+
+        logAudit(req, 'CREATE', 'aportes', result.insertId, { valor: valorDecimal, company_id: companyId, account_id: accountId });
     } catch (error) {
         if (connection) await connection.rollback();
         next(error);
@@ -357,6 +360,7 @@ exports.updateAporte = async (req, res, next) => {
 
         await connection.commit();
         res.json({ message: 'Aporte updated successfully' });
+        logAudit(req, 'UPDATE', 'aportes', id, { updates: updates.length });
     } catch (error) {
         if (connection) await connection.rollback();
         next(error);
@@ -393,6 +397,7 @@ exports.deleteAporte = async (req, res, next) => {
 
         await connection.commit();
         res.json({ message: 'Aporte deleted successfully' });
+        logAudit(req, 'DELETE', 'aportes', id, {});
     } catch (error) {
         if (connection) await connection.rollback();
         next(error);

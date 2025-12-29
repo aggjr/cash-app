@@ -1,5 +1,6 @@
 const db = require('../config/database');
 const AppError = require('../utils/AppError');
+const { logAudit } = require('../utils/auditLogger');
 
 exports.listAccounts = async (req, res, next) => {
     try {
@@ -53,6 +54,9 @@ exports.createAccount = async (req, res, next) => {
             project_id: projectId,
             company_id: companyId
         });
+
+        // Log Audit
+        logAudit(req, 'CREATE', 'contas', result.insertId, { name, description, account_type: type, initial_balance: balance, company_id: companyId });
     } catch (error) {
         next(error);
     }
@@ -96,6 +100,7 @@ exports.updateAccount = async (req, res, next) => {
         }
 
         res.json({ message: 'Account updated successfully' });
+        logAudit(req, 'UPDATE', 'contas', id, { updates: updates.length });
     } catch (error) {
         next(error);
     }
@@ -110,6 +115,7 @@ exports.deleteAccount = async (req, res, next) => {
         try {
             await db.query('DELETE FROM contas WHERE id = ?', [id]);
             res.json({ message: 'Account deleted successfully' });
+            logAudit(req, 'DELETE', 'contas', id, {});
         } catch (dbError) {
             if (dbError.code === 'ER_ROW_IS_REFERENCED_2') {
                 throw new AppError('RES-003', 'Esta conta possui transações vinculadas.');

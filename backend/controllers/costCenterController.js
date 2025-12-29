@@ -1,5 +1,6 @@
 const db = require('../config/database');
 const AppError = require('../utils/AppError');
+const { logAudit } = require('../utils/auditLogger');
 
 exports.list = async (req, res, next) => {
     try {
@@ -42,6 +43,7 @@ exports.create = async (req, res, next) => {
             active: 1,
             created_at: new Date()
         });
+        logAudit(req, 'CREATE', 'centros_custo', result.insertId, { name, description });
     } catch (error) {
         next(error);
     } finally {
@@ -81,7 +83,10 @@ exports.update = async (req, res, next) => {
             );
         }
 
+
+
         res.json({ message: 'Updated successfully' });
+        logAudit(req, 'UPDATE', 'centros_custo', id, { updates: updates.length });
     } catch (error) {
         next(error);
     } finally {
@@ -106,10 +111,12 @@ exports.delete = async (req, res, next) => {
             // Soft delete
             await connection.query('UPDATE centros_custo SET active = 0 WHERE id = ?', [id]);
             res.json({ type: 'soft', message: 'Item inativado pois possui vínculos.' });
+            logAudit(req, 'UPDATE', 'centros_custo', id, { action: 'SOFT_DELETE_INACTIVE' });
         } else {
             // Hard delete
             await connection.query('DELETE FROM centros_custo WHERE id = ?', [id]);
             res.json({ type: 'hard', message: 'Item excluído permanentemente.' });
+            logAudit(req, 'DELETE', 'centros_custo', id, {});
         }
     } catch (error) {
         next(error);

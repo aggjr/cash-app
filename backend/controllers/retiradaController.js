@@ -1,5 +1,6 @@
 const db = require('../config/database');
 const AppError = require('../utils/AppError');
+const { logAudit } = require('../utils/auditLogger');
 const fileLogger = require('../utils/fileLogger');
 
 // Helper for Sorting
@@ -291,6 +292,8 @@ exports.createRetirada = async (req, res, next) => {
             message: 'Retirada criada com sucesso'
         });
 
+        logAudit(req, 'CREATE', 'retiradas', newId, { valor, company_id: companyId, account_id: accountId });
+
     } catch (error) {
         await connection.rollback();
         // Log error to file
@@ -366,6 +369,7 @@ exports.updateRetirada = async (req, res, next) => {
 
         await connection.commit();
         res.json({ message: 'Retirada atualizada com sucesso' });
+        logAudit(req, 'UPDATE', 'retiradas', id, { updates: updates.length });
 
     } catch (error) {
         await connection.rollback();
@@ -399,6 +403,7 @@ exports.deleteRetirada = async (req, res, next) => {
 
         await connection.commit();
         res.json({ message: 'Retirada excluída com sucesso' });
+        logAudit(req, 'DELETE', 'retiradas', id, {});
 
     } catch (error) {
         await connection.rollback();

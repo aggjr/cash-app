@@ -1,4 +1,5 @@
 const db = require('../config/database');
+const { logAudit } = require('../utils/auditLogger');
 
 exports.listProjects = async (req, res) => {
     try {
@@ -33,6 +34,7 @@ exports.createProject = async (req, res) => {
         );
 
         res.status(201).json({ id: projectId, name, role: 'master' });
+        logAudit(req, 'CREATE', 'projects', projectId, { name });
     } catch (error) {
         console.error('Create project error:', error);
         res.status(500).json({ error: 'Failed to create project' });
@@ -78,6 +80,7 @@ exports.addUser = async (req, res) => {
         );
 
         res.json({ message: 'User added successfully' });
+        logAudit(req, 'CREATE', 'project_users', null, { projectId, userId: userIdToAdd, role });
     } catch (error) {
         console.error('Add user error:', error);
         res.status(500).json({ error: 'Failed to add user' });
@@ -111,6 +114,7 @@ exports.updateProject = async (req, res) => {
         );
 
         res.json({ message: 'Project updated successfully', name });
+        logAudit(req, 'UPDATE', 'projects', projectId, { name });
     } catch (error) {
         console.error('Update project error:', error);
         res.status(500).json({ error: 'Failed to update project' });

@@ -1,4 +1,5 @@
 const db = require('../config/database');
+const { logAudit } = require('../utils/auditLogger');
 
 // Get settings for a project
 const getSettings = async (req, res) => {
@@ -69,6 +70,7 @@ const updateSetting = async (req, res) => {
         );
 
         res.json(settings[0]);
+        logAudit(req, 'UPDATE', 'system_settings', null, { field, value: numValue });
     } catch (error) {
         console.error('Error updating setting:', error);
         res.status(500).json({ error: 'Erro ao atualizar configuração' });
@@ -111,6 +113,7 @@ const activateTemporaryUnlock = async (req, res) => {
             expires_at: expiresAt,
             minutes: minutes
         });
+        logAudit(req, 'UPDATE', 'system_settings', null, { action: 'UNLOCK_EDITING', minutes });
     } catch (error) {
         console.error('Error activating unlock:', error);
         res.status(500).json({ error: 'Erro ao ativar liberação temporária' });
@@ -135,6 +138,7 @@ const cancelTemporaryUnlock = async (req, res) => {
             success: true,
             message: 'Liberação temporária cancelada. Sistema retornou ao modo normal'
         });
+        logAudit(req, 'UPDATE', 'system_settings', null, { action: 'LOCK_EDITING' });
     } catch (error) {
         console.error('Error canceling unlock:', error);
         res.status(500).json({ error: 'Erro ao cancelar liberação temporária' });

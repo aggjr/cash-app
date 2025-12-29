@@ -1,4 +1,5 @@
 const db = require('../config/database');
+const { logAudit } = require('../utils/auditLogger');
 
 // Whitelist of allowed tables for security
 const ALLOWED_TABLES = ['tipo_entrada', 'tipo_saida', 'tipo_producao_revenda'];
@@ -70,6 +71,7 @@ exports.create = async (req, res) => {
         );
 
         res.status(201).json(newNode[0]);
+        logAudit(req, 'CREATE', tableName, result.insertId, { label, parent_id, ordem });
     } catch (error) {
         console.error('Error creating node:', error);
         res.status(500).json({ error: error.message || 'Failed to create node' });
@@ -108,6 +110,7 @@ exports.update = async (req, res) => {
         );
 
         res.json(updated[0]);
+        logAudit(req, 'UPDATE', tableName, id, { label, expanded, active });
     } catch (error) {
         console.error('Error updating node:', error);
         res.status(500).json({ error: error.message || 'Failed to update node' });
@@ -124,12 +127,14 @@ exports.delete = async (req, res) => {
             // Try hard delete first
             await db.query(`DELETE FROM ${tableName} WHERE id = ?`, [id]);
             res.json({ message: 'Node deleted successfully', type: 'hard' });
+            logAudit(req, 'DELETE', tableName, id, {});
         } catch (deleteError) {
             // Check for Foreign Key Constraint violation (Error 1451)
             if (deleteError.errno === 1451) {
                 // Soft delete: Mark as inactive
                 await db.query(`UPDATE ${tableName} SET active = FALSE WHERE id = ?`, [id]);
                 res.json({ message: 'Node marked as inactive (referenced elsewhere)', type: 'soft' });
+                logAudit(req, 'UPDATE', tableName, id, { action: 'SOFT_DELETE_INACTIVE' });
             } else {
                 throw deleteError;
             }
@@ -160,6 +165,7 @@ exports.move = async (req, res) => {
         );
 
         res.json(updated[0]);
+        logAudit(req, 'UPDATE', tableName, id, { action: 'MOVE', new_parent: parent_id, new_order: ordem });
     } catch (error) {
         console.error('Error moving node:', error);
         res.status(500).json({ error: error.message || 'Failed to move node' });

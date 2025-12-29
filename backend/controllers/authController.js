@@ -2,6 +2,7 @@ const db = require('../config/database');
 const bcrypt = require('bcryptjs');
 const jwt = require('jsonwebtoken');
 const AppError = require('../utils/AppError');
+const { logAudit } = require('../utils/auditLogger');
 
 const JWT_SECRET = process.env.JWT_SECRET || 'your_jwt_secret_key';
 
@@ -65,6 +66,24 @@ exports.register = async (req, res, next) => {
         await connection.commit();
         console.log('Transaction committed successfully');
         console.log('=== REGISTER SUCCESS ===', { userId, projectId });
+        // Manually logging here since we don't have req.user populated typically in register, BUT wait...
+        // Register is public usually. If so, req.user is undefined.
+        // logAudit expects req.user.
+        // We CANNOT use logAudit helper blindly here if not authenticated.
+        // Does logAudit handle empty user?
+        // Let's check logAudit.
+
+        // Checking auditLogger.js:
+        // const userId = req.user?.id;
+        // const userName = req.user?.name || 'Sistema/Anonimo';
+
+        // So we can simulate a user object attached to req so logAudit works, 
+        // OR pass explicit values if logAudit allowed it (it doesn't seem to take overrides easily for user).
+        // Best approach: Attach constructed user to req object before calling logAudit.
+
+        req.user = { id: userId, name: name, projectId: projectId };
+        logAudit(req, 'CREATE', 'projects', projectId, { action: 'REGISTER_NEW_PROJECT', email });
+
         res.status(201).json({ message: 'Project created successfully' });
     } catch (error) {
         console.error('=== REGISTER ERROR ===', error);
@@ -227,6 +246,7 @@ exports.changePassword = async (req, res, next) => {
         );
 
         res.json({ message: 'Senha alterada com sucesso' });
+        logAudit(req, 'UPDATE', 'users', userId, { action: 'CHANGE_PASSWORD' });
 
     } catch (error) {
         next(error);
