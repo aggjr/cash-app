@@ -224,7 +224,9 @@ export const ConsolidadasManager = (project) => {
                     <th style="padding: 1rem; text-align: center; border-bottom: 2px solid #e5e7eb; width: 140px; min-width: 140px; position: sticky; left: 460px; z-index: 11; background-color: #00425F; white-space: nowrap;">TOTAL</th>
                     ${months.map(m => {
             const [y, mo] = m.split('-');
-            return `<th style="padding: 1rem; text-align: center; border-bottom: 2px solid #e5e7eb; min-width: 120px; white-space: nowrap;">${mo}/${y}</th>`;
+            // User Request: Smallest possible width (fit content). Removed min-width: 120px.
+            // Reduced padding to 0.5rem (horizontal) to tighten it further.
+            return `<th style="padding: 1rem 0.5rem; text-align: center; border-bottom: 2px solid #e5e7eb; white-space: nowrap;">${mo}/${y}</th>`;
         }).join('')}
                 </tr>
             </thead>
