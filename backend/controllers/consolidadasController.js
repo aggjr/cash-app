@@ -43,7 +43,7 @@ exports.getConsolidatedData = async (req, res) => {
                             dateField = 'date'; // Entradas doesn't have data_prevista_atraso
                         } else {
                             // Saidas / Producao
-                            dateField = 'COALESCE(data_prevista_atraso, date)';
+                            dateField = 'COALESCE(data_prevista_atraso, data_prevista_pagamento)';
                         }
                     } else {
                         // Logic: Paid, use Real

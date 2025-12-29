@@ -211,7 +211,7 @@ export const ConsolidadasManager = (project) => {
         };
 
         const tableHtml = `
-        <table style="width: auto; border-collapse: separate; border-spacing: 0; min-width: 100%;">
+        <table style="width: auto; border-collapse: separate; border-spacing: 0;">
             <thead style="position: sticky; top: 0; z-index: 10; background-color: #00425F; color: white;">
                 <tr>
                     <th colspan="${months.length + 3}" style="padding: 0.5rem 1rem; text-align: center; border-bottom: 1px solid #ffffff33; background-color: #00425F; border-radius: 8px 8px 0 0; white-space: nowrap;">
