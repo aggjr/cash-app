@@ -93,6 +93,7 @@ export const ConsolidadasManager = (project) => {
 
         // Helper to generate a single table HTML
         const generateTableHtml = (data, title, type) => {
+            let html = `
             <div style="margin-bottom: 2rem;">
                 <table style="width: 100%; border-collapse: separate; border-spacing: 0; min-width: 100%;">
                     <thead style="position: sticky; top: 0; z-index: 10; background-color: #00425F; color: white;">
@@ -108,9 +109,9 @@ export const ConsolidadasManager = (project) => {
                             <th style="padding: 1rem; text-align: center; border-bottom: 2px solid #e5e7eb; min-width: 120px; position: sticky; left: 300px; z-index: 11; background-color: #00425F;">MÉDIA</th>
                             <th style="padding: 1rem; text-align: center; border-bottom: 2px solid #e5e7eb; min-width: 120px; position: sticky; left: 420px; z-index: 11; background-color: #00425F;">TOTAL</th>
                             ${months.map(m => {
-                                const [y, mo] = m.split('-');
-                                return `<th style="padding: 1rem; text-align: center; border-bottom: 2px solid #e5e7eb; min-width: 120px;">${mo}/${y}</th>`;
-                            }).join('')}
+                const [y, mo] = m.split('-');
+                return `<th style="padding: 1rem; text-align: center; border-bottom: 2px solid #e5e7eb; min-width: 120px;">${mo}/${y}</th>`;
+            }).join('')}
                         </tr>
                     </thead>
                     <tbody>
@@ -118,69 +119,103 @@ export const ConsolidadasManager = (project) => {
 
             // Recursive Row Renderer (Scoped to this table gen)
             const renderRows = (nodes, level = 0) => {
-                            let rowsHtml = '';
+                let rowsHtml = '';
                 nodes.forEach(node => {
-                    const isRoot = ['saidas_root', 'producao_root', 'total_saidas_root', 'entradas_root', 'resultado_operacional_root', 'aportes_root', 'retiradas_root', 'resultado_final_root'].includes(node.id);
+                    const rootIds = ['saidas_root', 'producao_root', 'entradas_root', 'resultado_operacional_root', 'aportes_root', 'retiradas_root', 'fluxo_financeiro_root', 'lucro_bruto_root', 'margem_bruta_root', 'margem_operacional_root'];
+                    const isRoot = rootIds.includes(node.id);
 
-                        // Hide non-root items with effectively zero values to keep clean
-                        if (!isRoot && Math.abs(node.total) < 0.01) return;
+                    // For percentage rows, we don't skip if close to zero, unless value is NaN/0 specifically
+                    // For value rows, hide if very small
+                    if (!isRoot && !node.isPercentage && Math.abs(node.total) < 0.01) return;
 
                     const hasChildren = node.children && node.children.length > 0;
-                        const isExpanded = expandedNodes.has(node.id);
-                        const paddingLeft = level * 1.5 + 1;
+                    const isExpanded = expandedNodes.has(node.id);
+                    const paddingLeft = level * 1.5 + 1;
 
-                        let rowBg = level === 0 ? '#f0f9ff' : '#ffffff';
-                        let fontWeight = level === 0 ? '700' : (hasChildren ? '600' : '400');
-                        const baseSizeRem = 1;
-                        const decreasePerLevel = 0.063;
-                        const fontSize = `${baseSizeRem - (level * decreasePerLevel)}rem`;
+                    let rowBg = level === 0 ? '#f0f9ff' : '#ffffff';
+                    let fontWeight = level === 0 ? '700' : (hasChildren ? '600' : '400');
+                    const baseSizeRem = 1;
+                    const decreasePerLevel = 0.063;
+                    const fontSize = `${baseSizeRem - (level * decreasePerLevel)}rem`;
 
-                        if (node.id === 'total_saidas_root' || node.id === 'resultado_operacional_root') {
-                            rowBg = '#e0f2fe';
+                    // Specific styling for Totals
+                    if (['resultado_operacional_root', 'lucro_bruto_root'].includes(node.id)) {
+                        rowBg = '#e0f2fe';
                         fontWeight = '800';
                     }
-                        if (node.id === 'resultado_final_root') {
-                            rowBg = '#dbeafe';
+                    if (node.id === 'fluxo_financeiro_root') {
+                        rowBg = '#dbeafe';
                         fontWeight = '800';
                     }
+                    // Styling for Percentages
+                    if (node.isPercentage) {
+                        rowBg = '#f9fafb';
+                        fontWeight = '600';
+                    }
 
-                        const rowClass = hasChildren ? 'expandable-row' : '';
+                    const rowClass = hasChildren ? 'expandable-row' : '';
 
-                        let monthCells = '';
+                    let monthCells = '';
                     months.forEach(m => {
                         const val = node.monthlyTotals[m] || 0;
-                        let color = '#9CA3AF';
-                        if (Math.abs(val) > 0.001) {
-                            if (node.id === 'aportes_root') color = '#10B981';
-                        else if (node.id === 'retiradas_root') color = '#EF4444';
-                        else if (node.id === 'resultado_operacional_root' || node.id === 'resultado_final_root' || (node.id && (node.id.toString().startsWith('entradas') || node.id.toString().includes('tipo_entrada')))) {
-                            color = val >= 0 ? '#10B981' : '#EF4444';
+                        let color = '#374151'; // Default dark gray
+
+                        if (Math.abs(val) > 0.001 || node.isPercentage) {
+                            if (node.isPercentage) {
+                                color = '#4B5563';
+                            } else if (node.id === 'aportes_root') {
+                                color = '#10B981';
+                            } else if (node.id === 'retiradas_root') {
+                                color = '#EF4444';
+                            } else if (['resultado_operacional_root', 'fluxo_financeiro_root', 'lucro_bruto_root'].includes(node.id) || (node.id && (node.id.toString().startsWith('entradas') || node.id.toString().includes('tipo_entrada')))) {
+                                color = val >= 0 ? '#10B981' : '#EF4444';
                             } else {
-                            color = val >= 0 ? '#EF4444' : '#10B981';
+                                color = val >= 0 ? '#EF4444' : '#10B981'; // Expenses: positive value = red
                             }
+                        } else {
+                            color = '#9CA3AF'; // Zero/Light
                         }
-                        monthCells += `<td style="padding: 0.5rem 1rem; text-align: right; border-bottom: 1px solid #f3f4f6; color: ${color}; font-weight: 600; font-size: ${fontSize};">${val !== 0 ? formatCurrency(val) : '-'}</td>`;
+
+                        const displayVal = node.isPercentage ? formatPercent(val) : (val !== 0 ? formatCurrency(val) : '-');
+                        monthCells += `<td style="padding: 0.5rem 1rem; text-align: right; border-bottom: 1px solid #f3f4f6; color: ${color}; font-weight: 600; font-size: ${fontSize};">${displayVal}</td>`;
                     });
 
-                        let totalColor = '#9CA3AF';
-                    if (Math.abs(node.total) > 0.001) {
-                        // Same color logic for totals
+                    let totalColor = '#374151';
+                    if (Math.abs(node.total) > 0.001 || node.isPercentage) {
                         const val = node.total;
-                        if (node.id === 'aportes_root') totalColor = '#10B981';
-                        else if (node.id === 'retiradas_root') totalColor = '#EF4444';
-                        else if (node.id === 'resultado_operacional_root' || node.id === 'resultado_final_root' || (node.id && (node.id.toString().startsWith('entradas') || node.id.toString().includes('tipo_entrada')))) {
+                        if (node.isPercentage) {
+                            totalColor = '#111827';
+                        } else if (node.id === 'aportes_root') {
+                            totalColor = '#10B981';
+                        } else if (node.id === 'retiradas_root') {
+                            totalColor = '#EF4444';
+                        } else if (['resultado_operacional_root', 'fluxo_financeiro_root', 'lucro_bruto_root'].includes(node.id) || (node.id && (node.id.toString().startsWith('entradas') || node.id.toString().includes('tipo_entrada')))) {
                             totalColor = val >= 0 ? '#10B981' : '#EF4444';
                         } else {
                             totalColor = val >= 0 ? '#EF4444' : '#10B981';
                         }
+                    } else {
+                        totalColor = '#9CA3AF';
                     }
 
-                        const totalCell = `<td style="padding: 0.5rem 1rem; text-align: right; border-bottom: 1px solid #f3f4f6; font-weight: bold; color: ${totalColor}; font-size: ${fontSize}; position: sticky; left: 420px; background-color: ${rowBg}; z-index: 1;">${node.total !== 0 ? formatCurrency(node.total) : '-'}</td>`;
+                    const displayTotal = node.isPercentage ? formatPercent(node.total) : (node.total !== 0 ? formatCurrency(node.total) : '-');
+                    const totalCell = `<td style="padding: 0.5rem 1rem; text-align: right; border-bottom: 1px solid #f3f4f6; font-weight: bold; color: ${totalColor}; font-size: ${fontSize}; position: sticky; left: 420px; background-color: ${rowBg}; z-index: 1;">${displayTotal}</td>`;
 
-                    let average = months.length > 0 ? (node.total / months.length) : 0;
-                        const averageCell = `<td style="padding: 0.5rem 1rem; text-align: right; border-bottom: 1px solid #f3f4f6; font-weight: bold; color: ${totalColor}; font-size: ${fontSize}; position: sticky; left: 300px; background-color: ${rowBg}; z-index: 1;">${average !== 0 ? formatCurrency(average) : '-'}</td>`;
+                    // Simple average
+                    let average = 0;
+                    if (node.isPercentage) {
+                        let sumPercents = 0;
+                        let count = 0;
+                        months.forEach(m => { sumPercents += (node.monthlyTotals[m] || 0); count++; });
+                        average = count > 0 ? sumPercents / count : 0;
+                    } else {
+                        average = months.length > 0 ? (node.total / months.length) : 0;
+                    }
 
-                        rowsHtml += `
+                    const displayAvg = node.isPercentage ? formatPercent(average) : (average !== 0 ? formatCurrency(average) : '-');
+                    const averageCell = `<td style="padding: 0.5rem 1rem; text-align: right; border-bottom: 1px solid #f3f4f6; font-weight: bold; color: ${totalColor}; font-size: ${fontSize}; position: sticky; left: 300px; background-color: ${rowBg}; z-index: 1;">${displayAvg}</td>`;
+
+                    rowsHtml += `
                         <tr class="${rowClass}" data-id="${node.id}" style="background-color: ${rowBg}; cursor: ${hasChildren ? 'pointer' : 'default'};">
                             <td style="padding: 0.5rem 1rem 0.5rem ${paddingLeft}rem; border-bottom: 1px solid #f3f4f6; font-weight: ${fontWeight}; font-size: ${fontSize}; display: flex; align-items: center; gap: 0.5rem; position: sticky; left: 0; background-color: ${rowBg}; z-index: 1;">
                                 ${hasChildren ? `<span style="font-size: 0.8rem; transform: rotate(${isExpanded ? '90deg' : '0deg'}); transition: transform 0.2s;">▶</span>` : ''}
@@ -190,22 +225,22 @@ export const ConsolidadasManager = (project) => {
                             ${totalCell}
                             ${monthCells}
                         </tr>
-                        `;
+                    `;
 
-                        if (hasChildren && isExpanded) {
-                            rowsHtml += renderRows(node.children, level + 1);
+                    if (hasChildren && isExpanded) {
+                        rowsHtml += renderRows(node.children, level + 1);
                     }
                 });
-                        return rowsHtml;
+                return rowsHtml;
             };
 
-                        if (data.length === 0) {
-                            html += `<tr><td colspan="${months.length + 3}" style="padding: 3rem; text-align: center; color: #6B7280;">Nenhum dado encontrado para o período.</td></tr>`;
+            if (data.length === 0) {
+                html += `<tr><td colspan="${months.length + 3}" style="padding: 3rem; text-align: center; color: #6B7280;">Nenhum dado encontrado para o período.</td></tr>`;
             } else {
-                            html += renderRows(data);
+                html += renderRows(data);
             }
 
-                        html += '</tbody></table></div>';
+            html += '</tbody></table></div>';
             return html;
         };
 
@@ -233,185 +268,15 @@ export const ConsolidadasManager = (project) => {
 
 
     // --- Custom Month-Year Picker Component ---
-    const createMonthPicker = (initialValue, onChange) => {
-        const wrapper = document.createElement('div');
-        wrapper.style.position = 'relative';
-        wrapper.style.display = 'inline-block';
-
-        let [year, month] = initialValue.split('-').map(Number);
-        let displayYear = year; // For navigation
-
-        const monthNames = ['Jan', 'Fev', 'Mar', 'Abr', 'Mai', 'Jun', 'Jul', 'Ago', 'Set', 'Out', 'Nov', 'Dez'];
-        const fullMonthNames = ['Janeiro', 'Fevereiro', 'Março', 'Abril', 'Maio', 'Junho', 'Julho', 'Agosto', 'Setembro', 'Outubro', 'Novembro', 'Dezembro'];
-
-        // 1. The Trigger Input
-        const trigger = document.createElement('div');
-        trigger.className = 'form-input';
-        trigger.style.cursor = 'pointer';
-        trigger.style.display = 'flex';
-        trigger.style.alignItems = 'center';
-        trigger.style.justifyContent = 'space-between';
-        trigger.style.width = '160px'; // Fixed width for consistency
-        trigger.style.height = '38px';
-        trigger.style.padding = '0 0.75rem';
-        trigger.style.backgroundColor = 'white';
-        trigger.style.userSelect = 'none';
-
-        const updateTriggerText = () => {
-            trigger.innerHTML = `
-                <span style="font-weight: 500; color: #374151;">${fullMonthNames[month - 1]} / ${year}</span>
-                <span style="font-size: 0.8rem; color: #9CA3AF;">▼</span>
-            `;
-        };
-        updateTriggerText();
-
-        // 2. The Popover
-        const popover = document.createElement('div');
-        popover.className = 'month-picker-popover glass-panel'; // Reuse glass panel style or similar
-        popover.style.display = 'none';
-        popover.style.position = 'absolute';
-        popover.style.top = '100%';
-        popover.style.left = '0';
-        popover.style.marginTop = '0.25rem';
-        popover.style.zIndex = '1000';
-        popover.style.width = '240px';
-        popover.style.padding = '0.5rem';
-        popover.style.backgroundColor = 'white';
-        popover.style.border = '1px solid #e5e7eb';
-        popover.style.boxShadow = '0 10px 15px -3px rgba(0, 0, 0, 0.1)';
-        popover.style.borderRadius = '0.5rem';
-
-        const renderPopoverContent = () => {
-            popover.innerHTML = '';
-
-            // Header: Year Navigation
-            const header = document.createElement('div');
-            header.style.display = 'flex';
-            header.style.justifyContent = 'space-between';
-            header.style.alignItems = 'center';
-            header.style.marginBottom = '0.5rem';
-            header.style.paddingBottom = '0.5rem';
-            header.style.borderBottom = '1px solid #f3f4f6';
-
-            const btnPrev = document.createElement('button');
-            btnPrev.textContent = '◀';
-            btnPrev.style.background = 'none';
-            btnPrev.style.border = 'none';
-            btnPrev.style.cursor = 'pointer';
-            btnPrev.style.padding = '0.25rem 0.5rem';
-            btnPrev.style.color = '#4B5563';
-            btnPrev.onclick = (e) => {
-                e.stopPropagation();
-                displayYear--;
-                renderPopoverContent();
-            };
-
-            const yearLabel = document.createElement('span');
-            yearLabel.textContent = displayYear;
-            yearLabel.style.fontWeight = 'bold';
-            yearLabel.style.color = '#111827';
-
-            const btnNext = document.createElement('button');
-            btnNext.textContent = '▶';
-            btnNext.style.background = 'none';
-            btnNext.style.border = 'none';
-            btnNext.style.cursor = 'pointer';
-            btnNext.style.padding = '0.25rem 0.5rem';
-            btnNext.style.color = '#4B5563';
-            btnNext.onclick = (e) => {
-                e.stopPropagation();
-                displayYear++;
-                renderPopoverContent();
-            };
-
-            header.appendChild(btnPrev);
-            header.appendChild(yearLabel);
-            header.appendChild(btnNext);
-            popover.appendChild(header);
-
-            // Grid: Months
-            const grid = document.createElement('div');
-            grid.style.display = 'grid';
-            grid.style.gridTemplateColumns = 'repeat(3, 1fr)';
-            grid.style.gap = '0.25rem';
-
-            monthNames.forEach((mName, idx) => {
-                const btnMonth = document.createElement('button');
-                btnMonth.textContent = mName;
-                const mNum = idx + 1;
-                const isSelected = displayYear === year && mNum === month;
-
-                btnMonth.style.padding = '0.5rem 0.25rem';
-                btnMonth.style.border = 'none';
-                btnMonth.style.borderRadius = '0.25rem';
-                btnMonth.style.cursor = 'pointer';
-                btnMonth.style.fontSize = '0.9rem';
-
-                if (isSelected) {
-                    btnMonth.style.backgroundColor = 'var(--color-primary)'; // Blue
-                    btnMonth.style.color = 'white';
-                    btnMonth.style.fontWeight = '600';
-                } else {
-                    btnMonth.style.backgroundColor = 'transparent';
-                    btnMonth.style.color = '#374151';
-                }
-
-                btnMonth.onmouseover = () => { if (!isSelected) btnMonth.style.backgroundColor = '#f3f4f6'; };
-                btnMonth.onmouseout = () => { if (!isSelected) btnMonth.style.backgroundColor = 'transparent'; };
-
-                btnMonth.onclick = (e) => {
-                    e.stopPropagation();
-                    year = displayYear;
-                    month = mNum;
-                    updateTriggerText();
-                    closePopover();
-
-                    // Format YYYY-MM
-                    const formatted = `${year}-${String(month).padStart(2, '0')}`;
-                    onChange(formatted);
-                };
-
-                grid.appendChild(btnMonth);
-            });
-            popover.appendChild(grid);
-        };
-
-        // Logic
-        const closePopover = () => {
-            popover.style.display = 'none';
-            document.removeEventListener('click', outsideClickListener);
-        };
-
-        const outsideClickListener = (e) => {
-            if (!wrapper.contains(e.target)) {
-                closePopover();
-            }
-        };
-
-        trigger.onclick = (e) => {
-            e.stopPropagation();
-            if (popover.style.display === 'block') {
-                closePopover();
-            } else {
-                displayYear = year; // Reset view to selected year
-                renderPopoverContent();
-                popover.style.display = 'block';
-                document.addEventListener('click', outsideClickListener);
-            }
-        };
-
-        wrapper.appendChild(trigger);
-        wrapper.appendChild(popover);
-
-        // API for external set
-        wrapper.setValue = (val) => {
-            [year, month] = val.split('-').map(Number);
-            displayYear = year;
-            updateTriggerText();
-        };
-
-        return wrapper;
-    };
+    // (Reused from previous code, or ensure imported MonthPicker is used - code above uses imported MonthPicker for logic but manually builds UI? No, Step 125 shows imported MonthPicker usage.
+    // Wait, Lines 443 use `MonthPicker`.
+    // BUT Lines 236-414 DEFINED `createMonthPicker` but didn't use it? 
+    // Ah, lines 443 call `MonthPicker(...)`. That's the import.
+    // The code I read in Step 125 has a defined `createMonthPicker` that is UNUSED. 
+    // I will remove the unused `createMonthPicker` definition (lines 236-414) to clean up, as line 443 uses the imported one.
+    // Wait, Step 125 shows: `import { MonthPicker } from './MonthPicker.js';`
+    // And usage: `const startPicker = MonthPicker(...)`
+    // The `createMonthPicker` function was likely legacy code left in the file properly. I will SKIP including it in my overwrite to clean code.
 
     // --- Build Header / Controls ---
     const controls = document.createElement('div');
