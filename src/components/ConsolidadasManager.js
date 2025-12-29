@@ -90,7 +90,7 @@ export const ConsolidadasManager = (project) => {
         const generateTableHtml = (data, title, type) => {
             let html = `
                 <div style="margin-bottom: 2rem;">
-                    <div style="background-color: #00425F; color: white; padding: 0.5rem 1rem; font-weight: bold; border-radius: 8px 8px 0 0;">
+                    <div style="background-color: #00425F; color: white; padding: 0.5rem 1rem; font-weight: bold; border-radius: 8px 8px 0 0; text-align: center;">
                         ${title}
                     </div>
                     <table style="width: 100%; border-collapse: separate; border-spacing: 0; min-width: 100%;">
