@@ -122,6 +122,8 @@ const migrateInstallmentColumns = require('./migrate_add_installment_columns');
 const migrateSystemSettings = require('./migrate_add_system_settings');
 const migrateCreateAuditLogs = require('./migrate-create-audit-logs');
 
+const migrateLoans = require('./migrate_loans');
+
 loadErrorCatalog()
     .then(() => migrateFixAccounts())
     .then(() => migratePaymentColumns())
@@ -132,6 +134,7 @@ loadErrorCatalog()
     .then(() => migrateInstallmentColumns())
     .then(() => migrateSystemSettings())
     .then(() => migrateCreateAuditLogs())
+    .then(() => migrateLoans())
     .then(() => {
         startServer();
     })

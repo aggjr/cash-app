@@ -61,4 +61,4 @@ async function migrateLoans() {
     }
 }
 
-migrateLoans();
+module.exports = migrateLoans;
