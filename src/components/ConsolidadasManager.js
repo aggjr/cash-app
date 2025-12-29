@@ -275,11 +275,11 @@ export const ConsolidadasManager = (project) => {
 
     // Radios
     const radioGroup = document.createElement('div');
-    radioGroup.style.cssText = 'display:flex; gap:1.5rem; align-items:center; background:#f3f4f6; padding:0.25rem 1rem; border-radius:8px; height:40px;';
+    radioGroup.style.cssText = 'display:flex; gap:1.5rem; align-items:center; background:#f3f4f6; padding:0.25rem 1rem; border-radius:8px; min-height:40px; white-space:nowrap;';
 
     const createRadio = (lbl, val) => {
         const d = document.createElement('label');
-        d.style.cssText = 'display:flex; align-items:center; gap:0.5rem; cursor:pointer; margin-bottom:0;';
+        d.style.cssText = 'display:flex; align-items:center; gap:0.5rem; cursor:pointer; margin-bottom:0; white-space:nowrap;';
         const inp = document.createElement('input');
         inp.type = 'radio'; inp.name = 'viewType'; inp.value = val; inp.checked = (viewType === val); inp.style.accentColor = '#00425F';
         inp.onchange = (e) => { if (e.target.checked) { viewType = val; loadData(); } };
