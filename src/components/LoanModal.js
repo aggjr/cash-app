@@ -22,12 +22,12 @@ export const LoanModal = {
                         <!-- Description -->
                         <div class="form-group full-width">
                             <label>Descrição *</label>
-                            <input type="text" name="description" required placeholder="Ex: Capital de Giro Safra">
+                            <input type="text" name="description" required placeholder="Ex: Capital de Giro Safra 2024">
                         </div>
 
                         <!-- Lender -->
                         <div class="form-group">
-                            <label>Fornecedor (Banco/Credor) *</label>
+                            <label>Banco/Instituição Financeira *</label>
                             <select name="companyId" required id="loan-company-select">
                                 <option value="">Carregando...</option>
                             </select>
@@ -35,37 +35,56 @@ export const LoanModal = {
 
                         <!-- Account -->
                         <div class="form-group">
-                            <label>Conta (Entrada/Pagamentos) *</label>
+                            <label>Conta (Recebimento/Pagamentos) *</label>
                             <select name="accountId" required id="loan-account-select">
                                 <option value="">Carregando...</option>
                             </select>
                         </div>
 
-                        <!-- Values Row -->
+                        <!-- Financial Details Section -->
+                        <div class="form-group full-width" style="margin-top: 1rem; padding-top: 1rem; border-top: 1px solid var(--color-border-light);">
+                            <strong style="color: var(--color-primary);">💰 Detalhes Financeiros</strong>
+                        </div>
+
+                        <!-- Principal Value -->
                         <div class="form-group">
-                            <label>Valor Tomado (Entrada) *</label>
+                            <label>Valor do Empréstimo *</label>
                             <input type="text" name="principalValue" class="input-currency" required placeholder="R$ 0,00">
+                            <small style="color: var(--color-text-muted);">Valor que será creditado</small>
+                        </div>
+
+                        <!-- Interest Rate -->
+                        <div class="form-group">
+                            <label>Taxa de Juros (% a.a.)</label>
+                            <input type="number" name="interestRate" step="0.01" min="0" placeholder="0,00" style="text-align: right;">
+                            <small style="color: var(--color-text-muted);">Informativo</small>
+                        </div>
+
+                        <!-- Installments Row -->
+                        <div class="form-group">
+                            <label>Nº de Parcelas *</label>
+                            <input type="number" name="installments" min="1" value="12" required>
                         </div>
 
                         <div class="form-group">
                             <label>Valor da Parcela *</label>
                             <input type="text" name="installmentValue" class="input-currency" required placeholder="R$ 0,00">
+                            <small style="color: var(--color-text-muted);">Valor mensal fixo</small>
                         </div>
 
-                        <!-- Installments Row -->
-                        <div class="form-group">
-                            <label>Nº Parcelas *</label>
-                            <input type="number" name="installments" min="1" value="12" required>
+                        <!-- Total to Pay (Auto) -->
+                        <div class="form-group full-width">
+                            <label>Total a Pagar (Calculado Automaticamente)</label>
+                            <input type="text" name="totalValue" readonly style="background: var(--bg-secondary); cursor: not-allowed; font-weight: bold; font-size: 1.1rem; text-align: right; color: var(--color-primary);">
+                        </div>
+
+                        <!-- Dates Section -->
+                        <div class="form-group full-width" style="margin-top: 1rem; padding-top: 1rem; border-top: 1px solid var(--color-border-light);">
+                            <strong style="color: var(--color-primary);">📅 Datas e Prazos</strong>
                         </div>
 
                         <div class="form-group">
-                            <label>Total a Pagar (Auto)</label>
-                            <input type="text" name="totalValue" readonly style="background: var(--bg-secondary); cursor: not-allowed; font-weight: bold;">
-                        </div>
-
-                        <!-- Dates Row -->
-                        <div class="form-group">
-                            <label>Data Contratação *</label>
+                            <label>Data da Contratação *</label>
                             <input type="date" name="contractDate" required value="${new Date().toISOString().split('T')[0]}">
                         </div>
 
@@ -74,11 +93,21 @@ export const LoanModal = {
                             <input type="date" name="firstDueDate" required>
                         </div>
 
-                        <!-- Toggle Entry -->
-                        <div class="form-group full-width" style="display: flex; align-items: center; gap: 0.5rem; background: var(--bg-hover); padding: 0.75rem; border-radius: 8px; margin-top: 1rem;">
-                            <input type="checkbox" name="registerEntry" id="reg-entry" checked style="width: auto; margin: 0;">
-                            <label for="reg-entry" style="margin: 0; cursor: pointer;">Registrar Entrada do Dinheiro na Conta?</label>
+                        <!-- Options Section -->
+                        <div class="form-group full-width" style="margin-top: 1rem; padding-top: 1rem; border-top: 1px solid var(--color-border-light);">
+                            <strong style="color: var(--color-primary);">⚙️ Opções</strong>
                         </div>
+
+                        <!-- Toggle Entry -->
+                        <div class="form-group full-width" style="display: flex; align-items: center; gap: 0.5rem; background: var(--bg-hover); padding: 0.75rem; border-radius: 8px;">
+                            <input type="checkbox" name="registerEntry" id="reg-entry" checked style="width: auto; margin: 0;">
+                            <label for="reg-entry" style="margin: 0; cursor: pointer; flex: 1;">
+                                <strong>Registrar Entrada do Dinheiro</strong>
+                                <br>
+                                <small style="color: var(--color-text-muted);">Cria um lançamento de entrada com o valor do empréstimo na conta selecionada</small>
+                            </label>
+                        </div>
+
 
                     </form>
                 </div>
@@ -167,6 +196,7 @@ export const LoanModal = {
                     accountId: form.accountId.value,
                     principalValue: parseCurrency(form.principalValue.value),
                     totalValue: parseCurrency(form.totalValue.value),
+                    interestRate: form.interestRate.value || null,
                     installments: form.installments.value,
                     contractDate: form.contractDate.value,
                     firstDueDate: form.firstDueDate.value,
