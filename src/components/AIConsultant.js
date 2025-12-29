@@ -14,8 +14,8 @@ export const AIConsultant = () => {
     const container = document.createElement('div');
     container.id = 'ai-consultant-wrapper';
     container.style.position = 'fixed';
-    container.style.bottom = '40px';
-    container.style.right = '-25px';
+    container.style.bottom = '50px';
+    container.style.right = '10px';
     container.style.zIndex = '9999';
     container.style.fontFamily = 'var(--font-main, sans-serif)';
 
@@ -74,11 +74,11 @@ export const AIConsultant = () => {
 
     // Image
     const img = document.createElement('img');
-    img.src = '/robot_icon.png';
+    img.src = '/eva_v2.png';
     img.style.width = '100%';
     img.style.height = '100%';
-    img.style.objectFit = 'cover';
-    img.style.transform = 'scale(1.4) translateY(10px)';
+    img.style.objectFit = 'contain';
+    // img.style.transform = 'scale(1.4) translateY(10px)';
 
     fab.appendChild(img);
 
