@@ -95,22 +95,22 @@ export const ConsolidadasManager = (project) => {
         const generateTableHtml = (data, title, type) => {
             let html = `
             <div style="margin-bottom: 2rem;">
-                <table style="width: 100%; border-collapse: separate; border-spacing: 0; min-width: 100%;">
+                <table style="width: auto; border-collapse: separate; border-spacing: 0;">
                     <thead style="position: sticky; top: 0; z-index: 10; background-color: #00425F; color: white;">
                         <!-- Main Title Row spanning all columns -->
                         <tr>
-                            <th colspan="${months.length + 3}" style="padding: 0.5rem 1rem; text-align: center; border-bottom: 1px solid #ffffff33; background-color: #00425F; border-radius: 8px 8px 0 0;">
+                            <th colspan="${months.length + 3}" style="padding: 0.5rem 1rem; text-align: center; border-bottom: 1px solid #ffffff33; background-color: #00425F; border-radius: 8px 8px 0 0; white-space: nowrap;">
                                 ${title}
                             </th>
                         </tr>
                         <!-- Column Headers -->
                         <tr>
-                            <th style="padding: 1rem; text-align: center; border-bottom: 2px solid #e5e7eb; min-width: 300px; position: sticky; left: 0; z-index: 11; background-color: #00425F;"></th>
-                            <th style="padding: 1rem; text-align: center; border-bottom: 2px solid #e5e7eb; min-width: 120px; position: sticky; left: 300px; z-index: 11; background-color: #00425F;">MÉDIA</th>
-                            <th style="padding: 1rem; text-align: center; border-bottom: 2px solid #e5e7eb; min-width: 120px; position: sticky; left: 420px; z-index: 11; background-color: #00425F;">TOTAL</th>
+                            <th style="padding: 1rem; text-align: center; border-bottom: 2px solid #e5e7eb; width: 320px; min-width: 320px; max-width: 320px; position: sticky; left: 0; z-index: 11; background-color: #00425F; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;"></th>
+                            <th style="padding: 1rem; text-align: center; border-bottom: 2px solid #e5e7eb; width: 140px; min-width: 140px; position: sticky; left: 320px; z-index: 11; background-color: #00425F; white-space: nowrap;">MÉDIA</th>
+                            <th style="padding: 1rem; text-align: center; border-bottom: 2px solid #e5e7eb; width: 140px; min-width: 140px; position: sticky; left: 460px; z-index: 11; background-color: #00425F; white-space: nowrap;">TOTAL</th>
                             ${months.map(m => {
                 const [y, mo] = m.split('-');
-                return `<th style="padding: 1rem; text-align: center; border-bottom: 2px solid #e5e7eb; min-width: 120px;">${mo}/${y}</th>`;
+                return `<th style="padding: 1rem; text-align: center; border-bottom: 2px solid #e5e7eb; min-width: 120px; white-space: nowrap;">${mo}/${y}</th>`;
             }).join('')}
                         </tr>
                     </thead>
@@ -177,7 +177,7 @@ export const ConsolidadasManager = (project) => {
                         }
 
                         const displayVal = node.isPercentage ? formatPercent(val) : (val !== 0 ? formatCurrency(val) : '-');
-                        monthCells += `<td style="padding: 0.5rem 1rem; text-align: right; border-bottom: 1px solid #f3f4f6; color: ${color}; font-weight: 600; font-size: ${fontSize};">${displayVal}</td>`;
+                        monthCells += `<td style="padding: 0.5rem 1rem; text-align: right; border-bottom: 1px solid #f3f4f6; color: ${color}; font-weight: 600; font-size: ${fontSize}; white-space: nowrap;">${displayVal}</td>`;
                     });
 
                     let totalColor = '#374151';
@@ -199,7 +199,7 @@ export const ConsolidadasManager = (project) => {
                     }
 
                     const displayTotal = node.isPercentage ? formatPercent(node.total) : (node.total !== 0 ? formatCurrency(node.total) : '-');
-                    const totalCell = `<td style="padding: 0.5rem 1rem; text-align: right; border-bottom: 1px solid #f3f4f6; font-weight: bold; color: ${totalColor}; font-size: ${fontSize}; position: sticky; left: 420px; background-color: ${rowBg}; z-index: 1;">${displayTotal}</td>`;
+                    const totalCell = `<td style="padding: 0.5rem 1rem; text-align: right; border-bottom: 1px solid #f3f4f6; font-weight: bold; color: ${totalColor}; font-size: ${fontSize}; position: sticky; left: 460px; background-color: ${rowBg}; z-index: 1; white-space: nowrap;">${displayTotal}</td>`;
 
                     // Simple average
                     let average = 0;
@@ -213,11 +213,11 @@ export const ConsolidadasManager = (project) => {
                     }
 
                     const displayAvg = node.isPercentage ? formatPercent(average) : (average !== 0 ? formatCurrency(average) : '-');
-                    const averageCell = `<td style="padding: 0.5rem 1rem; text-align: right; border-bottom: 1px solid #f3f4f6; font-weight: bold; color: ${totalColor}; font-size: ${fontSize}; position: sticky; left: 300px; background-color: ${rowBg}; z-index: 1;">${displayAvg}</td>`;
+                    const averageCell = `<td style="padding: 0.5rem 1rem; text-align: right; border-bottom: 1px solid #f3f4f6; font-weight: bold; color: ${totalColor}; font-size: ${fontSize}; position: sticky; left: 320px; background-color: ${rowBg}; z-index: 1; white-space: nowrap;">${displayAvg}</td>`;
 
                     rowsHtml += `
                         <tr class="${rowClass}" data-id="${node.id}" style="background-color: ${rowBg}; cursor: ${hasChildren ? 'pointer' : 'default'};">
-                            <td style="padding: 0.5rem 1rem 0.5rem ${paddingLeft}rem; border-bottom: 1px solid #f3f4f6; font-weight: ${fontWeight}; font-size: ${fontSize}; display: flex; align-items: center; gap: 0.5rem; position: sticky; left: 0; background-color: ${rowBg}; z-index: 1;">
+                            <td style="padding: 0.5rem 1rem 0.5rem ${paddingLeft}rem; border-bottom: 1px solid #f3f4f6; font-weight: ${fontWeight}; font-size: ${fontSize}; display: flex; align-items: center; gap: 0.5rem; position: sticky; left: 0; background-color: ${rowBg}; z-index: 1; width: 320px; min-width: 320px; max-width: 320px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;" title="${node.name}">
                                 ${hasChildren ? `<span style="font-size: 0.8rem; transform: rotate(${isExpanded ? '90deg' : '0deg'}); transition: transform 0.2s;">▶</span>` : ''}
                                 ${node.name}
                             </td>
@@ -266,17 +266,6 @@ export const ConsolidadasManager = (project) => {
         });
     };
 
-
-    // --- Custom Month-Year Picker Component ---
-    // (Reused from previous code, or ensure imported MonthPicker is used - code above uses imported MonthPicker for logic but manually builds UI? No, Step 125 shows imported MonthPicker usage.
-    // Wait, Lines 443 use `MonthPicker`.
-    // BUT Lines 236-414 DEFINED `createMonthPicker` but didn't use it? 
-    // Ah, lines 443 call `MonthPicker(...)`. That's the import.
-    // The code I read in Step 125 has a defined `createMonthPicker` that is UNUSED. 
-    // I will remove the unused `createMonthPicker` definition (lines 236-414) to clean up, as line 443 uses the imported one.
-    // Wait, Step 125 shows: `import { MonthPicker } from './MonthPicker.js';`
-    // And usage: `const startPicker = MonthPicker(...)`
-    // The `createMonthPicker` function was likely legacy code left in the file properly. I will SKIP including it in my overwrite to clean code.
 
     // --- Build Header / Controls ---
     const controls = document.createElement('div');
