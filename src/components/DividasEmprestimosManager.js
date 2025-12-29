@@ -195,28 +195,38 @@ export const DividasEmprestimosManager = (project) => {
     const formatMoney = (val) => new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(val);
 
     const createLoan = async () => {
-        await LoanModal.show({
-            projectId: project.id,
-            onSave: async (loanData) => {
-                try {
-                    const response = await fetch(`${API_BASE_URL}/loans`, {
-                        method: 'POST',
-                        headers: getHeaders(),
-                        body: JSON.stringify(loanData)
-                    });
+        console.log('[DividasEmprestimosManager] Opening loan modal...');
+        try {
+            await LoanModal.show({
+                projectId: project.id,
+                onSave: async (loanData) => {
+                    console.log('[DividasEmprestimosManager] Saving loan:', loanData);
+                    try {
+                        const response = await fetch(`${API_BASE_URL}/loans`, {
+                            method: 'POST',
+                            headers: getHeaders(),
+                            body: JSON.stringify(loanData)
+                        });
 
-                    if (response.ok) {
-                        showToast('Empréstimo contratado!', 'success');
-                        loadData();
-                    } else {
-                        const err = await response.json();
-                        showToast(err.message || 'Erro ao contratar', 'error');
+                        if (response.ok) {
+                            console.log('[DividasEmprestimosManager] Loan created successfully');
+                            showToast('Empréstimo contratado com sucesso!', 'success');
+                            loadData();
+                        } else {
+                            const err = await response.json();
+                            console.error('[DividasEmprestimosManager] Error creating loan:', err);
+                            showToast(err.message || 'Erro ao contratar empréstimo', 'error');
+                        }
+                    } catch (error) {
+                        console.error('[DividasEmprestimosManager] Network error:', error);
+                        showToast('Erro de conexão ao contratar empréstimo', 'error');
                     }
-                } catch (error) {
-                    showToast('Erro de conexão', 'error');
                 }
-            }
-        });
+            });
+        } catch (error) {
+            console.error('[DividasEmprestimosManager] Error opening modal:', error);
+            showToast('Erro ao abrir formulário de empréstimo', 'error');
+        }
     };
 
     const updateInstallment = async (item) => {
@@ -249,7 +259,7 @@ export const DividasEmprestimosManager = (project) => {
 
     container.innerHTML = `
         <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 2rem;">
-            <h2>💳 Dívidas / Empréstimos</h2>
+            <h2>🏦 Dívidas / Empréstimos</h2>
             <div style="display: flex; gap: 0.5rem;">
                 <span style="font-size: 0.9rem; color: var(--color-primary);">Financeiro</span>
                 <span style="color: var(--color-text-muted);">/</span>
