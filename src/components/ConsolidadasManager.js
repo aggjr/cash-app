@@ -263,8 +263,14 @@ export const ConsolidadasManager = (project) => {
     controls.style.display = 'flex';
     controls.style.flexDirection = 'column';
     controls.style.gap = '1rem';
-    controls.style.padding = '0 0.5rem 1rem 0.5rem';
-    controls.style.marginBottom = '1rem';
+    controls.style.padding = '1rem 0.5rem';
+    controls.style.marginBottom = '0'; // Remove margin as padding handles spacing
+    // Sticky styles
+    controls.style.position = 'sticky';
+    controls.style.top = '0';
+    controls.style.zIndex = '40'; // Higher than table header
+    controls.style.backgroundColor = '#ffffff'; // Solid background to cover scroll
+    controls.style.borderBottom = '1px solid #e5e7eb'; // Visual separation
 
     // Top Row: Title + Radio Buttons
     const topRow = document.createElement('div');
