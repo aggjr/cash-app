@@ -157,12 +157,11 @@ exports.getConsolidatedData = async (req, res) => {
         };
 
         // --- FETCH EXTRA DATA (Aportes / Retiradas) ---
+        // Aportes Logic
+        // Aportes typically represents realized cash injection, so data_fato IS the real date.
+        // Schema check indicates 'data_fato' exists, but 'data_real' might not.
         let aportesDateField = 'data_fato';
-        if (viewType === 'caixa') {
-            aportesDateField = 'data_real';
-        } else if (viewType === 'previsto') {
-            aportesDateField = 'data_fato';
-        }
+        // if (isCaixa) { aportesDateField = 'data_real'; } // Removed unsafe assumption
 
         let extraFilter = '';
         const extraParams = [projectId];
@@ -175,8 +174,8 @@ exports.getConsolidatedData = async (req, res) => {
             extraFilter += ` AND DATE_FORMAT(${aportesDateField}, '%Y-%m') <= ?`;
             extraParams.push(endMonth);
         }
-        if (viewType === 'caixa') {
-            // Aportes/Retiradas table cols: data_real usually
+        // Strict Caixa Check: ONLY if it's considered "Real" (Not Null)
+        if (isCaixa) {
             extraFilter += ` AND ${aportesDateField} IS NOT NULL`;
         }
 
@@ -189,19 +188,16 @@ exports.getConsolidatedData = async (req, res) => {
            GROUP BY month_key
         `, extraParams);
 
-        // For Retiradas (using same logic/dates usually, or slight var)
+        // Retiradas Logic
+        // Retiradas also typically realized immediately. Use data_fato.
         let retiradasDateField = 'data_fato';
-        if (viewType === 'caixa') {
-            retiradasDateField = 'data_real';
-        } else if (viewType === 'previsto') {
-            retiradasDateField = 'data_prevista';
-        }
+        // if (isCaixa) { retiradasDateField = 'data_real'; } // Removed unsafe assumption
 
         let retFilter = '';
         const retParams = [projectId];
         if (startMonth) { retFilter += ` AND DATE_FORMAT(${retiradasDateField}, '%Y-%m') >= ?`; retParams.push(startMonth); }
         if (endMonth) { retFilter += ` AND DATE_FORMAT(${retiradasDateField}, '%Y-%m') <= ?`; retParams.push(endMonth); }
-        if (viewType === 'caixa') { retFilter += ` AND ${retiradasDateField} IS NOT NULL`; }
+        if (isCaixa) { retFilter += ` AND ${retiradasDateField} IS NOT NULL`; }
 
         const [retiradasData] = await db.execute(`
             SELECT 
