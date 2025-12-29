@@ -1,9 +1,9 @@
 const express = require('express');
 const router = express.Router();
 const loanController = require('../controllers/loanController');
-const { authenticateToken } = require('../middleware/auth');
+const auth = require('../middleware/auth');
 
-router.use(authenticateToken);
+router.use(auth);
 
 // Create new loan
 router.post('/', loanController.createLoan);
