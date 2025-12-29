@@ -3,7 +3,7 @@ const db = require('./config/database');
 async function migrateDataPrevistaAtraso() {
     console.log('Starting migration: Adding data_prevista_atraso column...');
 
-    const tables = ['producao_revenda', 'saidas'];
+    const tables = ['producao_revenda', 'saidas', 'entradas'];
     let connection;
 
     try {
@@ -11,12 +11,15 @@ async function migrateDataPrevistaAtraso() {
 
         for (const table of tables) {
             try {
+                // Determine AFTER column
+                const afterColumn = (table === 'entradas') ? 'data_prevista_recebimento' : 'data_prevista_pagamento';
+
                 // Check if column exists
                 const [columns] = await connection.query(`SHOW COLUMNS FROM ${table} LIKE 'data_prevista_atraso'`);
 
                 if (columns.length === 0) {
                     console.log(`Adding data_prevista_atraso to ${table}...`);
-                    await connection.query(`ALTER TABLE ${table} ADD COLUMN data_prevista_atraso DATE DEFAULT NULL AFTER data_prevista_pagamento`);
+                    await connection.query(`ALTER TABLE ${table} ADD COLUMN data_prevista_atraso DATE DEFAULT NULL AFTER ${afterColumn}`);
                     console.log(`Successfully added data_prevista_atraso to ${table}`);
                 } else {
                     console.log(`Column data_prevista_atraso already exists in ${table}`);
