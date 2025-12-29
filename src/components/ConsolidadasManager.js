@@ -179,9 +179,8 @@ export const ConsolidadasManager = (project) => {
                 // Average
                 let average = 0;
                 if (node.isPercentage) {
-                    let sum = 0; let c = 0;
-                    months.forEach(m => { sum += (node.monthlyTotals[m] || 0); c++; });
-                    average = c > 0 ? sum / c : 0;
+                    // User Request: Use ratio of averages = Total ratio = node.total
+                    average = node.total;
                 } else {
                     average = months.length > 0 ? node.total / months.length : 0;
                 }
