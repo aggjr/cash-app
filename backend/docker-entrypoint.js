@@ -32,29 +32,43 @@ async function runMigrations() {
     console.log('⏰ Started at:', new Date().toISOString());
     console.log('🌍 Timezone:', Intl.DateTimeFormat().resolvedOptions().timeZone);
     console.log('═══════════════════════════════════════\n');
-    console.log('🚀 Checking for Database Reset...');
+    console.log('🚀 Checking database state...');
 
-    // DATABASE RESET DISABLED - Data will persist between deployments
-    // Uncomment the section below ONLY if you need to completely reset the database
-    /*
-    console.log('⚠️  FORCING DATABASE RESET (init.sql) ⚠️');
     try {
-        await new Promise((resolve, reject) => {
-            const child = exec('node execute-init-sql.js', { cwd: __dirname });
-            child.stdout.on('data', data => console.log(data));
-            child.stderr.on('data', data => console.error(data));
-            child.on('close', code => {
-                if (code === 0) resolve();
-                else reject(new Error(`Reset failed with code ${code}`));
-            });
+        const connection = await mysql.createConnection({
+            host: process.env.DB_HOST,
+            user: process.env.DB_USER,
+            password: process.env.DB_PASSWORD,
+            database: process.env.DB_NAME,
+            port: process.env.DB_PORT || 3306
         });
+
+        const [tables] = await connection.query('SHOW TABLES');
+        await connection.end();
+
+        if (tables.length === 0) {
+            console.log('⚠️  Database is EMPTY. Initializing with init.sql...');
+            await new Promise((resolve, reject) => {
+                const child = exec('node execute-init-sql.js', { cwd: __dirname });
+                child.stdout.on('data', data => console.log(data));
+                child.stderr.on('data', data => console.error(data));
+                child.on('close', code => {
+                    if (code === 0) {
+                        console.log('✅ Database initialized successfully!');
+                        resolve();
+                    } else {
+                        reject(new Error(`Init script failed with code ${code}`));
+                    }
+                });
+            });
+        } else {
+            console.log(`✅ Database already contains ${tables.length} tables. Skipping init.sql.`);
+        }
+
     } catch (e) {
-        console.error('❌ DB Reset Failed:', e);
-        console.error('⚠️  Continuing startup (migrations might match existing schema or fail)...');
-        // Do NOT exit, allowing valid startup if DB was already fine or error was transient.
+        console.error('❌ Error checking/initializing DB:', e);
+        console.error('⚠️  Continuing startup (migrations might fix it manually)...');
     }
-    */
-    console.log('✅ Database reset skipped - using existing data');
 
     console.log('🚀 Running Migrations (Post-Reset)...');
 
