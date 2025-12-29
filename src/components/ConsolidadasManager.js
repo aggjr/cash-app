@@ -17,11 +17,12 @@ export const ConsolidadasManager = (project) => {
 
     // --- State ---
     const today = new Date();
-    // Default to current year or stored
+    // Default to 'competencia' as per user request flow/standard
+    let viewType = 'competencia';
     let startMonth = localStorage.getItem('consolidadas_startMonth') || `${today.getFullYear()}-01`;
     let endMonth = localStorage.getItem('consolidadas_endMonth') || `${today.getFullYear()}-12`;
-    // Store IDs of expanded nodes (Strings now)
     let expandedNodes = new Set();
+    let currentData = []; // Store fetched data for export
 
     // --- Helper: Format Currency ---
     const formatCurrency = (val) => {
@@ -58,23 +59,13 @@ export const ConsolidadasManager = (project) => {
             if (overlay) overlay.style.display = 'flex';
 
             const token = localStorage.getItem('token');
+            const url = `${API_BASE_URL}/consolidadas?projectId=${project.id}&viewType=${viewType}&startMonth=${startMonth}&endMonth=${endMonth}`;
 
-            // 1. Fetch Realized Data (Caixa - strictly realized)
-            const urlReal = `${API_BASE_URL}/consolidadas?projectId=${project.id}&viewType=caixa&startMonth=${startMonth}&endMonth=${endMonth}`;
-            const respReal = await fetch(urlReal, { headers: { 'Authorization': `Bearer ${token}` } });
+            const resp = await fetch(url, { headers: { 'Authorization': `Bearer ${token}` } });
+            if (!resp.ok) throw new Error('Falha ao carregar dados consolidados');
 
-            if (!respReal.ok) throw new Error('Falha ao carregar dados realizados');
-            const dataReal = await respReal.json();
-
-            // 2. Fetch Forecast Data (Previsto - all items/predicted)
-            const urlPrev = `${API_BASE_URL}/consolidadas?projectId=${project.id}&viewType=previsto&startMonth=${startMonth}&endMonth=${endMonth}`;
-            const respPrev = await fetch(urlPrev, { headers: { 'Authorization': `Bearer ${token}` } });
-
-            if (!respPrev.ok) throw new Error('Falha ao carregar dados previstos');
-            const dataPrev = await respPrev.json();
-
-            // Render Both Tables
-            renderTables(dataReal, dataPrev);
+            currentData = await resp.json();
+            renderTable(currentData);
 
         } catch (error) {
             console.error(error);
@@ -84,18 +75,21 @@ export const ConsolidadasManager = (project) => {
         }
     };
 
-    // --- Render Tables ---
-    const renderTables = (realData, prevData) => {
+    // --- Render Single Table ---
+    const renderTable = (data) => {
         const tableContainer = container.querySelector('#consolidadas-table-container');
         tableContainer.innerHTML = ''; // Clear existing
 
         const months = getMonthKeys();
 
+        // Define Title based on View Type
+        const title = viewType === 'caixa' ? 'TRANSAÇÕES REAIS (CAIXA)' : 'TRANSAÇÕES DE COMPETÊNCIA';
+
         // Helper to generate a single table HTML
-        const generateTableHtml = (data, title, type) => {
+        const generateTableHtml = () => {
             let html = `
-            <div style="margin-bottom: 2rem;">
-                <table style="width: auto; border-collapse: separate; border-spacing: 0;">
+            <div style="margin-bottom: 2rem; overflow-x: auto;">
+                <table style="width: auto; border-collapse: separate; border-spacing: 0; min-width: 100%;">
                     <thead style="position: sticky; top: 0; z-index: 10; background-color: #00425F; color: white;">
                         <!-- Main Title Row spanning all columns -->
                         <tr>
@@ -244,13 +238,10 @@ export const ConsolidadasManager = (project) => {
             return html;
         };
 
-        // Render Table 1: Realized
-        tableContainer.innerHTML += generateTableHtml(realData, 'TRANSAÇÕES REAIS', 'real');
+        // Render Table
+        tableContainer.innerHTML = generateTableHtml();
 
-        // Render Table 2: Predicted
-        tableContainer.innerHTML += generateTableHtml(prevData, 'TRANSAÇÕES PREVISTAS', 'prev');
-
-        // Attach Click Listeners for Expansion (Global for container)
+        // Attach Click Listeners
         tableContainer.querySelectorAll('.expandable-row').forEach(row => {
             row.addEventListener('click', (e) => {
                 e.stopPropagation();
@@ -260,8 +251,7 @@ export const ConsolidadasManager = (project) => {
                 } else {
                     expandedNodes.add(id);
                 }
-                // Re-render both with new state (inefficient but safe for sync)
-                renderTables(realData, prevData);
+                renderTable(data);
             });
         });
     };
@@ -269,20 +259,74 @@ export const ConsolidadasManager = (project) => {
 
     // --- Build Header / Controls ---
     const controls = document.createElement('div');
+    controls.innerHTML = '';
     controls.style.display = 'flex';
-    controls.style.justifyContent = 'space-between';
-    controls.style.alignItems = 'center';
+    controls.style.flexDirection = 'column';
+    controls.style.gap = '1rem';
     controls.style.padding = '0 0.5rem 1rem 0.5rem';
     controls.style.marginBottom = '1rem';
-    // controls.style.backgroundColor = 'white'; // Transparent bg for header
-    // controls.style.borderBottom = '1px solid #e5e7eb';
-    // controls.style.borderRadius = '8px 8px 0 0';
 
-    // Left Logic Group
-    const leftGroup = document.createElement('div');
-    leftGroup.style.display = 'flex';
-    leftGroup.style.alignItems = 'center';
-    leftGroup.style.gap = '1.5rem';
+    // Top Row: Title + Radio Buttons
+    const topRow = document.createElement('div');
+    topRow.style.display = 'flex';
+    topRow.style.justifyContent = 'space-between';
+    topRow.style.alignItems = 'center';
+
+    const title = document.createElement('div');
+    title.innerHTML = '📑 Consolidadas';
+    title.style.fontSize = '1.5rem';
+    title.style.fontWeight = 'bold';
+    title.style.color = '#00425F';
+
+    // Radio Group
+    const radioGroup = document.createElement('div');
+    radioGroup.style.display = 'flex';
+    radioGroup.style.gap = '1.5rem';
+    radioGroup.style.alignItems = 'center';
+    radioGroup.style.backgroundColor = '#f3f4f6';
+    radioGroup.style.padding = '0.5rem 1rem';
+    radioGroup.style.borderRadius = '8px';
+
+    const createRadio = (label, value) => {
+        const wrapper = document.createElement('label');
+        wrapper.style.display = 'flex';
+        wrapper.style.alignItems = 'center';
+        wrapper.style.gap = '0.5rem';
+        wrapper.style.cursor = 'pointer';
+
+        const input = document.createElement('input');
+        input.type = 'radio';
+        input.name = 'viewType';
+        input.value = value;
+        input.checked = (viewType === value);
+        input.onchange = (e) => {
+            if (e.target.checked) {
+                viewType = value;
+                loadData();
+            }
+        };
+
+        const span = document.createElement('span');
+        span.textContent = label;
+        span.style.fontWeight = '600';
+        span.style.color = '#374151';
+
+        wrapper.appendChild(input);
+        wrapper.appendChild(span);
+        return wrapper;
+    };
+
+    radioGroup.appendChild(createRadio('Visão de Competência', 'competencia'));
+    radioGroup.appendChild(createRadio('Visão de Caixa', 'caixa'));
+
+    topRow.appendChild(title);
+    topRow.appendChild(radioGroup);
+
+    // Bottom Row: Filters + Exports
+    const bottomRow = document.createElement('div');
+    bottomRow.style.display = 'flex';
+    bottomRow.style.justifyContent = 'space-between';
+    bottomRow.style.alignItems = 'center';
 
     // Date Pickers Group
     const dateGroup = document.createElement('div');
@@ -315,72 +359,61 @@ export const ConsolidadasManager = (project) => {
     dateGroup.appendChild(lblAte);
     dateGroup.appendChild(endPicker);
 
-    leftGroup.appendChild(dateGroup);
-
     // Export Buttons
     const exportDiv = document.createElement('div');
     exportDiv.style.display = 'flex';
     exportDiv.style.gap = '0.5rem';
 
     const btnExcel = document.createElement('button');
-    btnExcel.id = 'btn-excel-consol';
     btnExcel.className = 'btn-outline';
     btnExcel.textContent = '📊 Excel';
-    exportDiv.appendChild(btnExcel);
+    btnExcel.onclick = () => {
+        if (!currentData || currentData.length === 0) {
+            showToast('Sem dados para exportar.', 'info');
+            return;
+        }
+        // Basic Excel Logic
+        try {
+            const exporter = new ExcelExporter();
+            // Since format is complex hierarchical, a simple export might not be perfect, 
+            // but we can pass the raw structure if ExcelExporter supports it, or flatten it.
+            // For now, let's export the visible top level
+            const exportData = currentData.map(node => ({
+                Nome: node.name,
+                Total: node.total,
+                ...node.monthlyTotals
+            }));
+            exporter.exportJsonToExcel(exportData, `consolidadas_${viewType}`);
+        } catch (e) {
+            console.error(e);
+            showToast('Erro na exportação Excel', 'error');
+        }
+    };
 
     const btnPdf = document.createElement('button');
-    btnPdf.id = 'btn-pdf-consol';
     btnPdf.className = 'btn-outline';
     btnPdf.textContent = '🖨️ PDF';
+    btnPdf.onclick = () => window.print();
+
+    exportDiv.appendChild(btnExcel);
     exportDiv.appendChild(btnPdf);
 
-    leftGroup.appendChild(exportDiv);
+    bottomRow.appendChild(dateGroup);
+    bottomRow.appendChild(exportDiv);
 
-    // Title
-    const title = document.createElement('div');
-    title.innerHTML = '📑 Consolidadas';
-    title.style.fontSize = '1.5rem';
-    title.style.fontWeight = 'bold';
-    title.style.color = '#00425F';
+    controls.appendChild(topRow);
+    controls.appendChild(bottomRow);
 
-    controls.appendChild(leftGroup);
-    controls.appendChild(title);
-
-    // Export Handlers
-    setTimeout(() => {
-        const excelBtn = container.querySelector('#btn-excel-consol');
-        const pdfBtn = container.querySelector('#btn-pdf-consol');
-
-        if (excelBtn) {
-            excelBtn.onclick = async () => {
-                try {
-                    // Since we don't have a single consolidatedData anymore, we might need to 
-                    // export what is currently rendered or fetch again. 
-                    // For now, let's just toast
-                    showToast('Exportação indisponível com visualização dupla. Imprima a página ou PDF.', 'info');
-                    /*
-                    // Previous logic relied on consolidatedData array
-                    */
-                } catch (error) {
-                    console.error('Excel export error:', error);
-                    showToast(`Erro ao exportar: ${error.message}`, 'error');
-                }
-            };
-        }
-
-        if (pdfBtn) {
-            pdfBtn.onclick = () => window.print();
-        }
-    }, 100);
 
     // --- Container Assembly ---
     const tableContainer = document.createElement('div');
     tableContainer.id = 'consolidadas-table-container';
     tableContainer.style.flex = '1';
-    tableContainer.style.overflow = 'auto'; // Internal scroll
+    tableContainer.style.overflow = 'hidden'; // Let inner div handle scroll
+    tableContainer.style.overflowY = 'auto'; // Vertical Scroll on container
 
     const loadingOverlay = document.createElement('div');
-    loadingOverlay.classList.add('loading-overlay', 'hidden'); // Corrected logic
+    loadingOverlay.classList.add('loading-overlay', 'hidden');
     loadingOverlay.innerHTML = '<div class="spinner"></div>';
     loadingOverlay.style.position = 'absolute';
     loadingOverlay.style.top = '0';
