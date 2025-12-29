@@ -9,7 +9,10 @@ exports.getConsolidatedData = async (req, res) => {
         }
 
         // 1. Determine Date Field based on View Type
-        const dateField = viewType === 'caixa' ? 'data_real_pagamento' : 'data_fato';
+        // DEFAULT to Competência (Accrual) if not 'caixa'
+        const isCaixa = viewType === 'caixa';
+        // Main entities use detailed names, simpler ones use generic
+        const dateField = isCaixa ? 'data_real_pagamento' : 'data_fato';
 
         // 2. Build Date Filter
         let dateFilter = '';
@@ -23,7 +26,7 @@ exports.getConsolidatedData = async (req, res) => {
             dateFilter += ` AND DATE_FORMAT(${dateField}, '%Y-%m') <= ?`;
             params.push(endMonth);
         }
-        if (viewType === 'caixa') {
+        if (isCaixa) {
             dateFilter += ` AND ${dateField} IS NOT NULL`;
         }
 
@@ -47,7 +50,7 @@ exports.getConsolidatedData = async (req, res) => {
                 localFilter += ` AND DATE_FORMAT(d.${tableDateField}, '%Y-%m') <= ?`;
                 queryParams.push(endMonth);
             }
-            if (viewType === 'caixa') {
+            if (isCaixa) {
                 localFilter += ` AND d.${tableDateField} IS NOT NULL`;
             }
 
@@ -117,20 +120,16 @@ exports.getConsolidatedData = async (req, res) => {
         };
 
         // --- Execute for tables (with proper date fields) ---
-        // --- Execute for tables (with proper date fields) ---
         let saidasDateField = 'data_fato';
         let entradasDateField = 'data_fato';
         let producaoDateField = 'data_fato';
 
-        if (viewType === 'caixa') {
+        if (isCaixa) {
             saidasDateField = 'data_real_pagamento';
             entradasDateField = 'data_real_recebimento';
-            producaoDateField = 'data_real_pagamento'; // Producao specifically uses data_real_pagamento for caixa
-        } else if (viewType === 'previsto') {
-            saidasDateField = 'data_prevista_pagamento';
-            entradasDateField = 'data_prevista_recebimento';
-            producaoDateField = 'data_prevista_pagamento';
+            producaoDateField = 'data_real_pagamento';
         }
+        // Competencia (default) uses data_fato for all
 
         const saidasRoots = await buildTreeForTable('tipo_saida', 'saidas', 'tipo_saida_id', saidasDateField);
         const producaoRoots = await buildTreeForTable('tipo_producao_revenda', 'producao_revenda', 'tipo_id', producaoDateField);
