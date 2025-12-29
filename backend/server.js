@@ -13,6 +13,7 @@ const accountsRoutes = require('./routes/accounts');
 const companiesRoutes = require('./routes/companies');
 const saidasRoutes = require('./routes/saidas');
 const aportesRoutes = require('./routes/aportes');
+const auditRoutes = require('./routes/auditLogs');
 const retiradasRoutes = require('./routes/retiradas');
 const transferenciasRoutes = require('./routes/transferencias');
 const projectsRoutes = require('./routes/users');
@@ -57,6 +58,7 @@ apiRouter.use('/previsao', require('./routes/previsao'));
 apiRouter.use('/upload', require('./routes/upload'));
 apiRouter.use('/debug', debugRoutes);
 apiRouter.use('/settings', settingsRoutes);
+apiRouter.use('/audit-logs', auditRoutes);
 
 // Static Uploads Serving
 // Static Uploads Serving
@@ -117,6 +119,7 @@ const migrateTransferenciaComprovante = require('./migrate_add_comprovante_trans
 const migrateFixTransferenciaNulls = require('./migrate_fix_transferencia_nulls');
 const migrateInstallmentColumns = require('./migrate_add_installment_columns');
 const migrateSystemSettings = require('./migrate_add_system_settings');
+const migrateCreateAuditLogs = require('./migrate-create-audit-logs');
 
 loadErrorCatalog()
     .then(() => migrateFixAccounts())
@@ -127,6 +130,7 @@ loadErrorCatalog()
     .then(() => migrateFixTransferenciaNulls())
     .then(() => migrateInstallmentColumns())
     .then(() => migrateSystemSettings())
+    .then(() => migrateCreateAuditLogs())
     .then(() => {
         startServer();
     })

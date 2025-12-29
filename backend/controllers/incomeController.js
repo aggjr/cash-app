@@ -1,6 +1,7 @@
 const db = require('../config/database');
 const AppError = require('../utils/AppError');
 const { validateDateWithinRange } = require('../utils/dateValidation');
+const { logAudit } = require('../utils/auditLogger');
 
 const getOrderByClause = (sortBy, order = 'asc') => {
     const direction = order.toUpperCase() === 'DESC' ? 'DESC' : 'ASC';
@@ -391,6 +392,7 @@ exports.createIncome = async (req, res, next) => {
         }
 
         await connection.commit();
+        logAudit(req, 'CREATE', 'entradas', createdIds[0], { count: createdIds.length, totalValue: valorDecimal, description: descricao });
 
         res.status(201).json({
             success: true,
@@ -637,6 +639,7 @@ exports.updateIncome = async (req, res, next) => {
         }
 
         await connection.commit();
+        logAudit(req, 'UPDATE', 'entradas', id, { scope: req.body.scope || 'single', updatedCount });
         res.json({ message: 'Income updated successfully' });
     } catch (error) {
         if (connection) await connection.rollback();
@@ -674,6 +677,7 @@ exports.deleteIncome = async (req, res, next) => {
         );
 
         await connection.commit();
+        logAudit(req, 'DELETE', 'entradas', id, { deletedAmount: income[0]?.valor });
         res.json({ message: 'Income deleted successfully' });
     } catch (error) {
         if (connection) await connection.rollback();
@@ -1309,6 +1313,7 @@ exports.batchDeleteIncome = async (req, res, next) => {
         }
 
         await connection.commit();
+        logAudit(req, 'DELETE', 'entradas', id, { scope, deletedCount });
 
         res.json({
             success: true,

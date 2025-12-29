@@ -1,6 +1,7 @@
 const db = require('../config/database');
 const AppError = require('../utils/AppError');
 const { validateDateWithinRange } = require('../utils/dateValidation');
+const { logAudit } = require('../utils/auditLogger');
 
 // Helper function to generate dynamic ORDER BY clause
 const getOrderByClause = (sortBy, order = 'desc') => {
@@ -368,6 +369,7 @@ exports.createSaida = async (req, res, next) => {
         }
 
         await connection.commit();
+        logAudit(req, 'CREATE', 'saidas', createdIds[0], { count: createdIds.length, totalValue: valorDecimal, description: descricao });
 
         res.status(201).json({
             message: `${count} saída(s) criada(s) com sucesso`,
@@ -516,6 +518,7 @@ exports.updateSaida = async (req, res, next) => {
         );
 
         await connection.commit();
+        logAudit(req, 'UPDATE', 'saidas', id, { updates: updates.length });
         res.json({ message: 'Saída updated successfully' });
     } catch (error) {
         if (connection) await connection.rollback();
@@ -553,6 +556,7 @@ exports.deleteSaida = async (req, res, next) => {
         );
 
         await connection.commit();
+        logAudit(req, 'DELETE', 'saidas', id, { amount: saida[0]?.valor });
         res.json({ message: 'Saída deleted successfully' });
     } catch (error) {
         if (connection) await connection.rollback();
