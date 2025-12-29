@@ -37,8 +37,9 @@ exports.getConsolidatedData = async (req, res) => {
                 // --- CAIXA VIEW ---
                 if (isCaixa) {
                     if (isProvisioned) {
-                        // Logic: Unpaid, prioritize Atraso > Prevista (date)
-                        filter = `AND ${colReal} IS NULL`;
+                        // Logic Update: Show ALL items (Paid + Unpaid) using Predicted Date
+                        // filter = `AND ${colReal} IS NULL`; // REMOVED to show all
+                        filter = '';
                         if (table === 'entradas') {
                             dateField = 'COALESCE(data_prevista_atraso, data_prevista_recebimento)';
                         } else {
@@ -54,11 +55,9 @@ exports.getConsolidatedData = async (req, res) => {
                 // --- COMPETENCIA VIEW ---
                 else {
                     dateField = 'data_fato';
-                    // Apply same Status filter to keep grids disjoint?
-                    // User said: "Neste primeiro gride, só aparecem dados com data de efetivação..."
-                    // This implies strict separation.
                     if (isProvisioned) {
-                        filter = `AND ${colReal} IS NULL`;
+                        // Logic Update: Show ALL items for Competence Provisioned too
+                        filter = ''; // REMOVED `AND ${colReal} IS NULL`
                     } else {
                         filter = `AND ${colReal} IS NOT NULL`;
                     }
@@ -156,44 +155,55 @@ exports.getConsolidatedData = async (req, res) => {
             const entradasRoots = await buildTreeForTable('tipo_entrada', 'entradas', 'tipo_entrada_id');
 
             // --- 4. Extra Data (Aportes / Retiradas) ---
-            // Logic: Include ONLY in Realized. Provisioned = 0.
+            // Logic: Include in BOTH Views (Realized=Real Date, Provisioned=Predicted Date)
             let aportesVirtual = { id: 'aportes_root', name: '+ APORTES', children: [], monthlyTotals: {}, total: 0, isPositive: true };
             let retiradasVirtual = { id: 'retiradas_root', name: '- RETIRADAS', children: [], monthlyTotals: {}, total: 0, isNegative: true };
 
-            if (!isProvisioned) {
-                // Fetch Realized Aportes/Retiradas
-                const getExtraData = async (table) => {
-                    // Use data_fato as 'Real' date since data_real missing
-                    let dateField = 'data_fato';
-                    let filter = '';
-                    // No IS NULL check for data_fato usually
+            // Fetch Helper for Extra Data
+            const getExtraData = async (table) => {
+                // Determine Date Field
+                let dateField = 'data_fato'; // Default
+                if (isCaixa) {
+                    if (isProvisioned) dateField = 'data_prevista'; // Use Predicted for Provisioned Grid
+                    else dateField = 'COALESCE(data_real, data_fato)'; // Use Real (or Fato fallback) for Realized
+                } else {
+                    // Competencia
+                    dateField = 'data_fato';
+                }
 
-                    let qParams = [projectId];
-                    let qFilter = '';
-                    if (startMonth) { qFilter += ` AND DATE_FORMAT(${dateField}, '%Y-%m') >= ?`; qParams.push(startMonth); }
-                    if (endMonth) { qFilter += ` AND DATE_FORMAT(${dateField}, '%Y-%m') <= ?`; qParams.push(endMonth); }
+                // Filter?
+                // If Realized (Caixa), ensure it happened? 
+                // Previously we assumed everything in Aportes/Retiradas was realized.
+                // Now strictly: Provisioned = All, Realized = data_real NOT NULL?
+                // Schema has data_real, data_prevista.
+                let filter = '';
+                if (isCaixa) {
+                    if (!isProvisioned) filter = 'AND data_real IS NOT NULL';
+                    // Provisioned: Show ALL (no filter)
+                }
 
-                    // Strict Caixa Check? If viewType=Caixa, user wants strictness.
-                    // But data_real is missing. We assume data_fato IS the real date for these tables.
-                    // So we treat them as always "Paid".
+                let qParams = [projectId];
+                let qFilter = filter; // Start with base filter
 
-                    const [rows] = await db.execute(`
-                        SELECT DATE_FORMAT(${dateField}, '%Y-%m') as month_key, SUM(valor) as total
-                        FROM ${table} WHERE project_id = ? AND active = 1 ${qFilter} GROUP BY month_key
-                    `, qParams);
-                    return rows;
-                };
+                if (startMonth) { qFilter += ` AND DATE_FORMAT(${dateField}, '%Y-%m') >= ?`; qParams.push(startMonth); }
+                if (endMonth) { qFilter += ` AND DATE_FORMAT(${dateField}, '%Y-%m') <= ?`; qParams.push(endMonth); }
 
-                const aportesRows = await getExtraData('aportes');
-                aportesRows.forEach(r => {
-                    const v = parseFloat(r.total) || 0; aportesVirtual.monthlyTotals[r.month_key] = v; aportesVirtual.total += v;
-                });
+                const [rows] = await db.execute(`
+                    SELECT DATE_FORMAT(${dateField}, '%Y-%m') as month_key, SUM(valor) as total
+                    FROM ${table} WHERE project_id = ? AND active = 1 ${qFilter} GROUP BY month_key
+                `, qParams);
+                return rows;
+            };
 
-                const retiradasRows = await getExtraData('retiradas');
-                retiradasRows.forEach(r => {
-                    const v = parseFloat(r.total) || 0; retiradasVirtual.monthlyTotals[r.month_key] = v; retiradasVirtual.total += v;
-                });
-            }
+            const aportesRows = await getExtraData('aportes');
+            aportesRows.forEach(r => {
+                const v = parseFloat(r.total) || 0; aportesVirtual.monthlyTotals[r.month_key] = v; aportesVirtual.total += v;
+            });
+
+            const retiradasRows = await getExtraData('retiradas');
+            retiradasRows.forEach(r => {
+                const v = parseFloat(r.total) || 0; retiradasVirtual.monthlyTotals[r.month_key] = v; retiradasVirtual.total += v;
+            });
 
             // --- 5. Virtual Nodes Construction (Calculations) ---
             const createVirtualRoot = (id, name, children) => {
