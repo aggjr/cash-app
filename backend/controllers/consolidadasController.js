@@ -157,6 +157,63 @@ exports.getConsolidatedData = async (req, res) => {
             return virtual;
         };
 
+        // --- FETCH EXTRA DATA (Aportes / Retiradas) ---
+        let aportesDateField = 'data_fato';
+        if (viewType === 'caixa') {
+            aportesDateField = 'data_real';
+        } else if (viewType === 'previsto') {
+            aportesDateField = 'data_fato';
+        }
+
+        let extraFilter = '';
+        const extraParams = [projectId];
+
+        if (startMonth) {
+            extraFilter += ` AND DATE_FORMAT(${aportesDateField}, '%Y-%m') >= ?`;
+            extraParams.push(startMonth);
+        }
+        if (endMonth) {
+            extraFilter += ` AND DATE_FORMAT(${aportesDateField}, '%Y-%m') <= ?`;
+            extraParams.push(endMonth);
+        }
+        if (viewType === 'caixa') {
+            // Aportes/Retiradas table cols: data_real usually
+            extraFilter += ` AND ${aportesDateField} IS NOT NULL`;
+        }
+
+        const [aportesData] = await db.execute(`
+            SELECT 
+                DATE_FORMAT(${aportesDateField}, '%Y-%m') AS month_key,
+                SUM(valor) AS total
+            FROM aportes
+            WHERE project_id = ? AND active = 1 ${extraFilter}
+           GROUP BY month_key
+        `, extraParams);
+
+        // For Retiradas (using same logic/dates usually, or slight var)
+        let retiradasDateField = 'data_fato';
+        if (viewType === 'caixa') {
+            retiradasDateField = 'data_real';
+        } else if (viewType === 'previsto') {
+            retiradasDateField = 'data_prevista';
+        }
+
+        let retFilter = '';
+        const retParams = [projectId];
+        if (startMonth) { retFilter += ` AND DATE_FORMAT(${retiradasDateField}, '%Y-%m') >= ?`; retParams.push(startMonth); }
+        if (endMonth) { retFilter += ` AND DATE_FORMAT(${retiradasDateField}, '%Y-%m') <= ?`; retParams.push(endMonth); }
+        if (viewType === 'caixa') { retFilter += ` AND ${retiradasDateField} IS NOT NULL`; }
+
+        const [retiradasData] = await db.execute(`
+            SELECT 
+                DATE_FORMAT(${retiradasDateField}, '%Y-%m') AS month_key,
+                SUM(valor) AS total
+            FROM retiradas
+            WHERE project_id = ? AND active = 1 ${retFilter}
+            GROUP BY month_key
+        `, retParams);
+
+
         // --- FINANCIAL CALCULATIONS & ORDERING ---
 
         // 1. ENTRADAS (Moved to top)
