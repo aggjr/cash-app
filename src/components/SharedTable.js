@@ -201,7 +201,8 @@ export class SharedTable {
 
         return this.columns.map(col => {
             const isActive = this.activeFilters[col.key];
-            const color = isActive ? 'var(--color-gold)' : 'white';
+            // User Report: "Cor apagada". Force pure white #FFFFFF for inactive.
+            const color = isActive ? 'var(--color-gold)' : '#FFFFFF';
 
             // Sort State
             const isSortKey = this.sortConfig.key === col.key;
@@ -213,7 +214,7 @@ export class SharedTable {
 
             // Flex Alignment Logic - Always Center Headers
             const justify = 'center';
-            const labelColor = isActive ? 'var(--color-gold)' : 'white';
+            const labelColor = isActive ? 'var(--color-gold)' : '#FFFFFF';
             const spanStyle = `text-align: center; white-space: nowrap; font-weight: 600; color: ${labelColor};`;
             const containerStyle = `display: flex; align-items: center; justify-content: ${justify}; width: 100%; gap: 6px;`;
 
@@ -227,8 +228,8 @@ export class SharedTable {
                      <span style="${spanStyle}">${col.label}</span>
                      <div style="display: flex; flex-direction: column; align-items: center; margin-left: 0; width: 14px; flex-shrink: 0;">
                          <div class="filter-trigger" data-key="${col.key}" style="cursor: pointer; line-height: 0; margin-bottom: 2px;" title="Filtrar">
-                             <span style="color: ${color}">
-                                 <svg viewBox="0 0 24 24" fill="${color}" class="filter-icon" width="14" height="14"><path d="M10 18h4v-2h-4v2zM3 6v2h18V6H3zm3 7h12v-2H6v2z"/></svg>
+                             <span style="color: ${color}; opacity: 1;">
+                                 <svg viewBox="0 0 24 24" fill="${color}" class="filter-icon" width="14" height="14" style="opacity: 1;"><path d="M10 18h4v-2h-4v2zM3 6v2h18V6H3zm3 7h12v-2H6v2z"/></svg>
                              </span>
                          </div>
                          <div class="sort-toggle" data-key="${col.key}" style="cursor: pointer; line-height: 1; font-size: 0.75rem; user-select: none; color: white;" title="Alternar Ordenação">

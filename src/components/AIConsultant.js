@@ -74,11 +74,11 @@ export const AIConsultant = () => {
 
     // Image
     const img = document.createElement('img');
-    img.src = '/eva_v2.png';
+    img.src = '/robot_icon.png';
     img.style.width = '100%';
     img.style.height = '100%';
-    img.style.objectFit = 'contain';
-    // img.style.transform = 'scale(1.4) translateY(10px)';
+    img.style.objectFit = 'cover';
+    img.style.transform = 'scale(1.4) translateY(10px)';
 
     fab.appendChild(img);
 
