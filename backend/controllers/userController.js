@@ -1,5 +1,6 @@
 const db = require('../config/database');
 const bcrypt = require('bcryptjs');
+const { logAudit } = require('../utils/auditLogger');
 
 // Invite user to project (simplified - no email)
 exports.inviteUser = async (req, res) => {
@@ -77,6 +78,7 @@ exports.inviteUser = async (req, res) => {
         );
 
         await connection.commit();
+        logAudit(req, 'CREATE', 'project_users', userId, { name, email, role, action: 'INVITE_USER' });
 
         res.status(201).json({
             message: 'Usuário criado com sucesso',
@@ -164,6 +166,7 @@ exports.removeUserFromProject = async (req, res) => {
         );
 
         await connection.commit();
+        logAudit(req, 'DELETE', 'project_users', userId, { action: 'REMOVE_USER' });
         res.json({ message: 'Usuário removido do projeto com sucesso' });
 
     } catch (error) {
@@ -230,6 +233,7 @@ exports.transferMaster = async (req, res) => {
         );
 
         await connection.commit();
+        logAudit(req, 'UPDATE', 'project_users', newMasterId, { oldMaster: currentMasterId, newMaster: newMasterId, action: 'TRANSFER_MASTER' });
         res.json({ message: 'Master transferido com sucesso' });
 
     } catch (error) {

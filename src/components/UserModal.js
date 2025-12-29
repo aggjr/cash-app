@@ -19,10 +19,10 @@ export const UserModal = {
             modal.className = 'account-modal animate-float-in';
 
             modal.innerHTML = `
-                <div class="account-modal-body" style="padding: 2rem;">
-                    <h3 style="margin: 0 0 1.5rem 0; color: var(--color-primary); font-size: 1.3rem;">${isEdit ? 'Editar Usuário' : 'Convidar Usuário'}</h3>
-                    <div class="form-grid">
-                        <div class="form-group full-width">
+                <div class="account-modal-body" style="padding: 1.5rem; max-height: 85vh;">
+                    <h3 style="margin: 0 0 1rem 0; color: var(--color-primary); font-size: 1.3rem;">${isEdit ? 'Editar Usuário' : 'Convidar Usuário'}</h3>
+                    <div class="form-grid" style="gap: 0.5rem;">
+                        <div class="form-group full-width" style="margin-top: 5px;">
                             <label for="user-name">Nome <span class="required">*</span></label>
                             <input 
                                 type="text" 
@@ -35,7 +35,7 @@ export const UserModal = {
                             />
                         </div>
 
-                        <div class="form-group full-width">
+                        <div class="form-group full-width" style="margin-top: 5px;">
                             <label for="user-email">E-mail <span class="required">*</span></label>
                             <input 
                                 type="email" 
@@ -49,7 +49,7 @@ export const UserModal = {
                         </div>
 
                         ${!isEdit ? `
-                            <div class="form-group full-width">
+                            <div class="form-group full-width" style="margin-top: 5px;">
                                 <label for="user-password">Senha Inicial <span class="required">*</span></label>
                                 <input 
                                     type="password" 
@@ -62,7 +62,7 @@ export const UserModal = {
                             </div>
                         ` : ''}
 
-                        <div class="form-group full-width">
+                        <div class="form-group full-width" style="margin-top: 5px;">
                             <label for="user-role">Função <span class="required">*</span></label>
                             <select 
                                 id="user-role" 
