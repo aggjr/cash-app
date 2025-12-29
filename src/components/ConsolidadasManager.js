@@ -286,7 +286,7 @@ export const ConsolidadasManager = (project) => {
         const spn = document.createElement('span'); spn.textContent = lbl; spn.style.cssText = 'font-weight:500; color:#374151; font-size:0.95rem;';
         d.append(inp, spn); return d;
     };
-    radioGroup.append(createRadio('Visão de Competência', 'competencia'), createRadio('Visão de Caixa', 'caixa'));
+    radioGroup.append(createRadio('Visão de Caixa', 'caixa'), createRadio('Visão de Competência', 'competencia'));
 
     // Dates
     const dateGroup = document.createElement('div'); dateGroup.style.cssText = 'display:flex; align-items:center; gap:0.5rem;';
