@@ -8,383 +8,264 @@ exports.getConsolidatedData = async (req, res) => {
             return res.status(400).json({ error: 'Project ID is required' });
         }
 
-        // 1. Determine Date Field based on View Type
-        // DEFAULT to Competência (Accrual) if not 'caixa'
         const isCaixa = viewType === 'caixa';
-        // Main entities use detailed names, simpler ones use generic
-        const dateField = isCaixa ? 'data_real_pagamento' : 'data_fato';
 
-        // 2. Build Date Filter
-        let dateFilter = '';
-        const params = [projectId];
+        // --- CORE HELPER: Build Financial Tree ---
+        const getFinancialTree = async (mode) => {
+            // Mode: 'realized' or 'provisioned'
+            const isProvisioned = mode === 'provisioned';
 
-        if (startMonth) {
-            dateFilter += ` AND DATE_FORMAT(${dateField}, '%Y-%m') >= ?`;
-            params.push(startMonth);
-        }
-        if (endMonth) {
-            dateFilter += ` AND DATE_FORMAT(${dateField}, '%Y-%m') <= ?`;
-            params.push(endMonth);
-        }
-        if (isCaixa) {
-            dateFilter += ` AND ${dateField} IS NOT NULL`;
-        }
+            // --- 1. Define Date Fields & Filters per Table ---
+            // If Competencia:
+            //   - Realized: data_fato
+            //   - Provisioned: data_fato (But filter for Unpaid?)
+            //   User said: "No caso de ser marcada a visão de competência, usa-se normalmente a data do fato".
+            //   And "Este gride SC muda na visão de caixa".
+            //   Implies Competencia logic is constant (data_fato).
+            //   However, to separate "Realized" (Grid 1) from "Provisioned" (Grid 2), we MUST distinct filtering.
+            //   Grid 1 is STRICTLY Realized items.
+            //   Grid 2 is STRICTLY Provisioned (Open) items.
+            //   So we use the payment status (data_real IS NULL/NOT NULL) to split them.
 
-        // --- HELPER: Fetch and Aggregation Logic ---
-        const buildTreeForTable = async (typeTable, dataTable, foreignKeyColumn, tableDateField) => {
-            // Fetch Types
-            const [types] = await db.execute(
-                `SELECT id, label, parent_id FROM ${typeTable} WHERE project_id = ? ORDER BY label`,
-                [projectId]
-            );
+            const getTableConfig = (table) => {
+                let dateField = '';
+                let filter = '';
 
-            // Build date filter using tableDateField for this specific table
-            let localFilter = '';
-            const queryParams = [projectId];
+                // Common column map
+                const colReal = table === 'entradas' ? 'data_real_recebimento' : 'data_real_pagamento';
 
-            if (startMonth) {
-                localFilter += ` AND DATE_FORMAT(d.${tableDateField}, '%Y-%m') >= ?`;
-                queryParams.push(startMonth);
-            }
-            if (endMonth) {
-                localFilter += ` AND DATE_FORMAT(d.${tableDateField}, '%Y-%m') <= ?`;
-                queryParams.push(endMonth);
-            }
-            if (isCaixa) {
-                localFilter += ` AND d.${tableDateField} IS NOT NULL`;
-            }
-
-            // Fetch Data
-            const query = `
-                SELECT 
-                    d.id, 
-                    d.valor, 
-                    d.${foreignKeyColumn} as type_id, 
-                    DATE_FORMAT(d.${tableDateField}, '%Y-%m') as month_key
-                FROM ${dataTable} d
-                WHERE d.project_id = ? AND d.active = 1 ${localFilter}
-            `;
-            const [items] = await db.execute(query, queryParams);
-
-            // Build Map
-            const typeMap = new Map();
-            types.forEach(t => {
-                typeMap.set(t.id, {
-                    id: `${typeTable}_${t.id}`, // Unique String ID
-                    originalId: t.id,
-                    name: t.label,
-                    parentId: t.parent_id ? `${typeTable}_${t.parent_id}` : null,
-                    children: [],
-                    monthlyTotals: {},
-                    total: 0
-                });
-            });
-
-            // Aggregate Data
-            items.forEach(item => {
-                const node = typeMap.get(item.type_id);
-                if (node) {
-                    const val = parseFloat(item.valor) || 0;
-                    node.monthlyTotals[item.month_key] = (node.monthlyTotals[item.month_key] || 0) + val;
-                    node.total += val;
-                }
-            });
-
-            // Build Hierarchy
-            const rootNodes = [];
-            types.forEach(t => {
-                const node = typeMap.get(t.id);
-                if (t.parent_id) {
-                    const parent = typeMap.get(t.parent_id);
-                    if (parent) {
-                        parent.children.push(node);
+                // --- CAIXA VIEW ---
+                if (isCaixa) {
+                    if (isProvisioned) {
+                        // Logic: Unpaid, prioritize Atraso > Prevista (date)
+                        filter = `AND ${colReal} IS NULL`;
+                        if (table === 'entradas') {
+                            dateField = 'date'; // Entradas doesn't have data_prevista_atraso
+                        } else {
+                            // Saidas / Producao
+                            dateField = 'COALESCE(data_prevista_atraso, date)';
+                        }
+                    } else {
+                        // Logic: Paid, use Real
+                        filter = `AND ${colReal} IS NOT NULL`;
+                        dateField = colReal;
                     }
-                } else {
-                    rootNodes.push(node);
                 }
-            });
-
-            // Rollup Calculation
-            const calculateRollup = (node) => {
-                node.children.forEach(child => {
-                    calculateRollup(child);
-                    for (const [month, value] of Object.entries(child.monthlyTotals)) {
-                        node.monthlyTotals[month] = (node.monthlyTotals[month] || 0) + value;
+                // --- COMPETENCIA VIEW ---
+                else {
+                    dateField = 'data_fato';
+                    // Apply same Status filter to keep grids disjoint?
+                    // User said: "Neste primeiro gride, só aparecem dados com data de efetivação..."
+                    // This implies strict separation.
+                    if (isProvisioned) {
+                        filter = `AND ${colReal} IS NULL`;
+                    } else {
+                        filter = `AND ${colReal} IS NOT NULL`;
                     }
-                    node.total += child.total;
-                });
+                }
+                return { dateField, filter };
             };
 
-            rootNodes.forEach(root => calculateRollup(root));
-            return rootNodes;
-        };
+            // --- 2. Build Tree Helper ---
+            const buildTreeForTable = async (typeTable, dataTable, foreignKeyColumn) => {
+                const config = getTableConfig(dataTable);
 
-        // --- Execute for tables (with proper date fields) ---
-        let saidasDateField = 'data_fato';
-        let entradasDateField = 'data_fato';
-        let producaoDateField = 'data_fato';
+                // Fetch Types
+                const [types] = await db.execute(
+                    `SELECT id, label, parent_id FROM ${typeTable} WHERE project_id = ? ORDER BY label`,
+                    [projectId]
+                );
 
-        if (isCaixa) {
-            saidasDateField = 'data_real_pagamento';
-            entradasDateField = 'data_real_recebimento';
-            producaoDateField = 'data_real_pagamento';
-        }
-        // Competencia (default) uses data_fato for all
+                // Build Filter
+                let localFilter = config.filter;
+                const queryParams = [projectId];
 
-        const saidasRoots = await buildTreeForTable('tipo_saida', 'saidas', 'tipo_saida_id', saidasDateField);
-        const producaoRoots = await buildTreeForTable('tipo_producao_revenda', 'producao_revenda', 'tipo_id', producaoDateField);
-        const entradasRoots = await buildTreeForTable('tipo_entrada', 'entradas', 'tipo_entrada_id', entradasDateField);
+                if (startMonth) {
+                    localFilter += ` AND DATE_FORMAT(${config.dateField}, '%Y-%m') >= ?`;
+                    queryParams.push(startMonth);
+                }
+                if (endMonth) {
+                    localFilter += ` AND DATE_FORMAT(${config.dateField}, '%Y-%m') <= ?`;
+                    queryParams.push(endMonth);
+                }
 
-        // --- Helper: Create Virtual Root ---
-        const createVirtualRoot = (id, name, children) => {
-            const virtual = {
-                id: id,
-                name: name,
-                children: children,
-                monthlyTotals: {},
-                total: 0
+                // Fetch Data
+                const query = `
+                    SELECT 
+                        d.id, 
+                        d.valor, 
+                        d.${foreignKeyColumn} as type_id, 
+                        DATE_FORMAT(${config.dateField}, '%Y-%m') as month_key
+                    FROM ${dataTable} d
+                    WHERE d.project_id = ? AND d.active = 1 ${localFilter}
+                `;
+                const [items] = await db.execute(query, queryParams);
+
+                // Build Map & Aggregate (Same generic logic)
+                const typeMap = new Map();
+                types.forEach(t => {
+                    typeMap.set(t.id, {
+                        id: `${typeTable}_${t.id}`,
+                        originalId: t.id,
+                        name: t.label,
+                        parentId: t.parent_id ? `${typeTable}_${t.parent_id}` : null,
+                        children: [],
+                        monthlyTotals: {},
+                        total: 0
+                    });
+                });
+
+                items.forEach(item => {
+                    const node = typeMap.get(item.type_id);
+                    if (node) {
+                        const val = parseFloat(item.valor) || 0;
+                        node.monthlyTotals[item.month_key] = (node.monthlyTotals[item.month_key] || 0) + val;
+                        node.total += val;
+                    }
+                });
+
+                // Build Hierarchy
+                const rootNodes = [];
+                types.forEach(t => {
+                    const node = typeMap.get(t.id);
+                    if (t.parent_id) {
+                        const parent = typeMap.get(t.parent_id);
+                        if (parent) parent.children.push(node);
+                    } else {
+                        rootNodes.push(node);
+                    }
+                });
+
+                // Rollup
+                const calculateRollup = (node) => {
+                    node.children.forEach(child => {
+                        calculateRollup(child);
+                        for (const [month, value] of Object.entries(child.monthlyTotals)) {
+                            node.monthlyTotals[month] = (node.monthlyTotals[month] || 0) + value;
+                        }
+                        node.total += child.total;
+                    });
+                };
+                rootNodes.forEach(root => calculateRollup(root));
+                return rootNodes;
             };
 
-            if (children && children.length > 0) {
-                children.forEach(child => {
-                    for (const [month, value] of Object.entries(child.monthlyTotals)) {
-                        virtual.monthlyTotals[month] = (virtual.monthlyTotals[month] || 0) + value;
-                    }
-                    virtual.total += child.total;
+            // --- 3. Execute for Main Tables ---
+            const saidasRoots = await buildTreeForTable('tipo_saida', 'saidas', 'tipo_saida_id');
+            const producaoRoots = await buildTreeForTable('tipo_producao_revenda', 'producao_revenda', 'tipo_id');
+            const entradasRoots = await buildTreeForTable('tipo_entrada', 'entradas', 'tipo_entrada_id');
+
+            // --- 4. Extra Data (Aportes / Retiradas) ---
+            // Logic: Include ONLY in Realized. Provisioned = 0.
+            let aportesVirtual = { id: 'aportes_root', name: '+ APORTES', children: [], monthlyTotals: {}, total: 0, isPositive: true };
+            let retiradasVirtual = { id: 'retiradas_root', name: '- RETIRADAS', children: [], monthlyTotals: {}, total: 0, isNegative: true };
+
+            if (!isProvisioned) {
+                // Fetch Realized Aportes/Retiradas
+                const getExtraData = async (table) => {
+                    // Use data_fato as 'Real' date since data_real missing
+                    let dateField = 'data_fato';
+                    let filter = '';
+                    // No IS NULL check for data_fato usually
+
+                    let qParams = [projectId];
+                    let qFilter = '';
+                    if (startMonth) { qFilter += ` AND DATE_FORMAT(${dateField}, '%Y-%m') >= ?`; qParams.push(startMonth); }
+                    if (endMonth) { qFilter += ` AND DATE_FORMAT(${dateField}, '%Y-%m') <= ?`; qParams.push(endMonth); }
+
+                    // Strict Caixa Check? If viewType=Caixa, user wants strictness.
+                    // But data_real is missing. We assume data_fato IS the real date for these tables.
+                    // So we treat them as always "Paid".
+
+                    const [rows] = await db.execute(`
+                        SELECT DATE_FORMAT(${dateField}, '%Y-%m') as month_key, SUM(valor) as total
+                        FROM ${table} WHERE project_id = ? AND active = 1 ${qFilter} GROUP BY month_key
+                    `, qParams);
+                    return rows;
+                };
+
+                const aportesRows = await getExtraData('aportes');
+                aportesRows.forEach(r => {
+                    const v = parseFloat(r.total) || 0; aportesVirtual.monthlyTotals[r.month_key] = v; aportesVirtual.total += v;
+                });
+
+                const retiradasRows = await getExtraData('retiradas');
+                retiradasRows.forEach(r => {
+                    const v = parseFloat(r.total) || 0; retiradasVirtual.monthlyTotals[r.month_key] = v; retiradasVirtual.total += v;
                 });
             }
-            return virtual;
+
+            // --- 5. Virtual Nodes Construction (Calculations) ---
+            const createVirtualRoot = (id, name, children) => {
+                const v = { id, name, children, monthlyTotals: {}, total: 0 };
+                children.forEach(c => {
+                    for (const [m, val] of Object.entries(c.monthlyTotals)) v.monthlyTotals[m] = (v.monthlyTotals[m] || 0) + val;
+                    v.total += c.total;
+                });
+                return v;
+            };
+
+            const entradasVirtual = createVirtualRoot('entradas_root', 'ENTRADAS', entradasRoots);
+            const producaoVirtual = createVirtualRoot('producao_root', 'PRODUÇÃO / REVENDA', producaoRoots);
+            const saidasVirtual = createVirtualRoot('saidas_root', 'SAÍDAS OPERACIONAIS', saidasRoots);
+
+            // Lucro Bruto
+            const lucroBrutoVirtual = { id: 'lucro_bruto_root', name: '= LUCRO BRUTO', children: [], monthlyTotals: {}, total: 0, isTotal: true };
+            // Copied calculation logic...
+            const allMonths = new Set([...Object.keys(entradasVirtual.monthlyTotals), ...Object.keys(producaoVirtual.monthlyTotals)]);
+            allMonths.forEach(m => {
+                const ent = entradasVirtual.monthlyTotals[m] || 0;
+                const prod = producaoVirtual.monthlyTotals[m] || 0;
+                lucroBrutoVirtual.monthlyTotals[m] = ent - prod;
+            });
+            lucroBrutoVirtual.total = entradasVirtual.total - producaoVirtual.total;
+
+            // Margem Bruta
+            const margemBrutaVirtual = { id: 'margem_bruta_root', name: '% MARGEM BRUTA', children: [], monthlyTotals: {}, total: 0, isPercentage: true };
+            allMonths.forEach(m => {
+                const lb = lucroBrutoVirtual.monthlyTotals[m] || 0;
+                const ent = entradasVirtual.monthlyTotals[m] || 0;
+                margemBrutaVirtual.monthlyTotals[m] = (Math.abs(ent) > 0.01) ? (lb / ent) : 0;
+            });
+            margemBrutaVirtual.total = (Math.abs(entradasVirtual.total) > 0.01) ? (lucroBrutoVirtual.total / entradasVirtual.total) : 0;
+
+            // Resultado Operacional
+            const resOpVirtual = { id: 'resultado_operacional_root', name: '= RESULTADO OPERACIONAL', children: [], monthlyTotals: {}, total: 0, isTotal: true };
+            const opMonths = new Set([...Object.keys(lucroBrutoVirtual.monthlyTotals), ...Object.keys(saidasVirtual.monthlyTotals)]);
+            opMonths.forEach(m => {
+                resOpVirtual.monthlyTotals[m] = (lucroBrutoVirtual.monthlyTotals[m] || 0) - (saidasVirtual.monthlyTotals[m] || 0);
+            });
+            resOpVirtual.total = lucroBrutoVirtual.total - saidasVirtual.total;
+
+            // Margem Operacional
+            const margemOpVirtual = { id: 'margem_operacional_root', name: '% MARGEM OPERACIONAL', children: [], monthlyTotals: {}, total: 0, isPercentage: true };
+            opMonths.forEach(m => {
+                const ro = resOpVirtual.monthlyTotals[m] || 0;
+                const ent = entradasVirtual.monthlyTotals[m] || 0;
+                margemOpVirtual.monthlyTotals[m] = (Math.abs(ent) > 0.01) ? (ro / ent) : 0;
+            });
+            margemOpVirtual.total = (Math.abs(entradasVirtual.total) > 0.01) ? (resOpVirtual.total / entradasVirtual.total) : 0;
+
+            // Fluxo Financeiro
+            const fluxoVirtual = { id: 'fluxo_financeiro_root', name: '= FLUXO FINANCEIRO MENSAL', children: [], monthlyTotals: {}, total: 0, isTotal: true, isFinal: true };
+            const flxMonths = new Set([...Object.keys(resOpVirtual.monthlyTotals), ...Object.keys(aportesVirtual.monthlyTotals), ...Object.keys(retiradasVirtual.monthlyTotals)]);
+            flxMonths.forEach(m => {
+                fluxoVirtual.monthlyTotals[m] = (resOpVirtual.monthlyTotals[m] || 0) + (aportesVirtual.monthlyTotals[m] || 0) - (retiradasVirtual.monthlyTotals[m] || 0);
+            });
+            fluxoVirtual.total = resOpVirtual.total + aportesVirtual.total - retiradasVirtual.total;
+
+            return [
+                entradasVirtual, producaoVirtual, lucroBrutoVirtual, margemBrutaVirtual,
+                saidasVirtual, resOpVirtual, margemOpVirtual,
+                aportesVirtual, retiradasVirtual, fluxoVirtual
+            ];
         };
 
-        // --- FETCH EXTRA DATA (Aportes / Retiradas) ---
-        // Aportes Logic
-        // Aportes typically represents realized cash injection, so data_fato IS the real date.
-        // Schema check indicates 'data_fato' exists, but 'data_real' might not.
-        let aportesDateField = 'data_fato';
-        // if (isCaixa) { aportesDateField = 'data_real'; } // Removed unsafe assumption
+        // --- Execute for BOTH ---
+        const realized = await getFinancialTree('realized');
+        const provisioned = await getFinancialTree('provisioned');
 
-        let extraFilter = '';
-        const extraParams = [projectId];
-
-        if (startMonth) {
-            extraFilter += ` AND DATE_FORMAT(${aportesDateField}, '%Y-%m') >= ?`;
-            extraParams.push(startMonth);
-        }
-        if (endMonth) {
-            extraFilter += ` AND DATE_FORMAT(${aportesDateField}, '%Y-%m') <= ?`;
-            extraParams.push(endMonth);
-        }
-        // Strict Caixa Check: ONLY if it's considered "Real" (Not Null)
-        if (isCaixa) {
-            extraFilter += ` AND ${aportesDateField} IS NOT NULL`;
-        }
-
-        const [aportesData] = await db.execute(`
-            SELECT 
-                DATE_FORMAT(${aportesDateField}, '%Y-%m') AS month_key,
-                SUM(valor) AS total
-            FROM aportes
-            WHERE project_id = ? AND active = 1 ${extraFilter}
-           GROUP BY month_key
-        `, extraParams);
-
-        // Retiradas Logic
-        // Retiradas also typically realized immediately. Use data_fato.
-        let retiradasDateField = 'data_fato';
-        // if (isCaixa) { retiradasDateField = 'data_real'; } // Removed unsafe assumption
-
-        let retFilter = '';
-        const retParams = [projectId];
-        if (startMonth) { retFilter += ` AND DATE_FORMAT(${retiradasDateField}, '%Y-%m') >= ?`; retParams.push(startMonth); }
-        if (endMonth) { retFilter += ` AND DATE_FORMAT(${retiradasDateField}, '%Y-%m') <= ?`; retParams.push(endMonth); }
-        if (isCaixa) { retFilter += ` AND ${retiradasDateField} IS NOT NULL`; }
-
-        const [retiradasData] = await db.execute(`
-            SELECT 
-                DATE_FORMAT(${retiradasDateField}, '%Y-%m') AS month_key,
-                SUM(valor) AS total
-            FROM retiradas
-            WHERE project_id = ? AND active = 1 ${retFilter}
-            GROUP BY month_key
-        `, retParams);
-
-
-        // --- FINANCIAL CALCULATIONS & ORDERING ---
-
-        // 1. ENTRADAS (Moved to top)
-        const entradasVirtual = createVirtualRoot('entradas_root', 'ENTRADAS', entradasRoots);
-
-        // 2. PRODUÇÃO / REVENDA
-        const producaoVirtual = createVirtualRoot('producao_root', 'PRODUÇÃO / REVENDA', producaoRoots);
-
-        // 3. LUCRO BRUTO (Entradas - Produção)
-        const lucroBrutoVirtual = {
-            id: 'lucro_bruto_root',
-            name: '= LUCRO BRUTO',
-            children: [],
-            monthlyTotals: {},
-            total: 0,
-            isTotal: true
-        };
-
-        for (const [month, value] of Object.entries(entradasVirtual.monthlyTotals)) {
-            lucroBrutoVirtual.monthlyTotals[month] = value;
-        }
-        lucroBrutoVirtual.total = entradasVirtual.total;
-
-        for (const [month, value] of Object.entries(producaoVirtual.monthlyTotals)) {
-            lucroBrutoVirtual.monthlyTotals[month] = (lucroBrutoVirtual.monthlyTotals[month] || 0) - value;
-        }
-        lucroBrutoVirtual.total -= producaoVirtual.total;
-
-        // 4. MARGEM BRUTA% (Lucro Bruto / Entradas)
-        const margemBrutaVirtual = {
-            id: 'margem_bruta_root',
-            name: '% MARGEM BRUTA',
-            children: [],
-            monthlyTotals: {},
-            total: 0,
-            isPercentage: true,
-            isTotal: false // Styled differently
-        };
-
-        // Calculate monthly margins
-        for (const [month, lucro] of Object.entries(lucroBrutoVirtual.monthlyTotals)) {
-            const entrada = entradasVirtual.monthlyTotals[month] || 0;
-            if (Math.abs(entrada) > 0.01) {
-                margemBrutaVirtual.monthlyTotals[month] = (lucro / entrada);
-            } else {
-                margemBrutaVirtual.monthlyTotals[month] = 0;
-            }
-        }
-        // Calculate total margin
-        if (Math.abs(entradasVirtual.total) > 0.01) {
-            margemBrutaVirtual.total = (lucroBrutoVirtual.total / entradasVirtual.total);
-        }
-
-        // 5. SAÍDAS (Despesas Operacionais)
-        const saidasVirtual = createVirtualRoot('saidas_root', 'SAÍDAS OPERACIONAIS', saidasRoots);
-
-        // 6. RESULTADO OPERACIONAL (Lucro Bruto - Saídas)
-        const resultadoOperacionalVirtual = {
-            id: 'resultado_operacional_root',
-            name: '= RESULTADO OPERACIONAL',
-            children: [],
-            monthlyTotals: {},
-            total: 0,
-            isTotal: true
-        };
-
-        for (const [month, value] of Object.entries(lucroBrutoVirtual.monthlyTotals)) {
-            resultadoOperacionalVirtual.monthlyTotals[month] = value;
-        }
-        resultadoOperacionalVirtual.total = lucroBrutoVirtual.total;
-
-        for (const [month, value] of Object.entries(saidasVirtual.monthlyTotals)) {
-            resultadoOperacionalVirtual.monthlyTotals[month] = (resultadoOperacionalVirtual.monthlyTotals[month] || 0) - value;
-        }
-        resultadoOperacionalVirtual.total -= saidasVirtual.total;
-
-
-        // 7. MARGEM OPERACIONAL% (Resultado Operacional / Entradas)
-        const margemOperacionalVirtual = {
-            id: 'margem_operacional_root',
-            name: '% MARGEM OPERACIONAL',
-            children: [],
-            monthlyTotals: {},
-            total: 0,
-            isPercentage: true,
-            isTotal: false
-        };
-
-        for (const [month, resOp] of Object.entries(resultadoOperacionalVirtual.monthlyTotals)) {
-            const entrada = entradasVirtual.monthlyTotals[month] || 0;
-            if (Math.abs(entrada) > 0.01) {
-                margemOperacionalVirtual.monthlyTotals[month] = (resOp / entrada);
-            } else {
-                margemOperacionalVirtual.monthlyTotals[month] = 0;
-            }
-        }
-        if (Math.abs(entradasVirtual.total) > 0.01) {
-            margemOperacionalVirtual.total = (resultadoOperacionalVirtual.total / entradasVirtual.total);
-        }
-
-
-        // 8. APORTES (formatted as row)
-        const aportesVirtual = {
-            id: 'aportes_root',
-            name: '+ APORTES',
-            children: [],
-            monthlyTotals: {},
-            total: 0,
-            isPositive: true
-        };
-
-        aportesData.forEach(row => {
-            const val = parseFloat(row.total) || 0;
-            aportesVirtual.monthlyTotals[row.month_key] = val;
-            aportesVirtual.total += val;
-        });
-
-        // 9. RETIRADAS (formatted as row)
-        const retiradasVirtual = {
-            id: 'retiradas_root',
-            name: '- RETIRADAS',
-            children: [],
-            monthlyTotals: {},
-            total: 0,
-            isNegative: true
-        };
-
-        retiradasData.forEach(row => {
-            const val = parseFloat(row.total) || 0;
-            retiradasVirtual.monthlyTotals[row.month_key] = val;
-            retiradasVirtual.total += val;
-        });
-
-        // 10. FLUXO FINANCEIRO MENSAL (Resultado Operacional + Aportes - Retiradas)
-        const fluxoFinanceiroVirtual = {
-            id: 'fluxo_financeiro_root',
-            name: '= FLUXO FINANCEIRO MENSAL',
-            children: [],
-            monthlyTotals: {},
-            total: 0,
-            isTotal: true,
-            isFinal: true
-        };
-
-        // Start with Resultado Operacional
-        for (const [month, value] of Object.entries(resultadoOperacionalVirtual.monthlyTotals)) {
-            fluxoFinanceiroVirtual.monthlyTotals[month] = value;
-        }
-        fluxoFinanceiroVirtual.total = resultadoOperacionalVirtual.total;
-
-        // Add Aportes
-        for (const [month, value] of Object.entries(aportesVirtual.monthlyTotals)) {
-            fluxoFinanceiroVirtual.monthlyTotals[month] = (fluxoFinanceiroVirtual.monthlyTotals[month] || 0) + value;
-        }
-        fluxoFinanceiroVirtual.total += aportesVirtual.total;
-
-        // Subtract Retiradas
-        for (const [month, value] of Object.entries(retiradasVirtual.monthlyTotals)) {
-            fluxoFinanceiroVirtual.monthlyTotals[month] = (fluxoFinanceiroVirtual.monthlyTotals[month] || 0) - value;
-        }
-        fluxoFinanceiroVirtual.total -= retiradasVirtual.total;
-
-
-        // Return combined list in CORRECT REORDERED FORMAT
-        res.json([
-            entradasVirtual,
-            producaoVirtual,
-            lucroBrutoVirtual,
-            margemBrutaVirtual,
-            saidasVirtual,
-            resultadoOperacionalVirtual,
-            margemOperacionalVirtual,
-            aportesVirtual,
-            retiradasVirtual,
-            fluxoFinanceiroVirtual
-        ]);
+        res.json({ realized, provisioned });
 
     } catch (error) {
         console.error('Error in getConsolidatedData:', error);
