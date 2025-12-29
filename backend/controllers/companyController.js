@@ -1,5 +1,6 @@
 const db = require('../config/database');
 const AppError = require('../utils/AppError');
+const { logAudit } = require('../utils/auditLogger');
 
 exports.listCompanies = async (req, res, next) => {
     try {
@@ -55,6 +56,9 @@ exports.createCompany = async (req, res, next) => {
             active: 1,
             project_id: projectId
         });
+
+        // Log Audit
+        logAudit(req, 'CREATE', 'empresas', result.insertId, { name, cnpj, description });
     } catch (error) {
         next(error);
     }
@@ -110,6 +114,7 @@ exports.updateCompany = async (req, res, next) => {
         }
 
         res.json({ message: 'Company updated successfully' });
+        logAudit(req, 'UPDATE', 'empresas', id, { updates: updates.length });
     } catch (error) {
         next(error);
     }
@@ -156,6 +161,7 @@ exports.deleteCompany = async (req, res, next) => {
 
         await db.query('DELETE FROM empresas WHERE id = ?', [id]);
         res.json({ message: 'Company deleted successfully' });
+        logAudit(req, 'DELETE', 'empresas', id, {});
     } catch (error) {
         next(error);
     }
