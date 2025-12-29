@@ -195,6 +195,18 @@ const parseLocalDate = (dateString) => {
     return new Date(year, month - 1, day); // month is 0-indexed
 };
 
+// Helper to safely add months (handling 31st -> 28th/30th rollover)
+const addMonths = (date, months) => {
+    const d = new Date(date);
+    const day = d.getDate();
+    d.setMonth(d.getMonth() + months);
+    // If day changed, it meant we overflowed (e.g. Jan 31 -> Feb 03), so snap back to last day of intended month
+    if (d.getDate() !== day) {
+        d.setDate(0);
+    }
+    return d;
+};
+
 const calculateDates = (baseDate, count, interval, customDays = null) => {
     const dates = [baseDate];
 
@@ -212,20 +224,16 @@ const calculateDates = (baseDate, count, interval, customDays = null) => {
                 nextDate.setDate(prevDate.getDate() + 15);
                 break;
             case 'mensal':
-                nextDate = new Date(prevDate);
-                nextDate.setMonth(prevDate.getMonth() + 1);
+                nextDate = addMonths(prevDate, 1);
                 break;
             case 'trimestral':
-                nextDate = new Date(prevDate);
-                nextDate.setMonth(prevDate.getMonth() + 3);
+                nextDate = addMonths(prevDate, 3);
                 break;
             case 'semestral':
-                nextDate = new Date(prevDate);
-                nextDate.setMonth(prevDate.getMonth() + 6);
+                nextDate = addMonths(prevDate, 6);
                 break;
             case 'anual':
-                nextDate = new Date(prevDate);
-                nextDate.setFullYear(prevDate.getFullYear() + 1);
+                nextDate = addMonths(prevDate, 12);
                 break;
             case 'personalizado':
                 nextDate = new Date(prevDate);
