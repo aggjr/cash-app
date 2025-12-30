@@ -139,8 +139,15 @@ export const LoanModal = {
                             </div>
 
                             <div class="form-group">
+                                <label for="loan-grace-period">Prazo de Carência (meses)</label>
+                                <input type="number" id="loan-grace-period" class="form-input" min="0" max="60" value="0" placeholder="0">
+                                <small style="color: var(--color-text-muted);">Meses até 1ª parcela</small>
+                            </div>
+
+                            <div class="form-group">
                                 <label for="loan-first-due">Vencimento 1ª Parcela *</label>
                                 <input type="date" id="loan-first-due" class="form-input" required>
+                                <small style="color: var(--color-text-muted);">Auto-calculado (editável)</small>
                             </div>
 
                         </div>
@@ -166,9 +173,36 @@ export const LoanModal = {
                 const totalInput = modal.querySelector('#loan-total');
                 const realRateInput = modal.querySelector('#loan-real-rate');
                 const contractDateInput = modal.querySelector('#loan-contract-date');
+                const gracePeriodInput = modal.querySelector('#loan-grace-period');
                 const firstDueInput = modal.querySelector('#loan-first-due');
                 const saveBtn = modal.querySelector('#loan-btn-save');
                 const cancelBtn = modal.querySelector('#loan-btn-cancel');
+
+                // Auto-calculate first due date based on contract date + grace period
+                const updateFirstDueDate = () => {
+                    const contractDate = contractDateInput.value;
+                    const gracePeriod = parseInt(gracePeriodInput.value) || 0;
+
+                    if (!contractDate) return;
+
+                    const date = new Date(contractDate + 'T00:00:00');
+                    date.setMonth(date.getMonth() + gracePeriod);
+
+                    // Format as YYYY-MM-DD for date input
+                    const year = date.getFullYear();
+                    const month = String(date.getMonth() + 1).padStart(2, '0');
+                    const day = String(date.getDate()).padStart(2, '0');
+
+                    firstDueInput.value = `${year}-${month}-${day}`;
+                };
+
+                // Initialize first due date
+                updateFirstDueDate();
+
+                // Listen for changes to contract date and grace period
+                contractDateInput.addEventListener('change', updateFirstDueDate);
+                gracePeriodInput.addEventListener('input', updateFirstDueDate);
+
 
                 // Currency formatting
                 const formatFloat = (num) => {
@@ -339,6 +373,7 @@ export const LoanModal = {
                         installments: parcels,
                         installmentValue: parcelVal,
                         contractDate: contractDateInput.value,
+                        gracePeriod: parseInt(gracePeriodInput.value) || 0,  // Prazo de carência
                         firstDueDate: firstDueInput.value,
                         registerEntry: true                     // Sempre registra entrada
                     };
