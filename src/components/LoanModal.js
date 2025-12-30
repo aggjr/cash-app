@@ -92,7 +92,7 @@ export const LoanModal = {
 
                             <div class="form-group">
                                 <label for="loan-net">💵 Valor Líquido que CAI na Conta</label>
-                                <input type="text" id="loan-net" class="form-input" readonly style="background: #e8f5e9; font-weight: bold; font-size: 1.1rem; text-align: right; color: #2e7d32;">
+                                <input type="text" id="loan-net" class="form-input" readonly style="background: #E1F5FE; font-weight: bold; font-size: 1.1rem; text-align: right; color: var(--color-dark-teal); border: 1px solid var(--color-teal);">
                             </div>
 
                             <!-- Warning message -->
@@ -108,17 +108,17 @@ export const LoanModal = {
                             <!-- Row 1: 4 Fields in one line using Flexbox -->
                             <div style="grid-column: span 3; display: flex; flex-direction: row; gap: 10px; align-items: flex-end; margin-bottom: 0.5rem;">
                                 <div style="flex: 0 0 80px;"> <!-- Fixed small width -->
-                                    <label for="loan-installments" style="display: block; margin-bottom: 0.25rem; color: var(--color-text-medium); font-size: 0.85rem; font-weight: 500; white-space: nowrap;">Nº Parcelas *</label>
+                                    <label for="loan-installments" style="display: block; margin-bottom: 0.25rem; color: var(--color-text-medium); font-size: 0.85rem; font-weight: 500; white-space: nowrap;">Nº Parcelas <span class="required">*</span></label>
                                     <input type="number" id="loan-installments" class="form-input" min="1" value="12" required style="width: 100%;">
                                 </div>
 
                                 <div style="flex: 0 0 100px;"> <!-- Fixed small width -->
-                                    <label for="loan-grace-period" style="display: block; margin-bottom: 0.25rem; color: var(--color-text-medium); font-size: 0.85rem; font-weight: 500; white-space: nowrap;">Meses Carência</label>
-                                    <input type="number" id="loan-grace-period" class="form-input" min="0" max="60" value="0" placeholder="0" style="width: 100%;">
+                                    <label for="loan-grace-period" style="display: block; margin-bottom: 0.25rem; color: var(--color-text-medium); font-size: 0.85rem; font-weight: 500; white-space: nowrap;">Carência <span class="required">*</span></label>
+                                    <input type="number" id="loan-grace-period" class="form-input" min="0" max="60" value="0" placeholder="0" required style="width: 100%;">
                                 </div>
 
                                 <div style="flex: 1;"> <!-- Flexible width -->
-                                    <label for="loan-installment-value" style="display: block; margin-bottom: 0.25rem; color: var(--color-text-medium); font-size: 0.85rem; font-weight: 500; white-space: nowrap;">Valor Parcela *</label>
+                                    <label for="loan-installment-value" style="display: block; margin-bottom: 0.25rem; color: var(--color-text-medium); font-size: 0.85rem; font-weight: 500; white-space: nowrap;">Valor Parcela <span class="required">*</span></label>
                                     <input type="text" id="loan-installment-value" class="form-input input-currency" required placeholder="R$ 0,00" style="width: 100%;">
                                 </div>
 
