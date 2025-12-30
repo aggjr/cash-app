@@ -231,46 +231,44 @@ export const LoanModal = {
                         return 0;
                     }
 
-                    // Initial guess (simple interest approximation adjusted for grace period)
+                    // Initial guess
                     let rate = ((pmt * n) / pv - 1) / (n + gracePeriod);
 
                     // Ensure initial rate is positive and reasonable
                     if (rate <= 0 || rate > 1) {
-                        rate = 0.05; // Start with 5% if calculation seems off
+                        rate = 0.05;
                     }
 
                     // Newton-Raphson iterations
-                    // During grace period: debt grows to PV × (1+i)^g
-                    // Then amortized: SD × [i × (1+i)^n] / [(1+i)^n - 1] = PMT
-                    // Combined: PV × (1+i)^g × [i × (1+i)^n] / [(1+i)^n - 1] = PMT
+                    // CORRECT Formula: PV × (1+i)^g × i × (1+i)^n = PMT × [(1+i)^n - 1]
                     // Rearranged: PV × (1+i)^g × i × (1+i)^n - PMT × [(1+i)^n - 1] = 0
 
                     for (let iter = 0; iter < 50; iter++) {
                         const exp_g = Math.pow(1 + rate, gracePeriod);
                         const exp_n = Math.pow(1 + rate, n);
-                        const exp_total = Math.pow(1 + rate, gracePeriod + n);
 
-                        // f(i) = PV × (1+i)^(g+n) × i - PMT × [(1+i)^n - 1]
-                        const f = pv * exp_total * rate - pmt * (exp_n - 1);
+                        // f(i) = PV × (1+i)^g × i × (1+i)^n - PMT × [(1+i)^n - 1]
+                        const f = pv * exp_g * rate * exp_n - pmt * (exp_n - 1);
 
-                        // f'(i) = PV × [(g+n) × (1+i)^(g+n-1) × i + (1+i)^(g+n)] - PMT × n × (1+i)^(n-1)
-                        const df = pv * ((gracePeriod + n) * Math.pow(1 + rate, gracePeriod + n - 1) * rate + exp_total)
-                            - pmt * n * Math.pow(1 + rate, n - 1);
+                        // f'(i) = PV × (1+i)^g × [(g×i + i×n + 1) × (1+i)^(n-1)]  - PMT × n × (1+i)^(n-1)
+                        // Simplifying: PV × (1+i)^(g+n-1) × (g×i + i×n + 1) - PMT × n × (1+i)^(n-1)
+                        const exp_gn_minus1 = Math.pow(1 + rate, gracePeriod + n - 1);
+                        const df = pv * exp_gn_minus1 * (gracePeriod * rate + n * rate + 1) - pmt * n * Math.pow(1 + rate, n - 1);
 
-                        if (Math.abs(df) < 0.0000001) break; // Avoid division by zero
+                        if (Math.abs(df) < 0.0000001) break;
 
                         const newRate = rate - f / df;
 
                         // Check convergence
                         if (Math.abs(newRate - rate) < 0.00000001) {
-                            return newRate * 100; // Return as percentage
+                            return newRate * 100;
                         }
 
-                        // Ensure rate stays positive and reasonable
-                        rate = Math.max(0.0001, Math.min(newRate, 0.5));
+                        // Keep rate reasonable
+                        rate = Math.max(0.00001, Math.min(newRate, 0.5));
                     }
 
-                    return rate * 100; // Return as percentage
+                    return rate * 100;
                 };
 
                 // Currency masks
