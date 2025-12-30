@@ -105,27 +105,33 @@ export const LoanModal = {
                                 <strong style="color: var(--color-primary);">📊 Pagamento</strong>
                             </div>
 
-                            <div class="form-group">
-                                <label for="loan-installments">Nº de Parcelas *</label>
+                            <!-- Row 1: Installments (small), Grace Period (small), Real Rate (large) -->
+                            <div class="form-group" style="grid-column: span 0.6;">
+                                <label for="loan-installments">Nº Parcelas *</label>
                                 <input type="number" id="loan-installments" class="form-input" min="1" value="12" required>
                             </div>
 
-                            <div class="form-group">
+                            <div class="form-group" style="grid-column: span 0.6;">
+                                <label for="loan-grace-period">Carência (meses)</label>
+                                <input type="number" id="loan-grace-period" class="form-input" min="0" max="60" value="0" placeholder="0">
+                            </div>
+
+                            <div class="form-group" style="grid-column: span 1.8;">
+                                <label for="loan-real-rate">📈 Taxa REAL Mensal</label>
+                                <input type="text" id="loan-real-rate" class="form-input" readonly style="background: #fff3e0; font-weight: bold; text-align: center; color: #e65100; font-size: 1.2rem;">
+                                <small style="color: var(--color-text-muted);">Calculada sobre o valor líquido recebido</small>
+                            </div>
+
+                            <!-- Row 2: Installment Value, Total -->
+                            <div class="form-group" style="grid-column: span 1.5;">
                                 <label for="loan-installment-value">Valor da Parcela Mensal *</label>
                                 <input type="text" id="loan-installment-value" class="form-input input-currency" required placeholder="R$ 0,00">
                                 <small style="color: var(--color-text-muted);">Valor fixo mensal</small>
                             </div>
 
-                            <div class="form-group">
+                            <div class="form-group" style="grid-column: span 1.5;">
                                 <label for="loan-total">Total a Pagar</label>
                                 <input type="text" id="loan-total" class="form-input" readonly style="background: var(--bg-secondary); font-weight: bold; text-align: right;">
-                            </div>
-
-                            <!-- Real Interest Rate (spanning 3 columns for prominence) -->
-                            <div class="form-group" style="grid-column: span 3;">
-                                <label for="loan-real-rate">📈 Taxa REAL Mensal</label>
-                                <input type="text" id="loan-real-rate" class="form-input" readonly style="background: #fff3e0; font-weight: bold; text-align: center; color: #e65100; font-size: 1.2rem;">
-                                <small style="color: var(--color-text-muted);">Calculada sobre o valor líquido recebido</small>
                             </div>
 
                             <!-- Dates Section -->
@@ -133,18 +139,12 @@ export const LoanModal = {
                                 <strong style="color: var(--color-primary);">📅 Datas</strong>
                             </div>
 
-                            <div class="form-group">
+                            <div class="form-group" style="grid-column: span 1.5;">
                                 <label for="loan-contract-date">Data da Contratação *</label>
                                 <input type="date" id="loan-contract-date" class="form-input" required value="${new Date().toISOString().split('T')[0]}">
                             </div>
 
-                            <div class="form-group">
-                                <label for="loan-grace-period">Prazo de Carência (meses)</label>
-                                <input type="number" id="loan-grace-period" class="form-input" min="0" max="60" value="0" placeholder="0">
-                                <small style="color: var(--color-text-muted);">Meses até 1ª parcela</small>
-                            </div>
-
-                            <div class="form-group">
+                            <div class="form-group" style="grid-column: span 1.5;">
                                 <label for="loan-first-due">Vencimento 1ª Parcela *</label>
                                 <input type="date" id="loan-first-due" class="form-input" required>
                                 <small style="color: var(--color-text-muted);">Auto-calculado (editável)</small>
