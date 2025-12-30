@@ -231,8 +231,8 @@ export const LoanModal = {
                         return 0;
                     }
 
-                    // Initial guess (simple interest approximation)
-                    let rate = ((pmt * n) / pv - 1) / n;
+                    // Initial guess (simple interest approximation adjusted for grace period)
+                    let rate = ((pmt * n) / pv - 1) / (n + gracePeriod);
 
                     // Ensure initial rate is positive and reasonable
                     if (rate <= 0 || rate > 1) {
@@ -240,32 +240,34 @@ export const LoanModal = {
                     }
 
                     // Newton-Raphson iterations
-                    // Formula with grace period: PV * (1+i)^g * i * (1+i)^n = PMT * ((1+i)^n - 1)
-                    // where g = grace period
-                    for (let i = 0; i < 30; i++) {
-                        const exp_grace = Math.pow(1 + rate, gracePeriod);
+                    // During grace period: debt grows to PV × (1+i)^g
+                    // Then amortized: SD × [i × (1+i)^n] / [(1+i)^n - 1] = PMT
+                    // Combined: PV × (1+i)^g × [i × (1+i)^n] / [(1+i)^n - 1] = PMT
+                    // Rearranged: PV × (1+i)^g × i × (1+i)^n - PMT × [(1+i)^n - 1] = 0
+
+                    for (let iter = 0; iter < 50; iter++) {
+                        const exp_g = Math.pow(1 + rate, gracePeriod);
                         const exp_n = Math.pow(1 + rate, n);
+                        const exp_total = Math.pow(1 + rate, gracePeriod + n);
 
-                        // f(i) = PV * (1+i)^g * i * (1+i)^n - PMT * ((1+i)^n - 1)
-                        const f = pv * exp_grace * rate * exp_n - pmt * (exp_n - 1);
+                        // f(i) = PV × (1+i)^(g+n) × i - PMT × [(1+i)^n - 1]
+                        const f = pv * exp_total * rate - pmt * (exp_n - 1);
 
-                        // Derivative f'(i)
-                        const df = pv * exp_grace * (exp_n * (rate * n + 1) + gracePeriod * rate * exp_n) - pmt * n * exp_n;
+                        // f'(i) = PV × [(g+n) × (1+i)^(g+n-1) × i + (1+i)^(g+n)] - PMT × n × (1+i)^(n-1)
+                        const df = pv * ((gracePeriod + n) * Math.pow(1 + rate, gracePeriod + n - 1) * rate + exp_total)
+                            - pmt * n * Math.pow(1 + rate, n - 1);
 
                         if (Math.abs(df) < 0.0000001) break; // Avoid division by zero
 
                         const newRate = rate - f / df;
 
                         // Check convergence
-                        if (Math.abs(newRate - rate) < 0.0000001) {
+                        if (Math.abs(newRate - rate) < 0.00000001) {
                             return newRate * 100; // Return as percentage
                         }
 
-                        // Ensure rate stays positive
-                        rate = Math.max(0.0001, newRate);
-
-                        // Prevent runaway values
-                        if (rate > 10) rate = 0.1; // Cap at 1000% monthly (clearly an error)
+                        // Ensure rate stays positive and reasonable
+                        rate = Math.max(0.0001, Math.min(newRate, 0.5));
                     }
 
                     return rate * 100; // Return as percentage
