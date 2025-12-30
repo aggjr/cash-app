@@ -1,6 +1,6 @@
 const db = require('./config/database');
 
-async function migrate() {
+module.exports = async function migrateEvaPreferences() {
     try {
         console.log('Adding EVA user preference columns to users table...');
 
@@ -34,8 +34,6 @@ async function migrate() {
         console.log('EVA user preferences migration completed successfully.');
     } catch (e) {
         console.error('Migration failed:', e);
+        throw e;
     }
-    process.exit();
-}
-
-migrate();
+};
