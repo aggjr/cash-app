@@ -53,12 +53,12 @@ export const LoanModal = {
                             
                             <!-- Row 1: Description, Company, Account -->
                             <div class="form-group">
-                                <label for="loan-description">Descrição <span class="required">*</span></label>
+                                <label for="loan-description">Descrição <span class="required" style="color: #EF4444;">*</span></label>
                                 <input type="text" id="loan-description" class="form-input" required placeholder="Ex: Capital de Giro Safra 2024">
                             </div>
 
                             <div class="form-group">
-                                <label for="loan-company">Empresa <span class="required">*</span></label>
+                                <label for="loan-company">Empresa <span class="required" style="color: #EF4444;">*</span></label>
                                 <select id="loan-company" class="form-input" required>
                                     <option value="">Selecione...</option>
                                     ${companies.map(c => `<option value="${c.id}">${c.name}</option>`).join('')}
@@ -66,7 +66,7 @@ export const LoanModal = {
                             </div>
 
                             <div class="form-group">
-                                <label for="loan-account">Conta <span class="required">*</span></label>
+                                <label for="loan-account">Conta <span class="required" style="color: #EF4444;">*</span></label>
                                 <select id="loan-account" class="form-input" required>
                                     <option value="">Selecione...</option>
                                 </select>
@@ -79,7 +79,7 @@ export const LoanModal = {
 
                             <!-- Row 2: Nominal, Fees, Net Value -->
                             <div class="form-group">
-                                <label for="loan-nominal">Valor Nominal (Contrato) <span class="required">*</span></label>
+                                <label for="loan-nominal">Valor Nominal (Contrato) <span class="required" style="color: #EF4444;">*</span></label>
                                 <input type="text" id="loan-nominal" class="form-input input-currency" required placeholder="R$ 0,00" style="background: #FFFFFF !important;">
                                 <small style="color: var(--color-text-muted);">Valor no contrato</small>
                             </div>
@@ -110,17 +110,17 @@ export const LoanModal = {
                             <!-- Row 1: 4 Fields in one line using Flexbox -->
                             <div style="grid-column: span 3; display: flex; flex-direction: row; gap: 10px; align-items: flex-end; margin-bottom: 0.2rem;">
                                 <div class="form-group" style="flex: 0 0 80px; margin-bottom: 0;"> <!-- Fixed small width -->
-                                    <label for="loan-installments" style="white-space: nowrap;">Nº Parcelas <span class="required">*</span></label>
+                                    <label for="loan-installments" style="white-space: nowrap;">Nº Parcelas <span class="required" style="color: #EF4444;">*</span></label>
                                     <input type="text" inputmode="numeric" id="loan-installments" class="form-input" value="12" required oninput="this.value = this.value.replace(/[^0-9]/g, '')">
                                 </div>
 
                                 <div class="form-group" style="flex: 0 0 100px; margin-bottom: 0;"> <!-- Fixed small width -->
-                                    <label for="loan-grace-period" style="white-space: nowrap;">Carência <span class="required">*</span></label>
+                                    <label for="loan-grace-period" style="white-space: nowrap;">Carência <span class="required" style="color: #EF4444;">*</span></label>
                                     <input type="text" inputmode="numeric" id="loan-grace-period" class="form-input" value="0" placeholder="0" required oninput="this.value = this.value.replace(/[^0-9]/g, '')">
                                 </div>
 
                                 <div class="form-group" style="flex: 1; margin-bottom: 0;"> <!-- Flexible width -->
-                                    <label for="loan-installment-value" style="white-space: nowrap;">Valor Parcela <span class="required">*</span></label>
+                                    <label for="loan-installment-value" style="white-space: nowrap;">Valor Parcela <span class="required" style="color: #EF4444;">*</span></label>
                                     <input type="text" id="loan-installment-value" class="form-input input-currency" required placeholder="R$ 0,00">
                                 </div>
 
@@ -137,12 +137,12 @@ export const LoanModal = {
                             </div>
 
                             <div class="form-group" style="margin-bottom: 0;">
-                                <label for="loan-contract-date" style="margin-bottom: 0.1rem;">Data Contratação <span class="required">*</span></label>
+                                <label for="loan-contract-date" style="margin-bottom: 0.1rem;">Data Contratação <span class="required" style="color: #EF4444;">*</span></label>
                                 <input type="date" id="loan-contract-date" class="form-input" required value="${new Date().toISOString().split('T')[0]}">
                             </div>
 
                             <div class="form-group" style="margin-bottom: 0;">
-                                <label for="loan-first-due" style="margin-bottom: 0.1rem;">Vencimento 1ª Parcela <span class="required">*</span> <small style="color: var(--color-text-muted); font-weight: normal; font-size: 0.75rem;">(Auto)</small></label>
+                                <label for="loan-first-due" style="margin-bottom: 0.1rem;">Vencimento 1ª Parcela <span class="required" style="color: #EF4444;">*</span> <small style="color: var(--color-text-muted); font-weight: normal; font-size: 0.75rem;">(Auto)</small></label>
                                 <input type="date" id="loan-first-due" class="form-input" required>
                             </div>
 
