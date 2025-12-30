@@ -11,4 +11,7 @@ router.post('/', loanController.createLoan);
 // List loan installments (as Payables)
 router.get('/installments', loanController.listInstallments);
 
+// Suggest category for fees/interest
+router.get('/suggest-category', loanController.suggestCategory);
+
 module.exports = router;

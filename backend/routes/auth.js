@@ -13,4 +13,7 @@ router.post('/projects-by-email', authController.getProjectsByEmail);
 // Password change (auth required)
 router.post('/change-password', auth, authController.changePassword);
 
+// Update user preference (auth required)
+router.put('/update-preference', auth, authController.updatePreference);
+
 module.exports = router;

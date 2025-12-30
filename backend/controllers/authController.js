@@ -145,6 +145,7 @@ exports.login = async (req, res, next) => {
                 u.name,
                 u.email,
                 u.is_active,
+                u.preferred_name,
                 pu.password,
                 pu.password_reset_required,
                 pu.role,
@@ -191,6 +192,7 @@ exports.login = async (req, res, next) => {
             user: {
                 id: user.id,
                 name: user.name,
+                preferred_name: user.preferred_name,
                 email: user.email,
                 password_reset_required: user.password_reset_required
             },
@@ -248,6 +250,26 @@ exports.changePassword = async (req, res, next) => {
         res.json({ message: 'Senha alterada com sucesso' });
         logAudit(req, 'UPDATE', 'users', userId, { action: 'CHANGE_PASSWORD' });
 
+    } catch (error) {
+        next(error);
+    }
+};
+
+exports.updatePreference = async (req, res, next) => {
+    try {
+        const { preferredName } = req.body;
+        const userId = req.user.id;
+
+        if (!preferredName) {
+            throw new AppError('VAL-002');
+        }
+
+        await db.query(
+            'UPDATE users SET preferred_name = ? WHERE id = ?',
+            [preferredName, userId]
+        );
+
+        res.json({ message: 'Preferência atualizada com sucesso' });
     } catch (error) {
         next(error);
     }

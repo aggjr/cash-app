@@ -121,8 +121,8 @@ const migrateFixTransferenciaNulls = require('./migrate_fix_transferencia_nulls'
 const migrateInstallmentColumns = require('./migrate_add_installment_columns');
 const migrateSystemSettings = require('./migrate_add_system_settings');
 const migrateCreateAuditLogs = require('./migrate-create-audit-logs');
-
 const migrateLoans = require('./migrate_loans');
+
 
 loadErrorCatalog()
     .then(() => migrateFixAccounts())
@@ -143,6 +143,8 @@ loadErrorCatalog()
         console.error('Starting server in DEGRADED mode (DB issues likely present)');
         startServer();
     });
+
+// startServer();
 
 function startServer() {
     // Prevent double start if multiple paths somehow triggered

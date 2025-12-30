@@ -120,6 +120,12 @@ export const DividasEmprestimosManager = (project) => {
         try {
             container.querySelector('#table-container')?.classList.add('loading');
 
+            if (!project || !project.id) {
+                console.error('Project ID invalid:', project);
+                showToast('Erro interno: Projeto não identificado', 'error');
+                return;
+            }
+
             const params = new URLSearchParams({
                 projectId: project.id,
                 page: page,
@@ -135,18 +141,23 @@ export const DividasEmprestimosManager = (project) => {
             Object.keys(activeFilters).forEach(key => {
                 const filter = activeFilters[key];
                 if (!filter) return;
-                // Reuse filter logic from IncomeManager (simplified here)
-                // ... (Implementation of filter mapping - see IncomeManager for full logic)
+
                 if (key === 'valor' && filter.min) params.append('minValue', filter.min);
                 else if (key === 'company_name' && filter.text) params.append('search', filter.text);
-                // ... Add full logic if needed or rely on backend general search
             });
 
-            const response = await fetch(`${API_BASE_URL}/loans/installments?${params.toString()}`, {
+            const url = `${API_BASE_URL}/loans/installments?${params.toString()}`;
+            console.log('[DividasEmprestimosManager] Fetching:', url);
+
+            const response = await fetch(url, {
                 headers: getHeaders()
             });
 
-            if (!response.ok) throw new Error('Falha ao carregar parcelas');
+            if (!response.ok) {
+                const errText = await response.text();
+                console.error('[DividasEmprestimosManager] Error response:', response.status, errText);
+                throw new Error('Falha ao carregar parcelas');
+            }
 
             const result = await response.json();
             installments = result.data;
@@ -257,7 +268,7 @@ export const DividasEmprestimosManager = (project) => {
 
     container.innerHTML = `
         <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 2rem;">
-            <h2>🏦 Dívidas / Empréstimos</h2>
+            <h2>🏦 Dívidas / Empréstimos <small style="font-size: 0.8rem; color: #888;">(v1.2)</small></h2>
             <div style="display: flex; gap: 0.5rem;">
                 <span style="font-size: 0.9rem; color: var(--color-primary);">Financeiro</span>
                 <span style="color: var(--color-text-muted);">/</span>

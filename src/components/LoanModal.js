@@ -454,6 +454,31 @@ export const LoanModal = {
                     const gracePeriod = parseInt(gracePeriodInput.value) || 0;
                     const realMonthlyRate = calculateRealRate(net, parcelVal, parcels, gracePeriod);
 
+                    let feeCatId = null;
+                    let interestCatId = null;
+
+                    // EVA INTERCEPTION
+                    if (fees > 0 || realMonthlyRate > 0) {
+                        if (window.EVA && window.EVA.startLoanCategorization) {
+                            try {
+                                const result = await window.EVA.startLoanCategorization({
+                                    projectId,
+                                    nominal,
+                                    net,
+                                    feeAmount: fees
+                                });
+
+                                if (result) {
+                                    feeCatId = result.feeCategoryId;
+                                    interestCatId = result.interestCategoryId;
+                                }
+                            } catch (e) {
+                                console.error('EVA Flow Error:', e);
+                                // Fallback: continue without explicit IDs (backend uses auto)
+                            }
+                        }
+                    }
+
                     const data = {
                         projectId,
                         description: descriptionInput.value,
@@ -463,13 +488,17 @@ export const LoanModal = {
                         fees: fees,                             // TAC, IOF, etc
                         netValue: net,                          // Valor que cai na conta
                         totalValue: parcels * parcelVal,        // Total a pagar
-                        monthlyInterestRate: realMonthlyRate || 0,   // Taxa real calculada (% a.m.)
+                        interestRate: realMonthlyRate || 0,   // Taxa real calculada (% a.m.)
                         installments: parcels,
                         installmentValue: parcelVal,
                         contractDate: contractDateInput.value,
                         gracePeriod: parseInt(gracePeriodInput.value) || 0,  // Prazo de carência
                         firstDueDate: firstDueInput.value,
-                        registerEntry: true                     // Sempre registra entrada
+                        registerEntry: true,                     // Sempre registra entrada
+
+                        // Categories from EVA (Optional)
+                        feeCategoryId: feeCatId,
+                        interestCategoryId: interestCatId
                     };
 
                     await onSave(data);
