@@ -130,23 +130,27 @@ export const LoanModal = {
             const loadData = async () => {
                 try {
                     const [companiesRes, accountsRes] = await Promise.all([
-                        fetch(`/api/projects/${projectId}/companies`, { headers: getHeaders() }),
-                        fetch(`/api/projects/${projectId}/accounts`, { headers: getHeaders() })
+                        fetch(`/api/companies?projectId=${projectId}`, { headers: getHeaders() }),
+                        fetch(`/api/accounts?projectId=${projectId}`, { headers: getHeaders() })
                     ]);
 
-                    const companies = await companiesRes.json();
-                    const accounts = await accountsRes.json();
+                    if (companiesRes.ok) {
+                        const companies = await companiesRes.json();
+                        const compSelect = modal.querySelector('#loan-company-select');
+                        compSelect.innerHTML = '<option value="">Selecione...</option>' +
+                            (Array.isArray(companies) ? companies : []).map(c => `<option value="${c.id}">${c.name}</option>`).join('');
+                    }
 
-                    const compSelect = modal.querySelector('#loan-company-select');
-                    compSelect.innerHTML = '<option value="">Selecione...</option>' +
-                        companies.map(c => `<option value="${c.id}">${c.name}</option>`).join('');
-
-                    const accSelect = modal.querySelector('#loan-account-select');
-                    accSelect.innerHTML = '<option value="">Selecione...</option>' +
-                        accounts.map(a => `<option value="${a.id}">${a.name}</option>`).join('');
+                    if (accountsRes.ok) {
+                        const accounts = await accountsRes.json();
+                        const accSelect = modal.querySelector('#loan-account-select');
+                        accSelect.innerHTML = '<option value="">Selecione...</option>' +
+                            (Array.isArray(accounts) ? accounts : []).map(a => `<option value="${a.id}">${a.name}</option>`).join('');
+                    }
 
                 } catch (err) {
-                    console.error('Load data error', err);
+                    console.error('[LoanModal] Load data error:', err);
+                    alert('Erro ao carregar dados: ' + err.message);
                 }
             };
             loadData();

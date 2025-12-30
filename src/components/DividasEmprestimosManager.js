@@ -195,7 +195,11 @@ export const DividasEmprestimosManager = (project) => {
     const formatMoney = (val) => new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(val);
 
     const createLoan = async () => {
+        alert('Botão clicado! Tentando abrir modal...');
         console.log('[DividasEmprestimosManager] Opening loan modal...');
+        console.log('[DividasEmprestimosManager] LoanModal:', LoanModal);
+        console.log('[DividasEmprestimosManager] project:', project);
+
         try {
             await LoanModal.show({
                 projectId: project.id,
@@ -225,6 +229,7 @@ export const DividasEmprestimosManager = (project) => {
             });
         } catch (error) {
             console.error('[DividasEmprestimosManager] Error opening modal:', error);
+            alert('ERRO ao abrir modal: ' + error.message);
             showToast('Erro ao abrir formulário de empréstimo', 'error');
         }
     };
