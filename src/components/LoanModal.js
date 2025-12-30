@@ -80,13 +80,13 @@ export const LoanModal = {
                             <!-- Row 2: Nominal, Fees, Net Value -->
                             <div class="form-group">
                                 <label for="loan-nominal">Valor Nominal (Contrato) *</label>
-                                <input type="text" id="loan-nominal" class="form-input input-currency" required placeholder="R$ 0,00" style="background: #FFFFFF;">
+                                <input type="text" id="loan-nominal" class="form-input input-currency" required placeholder="R$ 0,00" style="background: #FFFFFF !important;">
                                 <small style="color: var(--color-text-muted);">Valor no contrato</small>
                             </div>
 
                             <div class="form-group">
                                 <label for="loan-fees">Taxas/Impostos (TAC, IOF, etc)</label>
-                                <input type="text" id="loan-fees" class="form-input input-currency" placeholder="R$ 0,00" style="background: #FFFFFF;">
+                                <input type="text" id="loan-fees" class="form-input input-currency" placeholder="R$ 0,00" style="background: #FFFFFF !important;">
                                 <small style="color: var(--color-text-muted);">Descontado do valor</small>
                             </div>
 
@@ -110,13 +110,13 @@ export const LoanModal = {
                             <!-- Row 1: 4 Fields in one line using Flexbox -->
                             <div style="grid-column: span 3; display: flex; flex-direction: row; gap: 10px; align-items: flex-end; margin-bottom: 0.2rem;">
                                 <div class="form-group" style="flex: 0 0 80px; margin-bottom: 0;"> <!-- Fixed small width -->
-                                    <label for="loan-installments" style="white-space: nowrap;">Nº Parcelas <span class="required">*</span></label>
-                                    <input type="number" id="loan-installments" class="form-input" min="1" value="12" required>
+                                    <label for="loan-installments" style="white-space: nowrap;">Nº Parcelas <span class="required" style="color: #EF4444;">*</span></label>
+                                    <input type="text" inputmode="numeric" id="loan-installments" class="form-input" value="12" required oninput="this.value = this.value.replace(/[^0-9]/g, '')">
                                 </div>
 
                                 <div class="form-group" style="flex: 0 0 100px; margin-bottom: 0;"> <!-- Fixed small width -->
-                                    <label for="loan-grace-period" style="white-space: nowrap;">Carência <span class="required">*</span></label>
-                                    <input type="number" id="loan-grace-period" class="form-input" min="0" max="60" value="0" placeholder="0" required>
+                                    <label for="loan-grace-period" style="white-space: nowrap;">Carência <span class="required" style="color: #EF4444;">*</span></label>
+                                    <input type="text" inputmode="numeric" id="loan-grace-period" class="form-input" value="0" placeholder="0" required oninput="this.value = this.value.replace(/[^0-9]/g, '')">
                                 </div>
 
                                 <div class="form-group" style="flex: 1; margin-bottom: 0;"> <!-- Flexible width -->
@@ -322,6 +322,86 @@ export const LoanModal = {
                     }
                 }
 
+
+                // CUSTOM ALERT HELPER
+                const showCustomAlert = (message) => {
+                    return new Promise((resolveAlert) => {
+                        const alertOverlay = document.createElement('div');
+                        alertOverlay.className = 'dialog-overlay';
+                        alertOverlay.style.zIndex = '100000';
+                        alertOverlay.style.backgroundColor = 'rgba(0,0,0,0.4)';
+
+                        const alertBox = document.createElement('div');
+                        alertBox.style.background = 'white';
+                        alertBox.style.padding = '24px';
+                        alertBox.style.borderRadius = '12px';
+                        alertBox.style.maxWidth = '400px';
+                        alertBox.style.width = '90%';
+                        alertBox.style.boxShadow = '0 10px 25px rgba(0,0,0,0.2)';
+                        alertBox.style.textAlign = 'center';
+                        alertBox.className = 'animate-float-in';
+
+                        alertBox.innerHTML = `
+                            <h3 style="margin: 0 0 16px 0; color: #EF4444; font-size: 1.25rem;">Atenção</h3>
+                            <p style="margin: 0 0 24px 0; color: #555; line-height: 1.5;">${message}</p>
+                            <div style="display: flex; justify-content: center;">
+                                <button id="alert-ok" style="
+                                    background: var(--color-primary); border: none; padding: 8px 24px; 
+                                    border-radius: 6px; cursor: pointer; color: white; font-weight: 500;">
+                                    Entendi
+                                </button>
+                            </div>
+                        `;
+
+                        alertOverlay.appendChild(alertBox);
+                        document.body.appendChild(alertOverlay);
+
+                        const closeAlert = () => {
+                            if (document.body.contains(alertOverlay)) {
+                                document.body.removeChild(alertOverlay);
+                            }
+                            resolveAlert();
+                        };
+
+                        const btnOk = alertOverlay.querySelector('#alert-ok');
+                        if (btnOk) btnOk.onclick = () => closeAlert();
+                        alertOverlay.onclick = (e) => { if (e.target === alertOverlay) closeAlert(); };
+
+                        setTimeout(() => btnOk?.focus(), 50);
+                    });
+                };
+
+                const validate = () => {
+                    let isValid = true;
+                    // Check standard required inputs
+                    const requiredFields = modal.querySelectorAll('[required]');
+                    requiredFields.forEach(field => {
+                        field.classList.remove('input-error');
+                        if (!field.value || field.value.trim() === '') {
+                            field.classList.add('input-error');
+                            isValid = false;
+                        }
+                    });
+
+                    // Nominal Check
+                    const nominalVal = parseCurrencyValue(nominalInput.value);
+                    if (nominalVal <= 0) {
+                        nominalInput.classList.add('input-error');
+                        isValid = false;
+                    }
+
+                    return isValid;
+                };
+
+                // Clear error on input
+                modal.querySelectorAll('input, select').forEach(input => {
+                    input.addEventListener('input', () => {
+                        if (input.value && input.value.trim() !== '') {
+                            input.classList.remove('input-error');
+                        }
+                    });
+                });
+
                 // Account filtering
                 const updateAccountList = () => {
                     const selectedCompanyId = parseInt(companySelect.value);
@@ -354,10 +434,8 @@ export const LoanModal = {
 
                 // Save logic
                 saveBtn.onclick = async () => {
-                    if (!descriptionInput.value || !companySelect.value || !accountSelect.value ||
-                        !parseCurrencyValue(nominalInput.value) || !parseCurrencyValue(installmentValueInput.value) ||
-                        !installmentsInput.value || !contractDateInput.value || !firstDueInput.value) {
-                        alert('Por favor, preencha todos os campos obrigatórios.');
+                    if (!validate()) {
+                        await showCustomAlert('Por favor, preencha todos os campos obrigatórios (marcados em vermelho).');
                         return;
                     }
 
