@@ -100,12 +100,29 @@ export const LoanModal = {
                                 <small style="color: #f57c00; font-weight: 500;">⚠️ Você recebe MENOS, mas paga sobre o valor nominal → Taxa Real AUMENTA!</small>
                             </div>
 
-                            <!-- Payment Details Section -->
+                            <!-- Payment Row with Total and Dates -->
                             <div class="form-group" style="grid-column: span 3; margin-top: 0.5rem; padding-top: 0.5rem; border-top: 1px solid var(--color-border-light);">
                                 <strong style="color: var(--color-primary);">📊 Pagamento</strong>
                             </div>
 
-                            <!-- Single Row: All Payment Fields -->
+                            <!-- Row 1: Total, Contract Date, First Due Date -->
+                            <div class="form-group">
+                                <label for="loan-total">Total a Pagar</label>
+                                <input type="text" id="loan-total" class="form-input" readonly style="background: var(--bg-secondary); font-weight: bold; text-align: right;">
+                            </div>
+
+                            <div class="form-group">
+                                <label for="loan-contract-date">Data Contratação *</label>
+                                <input type="date" id="loan-contract-date" class="form-input" required value="${new Date().toISOString().split('T')[0]}">
+                            </div>
+
+                            <div class="form-group">
+                                <label for="loan-first-due">Vencimento 1ª Parcela *</label>
+                                <input type="date" id="loan-first-due" class="form-input" required>
+                                <small style="color: var(--color-text-muted);">Auto-calculado (editável)</small>
+                            </div>
+
+                            <!-- Row 2: Installments, Grace, Installment Value, Real Rate -->
                             <div class="form-group" style="grid-column: span 0.5;">
                                 <label for="loan-installments">Nº *</label>
                                 <input type="number" id="loan-installments" class="form-input" min="1" value="12" required>
@@ -116,36 +133,18 @@ export const LoanModal = {
                                 <input type="number" id="loan-grace-period" class="form-input" min="0" max="60" value="0" placeholder="0">
                             </div>
 
-                            <div class="form-group" style="grid-column: span 0.8;">
-                                <label for="loan-installment-value">Parcela Mensal *</label>
+                            <div class="form-group">
+                                <label for="loan-installment-value">Valor Parcela Mensal *</label>
                                 <input type="text" id="loan-installment-value" class="form-input input-currency" required placeholder="R$ 0,00">
                             </div>
 
-                            <div class="form-group" style="grid-column: span 0.6;">
-                                <label for="loan-total">Total</label>
-                                <input type="text" id="loan-total" class="form-input" readonly style="background: var(--bg-secondary); font-weight: bold; text-align: right;">
+                            <div class="form-group">
+                                <label for="loan-real-rate">📈 Taxa REAL Mensal</label>
+                                <input type="text" id="loan-real-rate" class="form-input" readonly style="background: #fff3e0; font-weight: bold; text-align: center; color: #e65100; font-size: 1.1rem;">
+                                <small style="color: var(--color-text-muted);">Calculada sobre valor líquido</small>
                             </div>
 
-                            <div class="form-group" style="grid-column: span 0.6;">
-                                <label for="loan-real-rate">Taxa REAL</label>
-                                <input type="text" id="loan-real-rate" class="form-input" readonly style="background: #fff3e0; font-weight: bold; text-align: center; color: #e65100; font-size: 1.05rem;">
-                            </div>
 
-                            <!-- Dates Section -->
-                            <div class="form-group" style="grid-column: span 3; margin-top: 0.5rem; padding-top: 0.5rem; border-top: 1px solid var(--color-border-light);">
-                                <strong style="color: var(--color-primary);">📅 Datas</strong>
-                            </div>
-
-                            <div class="form-group" style="grid-column: span 1.5;">
-                                <label for="loan-contract-date">Data da Contratação *</label>
-                                <input type="date" id="loan-contract-date" class="form-input" required value="${new Date().toISOString().split('T')[0]}">
-                            </div>
-
-                            <div class="form-group" style="grid-column: span 1.5;">
-                                <label for="loan-first-due">Vencimento 1ª Parcela *</label>
-                                <input type="date" id="loan-first-due" class="form-input" required>
-                                <small style="color: var(--color-text-muted);">Auto-calculado (editável)</small>
-                            </div>
 
                         </div>
                     </div>
@@ -247,10 +246,9 @@ export const LoanModal = {
                         // f(i) = PV × (1+i)^g × i × (1+i)^n - PMT × [(1+i)^n - 1]
                         const f = pv * exp_g * rate * exp_n - pmt * (exp_n - 1);
 
-                        // f'(i) = PV × (1+i)^g × [(g×i + i×n + 1) × (1+i)^(n-1)]  - PMT × n × (1+i)^(n-1)
-                        // Simplifying: PV × (1+i)^(g+n-1) × (g×i + i×n + 1) - PMT × n × (1+i)^(n-1)
+                        // f'(i) = PV × (1+i)^(g+n-1) × [1 + i×(g + 1 + n)] - PMT × n × (1+i)^(n-1)
                         const exp_gn_minus1 = Math.pow(1 + rate, gracePeriod + n - 1);
-                        const df = pv * exp_gn_minus1 * (gracePeriod * rate + n * rate + 1) - pmt * n * Math.pow(1 + rate, n - 1);
+                        const df = pv * exp_gn_minus1 * (1 + rate * (gracePeriod + 1 + n)) - pmt * n * Math.pow(1 + rate, n - 1);
 
                         if (Math.abs(df) < 0.0000001) break;
 
