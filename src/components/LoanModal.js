@@ -80,13 +80,13 @@ export const LoanModal = {
                             <!-- Row 2: Nominal, Fees, Net Value -->
                             <div class="form-group">
                                 <label for="loan-nominal">Valor Nominal (Contrato) *</label>
-                                <input type="text" id="loan-nominal" class="form-input input-currency" required placeholder="R$ 0,00">
+                                <input type="text" id="loan-nominal" class="form-input input-currency" required placeholder="R$ 0,00" style="background: #FFFFFF;">
                                 <small style="color: var(--color-text-muted);">Valor no contrato</small>
                             </div>
 
                             <div class="form-group">
                                 <label for="loan-fees">Taxas/Impostos (TAC, IOF, etc)</label>
-                                <input type="text" id="loan-fees" class="form-input input-currency" placeholder="R$ 0,00">
+                                <input type="text" id="loan-fees" class="form-input input-currency" placeholder="R$ 0,00" style="background: #FFFFFF;">
                                 <small style="color: var(--color-text-muted);">Descontado do valor</small>
                             </div>
 
@@ -106,47 +106,43 @@ export const LoanModal = {
                             </div>
 
                             <!-- Row 1: 4 Fields in one line using Flexbox -->
-                            <div style="grid-column: span 3; display: flex; flex-direction: row; gap: 10px; align-items: flex-end; margin-bottom: 0.5rem;">
+                            <!-- Row 1: 4 Fields in one line using Flexbox -->
+                            <div style="grid-column: span 3; display: flex; flex-direction: row; gap: 10px; align-items: flex-end; margin-bottom: 0.2rem;">
                                 <div style="flex: 0 0 80px;"> <!-- Fixed small width -->
-                                    <label for="loan-installments" style="display: block; margin-bottom: 0.25rem; color: var(--color-text-medium); font-size: 0.85rem; font-weight: 500; white-space: nowrap;">Nº Parcelas <span class="required">*</span></label>
+                                    <label for="loan-installments" style="display: block; margin-bottom: 0.1rem; color: var(--color-text-medium); font-size: 0.85rem; font-weight: 500; white-space: nowrap;">Nº Parcelas <span class="required">*</span></label>
                                     <input type="number" id="loan-installments" class="form-input" min="1" value="12" required style="width: 100%;">
                                 </div>
 
                                 <div style="flex: 0 0 100px;"> <!-- Fixed small width -->
-                                    <label for="loan-grace-period" style="display: block; margin-bottom: 0.25rem; color: var(--color-text-medium); font-size: 0.85rem; font-weight: 500; white-space: nowrap;">Carência <span class="required">*</span></label>
+                                    <label for="loan-grace-period" style="display: block; margin-bottom: 0.1rem; color: var(--color-text-medium); font-size: 0.85rem; font-weight: 500; white-space: nowrap;">Carência <span class="required">*</span></label>
                                     <input type="number" id="loan-grace-period" class="form-input" min="0" max="60" value="0" placeholder="0" required style="width: 100%;">
                                 </div>
 
                                 <div style="flex: 1;"> <!-- Flexible width -->
-                                    <label for="loan-installment-value" style="display: block; margin-bottom: 0.25rem; color: var(--color-text-medium); font-size: 0.85rem; font-weight: 500; white-space: nowrap;">Valor Parcela <span class="required">*</span></label>
+                                    <label for="loan-installment-value" style="display: block; margin-bottom: 0.1rem; color: var(--color-text-medium); font-size: 0.85rem; font-weight: 500; white-space: nowrap;">Valor Parcela <span class="required">*</span></label>
                                     <input type="text" id="loan-installment-value" class="form-input input-currency" required placeholder="R$ 0,00" style="width: 100%;">
                                 </div>
 
                                 <div style="flex: 1;"> <!-- Flexible width -->
-                                    <label for="loan-real-rate" style="display: block; margin-bottom: 0.25rem; color: var(--color-text-medium); font-size: 0.85rem; font-weight: 500; white-space: nowrap;">Taxa Real</label>
+                                    <label for="loan-real-rate" style="display: block; margin-bottom: 0.1rem; color: var(--color-text-medium); font-size: 0.85rem; font-weight: 500; white-space: nowrap;">Taxa Real <small style="color: var(--color-text-muted); font-weight: normal; font-size: 0.75rem;">(sobre líq.)</small></label>
                                     <input type="text" id="loan-real-rate" class="form-input" readonly style="background: #fff3e0; font-weight: bold; text-align: center; color: #e65100; font-size: 1.1rem; width: 100%;">
                                 </div>
                             </div>
                             
-                            <div style="grid-column: span 3;">
-                                <small style="color: var(--color-text-muted); float: right; margin-top: -5px;">Taxa calculada sobre valor líquido recebido</small>
-                            </div>
-
                             <!-- Row 2: Total, Contract Date, First Due Date (3 columns standard grid) -->
-                            <div class="form-group">
-                                <label for="loan-total">Total a Pagar</label>
-                                <input type="text" id="loan-total" class="form-input" readonly style="background: var(--bg-secondary); font-weight: bold; text-align: right;">
+                            <div class="form-group" style="margin-bottom: 0;">
+                                <label for="loan-total" style="margin-bottom: 0.1rem;">Total a Pagar</label>
+                                <input type="text" id="loan-total" class="form-input" readonly style="background: var(--bg-secondary); font-weight: bold; text-align: left;">
                             </div>
 
-                            <div class="form-group">
-                                <label for="loan-contract-date">Data Contratação *</label>
+                            <div class="form-group" style="margin-bottom: 0;">
+                                <label for="loan-contract-date" style="margin-bottom: 0.1rem;">Data Contratação <span class="required">*</span></label>
                                 <input type="date" id="loan-contract-date" class="form-input" required value="${new Date().toISOString().split('T')[0]}">
                             </div>
 
-                            <div class="form-group">
-                                <label for="loan-first-due">Vencimento 1ª Parcela *</label>
+                            <div class="form-group" style="margin-bottom: 0;">
+                                <label for="loan-first-due" style="margin-bottom: 0.1rem;">Vencimento 1ª Parcela <span class="required">*</span> <small style="color: var(--color-text-muted); font-weight: normal; font-size: 0.75rem;">(Auto)</small></label>
                                 <input type="date" id="loan-first-due" class="form-input" required>
-                                <small style="color: var(--color-text-muted);">Auto-calculado (editável)</small>
                             </div>
 
 
