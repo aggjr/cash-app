@@ -294,7 +294,9 @@ export const LoanModal = {
                     input.addEventListener('input', updateCalculations);
                 });
 
+                // Also recalculate when installments or grace period changes
                 installmentsInput.addEventListener('input', updateCalculations);
+                gracePeriodInput.addEventListener('input', updateCalculations);
 
                 // Auto-calculate net value, total, and real rate
                 function updateCalculations() {
