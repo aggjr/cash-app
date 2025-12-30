@@ -49,7 +49,7 @@ export const LoanModal = {
                     <div class="account-modal-body" style="padding: 1rem; overflow-y: auto; max-height: 85vh;">
                         <h3 style="margin: 0 0 1rem 0; color: var(--color-primary); font-size: 1.1rem;">🏦 Contratar Empréstimo</h3>
                         
-                        <div class="form-grid" style="display: grid; grid-template-columns: 2fr 1.5fr 1.5fr; gap: 0.75rem;">
+                        <div class="form-grid" style="display: grid; grid-template-columns: 2fr 1.5fr 1.5fr; gap: 0.4rem;">
                             
                             <!-- Row 1: Description, Company, Account -->
                             <div class="form-group">
@@ -219,7 +219,8 @@ export const LoanModal = {
                 };
 
                 // Calculate real monthly interest rate using Newton-Raphson method
-                const calculateRealRate = (pv, pmt, n) => {
+                // INCLUDING grace period capitalization effect
+                const calculateRealRate = (pv, pmt, n, gracePeriod = 0) => {
                     // Validate inputs
                     if (!pv || pv <= 0 || !pmt || pmt <= 0 || !n || n <= 0) {
                         return null;
@@ -239,10 +240,17 @@ export const LoanModal = {
                     }
 
                     // Newton-Raphson iterations
+                    // Formula with grace period: PV * (1+i)^g * i * (1+i)^n = PMT * ((1+i)^n - 1)
+                    // where g = grace period
                     for (let i = 0; i < 30; i++) {
-                        const exp = Math.pow(1 + rate, n);
-                        const f = pv * rate * exp - pmt * (exp - 1);
-                        const df = pv * exp * (rate * n + 1) - pmt * n * exp;
+                        const exp_grace = Math.pow(1 + rate, gracePeriod);
+                        const exp_n = Math.pow(1 + rate, n);
+
+                        // f(i) = PV * (1+i)^g * i * (1+i)^n - PMT * ((1+i)^n - 1)
+                        const f = pv * exp_grace * rate * exp_n - pmt * (exp_n - 1);
+
+                        // Derivative f'(i)
+                        const df = pv * exp_grace * (exp_n * (rate * n + 1) + gracePeriod * rate * exp_n) - pmt * n * exp_n;
 
                         if (Math.abs(df) < 0.0000001) break; // Avoid division by zero
 
@@ -298,12 +306,13 @@ export const LoanModal = {
 
                     const parcels = parseInt(installmentsInput.value) || 0;
                     const parcelVal = parseCurrencyValue(installmentValueInput.value);
+                    const gracePeriod = parseInt(gracePeriodInput.value) || 0;
                     const total = parcels * parcelVal;
 
                     totalInput.value = formatFloat(total);
 
-                    // Calculate real monthly rate
-                    const monthlyRate = calculateRealRate(net, parcelVal, parcels);
+                    // Calculate real monthly rate WITH grace period
+                    const monthlyRate = calculateRealRate(net, parcelVal, parcels, gracePeriod);
 
                     if (monthlyRate === null) {
                         realRateInput.value = '-';
@@ -358,7 +367,8 @@ export const LoanModal = {
                     const net = nominal - fees;
                     const parcels = parseInt(installmentsInput.value);
                     const parcelVal = parseCurrencyValue(installmentValueInput.value);
-                    const realMonthlyRate = calculateRealRate(net, parcelVal, parcels);
+                    const gracePeriod = parseInt(gracePeriodInput.value) || 0;
+                    const realMonthlyRate = calculateRealRate(net, parcelVal, parcels, gracePeriod);
 
                     const data = {
                         projectId,
