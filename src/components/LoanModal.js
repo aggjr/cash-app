@@ -94,9 +94,9 @@ export const LoanModal = {
 
                             <!-- Net Value (Auto-calculated) -->
                             <div class="form-group" style="grid-column: span 2;">
-                                <label for="loan-net">Valor Líquido na Conta</label>
+                                <label for="loan-net">💵 Valor Líquido que CAI na Conta</label>
                                 <input type="text" id="loan-net" class="form-input" readonly style="background: #e8f5e9; font-weight: bold; font-size: 1.1rem; text-align: right; color: #2e7d32;">
-                                <small style="color: var(--color-text-muted);">Valor Nominal - Taxas/Impostos = Valor que realmente entra na conta</small>
+                                <small style="color: #f57c00; font-weight: 500;">⚠️ Você recebe MENOS, mas paga sobre o valor nominal → Taxa Real AUMENTA!</small>
                             </div>
 
                             <!-- Payment Details Section -->
@@ -123,9 +123,9 @@ export const LoanModal = {
 
                             <!-- Real Interest Rate (Auto-calculated) -->
                             <div class="form-group">
-                                <label for="loan-real-rate">Taxa Real Mensal</label>
+                                <label for="loan-real-rate">📈 Taxa REAL Mensal</label>
                                 <input type="text" id="loan-real-rate" class="form-input" readonly style="background: #fff3e0; font-weight: bold; text-align: right; color: #e65100;">
-                                <small style="color: var(--color-text-muted);">Calculada automaticamente</small>
+                                <small style="color: var(--color-text-muted);">Calculada sobre o valor líquido recebido</small>
                             </div>
 
                             <!-- Dates Section -->
