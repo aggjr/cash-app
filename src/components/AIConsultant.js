@@ -56,7 +56,7 @@ export const AIConsultant = () => {
     const messages = [
         {
             sender: 'ai',
-            text: 'Oi, meu nome é EVA e eu estou aqui para te auxiliar a gerenciar sua empresa.\n\nSobre o que vc quer discutir hoje?'
+            text: 'Oi, meu nome é Foccus e sou um agente virtual treinado nas metodologias da empresa.\n\nTenho como objetivo facilitar seu trabalho e te ajudar a alcançar seus objetivos. Prazer em conversar com você!'
         }
     ];
 
@@ -79,7 +79,7 @@ export const AIConsultant = () => {
 
     // Image
     const img = document.createElement('img');
-    img.src = '/robot_icon.png';
+    img.src = '/foccus_icon.png';
     img.style.width = '100%';
     img.style.height = '100%';
     img.style.objectFit = 'cover';
@@ -125,7 +125,7 @@ export const AIConsultant = () => {
     headerTitle.style.gap = '0.5rem';
     headerTitle.innerHTML = `
         <div style="width: 8px; height: 8px; background-color: #10B981; border-radius: 50%;"></div>
-        <span style="font-weight: 600; font-size: 0.9rem;">EVA - Consultora IA</span>
+        <span style="font-weight: 600; font-size: 0.9rem;">FOCCUS - Agente Virtual</span>
     `;
 
     // Voice Toggle Button
@@ -316,9 +316,9 @@ export const AIConsultant = () => {
             modal.style.cssText = 'background: white; padding: 2rem; border-radius: 12px; max-width: 500px; width: 90%; box-shadow: 0 10px 40px rgba(0,0,0,0.3);';
 
             modal.innerHTML = `
-                <h2 style="margin: 0 0 1rem 0; color: var(--color-primary); font-size: 1.5rem;">👋 Olá! Sou a EVA</h2>
+                <h2 style="margin: 0 0 1rem 0; color: var(--color-primary); font-size: 1.5rem;">👋 Olá! Sou o FOCCUS</h2>
                 <p style="margin: 0 0 1.5rem 0; line-height: 1.5; color: #555;">
-                    Sua <strong>assistente financeira inteligente</strong>. Estou aqui para ajudar você a gerenciar suas finanças de forma mais eficiente.
+                    Sou um <strong>agente virtual treinado nas metodologias da empresa</strong>. Tenho como objetivo facilitar seu trabalho e te ajudar a alcançar seus objetivos.
                 </p>
                 
                 <div style="margin-bottom: 1.5rem;">
@@ -538,7 +538,7 @@ export const AIConsultant = () => {
     };
 
     // Global Exposure
-    window.EVA = {
+    window.FOCCUS = {
         startLoanCategorization
     };
 

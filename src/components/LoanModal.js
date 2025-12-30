@@ -457,11 +457,11 @@ export const LoanModal = {
                     let feeCatId = null;
                     let interestCatId = null;
 
-                    // EVA INTERCEPTION
+                    // FOCCUS INTERCEPTION
                     if (fees > 0 || realMonthlyRate > 0) {
-                        if (window.EVA && window.EVA.startLoanCategorization) {
+                        if (window.FOCCUS && window.FOCCUS.startLoanCategorization) {
                             try {
-                                const result = await window.EVA.startLoanCategorization({
+                                const result = await window.FOCCUS.startLoanCategorization({
                                     projectId,
                                     nominal,
                                     net,
@@ -473,7 +473,7 @@ export const LoanModal = {
                                     interestCatId = result.interestCategoryId;
                                 }
                             } catch (e) {
-                                console.error('EVA Flow Error:', e);
+                                console.error('FOCCUS Flow Error:', e);
                                 // Fallback: continue without explicit IDs (backend uses auto)
                             }
                         }
