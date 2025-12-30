@@ -42,24 +42,23 @@ export const LoanModal = {
 
                 const modal = document.createElement('div');
                 modal.className = 'account-modal animate-float-in';
-                modal.style.maxWidth = '700px';
+                modal.style.maxWidth = '1000px';
                 modal.style.width = '95%';
 
                 modal.innerHTML = `
                     <div class="account-modal-body" style="padding: 1rem; overflow-y: auto; max-height: 85vh;">
                         <h3 style="margin: 0 0 1rem 0; color: var(--color-primary); font-size: 1.1rem;">🏦 Contratar Empréstimo</h3>
                         
-                        <div class="form-grid" style="display: grid; grid-template-columns: repeat(2, 1fr); gap: 0.75rem;">
+                        <div class="form-grid" style="display: grid; grid-template-columns: 2fr 1.5fr 1.5fr; gap: 0.75rem;">
                             
-                            <!-- Description -->
-                            <div class="form-group" style="grid-column: span 2;">
+                            <!-- Row 1: Description, Company, Account -->
+                            <div class="form-group">
                                 <label for="loan-description">Descrição *</label>
                                 <input type="text" id="loan-description" class="form-input" required placeholder="Ex: Capital de Giro Safra 2024">
                             </div>
 
-                            <!-- Company and Account -->
                             <div class="form-group">
-                                <label for="loan-company">Empresa/Banco *</label>
+                                <label for="loan-company">Empresa *</label>
                                 <select id="loan-company" class="form-input" required>
                                     <option value="">Selecione...</option>
                                     ${companies.map(c => `<option value="${c.id}">${c.name}</option>`).join('')}
@@ -67,40 +66,42 @@ export const LoanModal = {
                             </div>
 
                             <div class="form-group">
-                                <label for="loan-account">Conta (Recebimento/Pagamento) *</label>
+                                <label for="loan-account">Conta *</label>
                                 <select id="loan-account" class="form-input" required>
                                     <option value="">Selecione...</option>
                                 </select>
                             </div>
 
                             <!-- Financial Details Section -->
-                            <div class="form-group" style="grid-column: span 2; margin-top: 0.5rem; padding-top: 0.5rem; border-top: 1px solid var(--color-border-light);">
+                            <div class="form-group" style="grid-column: span 3; margin-top: 0.5rem; padding-top: 0.5rem; border-top: 1px solid var(--color-border-light);">
                                 <strong style="color: var(--color-primary);">💰 Valores do Empréstimo</strong>
                             </div>
 
-                            <!-- Nominal Value -->
+                            <!-- Row 2: Nominal, Fees, Net Value -->
                             <div class="form-group">
                                 <label for="loan-nominal">Valor Nominal (Contrato) *</label>
                                 <input type="text" id="loan-nominal" class="form-input input-currency" required placeholder="R$ 0,00">
                                 <small style="color: var(--color-text-muted);">Valor no contrato</small>
                             </div>
 
-                            <!-- Fees and Taxes -->
                             <div class="form-group">
                                 <label for="loan-fees">Taxas/Impostos (TAC, IOF, etc)</label>
                                 <input type="text" id="loan-fees" class="form-input input-currency" placeholder="R$ 0,00">
                                 <small style="color: var(--color-text-muted);">Descontado do valor</small>
                             </div>
 
-                            <!-- Net Value (Auto-calculated) -->
-                            <div class="form-group" style="grid-column: span 2;">
+                            <div class="form-group">
                                 <label for="loan-net">💵 Valor Líquido que CAI na Conta</label>
                                 <input type="text" id="loan-net" class="form-input" readonly style="background: #e8f5e9; font-weight: bold; font-size: 1.1rem; text-align: right; color: #2e7d32;">
+                            </div>
+
+                            <!-- Warning message -->
+                            <div style="grid-column: span 3;">
                                 <small style="color: #f57c00; font-weight: 500;">⚠️ Você recebe MENOS, mas paga sobre o valor nominal → Taxa Real AUMENTA!</small>
                             </div>
 
                             <!-- Payment Details Section -->
-                            <div class="form-group" style="grid-column: span 2; margin-top: 0.5rem; padding-top: 0.5rem; border-top: 1px solid var(--color-border-light);">
+                            <div class="form-group" style="grid-column: span 3; margin-top: 0.5rem; padding-top: 0.5rem; border-top: 1px solid var(--color-border-light);">
                                 <strong style="color: var(--color-primary);">📊 Pagamento</strong>
                             </div>
 
@@ -115,21 +116,20 @@ export const LoanModal = {
                                 <small style="color: var(--color-text-muted);">Valor fixo mensal</small>
                             </div>
 
-                            <!-- Total to Pay -->
                             <div class="form-group">
                                 <label for="loan-total">Total a Pagar</label>
                                 <input type="text" id="loan-total" class="form-input" readonly style="background: var(--bg-secondary); font-weight: bold; text-align: right;">
                             </div>
 
-                            <!-- Real Interest Rate (Auto-calculated) -->
-                            <div class="form-group">
+                            <!-- Real Interest Rate (spanning 3 columns for prominence) -->
+                            <div class="form-group" style="grid-column: span 3;">
                                 <label for="loan-real-rate">📈 Taxa REAL Mensal</label>
-                                <input type="text" id="loan-real-rate" class="form-input" readonly style="background: #fff3e0; font-weight: bold; text-align: right; color: #e65100;">
+                                <input type="text" id="loan-real-rate" class="form-input" readonly style="background: #fff3e0; font-weight: bold; text-align: center; color: #e65100; font-size: 1.2rem;">
                                 <small style="color: var(--color-text-muted);">Calculada sobre o valor líquido recebido</small>
                             </div>
 
                             <!-- Dates Section -->
-                            <div class="form-group" style="grid-column: span 2; margin-top: 0.5rem; padding-top: 0.5rem; border-top: 1px solid var(--color-border-light);">
+                            <div class="form-group" style="grid-column: span 3; margin-top: 0.5rem; padding-top: 0.5rem; border-top: 1px solid var(--color-border-light);">
                                 <strong style="color: var(--color-primary);">📅 Datas</strong>
                             </div>
 
@@ -141,18 +141,6 @@ export const LoanModal = {
                             <div class="form-group">
                                 <label for="loan-first-due">Vencimento 1ª Parcela *</label>
                                 <input type="date" id="loan-first-due" class="form-input" required>
-                            </div>
-
-                            <!-- Register Entry Option -->
-                            <div class="form-group" style="grid-column: span 2; background: var(--bg-hover); padding: 0.75rem; border-radius: 8px;">
-                                <div style="display: flex; align-items: center; gap: 0.5rem;">
-                                    <input type="checkbox" id="loan-register-entry" checked style="width: auto; margin: 0;">
-                                    <label for="loan-register-entry" style="margin: 0; cursor: pointer; flex: 1;">
-                                        <strong>Registrar Entrada do Dinheiro</strong>
-                                        <br>
-                                        <small style="color: var(--color-text-muted);">Cria lançamento de entrada com o valor líquido na conta selecionada</small>
-                                    </label>
-                                </div>
                             </div>
 
                         </div>
@@ -179,7 +167,6 @@ export const LoanModal = {
                 const realRateInput = modal.querySelector('#loan-real-rate');
                 const contractDateInput = modal.querySelector('#loan-contract-date');
                 const firstDueInput = modal.querySelector('#loan-first-due');
-                const registerEntryCheck = modal.querySelector('#loan-register-entry');
                 const saveBtn = modal.querySelector('#loan-btn-save');
                 const cancelBtn = modal.querySelector('#loan-btn-cancel');
 
@@ -199,26 +186,44 @@ export const LoanModal = {
 
                 // Calculate real monthly interest rate using Newton-Raphson method
                 const calculateRealRate = (pv, pmt, n) => {
-                    if (pv <= 0 || pmt <= 0 || n <= 0) return 0;
+                    // Validate inputs
+                    if (!pv || pv <= 0 || !pmt || pmt <= 0 || !n || n <= 0) {
+                        return null;
+                    }
+
+                    // If payment equals present value divided by periods, it's zero interest
+                    if (Math.abs(pmt * n - pv) < 0.01) {
+                        return 0;
+                    }
 
                     // Initial guess (simple interest approximation)
                     let rate = ((pmt * n) / pv - 1) / n;
 
-                    // Newton-Raphson iterations
-                    for (let i = 0; i < 20; i++) {
-                        if (Math.abs(rate) < 0.0001) rate = 0.001; // Avoid division by zero
+                    // Ensure initial rate is positive and reasonable
+                    if (rate <= 0 || rate > 1) {
+                        rate = 0.05; // Start with 5% if calculation seems off
+                    }
 
+                    // Newton-Raphson iterations
+                    for (let i = 0; i < 30; i++) {
                         const exp = Math.pow(1 + rate, n);
                         const f = pv * rate * exp - pmt * (exp - 1);
-                        const df = pv * n * exp * rate + pv * exp - pmt * n * exp;
+                        const df = pv * exp * (rate * n + 1) - pmt * n * exp;
+
+                        if (Math.abs(df) < 0.0000001) break; // Avoid division by zero
 
                         const newRate = rate - f / df;
 
+                        // Check convergence
                         if (Math.abs(newRate - rate) < 0.0000001) {
                             return newRate * 100; // Return as percentage
                         }
 
-                        rate = newRate;
+                        // Ensure rate stays positive
+                        rate = Math.max(0.0001, newRate);
+
+                        // Prevent runaway values
+                        if (rate > 10) rate = 0.1; // Cap at 1000% monthly (clearly an error)
                     }
 
                     return rate * 100; // Return as percentage
@@ -264,11 +269,14 @@ export const LoanModal = {
                     totalInput.value = formatFloat(total);
 
                     // Calculate real monthly rate
-                    if (net > 0 && parcelVal > 0 && parcels > 0) {
-                        const monthlyRate = calculateRealRate(net, parcelVal, parcels);
-                        realRateInput.value = monthlyRate.toFixed(4) + ' % a.m.';
-                    } else {
+                    const monthlyRate = calculateRealRate(net, parcelVal, parcels);
+
+                    if (monthlyRate === null) {
                         realRateInput.value = '-';
+                    } else if (monthlyRate === 0) {
+                        realRateInput.value = '0,00 % a.m. (Sem Juros)';
+                    } else {
+                        realRateInput.value = monthlyRate.toFixed(4).replace('.', ',') + ' % a.m.';
                     }
                 }
 
@@ -327,12 +335,12 @@ export const LoanModal = {
                         fees: fees,                             // TAC, IOF, etc
                         netValue: net,                          // Valor que cai na conta
                         totalValue: parcels * parcelVal,        // Total a pagar
-                        monthlyInterestRate: realMonthlyRate,   // Taxa real calculada (% a.m.)
+                        monthlyInterestRate: realMonthlyRate || 0,   // Taxa real calculada (% a.m.)
                         installments: parcels,
                         installmentValue: parcelVal,
                         contractDate: contractDateInput.value,
                         firstDueDate: firstDueInput.value,
-                        registerEntry: registerEntryCheck.checked
+                        registerEntry: true                     // Sempre registra entrada
                     };
 
                     await onSave(data);
