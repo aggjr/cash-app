@@ -27,6 +27,10 @@ export const AIConsultant = () => {
     const speak = (text) => {
         if (!window.speechSynthesis) return;
 
+        // Check if voice is enabled
+        const user = getUser();
+        if (!user?.eva_voice_enabled) return; // PRIVACY: Only speak if user opted in
+
         // Cancel any ongoing speech
         window.speechSynthesis.cancel();
 
@@ -87,9 +91,6 @@ export const AIConsultant = () => {
     fab.onmouseleave = () => fab.style.transform = 'scale(1)';
     fab.onclick = () => {
         toggleChat();
-        if (isOpen && messages.length === 1) {
-            speak(messages[0].text);
-        }
     };
 
     // 2. Chat Window
@@ -127,6 +128,45 @@ export const AIConsultant = () => {
         <span style="font-weight: 600; font-size: 0.9rem;">EVA - Consultora IA</span>
     `;
 
+    // Voice Toggle Button
+    const voiceToggleBtn = document.createElement('button');
+    voiceToggleBtn.style.cssText = 'background: rgba(255,255,255,0.2); border: 1px solid rgba(255,255,255,0.3); padding: 0.3rem 0.6rem; border-radius: 6px; cursor: pointer; color: white; font-size: 0.85rem; display: flex; align-items: center; gap: 0.3rem;';
+
+    const updateVoiceButton = () => {
+        const user = getUser();
+        const isEnabled = user?.eva_voice_enabled;
+        voiceToggleBtn.innerHTML = isEnabled ? '🔊 Voz ON' : '🔇 Voz OFF';
+        voiceToggleBtn.style.background = isEnabled ? 'rgba(34, 197, 94, 0.2)' : 'rgba(239, 68, 68, 0.2)';
+        voiceToggleBtn.style.borderColor = isEnabled ? 'rgba(34, 197, 94, 0.5)' : 'rgba(239, 68, 68, 0.5)';
+    };
+
+    updateVoiceButton();
+
+    voiceToggleBtn.onclick = async () => {
+        try {
+            const user = getUser();
+            const newState = !user?.eva_voice_enabled;
+
+            const res = await fetch(`${API_BASE_URL}/auth/update-preference`, {
+                method: 'PUT',
+                headers: getHeaders(),
+                body: JSON.stringify({ evaVoiceEnabled: newState })
+            });
+
+            if (res.ok) {
+                const data = await res.json();
+                updateLocalUser(data.user);
+                updateVoiceButton();
+
+                if (newState) {
+                    speak('Voz ativada!');
+                }
+            }
+        } catch (e) {
+            console.error('Error toggling voice:', e);
+        }
+    };
+
     const closeBtn = document.createElement('button');
     closeBtn.textContent = '×';
     closeBtn.style.color = 'white';
@@ -140,6 +180,7 @@ export const AIConsultant = () => {
     };
 
     header.appendChild(headerTitle);
+    header.appendChild(voiceToggleBtn);
     header.appendChild(closeBtn);
 
     // Messages Area
@@ -257,12 +298,106 @@ export const AIConsultant = () => {
         }
     };
 
-    const updateLocalUser = (prefName) => {
+    const updateLocalUser = (updates) => {
         const user = getUser();
         if (user) {
-            user.preferred_name = prefName;
+            Object.assign(user, updates);
             localStorage.setItem('user', JSON.stringify(user));
         }
+    };
+
+    // --- EVA Introduction Modal (First Time) ---
+    const showIntroductionModal = () => {
+        return new Promise((resolve) => {
+            const overlay = document.createElement('div');
+            overlay.style.cssText = 'position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.5); z-index: 100000; display: flex; align-items: center; justify-content: center;';
+
+            const modal = document.createElement('div');
+            modal.style.cssText = 'background: white; padding: 2rem; border-radius: 12px; max-width: 500px; width: 90%; box-shadow: 0 10px 40px rgba(0,0,0,0.3);';
+
+            modal.innerHTML = `
+                <h2 style="margin: 0 0 1rem 0; color: var(--color-primary); font-size: 1.5rem;">👋 Olá! Sou a EVA</h2>
+                <p style="margin: 0 0 1.5rem 0; line-height: 1.5; color: #555;">
+                    Sua <strong>assistente financeira inteligente</strong>. Estou aqui para ajudar você a gerenciar suas finanças de forma mais eficiente.
+                </p>
+                
+                <div style="margin-bottom: 1.5rem;">
+                    <label style="display: block; margin-bottom: 0.5rem; font-weight: 500; color: #333;">Como você gostaria de ser chamado(a)?</label>
+                    <input type="text" id="eva-intro-name" style="width: 100%; padding: 0.75rem; border: 1px solid #ddd; border-radius: 6px; font-size: 1rem; box-sizing: border-box;" placeholder="Digite seu nome preferido">
+                </div>
+
+                <div style="margin-bottom: 1.5rem; padding: 1rem; background: #f0f9ff; border-radius: 6px; border: 1px solid #bfdbfe;">
+                    <label style="display: flex; align-items: start; cursor: pointer; gap: 0.5rem;">
+                        <input type="checkbox" id="eva-voice-toggle" style="margin-top: 0.25rem;">
+                        <div>
+                            <div style="font-weight: 500; color: #1e40af;">✓ Ativar comandos por voz</div>
+                            <div style="font-size: 0.85rem; color: #64748b; margin-top: 0.25rem;">ℹ️ Você pode desativar a voz a qualquer momento se precisar de privacidade</div>
+                        </div>
+                    </label>
+                </div>
+
+                <div style="display: flex; gap: 0.75rem; justify-content: flex-end;">
+                    <button id="eva-intro-confirm" style="background: var(--color-primary); color: white; border: none; padding: 0.75rem 2rem; border-radius: 6px; font-size: 1rem; cursor: pointer; font-weight: 500;">Confirmar</button>
+                </div>
+            `;
+
+            overlay.appendChild(modal);
+            document.body.appendChild(overlay);
+
+            const nameInput = modal.querySelector('#eva-intro-name');
+            const voiceCheckbox = modal.querySelector('#eva-voice-toggle');
+            const confirmBtn = modal.querySelector('#eva-intro-confirm');
+
+            // Default voice to checked
+            voiceCheckbox.checked = true;
+
+            // Get current user name as default
+            const user = getUser();
+            if (user?.name) {
+                nameInput.value = user.preferred_name || user.name;
+            }
+
+            setTimeout(() => nameInput.focus(), 100);
+
+            nameInput.addEventListener('keypress', (e) => {
+                if (e.key === 'Enter') confirmBtn.click();
+            });
+
+            confirmBtn.onclick = async () => {
+                const preferredName = nameInput.value.trim();
+                const evaVoiceEnabled = voiceCheckbox.checked;
+
+                if (!preferredName) {
+                    nameInput.style.borderColor = 'red';
+                    return;
+                }
+
+                // Save to server
+                try {
+                    const res = await fetch(`${API_BASE_URL}/auth/update-preference`, {
+                        method: 'PUT',
+                        headers: getHeaders(),
+                        body: JSON.stringify({
+                            preferredName,
+                            evaIntroduced: true,
+                            evaVoiceEnabled
+                        })
+                    });
+
+                    if (res.ok) {
+                        const data = await res.json();
+                        updateLocalUser(data.user);
+                        document.body.removeChild(overlay);
+                        resolve({ preferredName, evaVoiceEnabled });
+                    } else {
+                        alert('Erro ao salvar preferências. Tente novamente.');
+                    }
+                } catch (e) {
+                    console.error('Error saving EVA preferences:', e);
+                    alert('Erro ao salvar preferências. Tente novamente.');
+                }
+            };
+        });
     };
 
     const checkPreferredName = async () => {
@@ -289,7 +424,8 @@ export const AIConsultant = () => {
             });
 
             if (res.ok) {
-                updateLocalUser(name);
+                const data = await res.json();
+                updateLocalUser(data.user);
                 const msg = `Entendido, **${name}**. Vou me lembrar disso.`;
                 messages.push({ sender: 'ai', text: msg });
                 renderMessages();
@@ -305,16 +441,27 @@ export const AIConsultant = () => {
         }
     };
 
-    const toggleChat = () => {
+    const toggleChat = async () => {
         isOpen = !isOpen;
         chatWindow.style.display = isOpen ? 'flex' : 'none';
         if (isOpen) {
-            renderMessages();
-            input.focus();
-            // Check for preferred name if not busy
-            setTimeout(() => {
-                if (!pendingAction) checkPreferredName();
-            }, 500);
+            // Check for first-time introduction
+            const user = getUser();
+            if (user && !user.eva_introduced) {
+                const result = await showIntroductionModal();
+                // After introduction, greet with voice if enabled
+                const greeting = `Olá, ${result.preferredName}! Prazer em conhecê-lo. Como posso ajudar hoje?`;
+                messages.push({ sender: 'ai', text: greeting });
+                renderMessages();
+                speak(greeting);
+            } else {
+                renderMessages();
+                input.focus();
+                // Check for preferred name if not busy and not introduced
+                setTimeout(() => {
+                    if (!pendingAction && user && !user.eva_introduced) checkPreferredName();
+                }, 500);
+            }
         }
     };
 

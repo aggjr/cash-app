@@ -123,6 +123,7 @@ const migrateSystemSettings = require('./migrate_add_system_settings');
 const migrateCreateAuditLogs = require('./migrate-create-audit-logs');
 const migrateLoans = require('./migrate_loans');
 const migratePreferredName = require('./migrate_add_preferred_name');
+const migrateEvaPreferences = require('./migrate-eva-user-preferences');
 
 
 loadErrorCatalog()
@@ -137,6 +138,7 @@ loadErrorCatalog()
     .then(() => migrateCreateAuditLogs())
     .then(() => migrateLoans())
     .then(() => migratePreferredName())
+    .then(() => migrateEvaPreferences())
     .then(() => {
         startServer();
     })

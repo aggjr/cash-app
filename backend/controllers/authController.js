@@ -146,6 +146,8 @@ exports.login = async (req, res, next) => {
                 u.email,
                 u.is_active,
                 u.preferred_name,
+                u.eva_introduced,
+                u.eva_voice_enabled,
                 pu.password,
                 pu.password_reset_required,
                 pu.role,
@@ -193,6 +195,8 @@ exports.login = async (req, res, next) => {
                 id: user.id,
                 name: user.name,
                 preferred_name: user.preferred_name,
+                eva_introduced: user.eva_introduced,
+                eva_voice_enabled: user.eva_voice_enabled,
                 email: user.email,
                 password_reset_required: user.password_reset_required
             },
@@ -257,19 +261,49 @@ exports.changePassword = async (req, res, next) => {
 
 exports.updatePreference = async (req, res, next) => {
     try {
-        const { preferredName } = req.body;
+        const { preferredName, evaIntroduced, evaVoiceEnabled } = req.body;
         const userId = req.user.id;
 
-        if (!preferredName) {
-            throw new AppError('VAL-002');
+        // Build dynamic update query based on provided fields
+        const updates = [];
+        const values = [];
+
+        if (preferredName !== undefined) {
+            updates.push('preferred_name = ?');
+            values.push(preferredName);
         }
 
+        if (evaIntroduced !== undefined) {
+            updates.push('eva_introduced = ?');
+            values.push(evaIntroduced);
+        }
+
+        if (evaVoiceEnabled !== undefined) {
+            updates.push('eva_voice_enabled = ?');
+            values.push(evaVoiceEnabled);
+        }
+
+        if (updates.length === 0) {
+            throw new AppError('VAL-002', 'Nenhuma preferência fornecida');
+        }
+
+        values.push(userId);
+
         await db.query(
-            'UPDATE users SET preferred_name = ? WHERE id = ?',
-            [preferredName, userId]
+            `UPDATE users SET ${updates.join(', ')} WHERE id = ?`,
+            values
         );
 
-        res.json({ message: 'Preferência atualizada com sucesso' });
+        // Fetch updated user data to return
+        const [updatedUser] = await db.query(
+            'SELECT preferred_name, eva_introduced, eva_voice_enabled FROM users WHERE id = ?',
+            [userId]
+        );
+
+        res.json({
+            message: 'Preferências atualizadas com sucesso',
+            user: updatedUser[0]
+        });
     } catch (error) {
         next(error);
     }
