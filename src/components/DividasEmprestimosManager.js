@@ -195,16 +195,12 @@ export const DividasEmprestimosManager = (project) => {
     const formatMoney = (val) => new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(val);
 
     const createLoan = async () => {
-        alert('Botão clicado! Tentando abrir modal...');
-        console.log('[DividasEmprestimosManager] Opening loan modal...');
-        console.log('[DividasEmprestimosManager] LoanModal:', LoanModal);
-        console.log('[DividasEmprestimosManager] project:', project);
+        console.log('[DividasEmprestimosManager] Opening loan modal');
 
         try {
             await LoanModal.show({
                 projectId: project.id,
                 onSave: async (loanData) => {
-                    console.log('[DividasEmprestimosManager] Saving loan:', loanData);
                     try {
                         const response = await fetch(`${API_BASE_URL}/loans`, {
                             method: 'POST',
@@ -213,24 +209,21 @@ export const DividasEmprestimosManager = (project) => {
                         });
 
                         if (response.ok) {
-                            console.log('[DividasEmprestimosManager] Loan created successfully');
                             showToast('Empréstimo contratado com sucesso!', 'success');
                             loadData();
                         } else {
                             const err = await response.json();
-                            console.error('[DividasEmprestimosManager] Error creating loan:', err);
                             showToast(err.message || 'Erro ao contratar empréstimo', 'error');
                         }
                     } catch (error) {
                         console.error('[DividasEmprestimosManager] Network error:', error);
-                        showToast('Erro de conexão ao contratar empréstimo', 'error');
+                        showToast('Erro de conexão', 'error');
                     }
                 }
             });
         } catch (error) {
             console.error('[DividasEmprestimosManager] Error opening modal:', error);
-            alert('ERRO ao abrir modal: ' + error.message);
-            showToast('Erro ao abrir formulário de empréstimo', 'error');
+            showToast('Erro ao abrir formulário', 'error');
         }
     };
 
