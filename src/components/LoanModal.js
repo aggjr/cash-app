@@ -105,24 +105,7 @@ export const LoanModal = {
                                 <strong style="color: var(--color-primary);">📊 Pagamento</strong>
                             </div>
 
-                            <!-- Row 1: Total, Contract Date, First Due Date -->
-                            <div class="form-group">
-                                <label for="loan-total">Total a Pagar</label>
-                                <input type="text" id="loan-total" class="form-input" readonly style="background: var(--bg-secondary); font-weight: bold; text-align: right;">
-                            </div>
-
-                            <div class="form-group">
-                                <label for="loan-contract-date">Data Contratação *</label>
-                                <input type="date" id="loan-contract-date" class="form-input" required value="${new Date().toISOString().split('T')[0]}">
-                            </div>
-
-                            <div class="form-group">
-                                <label for="loan-first-due">Vencimento 1ª Parcela *</label>
-                                <input type="date" id="loan-first-due" class="form-input" required>
-                                <small style="color: var(--color-text-muted);">Auto-calculado (editável)</small>
-                            </div>
-
-                            <!-- Row 2: Installments, Grace, Installment Value, Real Rate -->
+                            <!-- Row 1: Installments, Grace, Installment Value, Real Rate -->
                             <div class="form-group" style="grid-column: span 0.5;">
                                 <label for="loan-installments">Nº *</label>
                                 <input type="number" id="loan-installments" class="form-input" min="1" value="12" required>
@@ -142,6 +125,23 @@ export const LoanModal = {
                                 <label for="loan-real-rate">📈 Taxa REAL Mensal</label>
                                 <input type="text" id="loan-real-rate" class="form-input" readonly style="background: #fff3e0; font-weight: bold; text-align: center; color: #e65100; font-size: 1.1rem;">
                                 <small style="color: var(--color-text-muted);">Calculada sobre valor líquido</small>
+                            </div>
+
+                            <!-- Row 2: Total, Contract Date, First Due Date -->
+                            <div class="form-group">
+                                <label for="loan-total">Total a Pagar</label>
+                                <input type="text" id="loan-total" class="form-input" readonly style="background: var(--bg-secondary); font-weight: bold; text-align: right;">
+                            </div>
+
+                            <div class="form-group">
+                                <label for="loan-contract-date">Data Contratação *</label>
+                                <input type="date" id="loan-contract-date" class="form-input" required value="${new Date().toISOString().split('T')[0]}">
+                            </div>
+
+                            <div class="form-group">
+                                <label for="loan-first-due">Vencimento 1ª Parcela *</label>
+                                <input type="date" id="loan-first-due" class="form-input" required>
+                                <small style="color: var(--color-text-muted);">Auto-calculado (editável)</small>
                             </div>
 
 
