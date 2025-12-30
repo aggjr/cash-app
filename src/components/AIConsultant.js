@@ -23,6 +23,23 @@ export const AIConsultant = () => {
     let isOpen = false;
     let isListening = false;
 
+    // --- State Helpers (Moved up to avoid TDZ) ---
+    const getUser = () => {
+        try {
+            return JSON.parse(localStorage.getItem('user'));
+        } catch (e) {
+            return null;
+        }
+    };
+
+    const updateLocalUser = (updates) => {
+        const user = getUser();
+        if (user) {
+            Object.assign(user, updates);
+            localStorage.setItem('user', JSON.stringify(user));
+        }
+    };
+
     // --- Voice Logic (TTS) ---
     const speak = (text) => {
         if (!window.speechSynthesis) return;
@@ -289,22 +306,7 @@ export const AIConsultant = () => {
     let loanResolver = null; // Promise resolve function for loan flow
     let loanContext = null;  // Data for loan flow
 
-    // Preferred Name Logic
-    const getUser = () => {
-        try {
-            return JSON.parse(localStorage.getItem('user'));
-        } catch (e) {
-            return null;
-        }
-    };
 
-    const updateLocalUser = (updates) => {
-        const user = getUser();
-        if (user) {
-            Object.assign(user, updates);
-            localStorage.setItem('user', JSON.stringify(user));
-        }
-    };
 
     // --- EVA Introduction Modal (First Time) ---
     const showIntroductionModal = () => {
