@@ -105,29 +105,34 @@ export const LoanModal = {
                                 <strong style="color: var(--color-primary);">📊 Pagamento</strong>
                             </div>
 
-                            <!-- Row 1: Installments, Grace, Installment Value, Real Rate -->
-                            <div class="form-group" style="grid-column: span 0.5;">
-                                <label for="loan-installments">Nº *</label>
-                                <input type="number" id="loan-installments" class="form-input" min="1" value="12" required>
+                            <!-- Row 1: 4 Fields in one line using Flexbox -->
+                            <div class="form-group" style="grid-column: span 3; display: flex; gap: 10px; align-items: flex-end;">
+                                <div style="flex: 0 0 80px;"> <!-- Fixed small width -->
+                                    <label for="loan-installments" style="white-space: nowrap;">Nº Parcelas *</label>
+                                    <input type="number" id="loan-installments" class="form-input" min="1" value="12" required>
+                                </div>
+
+                                <div style="flex: 0 0 100px;"> <!-- Fixed small width -->
+                                    <label for="loan-grace-period" style="white-space: nowrap;">Meses Carência</label>
+                                    <input type="number" id="loan-grace-period" class="form-input" min="0" max="60" value="0" placeholder="0">
+                                </div>
+
+                                <div style="flex: 1;"> <!-- Flexible width -->
+                                    <label for="loan-installment-value" style="white-space: nowrap;">Valor Parcela *</label>
+                                    <input type="text" id="loan-installment-value" class="form-input input-currency" required placeholder="R$ 0,00">
+                                </div>
+
+                                <div style="flex: 1;"> <!-- Flexible width -->
+                                    <label for="loan-real-rate" style="white-space: nowrap;">Taxa Real</label>
+                                    <input type="text" id="loan-real-rate" class="form-input" readonly style="background: #fff3e0; font-weight: bold; text-align: center; color: #e65100; font-size: 1.1rem;">
+                                </div>
+                            </div>
+                            
+                            <div style="grid-column: span 3;">
+                                <small style="color: var(--color-text-muted); float: right; margin-top: -5px;">Taxa calculada sobre valor líquido recebido</small>
                             </div>
 
-                            <div class="form-group" style="grid-column: span 0.5;">
-                                <label for="loan-grace-period">Carência</label>
-                                <input type="number" id="loan-grace-period" class="form-input" min="0" max="60" value="0" placeholder="0">
-                            </div>
-
-                            <div class="form-group">
-                                <label for="loan-installment-value">Valor Parcela Mensal *</label>
-                                <input type="text" id="loan-installment-value" class="form-input input-currency" required placeholder="R$ 0,00">
-                            </div>
-
-                            <div class="form-group">
-                                <label for="loan-real-rate">📈 Taxa REAL Mensal</label>
-                                <input type="text" id="loan-real-rate" class="form-input" readonly style="background: #fff3e0; font-weight: bold; text-align: center; color: #e65100; font-size: 1.1rem;">
-                                <small style="color: var(--color-text-muted);">Calculada sobre valor líquido</small>
-                            </div>
-
-                            <!-- Row 2: Total, Contract Date, First Due Date -->
+                            <!-- Row 2: Total, Contract Date, First Due Date (3 columns standard grid) -->
                             <div class="form-group">
                                 <label for="loan-total">Total a Pagar</label>
                                 <input type="text" id="loan-total" class="form-input" readonly style="background: var(--bg-secondary); font-weight: bold; text-align: right;">
