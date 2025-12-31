@@ -457,11 +457,11 @@ export const LoanModal = {
                     let feeCatId = null;
                     let interestCatId = null;
 
-                    // FOCCUS INTERCEPTION
+                    // EVA INTERCEPTION
                     if (fees > 0 || realMonthlyRate > 0) {
-                        if (window.FOCCUS && window.FOCCUS.startLoanCategorization) {
+                        if (window.EVA && window.EVA.startLoanCategorization) {
                             try {
-                                const result = await window.FOCCUS.startLoanCategorization({
+                                const result = await window.EVA.startLoanCategorization({
                                     projectId,
                                     nominal,
                                     net,
