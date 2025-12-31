@@ -66,7 +66,7 @@ export const AIConsultant = () => {
 
         const utterance = new SpeechSynthesisUtterance(text);
         utterance.lang = 'pt-BR';
-        utterance.rate = 1.1; // Default + 10%
+        utterance.rate = 1.30;
 
         const voices = window.speechSynthesis.getVoices();
         const ptVoice = voices.find(v => v.lang === 'pt-BR' && v.name.includes('Google')) || voices.find(v => v.lang === 'pt-BR');
