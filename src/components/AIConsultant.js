@@ -333,7 +333,7 @@ export const AIConsultant = () => {
 
         // Use LLM for introduction
         pendingAction = 'intro_llm';
-        const msg = `Olá, seja ${welcomeGender}. Eu sou a EVA, sua assistente virtual.\n\nPara que nossa interação seja mais adequada, como ${pronoun} gostaria de ser ${called}?\n\nSugiro: "${suggestedName}"`
+        const msg = `Olá "${suggestedName}". Seja ${welcomeGender}. Eu sou a EVA, sua assistente virtual.\n\nPara que nossa interação seja mais adequada, como ${pronoun} gostaria de ser ${called}?`
 
         addMessage('ai', msg);
         speak(msg);
