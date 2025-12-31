@@ -66,7 +66,11 @@ export const AIConsultant = () => {
 
         const utterance = new SpeechSynthesisUtterance(text);
         utterance.lang = 'pt-BR';
-        utterance.rate = 1.30;
+
+        // Apply voice rate: base 1.30 * (1 + adjustment/100)
+        const adjustment = window.evaVoiceRateAdjustment || 0;
+        utterance.rate = 1.30 * (1 + adjustment / 100);
+        console.log('[EVA Voice] Rate adjustment:', adjustment, '-> Final rate:', utterance.rate);
 
         const voices = window.speechSynthesis.getVoices();
         const ptVoice = voices.find(v => v.lang === 'pt-BR' && v.name.includes('Google')) || voices.find(v => v.lang === 'pt-BR');
@@ -90,6 +94,11 @@ export const AIConsultant = () => {
                 if (settings.eva_timeout) {
                     evaTimeout = settings.eva_timeout * 1000;
                     console.log('EVA Timeout loaded:', evaTimeout);
+                }
+                if (settings.eva_voice_rate !== undefined) {
+                    // Store the rate adjustment value (-100 to +100)
+                    window.evaVoiceRateAdjustment = settings.eva_voice_rate;
+                    console.log('EVA Voice Rate Adjustment loaded:', settings.eva_voice_rate);
                 }
             }
         } catch (e) {

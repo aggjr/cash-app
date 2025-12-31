@@ -68,7 +68,8 @@ export const ParametrosGeraisManager = (project) => {
             originalSettings = {
                 numero_dias: settings.numero_dias,
                 tempo_minutos_liberacao: settings.tempo_minutos_liberacao,
-                eva_timeout: settings.eva_timeout || 5 // Default if null
+                eva_timeout: settings.eva_timeout || 5, // Default if null
+                eva_voice_rate: settings.eva_voice_rate || 0 // Default 0 = 1.30x
             };
             currentSettings = { ...originalSettings };
 
@@ -499,6 +500,76 @@ export const ParametrosGeraisManager = (project) => {
                     </small>
                 </div>
 
+                <!-- Voice Speed Slider -->
+                <div style="margin-bottom: 2rem;">
+                    <label style="display: block; font-weight: 500; margin-bottom: 0.5rem; color: var(--color-text);">
+                        🎤 Velocidade da Voz da EVA
+                    </label>
+                    <div style="display: flex; align-items: center; gap: 1rem;">
+                        <span style="min-width: 40px; text-align: right; color: var(--color-text-muted); font-size: 0.875rem;">0x</span>
+                        <div style="flex: 1; position: relative;">
+                            <input 
+                                type="range" 
+                                id="slider-eva_voice_rate" 
+                                min="-100" 
+                                max="100" 
+                                value="${currentSettings.eva_voice_rate || 0}"
+                                step="5"
+                                style="
+                                    width: 100%;
+                                    height: 8px;
+                                    -webkit-appearance: none;
+                                    appearance: none;
+                                    background: linear-gradient(to right, #EF4444 0%, #3B82F6 50%, #10B981 100%);
+                                    border-radius: 4px;
+                                    outline: none;
+                                "
+                            />
+                            <div 
+                                id="voice-rate-display"
+                                style="
+                                    position: absolute;
+                                    top: -30px;
+                                    left: 50%;
+                                    transform: translateX(-50%);
+                                    background: var(--color-primary);
+                                    color: white;
+                                    padding: 0.25rem 0.5rem;
+                                    border-radius: 4px;
+                                    font-size: 0.875rem;
+                                    font-weight: 600;
+                                    white-space: nowrap;
+                                "
+                            >1.30x</div>
+                        </div>
+                        <span style="min-width: 40px; color: var(--color-text-muted); font-size: 0.875rem;">2.6x</span>
+                        <button 
+                            id="save-eva_voice_rate"
+                            class="btn-save-setting"
+                            disabled
+                            style="
+                                height: 45px;
+                                aspect-ratio: 1;
+                                padding: 0;
+                                display: flex;
+                                align-items: center;
+                                justify-content: center;
+                                background: #e5e7eb;
+                                color: #9ca3af;
+                                border: none;
+                                border-radius: 8px;
+                                font-size: 1.2rem;
+                                cursor: not-allowed;
+                                transition: all 0.2s;
+                            "
+                            title="Salvar alteração"
+                        >✓</button>
+                    </div>
+                    <small style="display: block; margin-top: 0.5rem; color: var(--color-text-muted);">
+                        Ajuste a velocidade de fala da EVA (-100% a +100% da velocidade padrão de 1.30x)
+                    </small>
+                </div>
+
                 <!-- Separador -->
                 <hr style="border: none; border-top: 1px solid var(--color-border-light); margin: 2rem 0;" />
 
@@ -550,6 +621,68 @@ export const ParametrosGeraisManager = (project) => {
             const saveBtn = container.querySelector(`#save-${field}`);
             saveBtn.addEventListener('click', () => saveSetting(field));
         });
+
+        // Event listener para voice rate slider
+        const voiceSlider = container.querySelector('#slider-eva_voice_rate');
+        const voiceDisplay = container.querySelector('#voice-rate-display');
+        const voiceSaveBtn = container.querySelector('#save-eva_voice_rate');
+
+        const updateVoiceDisplay = (value) => {
+            // Formula: voice_rate = 1.30 * (1 + value/100)
+            const rate = 1.30 * (1 + value / 100);
+            voiceDisplay.textContent = rate.toFixed(2) + 'x';
+
+            // Move display above slider position
+            const percentage = ((value + 100) / 200) * 100;
+            voiceDisplay.style.left = `${percentage}%`;
+        };
+
+        voiceSlider.addEventListener('input', (e) => {
+            const value = parseInt(e.target.value);
+            currentSettings.eva_voice_rate = value;
+            updateVoiceDisplay(value);
+
+            // Update save button state
+            const isDirty = value !== originalSettings.eva_voice_rate;
+            voiceSaveBtn.disabled = !isDirty;
+            if (isDirty) {
+                voiceSaveBtn.style.background = 'var(--color-primary)';
+                voiceSaveBtn.style.color = 'white';
+                voiceSaveBtn.style.cursor = 'pointer';
+            } else {
+                voiceSaveBtn.style.background = '#e5e7eb';
+                voiceSaveBtn.style.color = '#9ca3af';
+                voiceSaveBtn.style.cursor = 'not-allowed';
+            }
+        });
+
+        voiceSaveBtn.addEventListener('click', async () => {
+            const value = parseInt(voiceSlider.value);
+            try {
+                const response = await fetch(`${API_BASE_URL}/settings/eva_voice_rate`, {
+                    method: 'PUT',
+                    headers: getHeaders(),
+                    body: JSON.stringify({ value })
+                });
+
+                if (response.ok) {
+                    originalSettings.eva_voice_rate = value;
+                    voiceSaveBtn.disabled = true;
+                    voiceSaveBtn.style.background = '#e5e7eb';
+                    voiceSaveBtn.style.color = '#9ca3af';
+                    voiceSaveBtn.style.cursor = 'not-allowed';
+                    showToast('✓ Velocidade da voz atualizada', 'success');
+                } else {
+                    const error = await response.json();
+                    showToast(error.error || 'Erro ao salvar', 'error');
+                }
+            } catch (error) {
+                showToast('Erro de conexão', 'error');
+            }
+        });
+
+        // Initialize voice display
+        updateVoiceDisplay(currentSettings.eva_voice_rate || 0);
 
         // Event listener para botão de liberação
         const unlockBtn = container.querySelector('#btn-activate-unlock');

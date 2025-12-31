@@ -47,7 +47,7 @@ const updateSetting = async (req, res) => {
         const { value } = req.body;
 
         // Validate field name
-        const allowedFields = ['numero_dias', 'tempo_minutos_liberacao', 'eva_timeout'];
+        const allowedFields = ['numero_dias', 'tempo_minutos_liberacao', 'eva_timeout', 'eva_voice_rate'];
         if (!allowedFields.includes(field)) {
             return res.status(400).json({ error: 'Campo inválido' });
         }
@@ -63,7 +63,14 @@ const updateSetting = async (req, res) => {
             if (numValue < 0 || numValue > 10) {
                 return res.status(400).json({ error: 'Tempo de espera da EVA deve estar entre 0 e 10 segundos' });
             }
-        } else {
+        }
+        // Special validation for eva_voice_rate (-100 to +100)
+        else if (field === 'eva_voice_rate') {
+            if (numValue < -100 || numValue > 100) {
+                return res.status(400).json({ error: 'Ajuste de velocidade deve estar entre -100% e +100%' });
+            }
+        }
+        else {
             // Other fields must be positive
             if (numValue <= 0) {
                 return res.status(400).json({ error: 'Valor deve ser um número positivo' });
