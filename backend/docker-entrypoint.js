@@ -7,8 +7,6 @@ async function waitForDB() {
     console.log('⏳ Waiting for Database...');
     const maxRetries = 30;
 
-    console.log(`🔍 DEBUG: Trying to connect to HOST: ${process.env.DB_HOST} | USER: ${process.env.DB_USER}`);
-
     for (let i = 0; i < maxRetries; i++) {
         try {
             const connection = await mysql.createConnection({
@@ -21,9 +19,7 @@ async function waitForDB() {
             console.log('✅ Database is ready!');
             return true;
         } catch (error) {
-            console.log(`❌ Link Error:`, error);
-            console.log(`❌ Error Code: ${error.code}`);
-            console.log(`❌ Error Message: ${error.message}`);
+            console.log(`❌ Connection Error: ${error.message}`);
             console.log(`... Database not ready yet (${i + 1}/${maxRetries}). Retrying in 2s...`);
             await sleep(2000);
         }
