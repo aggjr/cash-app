@@ -749,7 +749,16 @@ export const AIConsultant = () => {
                     const result = await EvaActions.handle(decision.action, decision);
 
                     if (result.success) {
-                        const msg = result.message || 'Feito.';
+                        // Success message + follow-up prompt
+                        const followUps = [
+                            'E agora?',
+                            'O que mais?',
+                            'Posso ajudar em algo mais?',
+                            'Prosseguimos?'
+                        ];
+                        const followUp = followUps[Math.floor(Math.random() * followUps.length)];
+                        const msg = (result.message || 'Feito.') + ' ' + followUp;
+
                         addMessage('ai', msg);
                         speak(msg);
                     } else {
