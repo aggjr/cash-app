@@ -203,11 +203,176 @@ function initAppLogic() {
     });
   }
 
-  // Tree manager configurations
+  // Tree manager configurations - Moved to module scope for access by navigate
   const treeConfigs = {
     'tipo-entrada': { tableName: 'tipo_entrada', title: 'Tipo Entrada', term: 'Entrada' },
     'tipo-saida': { tableName: 'tipo_saida', title: 'Tipo de Saída', term: 'Saída' },
     'tipo-producao-revenda': { tableName: 'tipo_producao_revenda', title: 'Tipo Produção Revenda', term: 'Produção/Revenda' }
+  };
+
+  // Global Navigation Function (Accessble by EVA)
+  window.cashApp = window.cashApp || {};
+  window.cashApp.navigate = (itemId) => {
+    console.log(`[Navigate] Switching to screen: ${itemId}`);
+
+    // Update UI active state
+    document.querySelectorAll('.menu-item').forEach(el => el.classList.remove('active'));
+    const activeItem = document.querySelector(`.menu-item[data-id="${itemId}"]`);
+    if (activeItem) activeItem.classList.add('active');
+
+    // Check if this is a tree manager item
+    if (treeConfigs[itemId]) {
+      const config = treeConfigs[itemId];
+      const manager = createTreeManager(config.tableName, config.title, config.term);
+
+      const mainElement = document.querySelector('main');
+      mainElement.innerHTML = manager.render();
+      manager.init();
+    } else if (itemId === 'contas') {
+      const { currentProject } = checkAuth();
+      if (currentProject) {
+        const mainElement = document.querySelector('main');
+        mainElement.innerHTML = '';
+        mainElement.appendChild(AccountManager(currentProject));
+      } else {
+        Dialogs.alert('Selecione um projeto primeiro', 'Aviso');
+      }
+    } else if (itemId === 'empresa') {
+      const { currentProject } = checkAuth();
+      if (currentProject) {
+        const mainElement = document.querySelector('main');
+        mainElement.innerHTML = '';
+        mainElement.appendChild(CompanyManager(currentProject));
+      } else {
+        Dialogs.alert('Selecione um projeto primeiro', 'Aviso');
+      }
+    } else if (itemId === 'entrada') {
+      const { currentProject } = checkAuth();
+      if (currentProject) {
+        const mainElement = document.querySelector('main');
+        mainElement.innerHTML = '';
+        mainElement.appendChild(IncomeManager(currentProject));
+      } else {
+        Dialogs.alert('Selecione um projeto primeiro', 'Aviso');
+      }
+    } else if (itemId === 'saida') {
+      const { currentProject } = checkAuth();
+      if (currentProject) {
+        const mainElement = document.querySelector('main');
+        mainElement.innerHTML = '';
+        mainElement.appendChild(SaidaManager(currentProject));
+      } else {
+        Dialogs.alert('Selecione um projeto primeiro', 'Aviso');
+      }
+    } else if (itemId === 'producao-revenda') {
+      const { currentProject } = checkAuth();
+      if (currentProject) {
+        const mainElement = document.querySelector('main');
+        mainElement.innerHTML = '';
+        mainElement.appendChild(ProducaoRevendaManager(currentProject));
+      } else {
+        Dialogs.alert('Selecione um projeto primeiro', 'Aviso');
+      }
+    } else if (itemId === 'fechamento') {
+      const { currentProject } = checkAuth();
+      if (currentProject) {
+        const mainElement = document.querySelector('main');
+        mainElement.innerHTML = '';
+        mainElement.appendChild(FechamentoContasManager(currentProject));
+      } else {
+        Dialogs.alert('Selecione um projeto primeiro', 'Aviso');
+      }
+    } else if (itemId === 'aportes') {
+      const { currentProject } = checkAuth();
+      if (currentProject) {
+        const mainElement = document.querySelector('main');
+        mainElement.innerHTML = '';
+        mainElement.appendChild(AporteManager(currentProject));
+      } else {
+        Dialogs.alert('Selecione um projeto primeiro', 'Aviso');
+      }
+    } else if (itemId === 'retiradas') {
+      const { currentProject } = checkAuth();
+      if (currentProject) {
+        const mainElement = document.querySelector('main');
+        mainElement.innerHTML = '';
+        mainElement.appendChild(RetiradaManager(currentProject));
+      } else {
+        Dialogs.alert('Selecione um projeto primeiro', 'Aviso');
+      }
+    } else if (itemId === 'transferencias') {
+      const { currentProject } = checkAuth();
+      if (currentProject) {
+        const mainElement = document.querySelector('main');
+        mainElement.innerHTML = '';
+        mainElement.appendChild(TransferenciaManager(currentProject));
+      } else {
+        Dialogs.alert('Selecione um projeto primeiro', 'Aviso');
+      }
+    } else if (itemId === 'extrato-conta') {
+      const { currentProject } = checkAuth();
+      if (currentProject) {
+        const mainElement = document.querySelector('main');
+        mainElement.innerHTML = '';
+        mainElement.appendChild(ExtratoContaManager(currentProject));
+      } else {
+        Dialogs.alert('Selecione um projeto primeiro', 'Aviso');
+      }
+    } else if (itemId === 'consolidadas') {
+      const { currentProject } = checkAuth();
+      if (currentProject) {
+        const mainElement = document.querySelector('main');
+        mainElement.innerHTML = '';
+        mainElement.appendChild(ConsolidadasManager(currentProject));
+      } else {
+        Dialogs.alert('Selecione um projeto primeiro', 'Aviso');
+      }
+    } else if (itemId === 'previsao') {
+      const { currentProject } = checkAuth();
+      if (currentProject) {
+        const mainElement = document.querySelector('main');
+        mainElement.innerHTML = '';
+        mainElement.appendChild(PrevisaoFluxoManager(currentProject));
+      } else {
+        Dialogs.alert('Selecione um projeto primeiro', 'Aviso');
+      }
+    } else if (itemId === 'usuarios') {
+      const { currentProject } = checkAuth();
+      if (currentProject) {
+        const mainElement = document.querySelector('main');
+        mainElement.innerHTML = '';
+        mainElement.appendChild(UserManager(currentProject));
+      } else {
+        Dialogs.alert('Selecione um projeto primeiro', 'Aviso');
+      }
+    } else if (itemId === 'parametros-gerais') {
+      const { currentProject } = checkAuth();
+      if (currentProject) {
+        const mainElement = document.querySelector('main');
+        mainElement.innerHTML = '';
+        mainElement.appendChild(ParametrosGeraisManager(currentProject));
+      } else {
+        Dialogs.alert('Selecione um projeto primeiro', 'Aviso');
+      }
+    } else if (itemId === 'log-alteracoes') {
+      const { currentProject } = checkAuth();
+      if (currentProject) {
+        const mainElement = document.querySelector('main');
+        mainElement.innerHTML = '';
+        mainElement.appendChild(LogAlteracoesManager(currentProject));
+      } else {
+        Dialogs.alert('Selecione um projeto primeiro', 'Aviso');
+      }
+    } else if (itemId === 'dividas-emprestimos') {
+      const { currentProject } = checkAuth();
+      if (currentProject) {
+        const mainElement = document.querySelector('main');
+        mainElement.innerHTML = '';
+        mainElement.appendChild(DividasEmprestimosManager(currentProject));
+      } else {
+        Dialogs.alert('Selecione um projeto primeiro', 'Aviso');
+      }
+    }
   };
 
   // Menu item expand/collapse functionality
@@ -235,158 +400,9 @@ function initAppLogic() {
       e.stopPropagation();
       const itemId = item.dataset.id;
 
-      // Check if this is a tree manager item
-      if (treeConfigs[itemId]) {
-        const config = treeConfigs[itemId];
-        const manager = createTreeManager(config.tableName, config.title, config.term);
-
-        const mainElement = document.querySelector('main');
-        mainElement.innerHTML = manager.render();
-        manager.init();
-      } else if (itemId === 'contas') {
-        const { currentProject } = checkAuth();
-        if (currentProject) {
-          const mainElement = document.querySelector('main');
-          mainElement.innerHTML = '';
-          mainElement.appendChild(AccountManager(currentProject));
-        } else {
-          Dialogs.alert('Selecione um projeto primeiro', 'Aviso');
-        }
-      } else if (itemId === 'empresa') {
-        const { currentProject } = checkAuth();
-        if (currentProject) {
-          const mainElement = document.querySelector('main');
-          mainElement.innerHTML = '';
-          mainElement.appendChild(CompanyManager(currentProject));
-        } else {
-          Dialogs.alert('Selecione um projeto primeiro', 'Aviso');
-        }
-      } else if (itemId === 'entrada') {
-        const { currentProject } = checkAuth();
-        if (currentProject) {
-          const mainElement = document.querySelector('main');
-          mainElement.innerHTML = '';
-          mainElement.appendChild(IncomeManager(currentProject));
-        } else {
-          Dialogs.alert('Selecione um projeto primeiro', 'Aviso');
-        }
-      } else if (itemId === 'saida') {
-        const { currentProject } = checkAuth();
-        if (currentProject) {
-          const mainElement = document.querySelector('main');
-          mainElement.innerHTML = '';
-          mainElement.appendChild(SaidaManager(currentProject));
-        } else {
-          Dialogs.alert('Selecione um projeto primeiro', 'Aviso');
-        }
-      } else if (itemId === 'producao-revenda') {
-        const { currentProject } = checkAuth();
-        if (currentProject) {
-          const mainElement = document.querySelector('main');
-          mainElement.innerHTML = '';
-          mainElement.appendChild(ProducaoRevendaManager(currentProject));
-        } else {
-          Dialogs.alert('Selecione um projeto primeiro', 'Aviso');
-        }
-      } else if (itemId === 'fechamento') {
-        const { currentProject } = checkAuth();
-        if (currentProject) {
-          const mainElement = document.querySelector('main');
-          mainElement.innerHTML = '';
-          mainElement.appendChild(FechamentoContasManager(currentProject));
-        } else {
-          Dialogs.alert('Selecione um projeto primeiro', 'Aviso');
-        }
-      } else if (itemId === 'aportes') {
-        const { currentProject } = checkAuth();
-        if (currentProject) {
-          const mainElement = document.querySelector('main');
-          mainElement.innerHTML = '';
-          mainElement.appendChild(AporteManager(currentProject));
-        } else {
-          Dialogs.alert('Selecione um projeto primeiro', 'Aviso');
-        }
-      } else if (itemId === 'retiradas') {
-        const { currentProject } = checkAuth();
-        if (currentProject) {
-          const mainElement = document.querySelector('main');
-          mainElement.innerHTML = '';
-          mainElement.appendChild(RetiradaManager(currentProject));
-        } else {
-          Dialogs.alert('Selecione um projeto primeiro', 'Aviso');
-        }
-      } else if (itemId === 'transferencias') {
-        const { currentProject } = checkAuth();
-        if (currentProject) {
-          const mainElement = document.querySelector('main');
-          mainElement.innerHTML = '';
-          mainElement.appendChild(TransferenciaManager(currentProject));
-        } else {
-          Dialogs.alert('Selecione um projeto primeiro', 'Aviso');
-        }
-      } else if (itemId === 'extrato-conta') {
-        const { currentProject } = checkAuth();
-        if (currentProject) {
-          const mainElement = document.querySelector('main');
-          mainElement.innerHTML = '';
-          mainElement.appendChild(ExtratoContaManager(currentProject));
-        } else {
-          Dialogs.alert('Selecione um projeto primeiro', 'Aviso');
-        }
-      } else if (itemId === 'consolidadas') {
-        const { currentProject } = checkAuth();
-        if (currentProject) {
-          const mainElement = document.querySelector('main');
-          mainElement.innerHTML = '';
-          mainElement.appendChild(ConsolidadasManager(currentProject));
-        } else {
-          Dialogs.alert('Selecione um projeto primeiro', 'Aviso');
-        }
-      } else if (itemId === 'previsao') {
-        const { currentProject } = checkAuth();
-        if (currentProject) {
-          const mainElement = document.querySelector('main');
-          mainElement.innerHTML = '';
-          mainElement.appendChild(PrevisaoFluxoManager(currentProject));
-        } else {
-          Dialogs.alert('Selecione um projeto primeiro', 'Aviso');
-        }
-      } else if (itemId === 'usuarios') {
-        const { currentProject } = checkAuth();
-        if (currentProject) {
-          const mainElement = document.querySelector('main');
-          mainElement.innerHTML = '';
-          mainElement.appendChild(UserManager(currentProject));
-        } else {
-          Dialogs.alert('Selecione um projeto primeiro', 'Aviso');
-        }
-      } else if (itemId === 'parametros-gerais') {
-        const { currentProject } = checkAuth();
-        if (currentProject) {
-          const mainElement = document.querySelector('main');
-          mainElement.innerHTML = '';
-          mainElement.appendChild(ParametrosGeraisManager(currentProject));
-        } else {
-          Dialogs.alert('Selecione um projeto primeiro', 'Aviso');
-        }
-      } else if (itemId === 'log-alteracoes') {
-        const { currentProject } = checkAuth();
-        if (currentProject) {
-          const mainElement = document.querySelector('main');
-          mainElement.innerHTML = '';
-          mainElement.appendChild(LogAlteracoesManager(currentProject));
-        } else {
-          Dialogs.alert('Selecione um projeto primeiro', 'Aviso');
-        }
-      } else if (itemId === 'dividas-emprestimos') {
-        const { currentProject } = checkAuth();
-        if (currentProject) {
-          const mainElement = document.querySelector('main');
-          mainElement.innerHTML = '';
-          mainElement.appendChild(DividasEmprestimosManager(currentProject));
-        } else {
-          Dialogs.alert('Selecione um projeto primeiro', 'Aviso');
-        }
+      // Use the global navigation function
+      if (window.cashApp && window.cashApp.navigate) {
+        window.cashApp.navigate(itemId);
       }
     });
   });

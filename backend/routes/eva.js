@@ -6,4 +6,7 @@ const auth = require('../middleware/auth');
 // POST /api/eva/chat - Chat with EVA using LLM
 router.post('/chat', auth, evaController.chat);
 
+// POST /api/eva/operate - Decide operational action (Navigate, Click, Fill)
+router.post('/operate', auth, evaController.operate);
+
 module.exports = router;

@@ -158,6 +158,77 @@ INSTRUÇÕES IMPORTANTES:
     }
 };
 
+const operate = async (req, res) => {
+    try {
+        const { message, currentScreen, availableScreens } = req.body;
+        console.log('[EVA Operate] Processing:', message);
+        console.log('[EVA Operate] Screen:', currentScreen?.id);
+
+        if (!message) {
+            return res.status(400).json({ error: 'Mensagem e contexto são obrigatórios' });
+        }
+
+        const systemPrompt = `Você é o "Córtex Motor" do sistema CASH.
+Sua função é traduzir a intenção do usuário em AÇÕES JSON para o sistema.
+
+CONTEXTO GLOBAL (Telas disponíveis):
+${JSON.stringify(availableScreens?.map(s => ({ id: s.id, name: s.name, keywords: s.keywords })) || [])}
+
+CONTEXTO LOCAL (Tela atual):
+${currentScreen ? JSON.stringify({ id: currentScreen.id, description: currentScreen.description, fields: currentScreen.fields, actions: currentScreen.actions }) : "Nenhuma tela aberta (Dashboard)"}
+
+INSTRUÇÕES:
+1. Analise o comando do usuário.
+2. Decida a ação:
+   - NAVIGATE: Se o usuário quer ir para outra tela.
+   - FILL_FORM: Se o usuário quer preencher campos na TELA ATUAL.
+   - CLICK_ACTION: Se o usuário quer clicar em botões na TELA ATUAL (Salvar, Novo, Cancelar).
+   - REPLY: Se for uma pergunta, dúvida ou se não for possível realizar a ação.
+
+FORMATO DE RESPOSTA (JSON OBRIGATÓRIO):
+Retorne APENAS um objeto JSON válido.
+
+Exemplos:
+User: "Abra a tela de contas"
+JSON: { "action": "NAVIGATE", "target": "contas" }
+
+User: "Preencha o valor com 500" (Estando na tela de entrada)
+JSON: { "action": "FILL_FORM", "fields": { "income-valor": "500" } }
+(Nota: Use o ID exato dos campos listados no Contexto Local. Se o usuário falar "valor" e o ID for "income-valor", faça o mapeamento).
+
+User: "Salvar"
+JSON: { "action": "CLICK_ACTION", "selector": "#btn-save" } (Pegue o selector das ações locais)
+
+User: "Como faço um pix?"
+JSON: { "action": "REPLY", "message": "Para fazer um pix, vá em Saídas e selecione o tipo PIX." }
+
+Se o usuário pedir para preencher algo que não existe na tela atual, responda com REPLY explicando o erro.`;
+
+        const messages = [
+            { role: "system", content: systemPrompt },
+            { role: "user", content: message }
+        ];
+
+        const response = await openai.chat.completions.create({
+            model: "gpt-4o-mini",
+            messages,
+            temperature: 0.1, // Low temperature for deterministic actions
+            response_format: { type: "json_object" },
+            max_tokens: 300
+        });
+
+        const actionJson = JSON.parse(response.choices[0].message.content);
+        console.log('[EVA Operate] Decision:', actionJson);
+
+        res.json(actionJson);
+
+    } catch (error) {
+        console.error('EVA Operate Error:', error);
+        res.status(500).json({ error: 'Erro ao processar operação', details: error.message });
+    }
+};
+
 module.exports = {
-    chat
+    chat,
+    operate
 };
