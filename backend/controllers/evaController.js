@@ -6,7 +6,7 @@ const openai = new OpenAI({
 
 console.log('✅ EVA Controller loaded successfully');
 
-exports.chat = async (req, res, next) => {
+const chat = async (req, res, next) => {
     try {
         const { message, conversationHistory, context } = req.body;
         const user = req.user;
@@ -77,4 +77,8 @@ INSTRUÇÕES IMPORTANTES:
 
         res.status(500).json({ error: 'Erro ao processar mensagem' });
     }
+};
+
+module.exports = {
+    chat
 };
