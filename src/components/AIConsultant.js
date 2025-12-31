@@ -66,7 +66,7 @@ export const AIConsultant = () => {
 
         const utterance = new SpeechSynthesisUtterance(text);
         utterance.lang = 'pt-BR';
-        utterance.rate = 1.5; // Increased voice speed
+        utterance.rate = 1.1; // Default + 10%
 
         const voices = window.speechSynthesis.getVoices();
         const ptVoice = voices.find(v => v.lang === 'pt-BR' && v.name.includes('Google')) || voices.find(v => v.lang === 'pt-BR');
@@ -121,6 +121,8 @@ export const AIConsultant = () => {
     img.style.width = '100%';
     img.style.height = '100%';
     img.style.objectFit = 'cover';
+    img.style.transform = 'scale(1.3)'; // Make image 30% larger than container
+    img.style.transformOrigin = 'center';
 
     fab.appendChild(img);
 
