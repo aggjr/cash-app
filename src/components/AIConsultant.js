@@ -323,6 +323,7 @@ export const AIConsultant = () => {
 
         const pronoun = isMale ? 'o senhor' : 'a senhora';
         const welcomeGender = isMale ? 'bem-vindo' : 'bem-vinda';
+        const called = isMale ? 'chamado' : 'chamada';
 
         // Suggest formal name (Sr./Sra. + Name)
         const nameParts = userName.trim().split(' ');
@@ -331,7 +332,7 @@ export const AIConsultant = () => {
         const suggestedName = lastName ? `${isMale ? 'Sr.' : 'Sra.'} ${firstName} ${lastName}` : `${isMale ? 'Sr.' : 'Sra.'} ${firstName}`;
 
         pendingAction = 'intro_ask_name';
-        const msg = `Olá, seja ${welcomeGender}. Eu sou a EVA, sua assistente virtual.\n\nPara que nossa interação seja mais adequada, como ${pronoun} gostaria de ser chamado(a)?\n\nSugiro: "${suggestedName}"`
+        const msg = `Olá, seja ${welcomeGender}. Eu sou a EVA, sua assistente virtual.\n\nPara que nossa interação seja mais adequada, como ${pronoun} gostaria de ser ${called}?\n\nSugiro: "${suggestedName}"`
 
         addMessage('ai', msg);
         speak(msg);
