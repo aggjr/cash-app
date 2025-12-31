@@ -32,6 +32,7 @@ export const AIConsultant = () => {
     var evaSpeechRec = null;
     var silenceTimer = null;
     var accumulatedTranscript = '';
+    var evaTimeout = 5000; // Default 5s
 
     // --- State Helpers ---
     const getUser = () => {
@@ -76,6 +77,25 @@ export const AIConsultant = () => {
     }
 
     const messages = []; // Start empty, populate on init
+
+    // Load EVA Settings
+    const loadEvaSettings = async () => {
+        try {
+            const res = await fetch(`${API_BASE_URL}/settings`, { headers: getHeaders() });
+            if (res.ok) {
+                const settings = await res.json();
+                if (settings.eva_timeout) {
+                    evaTimeout = settings.eva_timeout * 1000;
+                    console.log('EVA Timeout loaded:', evaTimeout);
+                }
+            }
+        } catch (e) {
+            console.error('Failed to load EVA settings:', e);
+        }
+    };
+
+    // Initial load
+    loadEvaSettings();
 
     // --- Components ---
 
@@ -206,7 +226,7 @@ export const AIConsultant = () => {
                 micBtn.style.backgroundColor = '#ffebe9';
                 micBtn.style.borderColor = '#ef4444';
                 micBtn.style.boxShadow = '0 0 0 4px rgba(239, 68, 68, 0.1)';
-                input.placeholder = 'Gravando... (10s silêncio para enviar)';
+                input.placeholder = `Gravando... (${evaTimeout / 1000}s silêncio para enviar)`;
                 accumulatedTranscript = '';
             };
 
@@ -265,7 +285,7 @@ export const AIConsultant = () => {
                             sendMessage();
                         }
                     }, 300);
-                }, 10000);  // 10 seconds
+                }, evaTimeout);  // Configurable timeout
             };
 
             evaSpeechRec.onerror = (event) => {
@@ -480,8 +500,8 @@ export const AIConsultant = () => {
 
             pendingAction = null;
             const msg = enableVoice
-                ? "Perfeito. Responderei por áudio sempre que possível."
-                : "Combinado. Manterei nossa comunicação apenas por texto.";
+                ? `Perfeito. Responderei por áudio sempre que possível. \n\nAh, meu tempo de espera padrão é de **${evaTimeout / 1000} segundos**, mas o senhor pode me pedir para alterar quando quiser.`
+                : `Combinado. Manterei nossa comunicação apenas por texto. \n\nAh, meu tempo de espera padrão é de **${evaTimeout / 1000} segundos**, mas o senhor pode me pedir para alterar quando quiser.`;
 
             addMessage('ai', msg);
             if (enableVoice) speak(msg);
@@ -649,6 +669,27 @@ export const AIConsultant = () => {
         addMessage('user', text);
         input.value = '';
 
+        // DEBUG: Reset Command
+        if (text === '/reset') {
+            const user = getUser();
+            if (user) {
+                user.eva_introduced = false;
+                user.eva_voice_enabled = null; // Reset voice pref
+                user.preferred_name = null; // Reset name pref
+                localStorage.setItem('user', JSON.stringify(user));
+                // Also update backend if possible, but for now local is enough to trigger flow locally next reload
+                // Or better, let's just trigger it now:
+
+                addMessage('ai', '♻️ Reiniciando apresentação...');
+                setTimeout(() => {
+                    messages.length = 0; // Clear history
+                    pendingAction = null;
+                    startIntroductionFlow();
+                }, 1000);
+                return;
+            }
+        }
+
         // Simulate thinking
         const loadingDiv = document.createElement('div');
         loadingDiv.textContent = '...';
@@ -668,6 +709,36 @@ export const AIConsultant = () => {
                 } else {
                     await handleIntroductionResponse(text);
                 }
+                return;
+            }
+
+            // Command: Change Timeout
+            const lowerText = text.toLowerCase();
+            if (lowerText.includes('mudar') && lowerText.includes('tempo') && (lowerText.includes('espera') || lowerText.includes('segundos'))) {
+                // Extract number
+                const match = text.match(/\d+/);
+                if (match) {
+                    const newSeconds = parseInt(match[0]);
+                    if (newSeconds >= 3 && newSeconds <= 60) {
+                        try {
+                            const res = await fetch(`${API_BASE_URL}/settings/eva_timeout`, {
+                                method: 'PUT',
+                                headers: getHeaders(),
+                                body: JSON.stringify({ value: newSeconds })
+                            });
+                            if (res.ok) {
+                                evaTimeout = newSeconds * 1000;
+                                const msg = `Entendido. Alterei meu tempo de espera para **${newSeconds} segundos**.`;
+                                addMessage('ai', msg);
+                                speak(msg);
+                                return;
+                            }
+                        } catch (e) { console.error(e); }
+                    }
+                }
+                const msg = "Para alterar o tempo, diga algo como 'Mudar tempo de espera para 5 segundos'. (Mínimo 3s, Máximo 60s)";
+                addMessage('ai', msg);
+                speak(msg);
                 return;
             }
 

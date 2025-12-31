@@ -15,7 +15,7 @@ const getSettings = async (req, res) => {
         if (settings.length === 0) {
             // Initialize default settings if not exists
             await connection.query(
-                'INSERT INTO system_settings (project_id, numero_dias, tempo_minutos_liberacao) VALUES (?, 3, 5)',
+                'INSERT INTO system_settings (project_id, numero_dias, tempo_minutos_liberacao, eva_timeout) VALUES (?, 3, 5, 5)',
                 [projectId]
             );
 
@@ -24,6 +24,7 @@ const getSettings = async (req, res) => {
                 project_id: projectId,
                 numero_dias: 3,
                 tempo_minutos_liberacao: 5,
+                eva_timeout: 5,
                 unlock_expires_at: null
             });
         }
@@ -46,7 +47,7 @@ const updateSetting = async (req, res) => {
         const { value } = req.body;
 
         // Validate field name
-        const allowedFields = ['numero_dias', 'tempo_minutos_liberacao'];
+        const allowedFields = ['numero_dias', 'tempo_minutos_liberacao', 'eva_timeout'];
         if (!allowedFields.includes(field)) {
             return res.status(400).json({ error: 'Campo inválido' });
         }

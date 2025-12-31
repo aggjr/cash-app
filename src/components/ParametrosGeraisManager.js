@@ -67,7 +67,8 @@ export const ParametrosGeraisManager = (project) => {
 
             originalSettings = {
                 numero_dias: settings.numero_dias,
-                tempo_minutos_liberacao: settings.tempo_minutos_liberacao
+                tempo_minutos_liberacao: settings.tempo_minutos_liberacao,
+                eva_timeout: settings.eva_timeout || 5 // Default if null
             };
             currentSettings = { ...originalSettings };
 
@@ -453,6 +454,53 @@ export const ParametrosGeraisManager = (project) => {
 
                 <!-- Separador -->
                 <hr style="border: none; border-top: 1px solid var(--color-border-light); margin: 2rem 0;" />
+                
+                <h3 style="margin-bottom: 1.5rem; color: var(--color-primary);">🤖 Configuração EVA</h3>
+
+                <!-- Tempo Resposta EVA -->
+                <div style="margin-bottom: 2rem;">
+                    <label style="display: block; font-weight: 500; margin-bottom: 0.5rem; color: var(--color-text);">
+                        ⏳ Tempo de Espera (segundos)
+                    </label>
+                    <div style="display: flex; align-items: center; gap: 0.75rem; height: 45px;">
+                        <input 
+                            type="number" 
+                            id="input-eva_timeout" 
+                            class="settings-input"
+                            value="${currentSettings.eva_timeout}"
+                            min="3"
+                            max="60"
+                            style="max-width: 150px; height: 100%; box-sizing: border-box;"
+                        />
+                        <button 
+                            id="save-eva_timeout"
+                            class="btn-save-setting"
+                            disabled
+                            style="
+                                height: 100%;
+                                aspect-ratio: 1;
+                                padding: 0;
+                                display: flex;
+                                align-items: center;
+                                justify-content: center;
+                                background: #e5e7eb;
+                                color: #9ca3af;
+                                border: none;
+                                border-radius: 8px;
+                                font-size: 1.2rem;
+                                cursor: not-allowed;
+                                transition: all 0.2s;
+                            "
+                            title="Salvar alteração"
+                        >✓</button>
+                    </div>
+                    <small style="display: block; margin-top: 0.5rem; color: var(--color-text-muted);">
+                        Tempo de silêncio para a EVA considerar que você terminou de falar
+                    </small>
+                </div>
+
+                <!-- Separador -->
+                <hr style="border: none; border-top: 1px solid var(--color-border-light); margin: 2rem 0;" />
 
                 <!-- Botão de Liberação Temporária -->
                 <div>
@@ -491,7 +539,7 @@ export const ParametrosGeraisManager = (project) => {
         `;
 
         // Event listeners para inputs
-        const fields = ['numero_dias', 'tempo_minutos_liberacao'];
+        const fields = ['numero_dias', 'tempo_minutos_liberacao', 'eva_timeout'];
         fields.forEach(field => {
             const input = container.querySelector(`#input-${field}`);
             input.addEventListener('input', () => {
