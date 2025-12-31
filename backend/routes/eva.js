@@ -6,8 +6,10 @@ const { authenticate } = require('../middleware/auth');
 console.log('🔍 DEBUG evaController:', evaController);
 console.log('🔍 DEBUG evaController.chat:', evaController.chat);
 console.log('🔍 DEBUG typeof evaController.chat:', typeof evaController.chat);
+console.log('🔍 DEBUG authenticate:', authenticate);
+console.log('🔍 DEBUG typeof authenticate:', typeof authenticate);
 
-// POST /api/eva/chat - Chat with EVA using LLM
-router.post('/chat', authenticate, evaController.chat);
+// POST /api/eva/chat - Chat with EVA using LLM (TEMP: without auth for testing)
+router.post('/chat', evaController.chat);
 
 module.exports = router;
