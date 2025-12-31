@@ -28,7 +28,7 @@ export const AIConsultant = () => {
 
     // Voice Recording State
     let isRecording = false;
-    let recognition = null;
+    let speechRecognition = null;
     let silenceTimer = null;
     let accumulatedTranscript = '';
 
@@ -190,6 +190,7 @@ export const AIConsultant = () => {
     const Recognition = window.SpeechRecognition || window.webkitSpeechRecognition;
 
     if (Recognition) {
+        console.log('AIConsultant: Initializing SpeechRecognition...');
         speechRecognition = new Recognition();
         speechRecognition.lang = 'pt-BR';
         speechRecognition.continuous = true;  // Continuous mode!
