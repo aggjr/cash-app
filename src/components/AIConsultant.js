@@ -439,6 +439,16 @@ export const AIConsultant = () => {
         }
     };
 
+    // Helper to get suggested formal name
+    const getSuggestedName = (fullName, gender) => {
+        if (!fullName) return '';
+        const nameParts = fullName.trim().split(' ');
+        const firstName = nameParts[0] || '';
+        const lastName = nameParts.length > 1 ? nameParts[nameParts.length - 1] : '';
+        const prefix = gender === 'F' ? 'Sra.' : 'Sr.';
+        return lastName ? `${prefix} ${firstName} ${lastName}` : `${prefix} ${firstName}`;
+    };
+
     // Handle introduction using LLM
     const handleIntroductionLLM = async (userMessage) => {
         try {
@@ -468,7 +478,8 @@ export const AIConsultant = () => {
                     })),
                     context: {
                         gender: detectGender(user?.name),
-                        userName: user?.name
+                        userName: user?.name,
+                        suggestedName: getSuggestedName(user?.name, detectGender(user?.name))
                     },
                     isIntroduction: true
                 })
