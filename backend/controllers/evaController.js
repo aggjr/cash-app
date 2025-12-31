@@ -4,6 +4,8 @@ const openai = new OpenAI({
     apiKey: process.env.OPENAI_API_KEY
 });
 
+console.log('✅ EVA Controller loaded successfully');
+
 exports.chat = async (req, res, next) => {
     try {
         const { message, conversationHistory, context } = req.body;
