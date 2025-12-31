@@ -15,19 +15,9 @@ export const EvaActions = {
                 if (window.cashApp && window.cashApp.navigate) {
                     window.cashApp.navigate(payload.target);
 
-                    // Highlight the active menu item after navigation
+                    // Highlight the full navigation path after navigation completes
                     setTimeout(() => {
-                        // Try to find and highlight active menu item
-                        const activeItem = document.querySelector('.tree-node.active, .menu-item.active');
-                        if (activeItem) {
-                            EvaHighlight.highlight(activeItem, { duration: 3000 });
-                        }
-
-                        // Highlight the main content area
-                        const contentArea = document.querySelector('.glass-panel, .content-area');
-                        if (contentArea) {
-                            EvaHighlight.highlight(contentArea, { duration: 2000, pulse: false });
-                        }
+                        EvaActions.highlightNavigationPath(payload.target);
                     }, 500); // Wait for navigation to complete
 
                     return { success: true, message: `Navegando para ${payload.target}` };
@@ -107,5 +97,70 @@ export const EvaActions = {
                 console.warn(`[EVA] Unknown action: ${action}`);
                 return { success: false, message: `Ação desconhecida: ${action}` };
         }
+    },
+
+    /**
+     * Highlight the complete navigation path (parent menu → submenu → screen area)
+     * This helps users understand where they are in the system hierarchy
+     */
+    highlightNavigationPath(targetScreen) {
+        console.log('[EVA] Highlighting navigation path for:', targetScreen);
+
+        // Step 1: Find the active menu item (submenu)
+        const activeMenuItem = document.querySelector('.tree-node-content.active, .menu-item.active');
+
+        // Step 2: Find parent menu if exists (climb up the DOM tree)
+        let parentMenu = null;
+        if (activeMenuItem) {
+            // Look for parent tree node or menu group
+            const treeNode = activeMenuItem.closest('.tree-node');
+            if (treeNode) {
+                // Find the parent node by looking for preceding tree-node at lower indent level
+                const currentMargin = parseInt(treeNode.style.marginLeft) || 0;
+                let currentElement = treeNode.previousElementSibling;
+
+                while (currentElement) {
+                    if (currentElement.classList.contains('tree-node')) {
+                        const elementMargin = parseInt(currentElement.style.marginLeft) || 0;
+                        if (elementMargin < currentMargin) {
+                            parentMenu = currentElement.querySelector('.tree-node-content');
+                            break;
+                        }
+                    }
+                    currentElement = currentElement.previousElementSibling;
+                }
+            }
+        }
+
+        // Step 3: Find the main content area
+        const contentArea = document.querySelector('.glass-panel, .content-area, main');
+
+        // Step 4: Highlight in sequence (top-down hierarchy)
+        const highlights = [];
+
+        if (parentMenu) {
+            highlights.push({ element: parentMenu, label: 'Menu Principal' });
+        }
+
+        if (activeMenuItem) {
+            highlights.push({ element: activeMenuItem, label: 'Submenu' });
+        }
+
+        if (contentArea) {
+            highlights.push({ element: contentArea, label: 'Tela' });
+        }
+
+        // Apply highlights with slight delays for visual sequence
+        highlights.forEach((item, index) => {
+            setTimeout(() => {
+                console.log(`[EVA] Highlighting ${item.label}`, item.element);
+                EvaHighlight.highlight(item.element, {
+                    duration: 3500 - (index * 500), // Decreasing duration
+                    pulse: index < 2 // Only pulse menu items, not content area
+                });
+            }, index * 200); // 200ms between each highlight
+        });
+
+        return highlights.length;
     }
 };
