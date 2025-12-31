@@ -387,11 +387,54 @@ export const AIConsultant = () => {
 
             pendingAction = null;
             const msg = enableVoice
-                ? "Perfeito. Responderei por áudio sempre que possível. Em que posso ajudar no momento?"
-                : "Combinado. Manterei nossa comunicação apenas por texto. Em que posso ajudar?";
+                ? "Perfeito. Responderei por áudio sempre que possível."
+                : "Combinado. Manterei nossa comunicação apenas por texto.";
 
             addMessage('ai', msg);
             if (enableVoice) speak(msg);
+
+            // Check if there's a pending loan categorization
+            if (loanContext && loanResolver) {
+                // Process the pending loan categorization after a brief delay
+                setTimeout(() => {
+                    processPendingLoanCategorization();
+                }, 1500);
+            } else {
+                // No pending action, just offer help
+                const helpMsg = "Em que posso ajudar no momento?";
+                setTimeout(() => {
+                    addMessage('ai', helpMsg);
+                    if (enableVoice) speak(helpMsg);
+                }, 1000);
+            }
+        }
+    };
+
+    // Process pending loan categorization after introduction
+    const processPendingLoanCategorization = async () => {
+        if (!loanContext || !loanResolver) return;
+
+        try {
+            const [feeRes, intRes] = await Promise.all([
+                fetch(`${API_BASE_URL}/loans/suggest-category?projectId=${loanContext.projectId}&type=fees`, { headers: getHeaders() }),
+                fetch(`${API_BASE_URL}/loans/suggest-category?projectId=${loanContext.projectId}&type=interest`, { headers: getHeaders() })
+            ]);
+            const feeSugg = await feeRes.json();
+            const intSugg = await intRes.json();
+
+            loanContext.suggestions = { fees: feeSugg, interest: intSugg };
+
+            const msg = `Detectei um contrato com taxas de **${new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(loanContext.feeAmount)}**.\n\nSugiro classificar as **Tarifas** em: *"${feeSugg.name}"* e os **Juros** em: *"${intSugg.name}"*.\n\nO(a) senhor(a) concorda?`;
+
+            addMessage('ai', msg);
+            speak(msg.replace(/\*\*/g, '').replace(/\*/g, ''));
+            pendingAction = 'loan_cat_confirm';
+
+        } catch (e) {
+            console.error(e);
+            if (loanResolver) loanResolver(null);
+            loanResolver = null;
+            loanContext = null;
         }
     };
 
@@ -498,6 +541,24 @@ export const AIConsultant = () => {
     // Public API
     const startLoanCategorization = async (data) => {
         return new Promise(async (resolve) => {
+            const user = getUser();
+
+            // Check if user has completed introduction
+            if (!user?.eva_introduced) {
+                // Store the loan data and resolver for after introduction
+                loanResolver = resolve;
+                loanContext = data;
+
+                // Start introduction flow if chat is not open
+                if (!isOpen) {
+                    toggleChat();
+                }
+
+                // The introduction flow will call processPendingLoanCategorization when done
+                return;
+            }
+
+            // User already introduced, proceed directly
             loanResolver = resolve;
             loanContext = data;
 
