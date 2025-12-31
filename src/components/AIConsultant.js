@@ -490,12 +490,11 @@ export const AIConsultant = () => {
                 return;
             }
 
-            // Normal Flow
-            const lowerText = text.toLowerCase();
-            let responseText = '';
-
+            // Intercept Loan Flows
             if (pendingAction && pendingAction.startsWith('loan_')) {
                 if (pendingAction === 'loan_cat_confirm') {
+                    const lowerText = text.toLowerCase();
+                    let responseText = '';
                     if (lowerText.includes('sim') || lowerText.includes('ok') || lowerText.includes('concordo')) {
                         responseText = "Confirmado. Processando o contrato...";
                         if (loanResolver) {
@@ -511,13 +510,17 @@ export const AIConsultant = () => {
                         responseText = "Entendido. Qual categoria deseja usar para as **Tarifas**?";
                         pendingAction = 'loan_cat_ask_fees';
                     }
+                    addMessage('ai', responseText);
+                    speak(responseText);
                 } else if (pendingAction === 'loan_cat_ask_fees') {
                     loanContext.customFeeName = text;
-                    responseText = `Certo, **${text}**. E para os **Juros**?`;
+                    const responseText = `Certo, **${text}**. E para os **Juros**?`;
                     pendingAction = 'loan_cat_ask_interest';
+                    addMessage('ai', responseText);
+                    speak(responseText);
                 } else if (pendingAction === 'loan_cat_ask_interest') {
                     loanContext.customInterestName = text;
-                    responseText = "Registrado. Finalizando o contrato.";
+                    const responseText = "Registrado. Finalizando o contrato.";
                     if (loanResolver) {
                         loanResolver({
                             feeCategoryId: loanContext.suggestions.fees.id,
@@ -527,13 +530,60 @@ export const AIConsultant = () => {
                         pendingAction = null;
                         setTimeout(() => { if (isOpen) toggleChat(); }, 2000);
                     }
+                    addMessage('ai', responseText);
+                    speak(responseText);
                 }
-            } else {
-                responseText = "Desculpe, ainda estou aprendendo novas funções. Por enquanto posso ajudar no cadastro de empréstimos.";
+                return;
             }
 
-            addMessage('ai', responseText);
-            speak(responseText);
+            // NOVA LÓGICA: Chamar LLM para conversação geral
+            try {
+                const user = getUser();
+
+                // Detect gender from name
+                const detectGender = (name) => {
+                    if (!name) return 'M';
+                    const lastChar = name.toLowerCase().slice(-1);
+                    const lastTwo = name.toLowerCase().slice(-2);
+                    const femaleEndings = ['a', 'as'];
+                    const maleEndings = ['o', 'os', 'el', 'eu', 'au'];
+                    if (femaleEndings.includes(lastChar) && !maleEndings.includes(lastTwo)) {
+                        return 'F';
+                    }
+                    return 'M';
+                };
+
+                const response = await fetch(`${API_BASE_URL}/eva/chat`, {
+                    method: 'POST',
+                    headers: getHeaders(),
+                    body: JSON.stringify({
+                        message: text,
+                        conversationHistory: messages.slice(-10).map(msg => ({
+                            sender: msg.sender,
+                            text: msg.text
+                        })),
+                        context: {
+                            preferredName: user?.preferred_name || user?.name || 'senhor/senhora',
+                            gender: detectGender(user?.name),
+                            projectName: 'CASH'
+                        }
+                    })
+                });
+
+                if (!response.ok) {
+                    throw new Error('Erro ao comunicar com EVA');
+                }
+
+                const { reply } = await response.json();
+                addMessage('ai', reply);
+                speak(reply);
+
+            } catch (error) {
+                console.error('EVA Error:', error);
+                const fallback = "Desculpe, tive um problema ao processar sua mensagem. Pode tentar novamente?";
+                addMessage('ai', fallback);
+                speak(fallback);
+            }
 
         }, 800);
     };
