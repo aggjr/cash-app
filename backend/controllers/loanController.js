@@ -173,7 +173,7 @@ exports.createLoan = async (req, res, next) => {
         const loanId = loanResult.insertId;
 
         // 2. Resolve Types
-        const tipoEntradaId = await getOrCreateType(connection, 'tipo_entrada', projectId, 'Empréstimos');
+        const tipoEntradaId = await getOrCreateType(connection, 'tipo_entrada', projectId, 'EMPRÉSTIMOS');
 
         // INTEREST CATEGORY
         let tipoSaidaPagamentoId;

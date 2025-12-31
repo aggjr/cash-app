@@ -93,12 +93,13 @@ export const PrevisaoFluxoManager = (project) => {
         const data = forecastData?.data || [];
         const aportesRoot = data.find(n => n.id === 'aportes_root'); // Positive Flow
         const retiradasRoot = data.find(n => n.id === 'retiradas_root'); // Negative Flow
+        const emprestimosRoot = data.find(n => n.id === 'emprestimos_root'); // Positive Flow - Loans
         const entradasRoot = data.find(n => n.id === 'entradas_root');
         const saidasRoot = data.find(n => n.id === 'saidas_root');
         const producaoRoot = data.find(n => n.id === 'producao_root');
 
         days.forEach(day => {
-            const inVal = (entradasRoot?.dailyTotals[day] || 0) + (aportesRoot?.dailyTotals[day] || 0);
+            const inVal = (entradasRoot?.dailyTotals[day] || 0) + (aportesRoot?.dailyTotals[day] || 0) + (emprestimosRoot?.dailyTotals[day] || 0);
             const outVal = (saidasRoot?.dailyTotals[day] || 0) + (producaoRoot?.dailyTotals[day] || 0) + (retiradasRoot?.dailyTotals[day] || 0);
 
             const initial = runningBalance;
@@ -138,7 +139,7 @@ export const PrevisaoFluxoManager = (project) => {
         // Recursive Row Renderer
         const renderRows = (nodes, level = 0) => {
             nodes.forEach(node => {
-                const isRoot = ['saidas_root', 'producao_root', 'entradas_root', 'aportes_root', 'retiradas_root'].includes(node.id);
+                const isRoot = ['saidas_root', 'producao_root', 'entradas_root', 'aportes_root', 'retiradas_root', 'emprestimos_root'].includes(node.id);
                 if (!isRoot && Math.abs(node.total) < 0.01) return;
 
                 const hasChildren = node.children && node.children.length > 0;
@@ -166,7 +167,8 @@ export const PrevisaoFluxoManager = (project) => {
                     const isPositiveFlow = node.id && (
                         node.id.toString().startsWith('entradas') ||
                         node.id.toString().includes('tipo_entrada') ||
-                        node.id.toString().startsWith('aportes')
+                        node.id.toString().startsWith('aportes') ||
+                        node.id.toString().startsWith('emprestimos')
                     );
 
                     // Calculate total to display (val includes delayedVal in backend)
@@ -232,16 +234,18 @@ export const PrevisaoFluxoManager = (project) => {
         if (data && data.length > 0) {
             // Find roots
             const aportes = forecastData.data.find(n => n.id === 'aportes_root'); // + Flat
+            const retiradas = forecastData.data.find(n => n.id === 'retiradas_root'); // - Flat
+            const emprestimos = forecastData.data.find(n => n.id === 'emprestimos_root'); // + Flat - Loans
             const entradas = forecastData.data.find(n => n.id === 'entradas_root'); // + Tree
             const saidas = forecastData.data.find(n => n.id === 'saidas_root'); // - Tree
             const producao = forecastData.data.find(n => n.id === 'producao_root'); // - Tree
-            const retiradas = forecastData.data.find(n => n.id === 'retiradas_root'); // - Flat
 
             if (aportes) renderRows([aportes]);
+            if (retiradas) renderRows([retiradas]);
+            if (emprestimos) renderRows([emprestimos]);
             if (entradas) renderRows([entradas]); // Group Entradas
             if (saidas) renderRows([saidas]);
             if (producao) renderRows([producao]);
-            if (retiradas) renderRows([retiradas]);
         }
 
         // 2. SALDO FINAL ROW
@@ -417,10 +421,11 @@ export const PrevisaoFluxoManager = (project) => {
                         const data = forecastData.data || [];
                         const aportesRoot = data.find(n => n.id === 'aportes_root');
                         const retiradasRoot = data.find(n => n.id === 'retiradas_root');
+                        const emprestimosRoot = data.find(n => n.id === 'emprestimos_root');
                         const entradasRoot = data.find(n => n.id === 'entradas_root');
                         const saidasRoot = data.find(n => n.id === 'saidas_root');
                         const producaoRoot = data.find(n => n.id === 'producao_root');
-                        const inVal = (entradasRoot?.dailyTotals[d] || 0) + (aportesRoot?.dailyTotals[d] || 0);
+                        const inVal = (entradasRoot?.dailyTotals[d] || 0) + (aportesRoot?.dailyTotals[d] || 0) + (emprestimosRoot?.dailyTotals[d] || 0);
                         const outVal = (saidasRoot?.dailyTotals[d] || 0) + (producaoRoot?.dailyTotals[d] || 0) + (retiradasRoot?.dailyTotals[d] || 0);
                         runningBalance = runningBalance + inVal - outVal;
                     });
@@ -436,10 +441,11 @@ export const PrevisaoFluxoManager = (project) => {
                         const data = forecastData.data || [];
                         const aportesRoot = data.find(n => n.id === 'aportes_root');
                         const retiradasRoot = data.find(n => n.id === 'retiradas_root');
+                        const emprestimosRoot = data.find(n => n.id === 'emprestimos_root');
                         const entradasRoot = data.find(n => n.id === 'entradas_root');
                         const saidasRoot = data.find(n => n.id === 'saidas_root');
                         const producaoRoot = data.find(n => n.id === 'producao_root');
-                        const inVal = (entradasRoot?.dailyTotals[d] || 0) + (aportesRoot?.dailyTotals[d] || 0);
+                        const inVal = (entradasRoot?.dailyTotals[d] || 0) + (aportesRoot?.dailyTotals[d] || 0) + (emprestimosRoot?.dailyTotals[d] || 0);
                         const outVal = (saidasRoot?.dailyTotals[d] || 0) + (producaoRoot?.dailyTotals[d] || 0) + (retiradasRoot?.dailyTotals[d] || 0);
                         finalBalance = finalBalance + inVal - outVal;
 

@@ -99,7 +99,7 @@ export const ConsolidadasManager = (project) => {
         const renderRows = (nodes, level = 0) => {
             let rowsHtml = '';
             nodes.forEach(node => {
-                const rootIds = ['saidas_root', 'producao_root', 'entradas_root', 'resultado_operacional_root', 'aportes_root', 'retiradas_root', 'fluxo_financeiro_root', 'lucro_bruto_root', 'margem_bruta_root', 'margem_operacional_root'];
+                const rootIds = ['saidas_root', 'producao_root', 'entradas_root', 'resultado_operacional_root', 'aportes_root', 'retiradas_root', 'emprestimos_root', 'fluxo_financeiro_root', 'lucro_bruto_root', 'margem_bruta_root', 'margem_operacional_root'];
                 const isRoot = rootIds.includes(node.id);
 
                 // Hide rows with effectively zero total, unless it's a root
@@ -136,6 +136,8 @@ export const ConsolidadasManager = (project) => {
                             color = '#10B981';
                         } else if (node.id === 'retiradas_root') {
                             color = '#EF4444';
+                        } else if (node.id === 'emprestimos_root') {
+                            color = '#3B82F6';
                         } else if (['resultado_operacional_root', 'fluxo_financeiro_root', 'lucro_bruto_root'].includes(node.id) || (node.id && (node.id.toString().startsWith('entradas') || node.id.toString().includes('tipo_entrada')))) {
                             color = val >= 0 ? '#10B981' : '#EF4444';
                         } else {
@@ -162,6 +164,8 @@ export const ConsolidadasManager = (project) => {
                         totalColor = '#10B981';
                     } else if (node.id === 'retiradas_root') {
                         totalColor = '#EF4444';
+                    } else if (node.id === 'emprestimos_root') {
+                        totalColor = '#3B82F6';
                     } else if (['resultado_operacional_root', 'fluxo_financeiro_root', 'lucro_bruto_root'].includes(node.id) || (node.id && (node.id.toString().startsWith('entradas') || node.id.toString().includes('tipo_entrada')))) {
                         totalColor = node.total >= 0 ? '#10B981' : '#EF4444';
                     } else {
