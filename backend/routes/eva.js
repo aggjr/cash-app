@@ -1,6 +1,6 @@
 const express = require('express');
 const router = express.Router();
-const evaController = require('../controllers/evaController');
+const evaController = require('../controllers/evaControllerV2');
 const { authenticate } = require('../middleware/auth');
 
 // POST /api/eva/chat - Chat with EVA using LLM
