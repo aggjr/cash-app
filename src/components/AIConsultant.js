@@ -1,6 +1,7 @@
 import { getApiBaseUrl } from '../utils/apiConfig.js';
 
 export const AIConsultant = () => {
+    console.log('AIConsultant: Version 2.0 (evaSpeechRec fix applied)');
     const API_BASE_URL = getApiBaseUrl();
     const getHeaders = () => {
         const token = localStorage.getItem('token');
@@ -27,10 +28,10 @@ export const AIConsultant = () => {
     let loanContext = null;
 
     // Voice Recording State
-    let isRecording = false;
-    let speechRecognition = null;
-    let silenceTimer = null;
-    let accumulatedTranscript = '';
+    var isRecording = false;
+    var evaSpeechRec = null;
+    var silenceTimer = null;
+    var accumulatedTranscript = '';
 
     // --- State Helpers ---
     const getUser = () => {
@@ -190,113 +191,117 @@ export const AIConsultant = () => {
     const Recognition = window.SpeechRecognition || window.webkitSpeechRecognition;
 
     if (Recognition) {
-        console.log('AIConsultant: Initializing SpeechRecognition...');
-        speechRecognition = new Recognition();
-        speechRecognition.lang = 'pt-BR';
-        speechRecognition.continuous = true;  // Continuous mode!
-        speechRecognition.interimResults = true;  // Get interim results
-        speechRecognition.maxAlternatives = 1;
+        console.log('AIConsultant: Initializing evaSpeechRec...');
+        try {
+            evaSpeechRec = new Recognition();
+            evaSpeechRec.lang = 'pt-BR';
+            evaSpeechRec.continuous = true;  // Continuous mode!
+            evaSpeechRec.interimResults = true;  // Get interim results
+            evaSpeechRec.maxAlternatives = 1;
 
-        speechRecognition.onstart = () => {
-            isRecording = true;
-            isListening = true;
-            micBtn.classList.add('mic-recording');
-            micBtn.style.backgroundColor = '#ffebe9';
-            micBtn.style.borderColor = '#ef4444';
-            micBtn.style.boxShadow = '0 0 0 4px rgba(239, 68, 68, 0.1)';
-            input.placeholder = 'Gravando... (10s silêncio para enviar)';
-            accumulatedTranscript = '';
-        };
+            evaSpeechRec.onstart = () => {
+                isRecording = true;
+                isListening = true;
+                micBtn.classList.add('mic-recording');
+                micBtn.style.backgroundColor = '#ffebe9';
+                micBtn.style.borderColor = '#ef4444';
+                micBtn.style.boxShadow = '0 0 0 4px rgba(239, 68, 68, 0.1)';
+                input.placeholder = 'Gravando... (10s silêncio para enviar)';
+                accumulatedTranscript = '';
+            };
 
-        speechRecognition.onend = () => {
-            isRecording = false;
-            isListening = false;
-            micBtn.classList.remove('mic-recording');
-            micBtn.style.backgroundColor = 'transparent';
-            micBtn.style.borderColor = '#d1d5db';
-            micBtn.style.boxShadow = 'none';
-            input.placeholder = 'Digite aqui...';
-
-            // Clear silence timer
-            if (silenceTimer) {
-                clearTimeout(silenceTimer);
-                silenceTimer = null;
-            }
-        };
-
-        speechRecognition.onresult = (event) => {
-            // Clear previous silence timer
-            if (silenceTimer) {
-                clearTimeout(silenceTimer);
-            }
-
-            // Accumulate all final results
-            let finalTranscript = '';
-            let interimTranscript = '';
-
-            for (let i = event.resultIndex; i < event.results.length; i++) {
-                const transcript = event.results[i][0].transcript;
-                if (event.results[i].isFinal) {
-                    finalTranscript += transcript + ' ';
-                } else {
-                    interimTranscript += transcript;
-                }
-            }
-
-            // Update accumulated transcript with final results
-            if (finalTranscript) {
-                accumulatedTranscript += finalTranscript;
-            }
-
-            // Show accumulated + interim in input
-            input.value = accumulatedTranscript + interimTranscript;
-
-            // Set 10-second silence timer
-            silenceTimer = setTimeout(() => {
-                console.log('10s silence detected, auto-sending...');
-                speechRecognition.stop();
-
-                // Auto-send after silence
-                setTimeout(() => {
-                    if (accumulatedTranscript.trim()) {
-                        input.value = accumulatedTranscript.trim();
-                        sendMessage();
-                    }
-                }, 300);
-            }, 10000);  // 10 seconds
-        };
-
-        speechRecognition.onerror = (event) => {
-            console.error('Speech recognition error:', event.error);
-            if (event.error !== 'no-speech') {
+            evaSpeechRec.onend = () => {
                 isRecording = false;
+                isListening = false;
                 micBtn.classList.remove('mic-recording');
                 micBtn.style.backgroundColor = 'transparent';
                 micBtn.style.borderColor = '#d1d5db';
                 micBtn.style.boxShadow = 'none';
-            }
-        };
+                input.placeholder = 'Digite aqui...';
 
-        // Toggle recording on click
-        micBtn.onclick = () => {
-            if (isRecording) {
-                // Stop recording and send
-                speechRecognition.stop();
-                setTimeout(() => {
-                    if (accumulatedTranscript.trim()) {
-                        input.value = accumulatedTranscript.trim();
-                        sendMessage();
-                    }
-                }, 300);
-            } else {
-                // Start recording
-                try {
-                    speechRecognition.start();
-                } catch (e) {
-                    console.error('Error starting recognition:', e);
+                // Clear silence timer
+                if (silenceTimer) {
+                    clearTimeout(silenceTimer);
+                    silenceTimer = null;
                 }
-            }
-        };
+            };
+
+            evaSpeechRec.onresult = (event) => {
+                // Clear previous silence timer
+                if (silenceTimer) {
+                    clearTimeout(silenceTimer);
+                }
+
+                // Accumulate all final results
+                let finalTranscript = '';
+                let interimTranscript = '';
+
+                for (let i = event.resultIndex; i < event.results.length; i++) {
+                    const transcript = event.results[i][0].transcript;
+                    if (event.results[i].isFinal) {
+                        finalTranscript += transcript + ' ';
+                    } else {
+                        interimTranscript += transcript;
+                    }
+                }
+
+                // Update accumulated transcript with final results
+                if (finalTranscript) {
+                    accumulatedTranscript += finalTranscript;
+                }
+
+                // Show accumulated + interim in input
+                input.value = accumulatedTranscript + interimTranscript;
+
+                // Set 10-second silence timer
+                silenceTimer = setTimeout(() => {
+                    console.log('10s silence detected, auto-sending...');
+                    if (evaSpeechRec) evaSpeechRec.stop();
+
+                    // Auto-send after silence
+                    setTimeout(() => {
+                        if (accumulatedTranscript.trim()) {
+                            input.value = accumulatedTranscript.trim();
+                            sendMessage();
+                        }
+                    }, 300);
+                }, 10000);  // 10 seconds
+            };
+
+            evaSpeechRec.onerror = (event) => {
+                console.error('Speech recognition error:', event.error);
+                if (event.error !== 'no-speech') {
+                    isRecording = false;
+                    micBtn.classList.remove('mic-recording');
+                    micBtn.style.backgroundColor = 'transparent';
+                    micBtn.style.borderColor = '#d1d5db';
+                    micBtn.style.boxShadow = 'none';
+                }
+            };
+
+            // Toggle recording on click
+            micBtn.onclick = () => {
+                if (isRecording) {
+                    // Stop recording and send
+                    if (evaSpeechRec) evaSpeechRec.stop();
+                    setTimeout(() => {
+                        if (accumulatedTranscript.trim()) {
+                            input.value = accumulatedTranscript.trim();
+                            sendMessage();
+                        }
+                    }, 300);
+                } else {
+                    // Start recording
+                    try {
+                        if (evaSpeechRec) evaSpeechRec.start();
+                    } catch (e) {
+                        console.error('Error starting recognition:', e);
+                    }
+                }
+            };
+        } catch (e) {
+            console.error('AIConsultant: Failed to initialize evaSpeechRec:', e);
+        }
     } else {
         micBtn.style.display = 'none';
     }
