@@ -1,5 +1,4 @@
 const OpenAI = require('openai');
-const AppError = require('../utils/AppError');
 
 const openai = new OpenAI({
     apiKey: process.env.OPENAI_API_KEY
@@ -11,7 +10,7 @@ exports.chat = async (req, res, next) => {
         const user = req.user;
 
         if (!message || !message.trim()) {
-            throw new AppError('VAL-002', 'Mensagem é obrigatória');
+            return res.status(400).json({ error: 'Mensagem é obrigatória' });
         }
 
         // Build system prompt with context
@@ -67,13 +66,13 @@ INSTRUÇÕES IMPORTANTES:
         console.error('EVA Chat Error:', error);
 
         if (error.code === 'insufficient_quota') {
-            return next(new AppError('EXT-001', 'Limite de uso da API OpenAI atingido'));
+            return res.status(429).json({ error: 'Limite de uso da API OpenAI atingido' });
         }
 
         if (error.code === 'invalid_api_key') {
-            return next(new AppError('CONFIG-001', 'Chave API OpenAI inválida'));
+            return res.status(500).json({ error: 'Chave API OpenAI inválida' });
         }
 
-        next(error);
+        res.status(500).json({ error: 'Erro ao processar mensagem' });
     }
 };
