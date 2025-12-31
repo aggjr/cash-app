@@ -35,7 +35,7 @@ export const AIConsultant = () => {
     var evaSpeechRec = null;
     var silenceTimer = null;
     var accumulatedTranscript = '';
-    var evaTimeout = 5000; // Default 5s
+    var evaTimeout = 2000; // Default 2s
 
     // --- State Helpers ---
     const getUser = () => {
