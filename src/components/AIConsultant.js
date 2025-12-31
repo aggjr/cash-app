@@ -331,7 +331,8 @@ export const AIConsultant = () => {
         const lastName = nameParts.length > 1 ? nameParts[nameParts.length - 1] : '';
         const suggestedName = lastName ? `${isMale ? 'Sr.' : 'Sra.'} ${firstName} ${lastName}` : `${isMale ? 'Sr.' : 'Sra.'} ${firstName}`;
 
-        pendingAction = 'intro_ask_name';
+        // Use LLM for introduction
+        pendingAction = 'intro_llm';
         const msg = `Olá, seja ${welcomeGender}. Eu sou a EVA, sua assistente virtual.\n\nPara que nossa interação seja mais adequada, como ${pronoun} gostaria de ser ${called}?\n\nSugiro: "${suggestedName}"`
 
         addMessage('ai', msg);
@@ -438,6 +439,79 @@ export const AIConsultant = () => {
         }
     };
 
+    // Handle introduction using LLM
+    const handleIntroductionLLM = async (userMessage) => {
+        try {
+            const user = getUser();
+
+            // Detect gender
+            const detectGender = (name) => {
+                if (!name) return 'M';
+                const lastChar = name.toLowerCase().slice(-1);
+                const lastTwo = name.toLowerCase().slice(-2);
+                const femaleEndings = ['a', 'as'];
+                const maleEndings = ['o', 'os', 'el', 'eu', 'au'];
+                if (femaleEndings.includes(lastChar) && !maleEndings.includes(lastTwo)) {
+                    return 'F';
+                }
+                return 'M';
+            };
+
+            const response = await fetch(`${API_BASE_URL}/eva/chat`, {
+                method: 'POST',
+                headers: getHeaders(),
+                body: JSON.stringify({
+                    message: userMessage,
+                    conversationHistory: messages.slice(-5).map(msg => ({
+                        sender: msg.sender,
+                        text: msg.text
+                    })),
+                    context: {
+                        gender: detectGender(user?.name),
+                        userName: user?.name
+                    },
+                    isIntroduction: true
+                })
+            });
+
+            if (!response.ok) {
+                console.error('LLM introduction failed, falling back to rules');
+                await handleIntroductionResponse(userMessage);
+                return;
+            }
+
+            const { reply, extracted } = await response.json();
+
+            addMessage('ai', reply);
+            speak(reply);
+
+            // Save extracted data if available
+            if (extracted && extracted.preferredName) {
+                await savePreferences({ preferredName: extracted.preferredName });
+            }
+
+            if (extracted && extracted.voicePreference) {
+                const voiceEnabled = extracted.voicePreference === 'audio' || extracted.voicePreference === 'both';
+                await savePreferences({
+                    evaVoiceEnabled: voiceEnabled ? 1 : 0,
+                    evaIntroduced: 1
+                });
+
+                pendingAction = null; // End introduction
+
+                // Process pending loan categorization if exists
+                if (loanContext && loanResolver) {
+                    setTimeout(() => processPendingLoanCategorization(), 2000);
+                }
+            }
+
+        } catch (error) {
+            console.error('Introduction LLM Error:', error);
+            // Fallback to rules-based
+            await handleIntroductionResponse(userMessage);
+        }
+    };
+
 
     const toggleChat = async () => {
         isOpen = !isOpen;
@@ -486,7 +560,11 @@ export const AIConsultant = () => {
 
             // Intercept Introduction Flow
             if (pendingAction && pendingAction.startsWith('intro_')) {
-                await handleIntroductionResponse(text);
+                if (pendingAction === 'intro_llm') {
+                    await handleIntroductionLLM(text);
+                } else {
+                    await handleIntroductionResponse(text);
+                }
                 return;
             }
 
