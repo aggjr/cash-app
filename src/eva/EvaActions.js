@@ -1,3 +1,5 @@
+import { EvaHighlight } from './EvaHighlight.js';
+
 export const EvaActions = {
     NAVIGATE: 'NAVIGATE',
     EXPLAIN_SCREEN: 'EXPLAIN_SCREEN',
@@ -12,6 +14,22 @@ export const EvaActions = {
             case 'NAVIGATE':
                 if (window.cashApp && window.cashApp.navigate) {
                     window.cashApp.navigate(payload.target);
+
+                    // Highlight the active menu item after navigation
+                    setTimeout(() => {
+                        // Try to find and highlight active menu item
+                        const activeItem = document.querySelector('.tree-node.active, .menu-item.active');
+                        if (activeItem) {
+                            EvaHighlight.highlight(activeItem, { duration: 3000 });
+                        }
+
+                        // Highlight the main content area
+                        const contentArea = document.querySelector('.glass-panel, .content-area');
+                        if (contentArea) {
+                            EvaHighlight.highlight(contentArea, { duration: 2000, pulse: false });
+                        }
+                    }, 500); // Wait for navigation to complete
+
                     return { success: true, message: `Navegando para ${payload.target}` };
                 }
                 return { success: false, message: 'Sistema de navegação não disponível' };
@@ -32,6 +50,9 @@ export const EvaActions = {
                     const element = document.getElementById(fieldId);
 
                     if (element) {
+                        // Highlight the field before filling
+                        EvaHighlight.highlight(element, { duration: 2000 });
+
                         // Handle different input types
                         if (element.tagName === 'SELECT') {
                             element.value = value;
@@ -62,12 +83,25 @@ export const EvaActions = {
 
             case 'CLICK_ACTION':
                 // payload: { selector: '#btn-save' }
-                const btn = document.querySelector(payload.selector);
-                if (btn) {
-                    btn.click();
-                    return { success: true, message: 'Clique realizado com sucesso.' };
+                if (!payload.selector) return { success: false, message: 'Nenhum seletor fornecido.' };
+
+                const elements = document.querySelectorAll(payload.selector);
+
+                if (elements.length > 0) {
+                    // Try each element until one succeeds
+                    for (const btn of elements) {
+                        if (btn && btn.offsetParent !== null) { // Check if visible
+                            // Highlight the button before clicking
+                            EvaHighlight.highlight(btn, { duration: 1500 });
+
+                            // Click after brief delay
+                            setTimeout(() => btn.click(), 300);
+                            return { success: true, message: 'Cliquei no botão.' };
+                        }
+                    }
                 }
-                return { success: false, message: 'Botão/Ação não encontrado na tela.' };
+
+                return { success: false, message: 'Botão não encontrado ou não visível.' };
 
             default:
                 console.warn(`[EVA] Unknown action: ${action}`);
