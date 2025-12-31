@@ -1,4 +1,7 @@
 import { getApiBaseUrl } from '../utils/apiConfig.js';
+import { EvaActions } from '../eva/EvaActions.js';
+import { EvaKnowledge } from '../eva/EvaKnowledge.js';
+import { EvaService } from '../eva/EvaService.js';
 
 export const AIConsultant = () => {
     console.log('AIConsultant: Version 2.0 (evaSpeechRec fix applied)');
@@ -63,7 +66,7 @@ export const AIConsultant = () => {
 
         const utterance = new SpeechSynthesisUtterance(text);
         utterance.lang = 'pt-BR';
-        utterance.rate = 1.1;
+        utterance.rate = 1.5; // Increased voice speed
 
         const voices = window.speechSynthesis.getVoices();
         const ptVoice = voices.find(v => v.lang === 'pt-BR' && v.name.includes('Google')) || voices.find(v => v.lang === 'pt-BR');
@@ -102,8 +105,8 @@ export const AIConsultant = () => {
     // 1. Floating Button
     const fab = document.createElement('button');
     fab.className = 'ai-fab';
-    fab.style.width = '90px';
-    fab.style.height = '90px';
+    fab.style.width = '117px';  // 90px * 1.3 = 117px
+    fab.style.height = '117px';
     fab.style.borderRadius = '50%';
     fab.style.border = 'none';
     fab.style.cursor = 'pointer';
@@ -114,7 +117,7 @@ export const AIConsultant = () => {
     fab.style.padding = '0';
 
     const img = document.createElement('img');
-    img.src = '/robot_icon.png'; // Reverted to EVA icon
+    img.src = '/robot_icon.png';
     img.style.width = '100%';
     img.style.height = '100%';
     img.style.objectFit = 'cover';
@@ -129,7 +132,7 @@ export const AIConsultant = () => {
     const chatWindow = document.createElement('div');
     chatWindow.className = 'ai-chat-window';
     chatWindow.style.position = 'absolute';
-    chatWindow.style.bottom = '80px';
+    chatWindow.style.bottom = '130px';  // Increased from 80px to accommodate larger icon
     chatWindow.style.right = '0';
     chatWindow.style.width = '350px';
     chatWindow.style.height = '500px';
@@ -273,6 +276,10 @@ export const AIConsultant = () => {
                 // Show accumulated + interim in input
                 input.value = accumulatedTranscript + interimTranscript;
 
+                // Trigger auto-resize for voice input
+                input.style.height = 'auto';
+                input.style.height = Math.min(input.scrollHeight, 120) + 'px';
+
                 // Set 10-second silence timer
                 silenceTimer = setTimeout(() => {
                     console.log('10s silence detected, auto-sending...');
@@ -326,8 +333,7 @@ export const AIConsultant = () => {
         micBtn.style.display = 'none';
     }
 
-    const input = document.createElement('input');
-    input.type = 'text';
+    const input = document.createElement('textarea');
     input.placeholder = 'Digite aqui...';
     input.style.flex = '1';
     input.style.padding = '0.5rem';
@@ -335,9 +341,24 @@ export const AIConsultant = () => {
     input.style.borderRadius = '6px';
     input.style.outline = 'none';
     input.style.fontSize = '0.9rem';
+    input.style.resize = 'none';
+    input.style.minHeight = '36px';
+    input.style.maxHeight = '120px';
+    input.style.overflow = 'auto';
+    input.style.fontFamily = 'inherit';
+    input.rows = 1;
 
-    input.onkeyup = (e) => {
-        if (e.key === 'Enter') sendMessage();
+    // Auto-resize textarea as user types
+    input.oninput = () => {
+        input.style.height = 'auto';
+        input.style.height = Math.min(input.scrollHeight, 120) + 'px';
+    };
+
+    input.onkeydown = (e) => {
+        if (e.key === 'Enter' && !e.shiftKey) {
+            e.preventDefault();
+            sendMessage();
+        }
     };
 
     const sendBtn = document.createElement('button');
@@ -347,6 +368,8 @@ export const AIConsultant = () => {
     sendBtn.style.border = 'none';
     sendBtn.style.borderRadius = '6px';
     sendBtn.style.width = '36px';
+    sendBtn.style.minHeight = '36px';
+    sendBtn.style.alignSelf = 'flex-end';
     sendBtn.style.cursor = 'pointer';
     sendBtn.onclick = () => sendMessage();
 
@@ -669,6 +692,76 @@ export const AIConsultant = () => {
         addMessage('user', text);
         input.value = '';
 
+        // Check if we're in a pending flow (intro, loan, etc)
+        if (pendingAction) {
+            console.log('[EVA] Pending action active, skipping operation logic:', pendingAction);
+            // Let the regular flow handle it (below in setTimeout)
+            // Don't return here, let it fall through to the setTimeout logic
+        } else {
+            // --- PHASE 2: Operational Knowledge (LLM BASED) ---
+            console.log('[EVA] No pending action, proceeding to LLM operation...');
+
+            // 1. Gather Context
+            const context = {
+                currentScreen: EvaKnowledge.activeScreen,
+                availableScreens: EvaKnowledge.screens
+            };
+
+            console.log('[EVA] Context:', {
+                currentScreenId: context.currentScreen?.id || 'none',
+                availableScreenCount: Object.keys(context.availableScreens || {}).length
+            });
+
+            // 2. Ask the Brain
+            // Show thinking state if voice enabled or just to indicate processing
+            const thinkingMsg = document.createElement('div');
+            thinkingMsg.className = 'thinking-bubble';
+            thinkingMsg.innerText = '...';
+            messagesContainer.appendChild(thinkingMsg);
+            messagesContainer.scrollTop = messagesContainer.scrollHeight;
+
+            try {
+                const decision = await EvaService.decideOperation(text, context);
+
+                // Remove thinking bubble
+                if (thinkingMsg.parentNode) thinkingMsg.parentNode.removeChild(thinkingMsg);
+
+                console.log('[EVA Decision]', decision);
+
+                if (decision.action === 'REPLY') {
+                    const msg = decision.message;
+                    addMessage('ai', msg);
+                    speak(msg);
+                }
+                else if (['NAVIGATE', 'FILL_FORM', 'CLICK_ACTION'].includes(decision.action)) {
+
+                    const result = await EvaActions.handle(decision.action, decision);
+
+                    if (result.success) {
+                        const msg = result.message || 'Feito.';
+                        addMessage('ai', msg);
+                        speak(msg);
+                    } else {
+                        const msg = result.message || 'Não consegui realizar a ação.';
+                        addMessage('ai', msg);
+                        speak(msg);
+                    }
+                } else {
+                    console.warn('Unknown decision action:', decision.action);
+                    const msg = 'Não entendi o que fazer.';
+                    addMessage('ai', msg);
+                }
+
+            } catch (err) {
+                console.error('[EVA] Operation error:', err);
+                if (thinkingMsg.parentNode) thinkingMsg.parentNode.removeChild(thinkingMsg);
+                addMessage('ai', 'Erro ao processar comando.');
+            }
+
+            return; // Stop here, fulfilled by LLM
+        }
+
+        /* REGEX BLOCKS REMOVED - REPLACED BY LLM ABOVE */
         // DEBUG: Reset Command
         if (text === '/reset') {
             const user = getUser();
@@ -788,55 +881,7 @@ export const AIConsultant = () => {
                 return;
             }
 
-            // NOVA LÓGICA: Chamar LLM para conversação geral
-            try {
-                const user = getUser();
-
-                // Detect gender from name
-                const detectGender = (name) => {
-                    if (!name) return 'M';
-                    const lastChar = name.toLowerCase().slice(-1);
-                    const lastTwo = name.toLowerCase().slice(-2);
-                    const femaleEndings = ['a', 'as'];
-                    const maleEndings = ['o', 'os', 'el', 'eu', 'au'];
-                    if (femaleEndings.includes(lastChar) && !maleEndings.includes(lastTwo)) {
-                        return 'F';
-                    }
-                    return 'M';
-                };
-
-                const response = await fetch(`${API_BASE_URL}/eva/chat`, {
-                    method: 'POST',
-                    headers: getHeaders(),
-                    body: JSON.stringify({
-                        message: text,
-                        conversationHistory: messages.slice(-10).map(msg => ({
-                            sender: msg.sender,
-                            text: msg.text
-                        })),
-                        context: {
-                            preferredName: user?.preferred_name || user?.name || 'senhor/senhora',
-                            gender: detectGender(user?.name),
-                            projectName: 'CASH'
-                        }
-                    })
-                });
-
-                if (!response.ok) {
-                    throw new Error('Erro ao comunicar com EVA');
-                }
-
-                const { reply } = await response.json();
-                addMessage('ai', reply);
-                speak(reply);
-
-            } catch (error) {
-                console.error('EVA Error:', error);
-                const fallback = "Desculpe, tive um problema ao processar sua mensagem. Pode tentar novamente?";
-                addMessage('ai', fallback);
-                speak(fallback);
-            }
-
+            // Old fallback chat logic removed - now handled by EvaService above
         }, 800);
     };
 
