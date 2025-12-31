@@ -461,6 +461,10 @@ export const LoanModal = {
                     if (fees > 0 || realMonthlyRate > 0) {
                         if (window.EVA && window.EVA.startLoanCategorization) {
                             try {
+                                // Hide modal temporarily to give EVA focus
+                                modal.style.display = 'none';
+                                overlay.style.display = 'none';
+
                                 const result = await window.EVA.startLoanCategorization({
                                     projectId,
                                     nominal,
@@ -468,11 +472,18 @@ export const LoanModal = {
                                     feeAmount: fees
                                 });
 
+                                // Restore modal after EVA finishes
+                                modal.style.display = 'block';
+                                overlay.style.display = 'flex';
+
                                 if (result) {
                                     feeCatId = result.feeCategoryId;
                                     interestCatId = result.interestCategoryId;
                                 }
                             } catch (e) {
+                                // Restore modal on error too
+                                modal.style.display = 'block';
+                                overlay.style.display = 'flex';
                                 console.error('FOCCUS Flow Error:', e);
                                 // Fallback: continue without explicit IDs (backend uses auto)
                             }
