@@ -60,8 +60,7 @@ apiRouter.use('/debug', debugRoutes);
 apiRouter.use('/settings', settingsRoutes);
 apiRouter.use('/audit-logs', auditRoutes);
 apiRouter.use('/loans', require('./routes/loans'));
-// TEMP: EVA disabled until Docker cache clears
-// apiRouter.use('/eva', require('./routes/eva'));
+apiRouter.use('/eva', require('./routes/eva'));
 
 // Static Uploads Serving
 // Static Uploads Serving
