@@ -52,10 +52,22 @@ const updateSetting = async (req, res) => {
             return res.status(400).json({ error: 'Campo inválido' });
         }
 
-        // Validate value is a positive integer
+        // Validate value based on field type
         const numValue = parseInt(value);
-        if (isNaN(numValue) || numValue <= 0) {
-            return res.status(400).json({ error: 'Valor deve ser um número positivo' });
+        if (isNaN(numValue)) {
+            return res.status(400).json({ error: 'Valor deve ser um número' });
+        }
+
+        // Special validation for eva_timeout (0-10 seconds)
+        if (field === 'eva_timeout') {
+            if (numValue < 0 || numValue > 10) {
+                return res.status(400).json({ error: 'Tempo de espera da EVA deve estar entre 0 e 10 segundos' });
+            }
+        } else {
+            // Other fields must be positive
+            if (numValue <= 0) {
+                return res.status(400).json({ error: 'Valor deve ser um número positivo' });
+            }
         }
 
         // Update the specific field
