@@ -26,6 +26,12 @@ export const AIConsultant = () => {
     let loanResolver = null;
     let loanContext = null;
 
+    // Voice Recording State
+    let isRecording = false;
+    let recognition = null;
+    let silenceTimer = null;
+    let accumulatedTranscript = '';
+
     // --- State Helpers ---
     const getUser = () => {
         try {
@@ -178,38 +184,118 @@ export const AIConsultant = () => {
     micBtn.style.display = 'flex';
     micBtn.style.alignItems = 'center';
     micBtn.style.justifyContent = 'center';
+    micBtn.style.transition = 'all 0.3s ease';
 
+    // Initialize Speech Recognition
     const Recognition = window.SpeechRecognition || window.webkitSpeechRecognition;
-    let recognition;
 
     if (Recognition) {
-        recognition = new Recognition();
-        recognition.lang = 'pt-BR';
-        recognition.continuous = false;
-        recognition.interimResults = false;
+        speechRecognition = new Recognition();
+        speechRecognition.lang = 'pt-BR';
+        speechRecognition.continuous = true;  // Continuous mode!
+        speechRecognition.interimResults = true;  // Get interim results
+        speechRecognition.maxAlternatives = 1;
 
-        recognition.onstart = () => {
+        speechRecognition.onstart = () => {
+            isRecording = true;
             isListening = true;
-            micBtn.style.backgroundColor = '#ffcccc';
-            micBtn.style.borderColor = 'red';
-            input.placeholder = 'Ouvindo...';
+            micBtn.classList.add('mic-recording');
+            micBtn.style.backgroundColor = '#ffebe9';
+            micBtn.style.borderColor = '#ef4444';
+            micBtn.style.boxShadow = '0 0 0 4px rgba(239, 68, 68, 0.1)';
+            input.placeholder = 'Gravando... (10s silêncio para enviar)';
+            accumulatedTranscript = '';
         };
 
-        recognition.onend = () => {
+        speechRecognition.onend = () => {
+            isRecording = false;
             isListening = false;
+            micBtn.classList.remove('mic-recording');
             micBtn.style.backgroundColor = 'transparent';
             micBtn.style.borderColor = '#d1d5db';
+            micBtn.style.boxShadow = 'none';
             input.placeholder = 'Digite aqui...';
+
+            // Clear silence timer
+            if (silenceTimer) {
+                clearTimeout(silenceTimer);
+                silenceTimer = null;
+            }
         };
 
-        recognition.onresult = (event) => {
-            const transcript = event.results[0][0].transcript;
-            input.value = transcript;
-            // Auto submit on voice? User prefers manual send usually, leaving as text input fill
+        speechRecognition.onresult = (event) => {
+            // Clear previous silence timer
+            if (silenceTimer) {
+                clearTimeout(silenceTimer);
+            }
+
+            // Accumulate all final results
+            let finalTranscript = '';
+            let interimTranscript = '';
+
+            for (let i = event.resultIndex; i < event.results.length; i++) {
+                const transcript = event.results[i][0].transcript;
+                if (event.results[i].isFinal) {
+                    finalTranscript += transcript + ' ';
+                } else {
+                    interimTranscript += transcript;
+                }
+            }
+
+            // Update accumulated transcript with final results
+            if (finalTranscript) {
+                accumulatedTranscript += finalTranscript;
+            }
+
+            // Show accumulated + interim in input
+            input.value = accumulatedTranscript + interimTranscript;
+
+            // Set 10-second silence timer
+            silenceTimer = setTimeout(() => {
+                console.log('10s silence detected, auto-sending...');
+                speechRecognition.stop();
+
+                // Auto-send after silence
+                setTimeout(() => {
+                    if (accumulatedTranscript.trim()) {
+                        input.value = accumulatedTranscript.trim();
+                        sendMessage();
+                    }
+                }, 300);
+            }, 10000);  // 10 seconds
         };
 
-        micBtn.onmousedown = () => recognition.start();
-        micBtn.onmouseup = () => recognition.stop();
+        speechRecognition.onerror = (event) => {
+            console.error('Speech recognition error:', event.error);
+            if (event.error !== 'no-speech') {
+                isRecording = false;
+                micBtn.classList.remove('mic-recording');
+                micBtn.style.backgroundColor = 'transparent';
+                micBtn.style.borderColor = '#d1d5db';
+                micBtn.style.boxShadow = 'none';
+            }
+        };
+
+        // Toggle recording on click
+        micBtn.onclick = () => {
+            if (isRecording) {
+                // Stop recording and send
+                speechRecognition.stop();
+                setTimeout(() => {
+                    if (accumulatedTranscript.trim()) {
+                        input.value = accumulatedTranscript.trim();
+                        sendMessage();
+                    }
+                }, 300);
+            } else {
+                // Start recording
+                try {
+                    speechRecognition.start();
+                } catch (e) {
+                    console.error('Error starting recognition:', e);
+                }
+            }
+        };
     } else {
         micBtn.style.display = 'none';
     }
