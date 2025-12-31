@@ -309,8 +309,29 @@ export const AIConsultant = () => {
         const user = getUser();
         if (!user) return;
 
+        // Detect gender from name (simple heuristic)
+        const userName = user.name || '';
+        const maleEndings = ['o', 'os', 'el', 'eu', 'au'];
+        const femaleEndings = ['a', 'as'];
+        const lastChar = userName.toLowerCase().slice(-1);
+        const lastTwoChars = userName.toLowerCase().slice(-2);
+
+        let isMale = true; // Default
+        if (femaleEndings.includes(lastChar) && !maleEndings.includes(lastTwoChars)) {
+            isMale = false;
+        }
+
+        const pronoun = isMale ? 'o senhor' : 'a senhora';
+        const welcomeGender = isMale ? 'bem-vindo' : 'bem-vinda';
+
+        // Suggest formal name (Sr./Sra. + Name)
+        const nameParts = userName.trim().split(' ');
+        const firstName = nameParts[0] || '';
+        const lastName = nameParts.length > 1 ? nameParts[nameParts.length - 1] : '';
+        const suggestedName = lastName ? `${isMale ? 'Sr.' : 'Sra.'} ${firstName} ${lastName}` : `${isMale ? 'Sr.' : 'Sra.'} ${firstName}`;
+
         pendingAction = 'intro_ask_name';
-        const msg = `Olá, seja bem-vindo(a). Eu sou a EVA, sua assistente virtual.\n\nPara que nossa interação seja mais adequada, como o(a) senhor(a) gostaria de ser chamado(a)? (Ex: Sr. Augusto)`;
+        const msg = `Olá, seja ${welcomeGender}. Eu sou a EVA, sua assistente virtual.\n\nPara que nossa interação seja mais adequada, como ${pronoun} gostaria de ser chamado(a)?\n\nSugiro: "${suggestedName}"`
 
         addMessage('ai', msg);
         speak(msg);
