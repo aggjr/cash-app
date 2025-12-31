@@ -105,9 +105,9 @@ export const AIConsultant = () => {
     // 1. Floating Button
     const fab = document.createElement('button');
     fab.className = 'ai-fab';
-    fab.style.width = '117px';  // 90px * 1.3 = 117px
-    fab.style.height = '117px';
-    fab.style.borderRadius = '50%';
+    fab.style.width = '117px';
+    fab.style.height = '145px';  // Taller for elliptical shape
+    fab.style.borderRadius = '50% / 50%';  // Creates ellipse (horizontal / vertical)
     fab.style.border = 'none';
     fab.style.cursor = 'pointer';
     fab.style.backgroundColor = 'transparent';
@@ -132,7 +132,7 @@ export const AIConsultant = () => {
     const chatWindow = document.createElement('div');
     chatWindow.className = 'ai-chat-window';
     chatWindow.style.position = 'absolute';
-    chatWindow.style.bottom = '130px';  // Increased from 80px to accommodate larger icon
+    chatWindow.style.bottom = '158px';  // Adjusted for taller 145px icon
     chatWindow.style.right = '0';
     chatWindow.style.width = '350px';
     chatWindow.style.height = '500px';
