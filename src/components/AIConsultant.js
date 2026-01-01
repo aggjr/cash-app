@@ -233,6 +233,12 @@ export const AIConsultant = () => {
             evaSpeechRec.interimResults = true;  // Get interim results
             evaSpeechRec.maxAlternatives = 1;
 
+            console.log('[AIConsultant] Speech recognition configured:', {
+                lang: evaSpeechRec.lang,
+                continuous: evaSpeechRec.continuous,
+                interimResults: evaSpeechRec.interimResults
+            });
+
             evaSpeechRec.onstart = () => {
                 // Cancel EVA's speech immediately when user starts talking
                 if (window.speechSynthesis.speaking) {
@@ -327,21 +333,33 @@ export const AIConsultant = () => {
 
             // Toggle recording on click
             micBtn.onclick = () => {
+                console.log('[MIC BTN] Clicked! Current state:', { isRecording, evaSpeechRec: !!evaSpeechRec });
+
                 if (isRecording) {
+                    console.log('[MIC BTN] Stopping recording...');
                     // Stop recording and send
                     if (evaSpeechRec) evaSpeechRec.stop();
                     setTimeout(() => {
                         if (accumulatedTranscript.trim()) {
+                            console.log('[MIC BTN] Sending transcript:', accumulatedTranscript);
                             input.value = accumulatedTranscript.trim();
                             sendMessage();
+                        } else {
+                            console.log('[MIC BTN] No transcript to send');
                         }
                     }, 300);
                 } else {
                     // Start recording
+                    console.log('[MIC BTN] Starting recording...');
                     try {
-                        if (evaSpeechRec) evaSpeechRec.start();
+                        if (evaSpeechRec) {
+                            evaSpeechRec.start();
+                            console.log('[MIC BTN] Speech recognition started successfully');
+                        } else {
+                            console.error('[MIC BTN] evaSpeechRec is null!');
+                        }
                     } catch (e) {
-                        console.error('Error starting recognition:', e);
+                        console.error('[MIC BTN] Error starting recognition:', e);
                     }
                 }
             };
