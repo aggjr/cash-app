@@ -550,6 +550,27 @@ export const ParametrosGeraisManager = (project) => {
                             >1.30x</div>
                         </div>
                         <span style="min-width: 40px; color: var(--color-text-muted); font-size: 0.875rem;">2.6x</span>
+                        <button 
+                            id="test-voice-speed"
+                            style="
+                                height: 45px;
+                                aspect-ratio: 1;
+                                padding: 0;
+                                display: flex;
+                                align-items: center;
+                                justify-content: center;
+                                background: var(--color-primary);
+                                color: white;
+                                border: none;
+                                border-radius: 8px;
+                                font-size: 1.3rem;
+                                cursor: pointer;
+                                transition: all 0.2s;
+                            "
+                            onmouseover="this.style.background='#1D4ED8'"
+                            onmouseout="this.style.background='var(--color-primary)'"
+                            title="Testar velocidade da voz"
+                        >🔊</button>
                     </div>
                     <small style="display: block; margin-top: 0.5rem; color: var(--color-text-muted);">
                         Ajuste a velocidade de fala da EVA (-100% a +100% da velocidade padrão de 1.30x)
@@ -715,6 +736,29 @@ export const ParametrosGeraisManager = (project) => {
 
         // Initialize voice display
         updateVoiceDisplay(currentSettings.eva_voice_rate || 0);
+
+        // Test voice speed button
+        const testVoiceBtn = container.querySelector('#test-voice-speed');
+        testVoiceBtn.addEventListener('click', () => {
+            const value = parseInt(voiceSlider.value);
+            const rate = 1.30 * (1 + value / 100);
+
+            // Cancel any ongoing speech
+            window.speechSynthesis.cancel();
+
+            const utterance = new SpeechSynthesisUtterance('A partir de agora vou falar nesta velocidade');
+            utterance.lang = 'pt-BR';
+            utterance.rate = rate;
+
+            const voices = window.speechSynthesis.getVoices();
+            const ptBrVoice = voices.find(v => v.lang === 'pt-BR' || v.lang.startsWith('pt'));
+            if (ptBrVoice) {
+                utterance.voice = ptBrVoice;
+            }
+
+            window.speechSynthesis.speak(utterance);
+            console.log('[Test Voice] Speaking at rate:', rate);
+        });
 
         // Event listener para botão de liberação
         const unlockBtn = container.querySelector('#btn-activate-unlock');
