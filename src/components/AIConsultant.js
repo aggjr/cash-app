@@ -114,7 +114,7 @@ export const AIConsultant = () => {
     // 1. Floating Button
     const fab = document.createElement('button');
     fab.className = 'ai-fab';
-    fab.style.width = '94px';  // Reduced by 20% (117 * 0.8 = 93.6, rounded to 94)
+    fab.style.width = '103px';  // Increased by 10% (94 * 1.10 = 103.4, rounded to 103)
     fab.style.height = '145px';  // Taller for elliptical shape
     fab.style.borderRadius = '50% / 50%';  // Creates ellipse (horizontal / vertical)
     fab.style.border = 'none';
