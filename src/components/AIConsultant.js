@@ -234,14 +234,16 @@ export const AIConsultant = () => {
             evaSpeechRec.maxAlternatives = 1;
 
             evaSpeechRec.onstart = () => {
+                // The startRecording function already handles setting state and UI
+                // We just need to ensure the speech recognition engine is started.
+                // The actual state and UI updates are now in startRecording.
+                // However, onstart is called *after* the recognition starts,
+                // so we should call startRecording *before* evaSpeechRec.start()
+                // in the micBtn.onclick handler.
+                // For onstart, we just confirm the state.
                 isRecording = true;
                 isListening = true;
-                micBtn.classList.add('mic-recording');
-                micBtn.style.backgroundColor = '#ffebe9';
-                micBtn.style.borderColor = '#ef4444';
-                micBtn.style.boxShadow = '0 0 0 4px rgba(239, 68, 68, 0.1)';
-                input.placeholder = `Gravando... (${evaTimeout / 1000}s silêncio para enviar)`;
-                accumulatedTranscript = '';
+                console.log('Speech recognition engine started.');
             };
 
             evaSpeechRec.onend = () => {
