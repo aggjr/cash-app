@@ -501,27 +501,6 @@ export const ParametrosGeraisManager = (project) => {
                             >2s</div>
                         </div>
                         <span style="min-width: 30px; color: var(--color-text-muted); font-size: 0.875rem;">10s</span>
-                        <button 
-                            id="save-eva_timeout"
-                            class="btn-save-setting"
-                            disabled
-                            style="
-                                height: 45px;
-                                aspect-ratio: 1;
-                                padding: 0;
-                                display: flex;
-                                align-items: center;
-                                justify-content: center;
-                                background: #e5e7eb;
-                                color: #9ca3af;
-                                border: none;
-                                border-radius: 8px;
-                                font-size: 1.2rem;
-                                cursor: not-allowed;
-                                transition: all 0.2s;
-                            "
-                            title="Salvar alteração"
-                        >✓</button>
                     </div>
                     <small style="display: block; margin-top: 0.5rem; color: var(--color-text-muted);">
                         Tempo de silêncio para a EVA considerar que você terminou de falar
@@ -571,27 +550,6 @@ export const ParametrosGeraisManager = (project) => {
                             >1.30x</div>
                         </div>
                         <span style="min-width: 40px; color: var(--color-text-muted); font-size: 0.875rem;">2.6x</span>
-                        <button 
-                            id="save-eva_voice_rate"
-                            class="btn-save-setting"
-                            disabled
-                            style="
-                                height: 45px;
-                                aspect-ratio: 1;
-                                padding: 0;
-                                display: flex;
-                                align-items: center;
-                                justify-content: center;
-                                background: #e5e7eb;
-                                color: #9ca3af;
-                                border: none;
-                                border-radius: 8px;
-                                font-size: 1.2rem;
-                                cursor: not-allowed;
-                                transition: all 0.2s;
-                            "
-                            title="Salvar alteração"
-                        >✓</button>
                     </div>
                     <small style="display: block; margin-top: 0.5rem; color: var(--color-text-muted);">
                         Ajuste a velocidade de fala da EVA (-100% a +100% da velocidade padrão de 1.30x)
@@ -650,10 +608,10 @@ export const ParametrosGeraisManager = (project) => {
             saveBtn.addEventListener('click', () => saveSetting(field));
         });
 
-        // Event listener para timeout slider
+        // Event listener para timeout slider (AUTO-SAVE)
         const timeoutSlider = container.querySelector('#slider-eva_timeout');
         const timeoutDisplay = container.querySelector('#timeout-display');
-        const timeoutSaveBtn = container.querySelector('#save-eva_timeout');
+        let timeoutSaveTimer = null;
 
         const updateTimeoutDisplay = (value) => {
             timeoutDisplay.textContent = value + 's';
@@ -668,29 +626,46 @@ export const ParametrosGeraisManager = (project) => {
             currentSettings.eva_timeout = value;
             updateTimeoutDisplay(value);
 
-            // Update save button state
-            const isDirty = value !== originalSettings.eva_timeout;
-            timeoutSaveBtn.disabled = !isDirty;
-            if (isDirty) {
-                timeoutSaveBtn.style.background = 'var(--color-primary)';
-                timeoutSaveBtn.style.color = 'white';
-                timeoutSaveBtn.style.cursor = 'pointer';
-            } else {
-                timeoutSaveBtn.style.background = '#e5e7eb';
-                timeoutSaveBtn.style.color = '#9ca3af';
-                timeoutSaveBtn.style.cursor = 'not-allowed';
+            // Clear previous timer
+            if (timeoutSaveTimer) {
+                clearTimeout(timeoutSaveTimer);
             }
-        });
 
-        timeoutSaveBtn.addEventListener('click', () => saveSetting('eva_timeout'));
+            // Auto-save after 800ms of inactivity
+            timeoutSaveTimer = setTimeout(async () => {
+                try {
+                    const response = await fetch(`${API_BASE_URL}/settings/eva_timeout`, {
+                        method: 'PUT',
+                        headers: getHeaders(),
+                        body: JSON.stringify({ value })
+                    });
+
+                    if (response.ok) {
+                        originalSettings.eva_timeout = value;
+                        // Update global timeout immediately
+                        if (window.AIConsultant && window.AIConsultant.evaTimeout !== undefined) {
+                            window.AIConsultant.evaTimeout = value * 1000;
+                        }
+                        console.log('[Settings] Auto-saved timeout to:', value + 's');
+                        showToast('✓ Tempo de espera atualizado', 'success');
+                    } else {
+                        const error = await response.json();
+                        showToast(error.error || 'Erro ao salvar', 'error');
+                    }
+                } catch (error) {
+                    console.error('[Settings] Error saving timeout:', error);
+                    showToast('Erro de conexão', 'error');
+                }
+            }, 800);
+        });
 
         // Initialize timeout display
         updateTimeoutDisplay(currentSettings.eva_timeout || 2);
 
-        // Event listener para voice rate slider
+        // Event listener para voice rate slider (AUTO-SAVE)
         const voiceSlider = container.querySelector('#slider-eva_voice_rate');
         const voiceDisplay = container.querySelector('#voice-rate-display');
-        const voiceSaveBtn = container.querySelector('#save-eva_voice_rate');
+        let voiceSaveTimer = null;
 
         const updateVoiceDisplay = (value) => {
             // Formula: voice_rate = 1.30 * (1 + value/100)
@@ -707,48 +682,35 @@ export const ParametrosGeraisManager = (project) => {
             currentSettings.eva_voice_rate = value;
             updateVoiceDisplay(value);
 
-            // Update save button state
-            const isDirty = value !== originalSettings.eva_voice_rate;
-            voiceSaveBtn.disabled = !isDirty;
-            if (isDirty) {
-                voiceSaveBtn.style.background = 'var(--color-primary)';
-                voiceSaveBtn.style.color = 'white';
-                voiceSaveBtn.style.cursor = 'pointer';
-            } else {
-                voiceSaveBtn.style.background = '#e5e7eb';
-                voiceSaveBtn.style.color = '#9ca3af';
-                voiceSaveBtn.style.cursor = 'not-allowed';
+            // Clear previous timer
+            if (voiceSaveTimer) {
+                clearTimeout(voiceSaveTimer);
             }
-        });
 
-        voiceSaveBtn.addEventListener('click', async () => {
-            const value = parseInt(voiceSlider.value);
-            try {
-                const response = await fetch(`${API_BASE_URL}/settings/eva_voice_rate`, {
-                    method: 'PUT',
-                    headers: getHeaders(),
-                    body: JSON.stringify({ value })
-                });
+            // Auto-save after 800ms of inactivity
+            voiceSaveTimer = setTimeout(async () => {
+                try {
+                    const response = await fetch(`${API_BASE_URL}/settings/eva_voice_rate`, {
+                        method: 'PUT',
+                        headers: getHeaders(),
+                        body: JSON.stringify({ value })
+                    });
 
-                if (response.ok) {
-                    originalSettings.eva_voice_rate = value;
-                    voiceSaveBtn.disabled = true;
-                    voiceSaveBtn.style.background = '#e5e7eb';
-                    voiceSaveBtn.style.color = '#9ca3af';
-                    voiceSaveBtn.style.cursor = 'not-allowed';
-
-                    // Update global voice rate immediately
-                    window.evaVoiceRateAdjustment = value;
-                    console.log('[Settings] Updated global voice rate to:', value);
-
-                    showToast('✓ Velocidade da voz atualizada', 'success');
-                } else {
-                    const error = await response.json();
-                    showToast(error.error || 'Erro ao salvar', 'error');
+                    if (response.ok) {
+                        originalSettings.eva_voice_rate = value;
+                        // Update global voice rate immediately
+                        window.evaVoiceRateAdjustment = value;
+                        console.log('[Settings] Auto-saved voice rate to:', value);
+                        showToast('✓ Velocidade da voz atualizada', 'success');
+                    } else {
+                        const error = await response.json();
+                        showToast(error.error || 'Erro ao salvar', 'error');
+                    }
+                } catch (error) {
+                    console.error('[Settings] Error saving voice rate:', error);
+                    showToast('Erro de conexão', 'error');
                 }
-            } catch (error) {
-                showToast('Erro de conexão', 'error');
-            }
+            }, 800);
         });
 
         // Initialize voice display
