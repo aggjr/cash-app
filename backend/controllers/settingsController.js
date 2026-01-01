@@ -58,10 +58,11 @@ const updateSetting = async (req, res) => {
             return res.status(400).json({ error: 'Valor deve ser um número' });
         }
 
-        // Special validation for eva_timeout (0-10 seconds)
+        // Validate eva_timeout (1-10 seconds)
         if (field === 'eva_timeout') {
-            if (numValue < 0 || numValue > 10) {
-                return res.status(400).json({ error: 'Tempo de espera da EVA deve estar entre 0 e 10 segundos' });
+            const timeoutValue = parseInt(value);
+            if (isNaN(timeoutValue) || timeoutValue < 1 || timeoutValue > 10) {
+                return res.status(400).json({ error: 'eva_timeout deve estar entre 1 e 10 segundos' });
             }
         }
         // Special validation for eva_voice_rate (-100 to +100)

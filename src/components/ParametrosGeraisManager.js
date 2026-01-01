@@ -464,12 +464,12 @@ export const ParametrosGeraisManager = (project) => {
                         ⏳ Tempo de Espera (segundos)
                     </label>
                     <div style="display: flex; align-items: center; gap: 1rem;">
-                        <span style="min-width: 30px; text-align: right; color: var(--color-text-muted); font-size: 0.875rem;">0s</span>
+                        <span style="min-width: 30px; text-align: right; color: var(--color-text-muted); font-size: 0.875rem;">1s</span>
                         <div style="flex: 1; position: relative;">
                             <input 
                                 type="range" 
                                 id="slider-eva_timeout" 
-                                min="0" 
+                                min="1" 
                                 max="10" 
                                 value="${currentSettings.eva_timeout || 2}"
                                 step="1"
@@ -658,8 +658,8 @@ export const ParametrosGeraisManager = (project) => {
         const updateTimeoutDisplay = (value) => {
             timeoutDisplay.textContent = value + 's';
 
-            // Move display above slider position
-            const percentage = (value / 10) * 100;
+            // Move display above slider position (range is now 1-10)
+            const percentage = ((value - 1) / 9) * 100; // (value - min) / (max - min)
             timeoutDisplay.style.left = `${percentage}%`;
         };
 
