@@ -69,9 +69,18 @@ export const ParametrosGeraisManager = (project) => {
                 numero_dias: settings.numero_dias,
                 tempo_minutos_liberacao: settings.tempo_minutos_liberacao,
                 eva_timeout: settings.eva_timeout || 2, // Default 2s if null
-                eva_voice_rate: settings.eva_voice_rate || 0 // Default 0 = 1.30x
+                eva_voice_rate: settings.eva_voice_rate || 0, // Default 0 = 1.30x
+                eva_voice_type: settings.eva_voice_type || 'free', // Default free
+                eva_voice_gender: settings.eva_voice_gender || 'female' // Default female
             };
             currentSettings = { ...originalSettings };
+
+            console.log('[ParametrosGerais] Settings loaded:', {
+                eva_timeout: currentSettings.eva_timeout,
+                eva_voice_rate: currentSettings.eva_voice_rate,
+                eva_voice_type: currentSettings.eva_voice_type,
+                eva_voice_gender: currentSettings.eva_voice_gender
+            });
 
             console.log('Original settings:', originalSettings);
             console.log('Current settings:', currentSettings);
@@ -577,6 +586,79 @@ export const ParametrosGeraisManager = (project) => {
                     </small>
                 </div>
 
+                <!-- Tipo de Voz -->
+                <div style="margin-bottom: 2rem;">
+                    <label style="display: block; font-weight: 500; margin-bottom: 0.75rem; color: var(--color-text);">
+                        🎙️ Tipo de Voz
+                    </label>
+                    <script>console.log('[DEBUG] Voice Type UI section is rendering!');</script>
+                    
+                    <!-- Free Voice Option -->
+                    <div style="margin-bottom: 0.75rem;">
+                        <label style="display: flex; align-items: center; gap: 0.5rem; cursor: pointer; padding: 0.75rem; border: 2px solid #e5e7eb; border-radius: 8px; transition: all 0.2s;" class="voice-type-option">
+                            <input 
+                                type="radio" 
+                                name="eva_voice_type" 
+                                value="free" 
+                                checked
+                                style="width: 18px; height: 18px; cursor: pointer;"
+                            />
+                            <div style="flex: 1;">
+                                <div style="font-weight: 600; color: var(--color-text);">🆓 Voz Gratuita</div>
+                                <small style="color: var(--color-text-muted);">Sintetizador do navegador (atual)</small>
+                            </div>
+                        </label>
+                    </div>
+
+                    <!-- Premium Voice Option -->
+                    <div>
+                        <label style="display: flex; align-items: center; gap: 0.5rem; cursor: pointer; padding: 0.75rem; border: 2px solid #e5e7eb; border-radius: 8px; transition: all 0.2s;" class="voice-type-option">
+                            <input 
+                                type="radio" 
+                                name="eva_voice_type" 
+                                value="premium"
+                                style="width: 18px; height: 18px; cursor: pointer;"
+                            />
+                            <div style="flex: 1;">
+                                <div style="font-weight: 600; color: var(--color-text);">💎 Voz Natural Paga</div>
+                                <small style="color: var(--color-text-muted);">Google Cloud TTS (~R$ 0,50/mês)</small>
+                            </div>
+                        </label>
+                        
+                        <!-- Gender selection (conditional) -->
+                        <div id="gender-selection" style="margin-left: 2rem; margin-top: 0.75rem; display: none;">
+                            <label style="display: block; font-weight: 500; margin-bottom: 0.5rem; color: var(--color-text); font-size: 0.9rem;">
+                                Gênero da Voz:
+                            </label>
+                            <div style="display: flex; gap: 1rem;">
+                                <label style="display: flex; align-items: center; gap: 0.5rem; cursor: pointer;">
+                                    <input 
+                                        type="radio" 
+                                        name="eva_voice_gender" 
+                                        value="female"
+                                        checked
+                                        style="cursor: pointer;"
+                                    />
+                                    <span>♀️ Feminina</span>
+                                </label>
+                                <label style="display: flex; align-items: center; gap: 0.5rem; cursor: pointer;">
+                                    <input 
+                                        type="radio" 
+                                        name="eva_voice_gender" 
+                                        value="male"
+                                        style="cursor: pointer;"
+                                    />
+                                    <span>♂️ Masculina</span>
+                                </label>
+                            </div>
+                        </div>
+                    </div>
+
+                    <small style="display: block; margin-top: 0.75rem; color: var(--color-text-muted); line-height: 1.5;">
+                        A voz natural oferece qualidade superior e sotaque brasileiro autêntico.
+                    </small>
+                </div>
+
                 <!-- Separador -->
                 <hr style="border: none; border-top: 1px solid var(--color-border-light); margin: 2rem 0;" />
 
@@ -736,6 +818,113 @@ export const ParametrosGeraisManager = (project) => {
 
         // Initialize voice display
         updateVoiceDisplay(currentSettings.eva_voice_rate || 0);
+
+        // Voice type selection
+        const voiceTypeRadios = container.querySelectorAll('input[name="eva_voice_type"]');
+        const genderSelection = container.querySelector('#gender-selection');
+        const voiceGenderRadios = container.querySelectorAll('input[name="eva_voice_gender"]');
+
+        // Set initial values
+        const voiceTypeChecked = container.querySelector(`input[name="eva_voice_type"][value="${currentSettings.eva_voice_type}"]`);
+        if (voiceTypeChecked) voiceTypeChecked.checked = true;
+
+        const voiceGenderChecked = container.querySelector(`input[name="eva_voice_gender"][value="${currentSettings.eva_voice_gender}"]`);
+        if (voiceGenderChecked) voiceGenderChecked.checked = true;
+
+        // Show/hide gender selection based on voice type
+        const toggleGenderSelection = () => {
+            const selectedType = container.querySelector('input[name="eva_voice_type"]:checked')?.value;
+            if (selectedType === 'premium') {
+                genderSelection.style.display = 'block';
+            } else {
+                genderSelection.style.display = 'none';
+            }
+
+            // Update label borders
+            container.querySelectorAll('.voice-type-option').forEach(label => {
+                const radio = label.querySelector('input[type="radio"]');
+                if (radio.checked) {
+                    label.style.borderColor = 'var(--color-primary)';
+                    label.style.backgroundColor = 'rgba(37, 99, 235, 0.05)';
+                } else {
+                    label.style.borderColor = '#e5e7eb';
+                    label.style.backgroundColor = 'transparent';
+                }
+            });
+        };
+
+        toggleGenderSelection();
+
+        // Auto-save voice type
+        let voiceTypeSaveTimer = null;
+        voiceTypeRadios.forEach(radio => {
+            radio.addEventListener('change', () => {
+                const value = radio.value;
+                currentSettings.eva_voice_type = value;
+                toggleGenderSelection();
+
+                // Clear previous timer
+                if (voiceTypeSaveTimer) clearTimeout(voiceTypeSaveTimer);
+
+                // Auto-save after 500ms
+                voiceTypeSaveTimer = setTimeout(async () => {
+                    try {
+                        const response = await fetch(`${API_BASE_URL}/settings/eva_voice_type`, {
+                            method: 'PUT',
+                            headers: getHeaders(),
+                            body: JSON.stringify({ value })
+                        });
+
+                        if (response.ok) {
+                            originalSettings.eva_voice_type = value;
+                            console.log('[Settings] Auto-saved voice type to:', value);
+                            showToast(`✓ Tipo de voz: ${value === 'free' ? 'Gratuita' : 'Natural Paga'}`, 'success');
+                        } else {
+                            const error = await response.json();
+                            showToast(error.error || 'Erro ao salvar', 'error');
+                        }
+                    } catch (error) {
+                        console.error('[Settings] Error saving voice type:', error);
+                        showToast('Erro de conexão', 'error');
+                    }
+                }, 500);
+            });
+        });
+
+        // Auto-save voice gender
+        let voiceGenderSaveTimer = null;
+        voiceGenderRadios.forEach(radio => {
+            radio.addEventListener('change', () => {
+                const value = radio.value;
+                currentSettings.eva_voice_gender = value;
+
+                // Clear previous timer
+                if (voiceGenderSaveTimer) clearTimeout(voiceGenderSaveTimer);
+
+                // Auto-save after 500ms
+                voiceGenderSaveTimer = setTimeout(async () => {
+                    try {
+                        const response = await fetch(`${API_BASE_URL}/settings/eva_voice_gender`, {
+                            method: 'PUT',
+                            headers: getHeaders(),
+                            body: JSON.stringify({ value })
+                        });
+
+                        if (response.ok) {
+                            originalSettings.eva_voice_gender = value;
+                            console.log('[Settings] Auto-saved voice gender to:', value);
+                            showToast(`✓ Gênero da voz: ${value === 'female' ? 'Feminina' : 'Masculina'}`, 'success');
+                        } else {
+                            const error = await response.json();
+                            showToast(error.error || 'Erro ao salvar', 'error');
+                        }
+                    } catch (error) {
+                        console.error('[Settings] Error saving voice gender:', error);
+                        showToast('Erro de conexão', 'error');
+                    }
+                }, 500);
+            });
+        });
 
         // Test voice speed button
         const testVoiceBtn = container.querySelector('#test-voice-speed');
