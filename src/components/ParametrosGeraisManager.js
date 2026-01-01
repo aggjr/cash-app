@@ -958,24 +958,50 @@ export const ParametrosGeraisManager = (project) => {
 
                 // Get available voices
                 const voices = window.speechSynthesis.getVoices();
+                console.log('[Test Voice] Available voices:', voices.map(v => v.name).join(', '));
+
+                // Known male and female voice names
+                const maleNames = ['daniel', 'ricardo', 'felipe', 'carlos', 'bruno', 'paulo', 'male'];
+                const femaleNames = ['maria', 'luciana', 'francisca', 'joana', 'ana', 'bruna', 'female', 'feminina'];
+
                 let selectedVoice = null;
 
+                // Filter pt-BR voices
+                const ptBRVoices = voices.filter(v => v.lang === 'pt-BR' || v.lang.startsWith('pt'));
+
                 if (isMale) {
-                    // Male voice priority: Ricardo, Google male, or any pt-BR male
-                    selectedVoice = voices.find(v => v.lang === 'pt-BR' && v.name.includes('Ricardo')) ||
-                        voices.find(v => v.lang === 'pt-BR' && (v.name.toLowerCase().includes('male') || v.name.toLowerCase().includes('masculino'))) ||
-                        voices.find(v => v.lang === 'pt-BR' && !v.name.toLowerCase().includes('female') && !v.name.toLowerCase().includes('feminina'));
+                    // Find male voice: check if name contains male names
+                    selectedVoice = ptBRVoices.find(v => {
+                        const lowerName = v.name.toLowerCase();
+                        return maleNames.some(name => lowerName.includes(name));
+                    });
+
+                    // If no male voice found, use first pt-BR that's NOT female
+                    if (!selectedVoice) {
+                        selectedVoice = ptBRVoices.find(v => {
+                            const lowerName = v.name.toLowerCase();
+                            return !femaleNames.some(name => lowerName.includes(name));
+                        });
+                    }
                 } else {
-                    // Female voice priority: Luciana, Francisca, Google female, or any pt-BR female
-                    selectedVoice = voices.find(v => v.lang === 'pt-BR' && v.name.includes('Luciana')) ||
-                        voices.find(v => v.lang === 'pt-BR' && v.name.includes('Francisca')) ||
-                        voices.find(v => v.lang === 'pt-BR' && (v.name.toLowerCase().includes('female') || v.name.toLowerCase().includes('feminina'))) ||
-                        voices.find(v => v.lang === 'pt-BR' && !v.name.toLowerCase().includes('male') && !v.name.toLowerCase().includes('masculino'));
+                    // Find female voice: check if name contains female names
+                    selectedVoice = ptBRVoices.find(v => {
+                        const lowerName = v.name.toLowerCase();
+                        return femaleNames.some(name => lowerName.includes(name));
+                    });
+
+                    // If no female voice found, explicitly avoid male voices
+                    if (!selectedVoice) {
+                        selectedVoice = ptBRVoices.find(v => {
+                            const lowerName = v.name.toLowerCase();
+                            return !maleNames.some(name => lowerName.includes(name));
+                        });
+                    }
                 }
 
-                // Fallback to any pt-BR voice
-                if (!selectedVoice) {
-                    selectedVoice = voices.find(v => v.lang === 'pt-BR');
+                // Ultimate fallback: first pt-BR voice
+                if (!selectedVoice && ptBRVoices.length > 0) {
+                    selectedVoice = ptBRVoices[0];
                 }
 
                 const utterance = new SpeechSynthesisUtterance('A partir de agora vou falar nesta velocidade');
@@ -984,6 +1010,8 @@ export const ParametrosGeraisManager = (project) => {
                 if (selectedVoice) {
                     utterance.voice = selectedVoice;
                     console.log('[Test Voice] Using voice:', selectedVoice.name);
+                } else {
+                    console.warn('[Test Voice] No pt-BR voice found, using default');
                 }
 
                 window.speechSynthesis.speak(utterance);
