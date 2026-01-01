@@ -938,28 +938,57 @@ export const ParametrosGeraisManager = (project) => {
             });
         });
 
+        // Helper function to calculate speech rate
+        const calculateSpeechRate = (value) => {
+            return 1.30 * (1 + value / 100);
+        };
+
         // Test voice speed button
         const testVoiceBtn = container.querySelector('#test-voice-speed');
-        testVoiceBtn.addEventListener('click', () => {
-            const value = parseInt(voiceSlider.value);
-            const rate = 1.30 * (1 + value / 100);
+        if (testVoiceBtn) {
+            testVoiceBtn.addEventListener('click', () => {
+                // Cancel any ongoing speech
+                window.speechSynthesis.cancel();
 
-            // Cancel any ongoing speech
-            window.speechSynthesis.cancel();
+                // Get current settings
+                const rate = calculateSpeechRate(currentSettings.eva_voice_rate || 88);
+                const isMale = currentSettings.eva_voice_male === 1;
 
-            const utterance = new SpeechSynthesisUtterance('A partir de agora vou falar nesta velocidade');
-            utterance.lang = 'pt-BR';
-            utterance.rate = rate;
+                console.log('[Test Voice] Speaking at rate:', rate.toFixed(2), 'Gender:', isMale ? 'Male' : 'Female');
 
-            const voices = window.speechSynthesis.getVoices();
-            const ptBrVoice = voices.find(v => v.lang === 'pt-BR' || v.lang.startsWith('pt'));
-            if (ptBrVoice) {
-                utterance.voice = ptBrVoice;
-            }
+                // Get available voices
+                const voices = window.speechSynthesis.getVoices();
+                let selectedVoice = null;
 
-            window.speechSynthesis.speak(utterance);
-            console.log('[Test Voice] Speaking at rate:', rate);
-        });
+                if (isMale) {
+                    // Male voice priority: Ricardo, Google male, or any pt-BR male
+                    selectedVoice = voices.find(v => v.lang === 'pt-BR' && v.name.includes('Ricardo')) ||
+                        voices.find(v => v.lang === 'pt-BR' && (v.name.toLowerCase().includes('male') || v.name.toLowerCase().includes('masculino'))) ||
+                        voices.find(v => v.lang === 'pt-BR' && !v.name.toLowerCase().includes('female') && !v.name.toLowerCase().includes('feminina'));
+                } else {
+                    // Female voice priority: Luciana, Francisca, Google female, or any pt-BR female
+                    selectedVoice = voices.find(v => v.lang === 'pt-BR' && v.name.includes('Luciana')) ||
+                        voices.find(v => v.lang === 'pt-BR' && v.name.includes('Francisca')) ||
+                        voices.find(v => v.lang === 'pt-BR' && (v.name.toLowerCase().includes('female') || v.name.toLowerCase().includes('feminina'))) ||
+                        voices.find(v => v.lang === 'pt-BR' && !v.name.toLowerCase().includes('male') && !v.name.toLowerCase().includes('masculino'));
+                }
+
+                // Fallback to any pt-BR voice
+                if (!selectedVoice) {
+                    selectedVoice = voices.find(v => v.lang === 'pt-BR');
+                }
+
+                const utterance = new SpeechSynthesisUtterance('A partir de agora vou falar nesta velocidade');
+                utterance.rate = rate;
+                utterance.lang = 'pt-BR';
+                if (selectedVoice) {
+                    utterance.voice = selectedVoice;
+                    console.log('[Test Voice] Using voice:', selectedVoice.name);
+                }
+
+                window.speechSynthesis.speak(utterance);
+            });
+        }
 
         // Event listener para botão de liberação
         const unlockBtn = container.querySelector('#btn-activate-unlock');
