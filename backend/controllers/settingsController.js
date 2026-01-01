@@ -47,13 +47,13 @@ const updateSetting = async (req, res) => {
         const { value } = req.body;
 
         // Check if field is allowed
-        const allowedFields = ['numero_dias', 'tempo_minutos_liberacao', 'eva_timeout', 'eva_voice_rate', 'eva_voice_type', 'eva_voice_gender'];
+        const allowedFields = ['numero_dias', 'tempo_minutos_liberacao', 'eva_timeout', 'eva_voice_rate', 'eva_voice_premium', 'eva_voice_male'];
         if (!allowedFields.includes(field)) {
             return res.status(400).json({ error: 'Campo não permitido' });
         }
 
         let numValue = value;
-        if (field !== 'eva_voice_type' && field !== 'eva_voice_gender') {
+        if (field !== 'eva_voice_premium' && field !== 'eva_voice_male') {
             numValue = parseInt(value);
             if (isNaN(numValue)) {
                 return res.status(400).json({ error: 'Valor deve ser um número' });

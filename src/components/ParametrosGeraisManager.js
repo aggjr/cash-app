@@ -70,16 +70,16 @@ export const ParametrosGeraisManager = (project) => {
                 tempo_minutos_liberacao: settings.tempo_minutos_liberacao,
                 eva_timeout: settings.eva_timeout || 2, // Default 2s if null
                 eva_voice_rate: settings.eva_voice_rate || 0, // Default 0 = 1.30x
-                eva_voice_type: settings.eva_voice_type || 'free', // Default free
-                eva_voice_gender: settings.eva_voice_gender || 'female' // Default female
+                eva_voice_premium: settings.eva_voice_premium || 0, // Default 0 = free
+                eva_voice_male: settings.eva_voice_male || 0 // Default 0 = female
             };
             currentSettings = { ...originalSettings };
 
             console.log('[ParametrosGerais] Settings loaded:', {
                 eva_timeout: currentSettings.eva_timeout,
                 eva_voice_rate: currentSettings.eva_voice_rate,
-                eva_voice_type: currentSettings.eva_voice_type,
-                eva_voice_gender: currentSettings.eva_voice_gender
+                eva_voice_premium: currentSettings.eva_voice_premium,
+                eva_voice_male: currentSettings.eva_voice_male
             });
 
             console.log('Original settings:', originalSettings);
@@ -598,8 +598,8 @@ export const ParametrosGeraisManager = (project) => {
                         <label style="display: flex; align-items: center; gap: 0.5rem; cursor: pointer; padding: 0.75rem; border: 2px solid #e5e7eb; border-radius: 8px; transition: all 0.2s;" class="voice-type-option">
                             <input 
                                 type="radio" 
-                                name="eva_voice_type" 
-                                value="free" 
+                                name="eva_voice_premium" 
+                                value="0" 
                                 checked
                                 style="width: 18px; height: 18px; cursor: pointer;"
                             />
@@ -615,8 +615,8 @@ export const ParametrosGeraisManager = (project) => {
                         <label style="display: flex; align-items: center; gap: 0.5rem; cursor: pointer; padding: 0.75rem; border: 2px solid #e5e7eb; border-radius: 8px; transition: all 0.2s;" class="voice-type-option">
                             <input 
                                 type="radio" 
-                                name="eva_voice_type" 
-                                value="premium"
+                                name="eva_voice_premium" 
+                                value="1"
                                 style="width: 18px; height: 18px; cursor: pointer;"
                             />
                             <div style="flex: 1;">
@@ -635,8 +635,8 @@ export const ParametrosGeraisManager = (project) => {
                             <label style="display: flex; align-items: center; gap: 0.5rem; cursor: pointer; padding: 0.5rem 1rem; border: 2px solid #e5e7eb; border-radius: 6px; transition: all 0.2s; flex: 1; justify-content: center;" class="voice-gender-option">
                                 <input 
                                     type="radio" 
-                                    name="eva_voice_gender" 
-                                    value="female"
+                                    name="eva_voice_male" 
+                                    value="0"
                                     checked
                                     style="cursor: pointer;"
                                 />
@@ -645,8 +645,8 @@ export const ParametrosGeraisManager = (project) => {
                             <label style="display: flex; align-items: center; gap: 0.5rem; cursor: pointer; padding: 0.5rem 1rem; border: 2px solid #e5e7eb; border-radius: 6px; transition: all 0.2s; flex: 1; justify-content: center;" class="voice-gender-option">
                                 <input 
                                     type="radio" 
-                                    name="eva_voice_gender" 
-                                    value="male"
+                                    name="eva_voice_male" 
+                                    value="1"
                                     style="cursor: pointer;"
                                 />
                                 <span style="font-weight: 500;">♂️ Masculina</span>
@@ -820,15 +820,15 @@ export const ParametrosGeraisManager = (project) => {
         updateVoiceDisplay(currentSettings.eva_voice_rate || 0);
 
         // Voice type selection
-        const voiceTypeRadios = container.querySelectorAll('input[name="eva_voice_type"]');
+        const voiceTypeRadios = container.querySelectorAll('input[name="eva_voice_premium"]');
         const genderSelection = container.querySelector('#gender-selection');
-        const voiceGenderRadios = container.querySelectorAll('input[name="eva_voice_gender"]');
+        const voiceGenderRadios = container.querySelectorAll('input[name="eva_voice_male"]');
 
         // Set initial values
-        const voiceTypeChecked = container.querySelector(`input[name="eva_voice_type"][value="${currentSettings.eva_voice_type}"]`);
+        const voiceTypeChecked = container.querySelector(`input[name="eva_voice_premium"][value="${currentSettings.eva_voice_premium}"]`);
         if (voiceTypeChecked) voiceTypeChecked.checked = true;
 
-        const voiceGenderChecked = container.querySelector(`input[name="eva_voice_gender"][value="${currentSettings.eva_voice_gender}"]`);
+        const voiceGenderChecked = container.querySelector(`input[name="eva_voice_male"][value="${currentSettings.eva_voice_male}"]`);
         if (voiceGenderChecked) voiceGenderChecked.checked = true;
 
         // Show/hide gender selection based on voice type
@@ -859,8 +859,8 @@ export const ParametrosGeraisManager = (project) => {
         let voiceTypeSaveTimer = null;
         voiceTypeRadios.forEach(radio => {
             radio.addEventListener('change', () => {
-                const value = radio.value;
-                currentSettings.eva_voice_type = value;
+                const value = parseInt(radio.value); // Convert to integer
+                currentSettings.eva_voice_premium = value;
                 toggleGenderSelection();
 
                 // Clear previous timer
@@ -869,22 +869,22 @@ export const ParametrosGeraisManager = (project) => {
                 // Auto-save after 500ms
                 voiceTypeSaveTimer = setTimeout(async () => {
                     try {
-                        const response = await fetch(`${API_BASE_URL}/settings/eva_voice_type`, {
+                        const response = await fetch(`${API_BASE_URL}/settings/eva_voice_premium`, {
                             method: 'PUT',
                             headers: getHeaders(),
                             body: JSON.stringify({ value })
                         });
 
                         if (response.ok) {
-                            originalSettings.eva_voice_type = value;
-                            console.log('[Settings] Auto-saved voice type to:', value);
-                            showToast(`✓ Tipo de voz: ${value === 'free' ? 'Gratuita' : 'Natural Paga'}`, 'success');
+                            originalSettings.eva_voice_premium = value;
+                            console.log('[Settings] Auto-saved voice premium to:', value);
+                            showToast(`✓ Tipo de voz: ${value === 1 ? 'Natural Paga' : 'Gratuita'}`, 'success');
                         } else {
                             const error = await response.json();
                             showToast(error.error || 'Erro ao salvar', 'error');
                         }
                     } catch (error) {
-                        console.error('[Settings] Error saving voice type:', error);
+                        console.error('[Settings] Error saving voice premium:', error);
                         showToast('Erro de conexão', 'error');
                     }
                 }, 500);
@@ -895,8 +895,8 @@ export const ParametrosGeraisManager = (project) => {
         let voiceGenderSaveTimer = null;
         voiceGenderRadios.forEach(radio => {
             radio.addEventListener('change', () => {
-                const value = radio.value;
-                currentSettings.eva_voice_gender = value;
+                const value = parseInt(radio.value); // Convert to integer
+                currentSettings.eva_voice_male = value;
 
                 // Clear previous timer
                 if (voiceGenderSaveTimer) clearTimeout(voiceGenderSaveTimer);
@@ -904,22 +904,22 @@ export const ParametrosGeraisManager = (project) => {
                 // Auto-save after 500ms
                 voiceGenderSaveTimer = setTimeout(async () => {
                     try {
-                        const response = await fetch(`${API_BASE_URL}/settings/eva_voice_gender`, {
+                        const response = await fetch(`${API_BASE_URL}/settings/eva_voice_male`, {
                             method: 'PUT',
                             headers: getHeaders(),
                             body: JSON.stringify({ value })
                         });
 
                         if (response.ok) {
-                            originalSettings.eva_voice_gender = value;
-                            console.log('[Settings] Auto-saved voice gender to:', value);
-                            showToast(`✓ Gênero da voz: ${value === 'female' ? 'Feminina' : 'Masculina'}`, 'success');
+                            originalSettings.eva_voice_male = value;
+                            console.log('[Settings] Auto-saved voice male to:', value);
+                            showToast(`✓ Gênero da voz: ${value === 1 ? 'Masculina' : 'Feminina'}`, 'success');
                         } else {
                             const error = await response.json();
                             showToast(error.error || 'Erro ao salvar', 'error');
                         }
                     } catch (error) {
-                        console.error('[Settings] Error saving voice gender:', error);
+                        console.error('[Settings] Error saving voice male:', error);
                         showToast('Erro de conexão', 'error');
                     }
                 }, 500);
