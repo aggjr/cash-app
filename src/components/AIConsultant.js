@@ -234,6 +234,12 @@ export const AIConsultant = () => {
             evaSpeechRec.maxAlternatives = 1;
 
             evaSpeechRec.onstart = () => {
+                // Cancel EVA's speech immediately when user starts talking
+                if (window.speechSynthesis.speaking) {
+                    window.speechSynthesis.cancel();
+                    console.log('[EVA] Speech interrupted by user');
+                }
+
                 // The startRecording function already handles setting state and UI
                 // We just need to ensure the speech recognition engine is started.
                 // The actual state and UI updates are now in startRecording.
