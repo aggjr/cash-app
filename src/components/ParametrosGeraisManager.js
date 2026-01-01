@@ -68,8 +68,8 @@ export const ParametrosGeraisManager = (project) => {
             originalSettings = {
                 numero_dias: settings.numero_dias,
                 tempo_minutos_liberacao: settings.tempo_minutos_liberacao,
-                eva_timeout: settings.eva_timeout || 2, // Default 2s if null
-                eva_voice_rate: settings.eva_voice_rate || 0, // Default 0 = 1.30x
+                eva_timeout: settings.eva_timeout || 3, // Default 3s
+                eva_voice_rate: settings.eva_voice_rate || 88, // Default 88 = 2.08x speed
                 eva_voice_premium: settings.eva_voice_premium || 0, // Default 0 = free
                 eva_voice_male: settings.eva_voice_male || 0 // Default 0 = female
             };
@@ -821,7 +821,6 @@ export const ParametrosGeraisManager = (project) => {
 
         // Voice type selection
         const voiceTypeRadios = container.querySelectorAll('input[name="eva_voice_premium"]');
-        const genderSelection = container.querySelector('#gender-selection');
         const voiceGenderRadios = container.querySelectorAll('input[name="eva_voice_male"]');
 
         // Set initial values
@@ -831,19 +830,11 @@ export const ParametrosGeraisManager = (project) => {
         const voiceGenderChecked = container.querySelector(`input[name="eva_voice_male"][value="${currentSettings.eva_voice_male}"]`);
         if (voiceGenderChecked) voiceGenderChecked.checked = true;
 
-        // Show/hide gender selection based on voice type
-        const toggleGenderSelection = () => {
-            const selectedType = container.querySelector('input[name="eva_voice_type"]:checked')?.value;
-            if (selectedType === 'premium') {
-                genderSelection.style.display = 'block';
-            } else {
-                genderSelection.style.display = 'none';
-            }
-
-            // Update label borders
+        // Function to update voice type borders
+        const updateVoiceTypeBorders = () => {
             container.querySelectorAll('.voice-type-option').forEach(label => {
                 const radio = label.querySelector('input[type="radio"]');
-                if (radio.checked) {
+                if (radio && radio.checked) {
                     label.style.borderColor = 'var(--color-primary)';
                     label.style.backgroundColor = 'rgba(37, 99, 235, 0.05)';
                 } else {
@@ -853,7 +844,23 @@ export const ParametrosGeraisManager = (project) => {
             });
         };
 
-        toggleGenderSelection();
+        // Function to update gender borders
+        const updateGenderBorders = () => {
+            container.querySelectorAll('.voice-gender-option').forEach(label => {
+                const radio = label.querySelector('input[type="radio"]');
+                if (radio && radio.checked) {
+                    label.style.borderColor = 'var(--color-primary)';
+                    label.style.backgroundColor = 'rgba(37, 99, 235, 0.05)';
+                } else {
+                    label.style.borderColor = '#e5e7eb';
+                    label.style.backgroundColor = 'transparent';
+                }
+            });
+        };
+
+        // Initial border updates
+        updateVoiceTypeBorders();
+        updateGenderBorders();
 
         // Auto-save voice type
         let voiceTypeSaveTimer = null;
@@ -861,7 +868,9 @@ export const ParametrosGeraisManager = (project) => {
             radio.addEventListener('change', () => {
                 const value = parseInt(radio.value); // Convert to integer
                 currentSettings.eva_voice_premium = value;
-                toggleGenderSelection();
+
+                // Update visual feedback
+                updateVoiceTypeBorders();
 
                 // Clear previous timer
                 if (voiceTypeSaveTimer) clearTimeout(voiceTypeSaveTimer);
@@ -891,12 +900,15 @@ export const ParametrosGeraisManager = (project) => {
             });
         });
 
-        // Auto-save voice gender
+        //Auto-save voice gender
         let voiceGenderSaveTimer = null;
         voiceGenderRadios.forEach(radio => {
             radio.addEventListener('change', () => {
                 const value = parseInt(radio.value); // Convert to integer
                 currentSettings.eva_voice_male = value;
+
+                // Update visual feedback
+                updateGenderBorders();
 
                 // Clear previous timer
                 if (voiceGenderSaveTimer) clearTimeout(voiceGenderSaveTimer);
