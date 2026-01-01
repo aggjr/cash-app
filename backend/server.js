@@ -137,25 +137,16 @@ const migrateEvaVoiceRate = require('./migrate_add_eva_voice_rate');
 loadErrorCatalog()
     .then(() => migrateFixAccounts())
     .then(async () => {
-        console.log('[DEBUG] Starting migratePaymentColumns...');
         await migratePaymentColumns();
-        console.log('[DEBUG] Completed migratePaymentColumns');
 
-        console.log('[DEBUG] Starting migrateAddComprovante...');
         await migrateAddComprovante();
-        console.log('[DEBUG] Completed migrateAddComprovante');
 
-        console.log('[DEBUG] Starting migrateInstallmentFields...');
         await migrateInstallmentFields();
-        console.log('[DEBUG] Completed migrateInstallmentFields');
 
-        console.log('[DEBUG] Starting migrateAddEvaTimeout...');
         await migrateAddEvaTimeout();
-        console.log('[DEBUG] Completed migrateAddEvaTimeout');
 
-        // await migrateAddEvaVoiceSettings(); // TEMP: Disabled for debugging
-        // await migrateVoiceSettingsToBoolean(); // TEMP: Disabled for debugging
-        console.log('[DEBUG] About to run migrateDataPrevistaAtraso...');
+        await migrateAddEvaVoiceSettings();
+        await migrateVoiceSettingsToBoolean(); // Convert to boolean
         return migrateDataPrevistaAtraso(); // Continue the chain
     })
     .then(() => migrateComprovanteUrl())
