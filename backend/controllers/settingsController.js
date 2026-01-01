@@ -46,16 +46,18 @@ const updateSetting = async (req, res) => {
         const { field } = req.params;
         const { value } = req.body;
 
-        // Validate field name
-        const allowedFields = ['numero_dias', 'tempo_minutos_liberacao', 'eva_timeout', 'eva_voice_rate'];
+        // Check if field is allowed
+        const allowedFields = ['numero_dias', 'tempo_minutos_liberacao', 'eva_timeout', 'eva_voice_rate', 'eva_voice_type', 'eva_voice_gender'];
         if (!allowedFields.includes(field)) {
-            return res.status(400).json({ error: 'Campo inválido' });
+            return res.status(400).json({ error: 'Campo não permitido' });
         }
 
-        // Validate value based on field type
-        const numValue = parseInt(value);
-        if (isNaN(numValue)) {
-            return res.status(400).json({ error: 'Valor deve ser um número' });
+        let numValue = value;
+        if (field !== 'eva_voice_type' && field !== 'eva_voice_gender') {
+            numValue = parseInt(value);
+            if (isNaN(numValue)) {
+                return res.status(400).json({ error: 'Valor deve ser um número' });
+            }
         }
 
         // Validate eva_timeout (1-10 seconds)
@@ -65,13 +67,28 @@ const updateSetting = async (req, res) => {
                 return res.status(400).json({ error: 'eva_timeout deve estar entre 1 e 10 segundos' });
             }
         }
-        // Special validation for eva_voice_rate (-100 to +100)
-        else if (field === 'eva_voice_rate') {
-            if (numValue < -100 || numValue > 100) {
-                return res.status(400).json({ error: 'Ajuste de velocidade deve estar entre -100% e +100%' });
+
+        // Validate eva_voice_type
+        if (field === 'eva_voice_type') {
+            if (!['free', 'premium'].includes(value)) {
+                return res.status(400).json({ error: 'eva_voice_type deve ser "free" ou "premium"' });
             }
         }
-        else {
+
+        // Validate eva_voice_gender
+        if (field === 'eva_voice_gender') {
+            if (!['female', 'male'].includes(value)) {
+                return res.status(400).json({ error: 'eva_voice_gender deve ser "female" ou "male"' });
+            }
+        }
+
+        // Special validation for eva_voice_rate (-100 to +100)
+        if (field === 'eva_voice_rate') {
+            if (numValue < -100 || numValue > 100) {
+                return res.status(400).json({ error: 'Velocidade da voz deve estar entre -100% e +100%' });
+            }
+        }
+        else if (field !== 'eva_voice_type' && field !== 'eva_voice_gender') { // Only apply positive check to numeric fields that are not voice settings
             // Other fields must be positive
             if (numValue <= 0) {
                 return res.status(400).json({ error: 'Valor deve ser um número positivo' });
@@ -79,9 +96,11 @@ const updateSetting = async (req, res) => {
         }
 
         // Update the specific field
+        const valueToSave = (field === 'eva_voice_type' || field === 'eva_voice_gender') ? value : numValue;
+
         await connection.query(
             `UPDATE system_settings SET ${field} = ? WHERE project_id = ?`,
-            [numValue, projectId]
+            [valueToSave, projectId]
         );
 
         // Return updated settings
@@ -91,7 +110,7 @@ const updateSetting = async (req, res) => {
         );
 
         res.json(settings[0]);
-        logAudit(req, 'UPDATE', 'system_settings', null, { field, value: numValue });
+        logAudit(req, 'UPDATE', 'system_settings', null, { field, value: valueToSave });
     } catch (error) {
         console.error('Error updating setting:', error);
         res.status(500).json({ error: 'Erro ao atualizar configuração' });

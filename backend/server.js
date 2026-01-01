@@ -119,6 +119,11 @@ const migrateDataPrevistaAtraso = require('./migrate-add-data-prevista-atraso');
 const migrateComprovanteUrl = require('./migrate-add-comprovante-url');
 const migrateTransferenciaComprovante = require('./migrate_add_comprovante_transferencias');
 const migrateFixTransferenciaNulls = require('./migrate_fix_transferencia_nulls');
+const migrateAddPaymentColumns = require('./migrate-add-payment-columns');
+const migrateAddComprovante = require('./migrate-add-comprovante-url');
+const migrateInstallmentFields = require('./migrate_add_installment_fields');
+const migrateAddEvaTimeout = require('./migrate_add_eva_timeout');
+const migrateAddEvaVoiceSettings = require('./migrate_add_eva_voice_settings');
 const migrateInstallmentColumns = require('./migrate_add_installment_columns');
 const migrateSystemSettings = require('./migrate_add_system_settings');
 const migrateCreateAuditLogs = require('./migrate-create-audit-logs');
@@ -130,8 +135,14 @@ const migrateEvaVoiceRate = require('./migrate_add_eva_voice_rate');
 
 loadErrorCatalog()
     .then(() => migrateFixAccounts())
-    .then(() => migratePaymentColumns())
-    .then(() => migrateDataPrevistaAtraso())
+    .then(async () => {
+        await migratePaymentColumns();
+        await migrateAddComprovante();
+        await migrateInstallmentFields();
+        await migrateAddEvaTimeout();
+        await migrateAddEvaVoiceSettings();
+        return migrateDataPrevistaAtraso(); // Continue the chain
+    })
     .then(() => migrateComprovanteUrl())
     .then(() => migrateTransferenciaComprovante())
     .then(() => migrateFixTransferenciaNulls())
