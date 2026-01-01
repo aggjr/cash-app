@@ -141,8 +141,9 @@ loadErrorCatalog()
         await migrateAddComprovante();
         await migrateInstallmentFields();
         await migrateAddEvaTimeout();
-        await migrateAddEvaVoiceSettings();
-        await migrateVoiceSettingsToBoolean(); // Convert to boolean
+        // await migrateAddEvaVoiceSettings(); // TEMP: Disabled for debugging
+        // await migrateVoiceSettingsToBoolean(); // TEMP: Disabled for debugging
+        console.log('[DEBUG] About to run migrateDataPrevistaAtraso...');
         return migrateDataPrevistaAtraso(); // Continue the chain
     })
     .then(() => migrateComprovanteUrl())
