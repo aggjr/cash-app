@@ -26,10 +26,10 @@ async function migrate() {
 
     } catch (error) {
         console.error('❌ Erro na migração:', error);
+        throw error; // Re-throw to let promise chain handle it
     } finally {
         connection.release();
-        process.exit();
     }
 }
 
-migrate();
+module.exports = migrate;
