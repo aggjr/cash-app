@@ -458,27 +458,55 @@ export const ParametrosGeraisManager = (project) => {
                 
                 <h3 style="margin-bottom: 1.5rem; color: var(--color-primary);">🤖 Configuração EVA</h3>
 
-                <!-- Tempo Resposta EVA -->
+                <!-- Tempo Resposta EVA - SLIDER -->
                 <div style="margin-bottom: 2rem;">
                     <label style="display: block; font-weight: 500; margin-bottom: 0.5rem; color: var(--color-text);">
                         ⏳ Tempo de Espera (segundos)
                     </label>
-                    <div style="display: flex; align-items: center; gap: 0.75rem; height: 45px;">
-                        <input 
-                            type="number" 
-                            id="input-eva_timeout" 
-                            class="settings-input"
-                            value="${currentSettings.eva_timeout}"
-                            min="3"
-                            max="60"
-                            style="max-width: 150px; height: 100%; box-sizing: border-box;"
-                        />
+                    <div style="display: flex; align-items: center; gap: 1rem;">
+                        <span style="min-width: 30px; text-align: right; color: var(--color-text-muted); font-size: 0.875rem;">0s</span>
+                        <div style="flex: 1; position: relative;">
+                            <input 
+                                type="range" 
+                                id="slider-eva_timeout" 
+                                min="0" 
+                                max="10" 
+                                value="${currentSettings.eva_timeout || 2}"
+                                step="1"
+                                style="
+                                    width: 100%;
+                                    height: 8px;
+                                    -webkit-appearance: none;
+                                    appearance: none;
+                                    background: linear-gradient(to right, #EF4444 0%, #F59E0B 50%, #10B981 100%);
+                                    border-radius: 4px;
+                                    outline: none;
+                                "
+                            />
+                            <div 
+                                id="timeout-display"
+                                style="
+                                    position: absolute;
+                                    top: -30px;
+                                    left: 50%;
+                                    transform: translateX(-50%);
+                                    background: var(--color-primary);
+                                    color: white;
+                                    padding: 0.25rem 0.5rem;
+                                    border-radius: 4px;
+                                    font-size: 0.875rem;
+                                    font-weight: 600;
+                                    white-space: nowrap;
+                                "
+                            >2s</div>
+                        </div>
+                        <span style="min-width: 30px; color: var(--color-text-muted); font-size: 0.875rem;">10s</span>
                         <button 
                             id="save-eva_timeout"
                             class="btn-save-setting"
                             disabled
                             style="
-                                height: 100%;
+                                height: 45px;
                                 aspect-ratio: 1;
                                 padding: 0;
                                 display: flex;
@@ -609,8 +637,8 @@ export const ParametrosGeraisManager = (project) => {
             </div>
         `;
 
-        // Event listeners para inputs
-        const fields = ['numero_dias', 'tempo_minutos_liberacao', 'eva_timeout'];
+        // Event listeners para inputs (exceto eva_timeout que agora é slider)
+        const fields = ['numero_dias', 'tempo_minutos_liberacao'];
         fields.forEach(field => {
             const input = container.querySelector(`#input-${field}`);
             input.addEventListener('input', () => {
@@ -621,6 +649,43 @@ export const ParametrosGeraisManager = (project) => {
             const saveBtn = container.querySelector(`#save-${field}`);
             saveBtn.addEventListener('click', () => saveSetting(field));
         });
+
+        // Event listener para timeout slider
+        const timeoutSlider = container.querySelector('#slider-eva_timeout');
+        const timeoutDisplay = container.querySelector('#timeout-display');
+        const timeoutSaveBtn = container.querySelector('#save-eva_timeout');
+
+        const updateTimeoutDisplay = (value) => {
+            timeoutDisplay.textContent = value + 's';
+
+            // Move display above slider position
+            const percentage = (value / 10) * 100;
+            timeoutDisplay.style.left = `${percentage}%`;
+        };
+
+        timeoutSlider.addEventListener('input', (e) => {
+            const value = parseInt(e.target.value);
+            currentSettings.eva_timeout = value;
+            updateTimeoutDisplay(value);
+
+            // Update save button state
+            const isDirty = value !== originalSettings.eva_timeout;
+            timeoutSaveBtn.disabled = !isDirty;
+            if (isDirty) {
+                timeoutSaveBtn.style.background = 'var(--color-primary)';
+                timeoutSaveBtn.style.color = 'white';
+                timeoutSaveBtn.style.cursor = 'pointer';
+            } else {
+                timeoutSaveBtn.style.background = '#e5e7eb';
+                timeoutSaveBtn.style.color = '#9ca3af';
+                timeoutSaveBtn.style.cursor = 'not-allowed';
+            }
+        });
+
+        timeoutSaveBtn.addEventListener('click', () => saveSetting('eva_timeout'));
+
+        // Initialize timeout display
+        updateTimeoutDisplay(currentSettings.eva_timeout || 2);
 
         // Event listener para voice rate slider
         const voiceSlider = container.querySelector('#slider-eva_voice_rate');
