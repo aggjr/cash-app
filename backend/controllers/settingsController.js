@@ -68,17 +68,17 @@ const updateSetting = async (req, res) => {
             }
         }
 
-        // Validate eva_voice_type
-        if (field === 'eva_voice_type') {
-            if (!['free', 'premium'].includes(value)) {
-                return res.status(400).json({ error: 'eva_voice_type deve ser "free" ou "premium"' });
+        // Validate eva_voice_premium (0 or 1)
+        if (field === 'eva_voice_premium') {
+            if (![0, 1].includes(numValue)) {
+                return res.status(400).json({ error: 'eva_voice_premium deve ser 0 (gratuita) ou 1 (premium)' });
             }
         }
 
-        // Validate eva_voice_gender
-        if (field === 'eva_voice_gender') {
-            if (!['female', 'male'].includes(value)) {
-                return res.status(400).json({ error: 'eva_voice_gender deve ser "female" ou "male"' });
+        // Validate eva_voice_male (0 or 1)
+        if (field === 'eva_voice_male') {
+            if (![0, 1].includes(numValue)) {
+                return res.status(400).json({ error: 'eva_voice_male deve ser 0 (feminina) ou 1 (masculina)' });
             }
         }
 
@@ -88,7 +88,7 @@ const updateSetting = async (req, res) => {
                 return res.status(400).json({ error: 'Velocidade da voz deve estar entre -100% e +100%' });
             }
         }
-        else if (field !== 'eva_voice_type' && field !== 'eva_voice_gender') { // Only apply positive check to numeric fields that are not voice settings
+        else if (field !== 'eva_voice_premium' && field !== 'eva_voice_male') { // Only apply positive check to numeric fields that are not voice settings
             // Other fields must be positive
             if (numValue <= 0) {
                 return res.status(400).json({ error: 'Valor deve ser um número positivo' });
