@@ -73,8 +73,37 @@ export const AIConsultant = () => {
         console.log('[EVA Voice] Rate adjustment:', adjustment, '-> Final rate:', utterance.rate);
 
         const voices = window.speechSynthesis.getVoices();
-        const ptVoice = voices.find(v => v.lang === 'pt-BR' && v.name.includes('Google')) || voices.find(v => v.lang === 'pt-BR');
-        if (ptVoice) utterance.voice = ptVoice;
+
+        // Priority: Female Portuguese voices
+        let ptVoice = voices.find(v =>
+            v.lang === 'pt-BR' &&
+            (v.name.toLowerCase().includes('female') ||
+                v.name.toLowerCase().includes('feminina') ||
+                v.name.toLowerCase().includes('luciana') ||
+                v.name.toLowerCase().includes('francisca'))
+        );
+
+        // Fallback: Any pt-BR voice that's NOT explicitly male
+        if (!ptVoice) {
+            ptVoice = voices.find(v =>
+                v.lang === 'pt-BR' &&
+                !v.name.toLowerCase().includes('male') &&
+                !v.name.toLowerCase().includes('masculino') &&
+                !v.name.toLowerCase().includes('ricardo')
+            );
+        }
+
+        // Last resort: Any pt-BR voice
+        if (!ptVoice) {
+            ptVoice = voices.find(v => v.lang === 'pt-BR');
+        }
+
+        if (ptVoice) {
+            utterance.voice = ptVoice;
+            console.log('[EVA Voice] Using voice:', ptVoice.name, '(Female priority)');
+        } else {
+            console.warn('[EVA Voice] No pt-BR voice found, using default');
+        }
 
         window.speechSynthesis.speak(utterance);
     };
