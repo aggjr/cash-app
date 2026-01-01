@@ -68,7 +68,7 @@ export const ParametrosGeraisManager = (project) => {
             originalSettings = {
                 numero_dias: settings.numero_dias,
                 tempo_minutos_liberacao: settings.tempo_minutos_liberacao,
-                eva_timeout: settings.eva_timeout || 2000, // Default 2s (2000ms) if null
+                eva_timeout: settings.eva_timeout || 2, // Default 2s if null
                 eva_voice_rate: settings.eva_voice_rate || 0 // Default 0 = 1.30x
             };
             currentSettings = { ...originalSettings };
