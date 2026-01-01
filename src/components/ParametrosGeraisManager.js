@@ -624,33 +624,33 @@ export const ParametrosGeraisManager = (project) => {
                                 <small style="color: var(--color-text-muted);">Google Cloud TTS (~R$ 0,50/mês)</small>
                             </div>
                         </label>
-                        
-                        <!-- Gender selection (conditional) -->
-                        <div id="gender-selection" style="margin-left: 2rem; margin-top: 0.75rem; display: none;">
-                            <label style="display: block; font-weight: 500; margin-bottom: 0.5rem; color: var(--color-text); font-size: 0.9rem;">
-                                Gênero da Voz:
+                    </div>
+
+                    <!-- Gender selection (for both Free and Premium) -->
+                    <div style="margin-top: 1.5rem; padding: 1rem; background: rgba(37, 99, 235, 0.05); border-radius: 8px; border: 1px solid rgba(37, 99, 235, 0.2);">
+                        <label style="display: block; font-weight: 500; margin-bottom: 0.75rem; color: var(--color-text); font-size: 0.95rem;">
+                            👤 Gênero da Voz:
+                        </label>
+                        <div style="display: flex; gap: 1.5rem;">
+                            <label style="display: flex; align-items: center; gap: 0.5rem; cursor: pointer; padding: 0.5rem 1rem; border: 2px solid #e5e7eb; border-radius: 6px; transition: all 0.2s; flex: 1; justify-content: center;" class="voice-gender-option">
+                                <input 
+                                    type="radio" 
+                                    name="eva_voice_gender" 
+                                    value="female"
+                                    checked
+                                    style="cursor: pointer;"
+                                />
+                                <span style="font-weight: 500;">♀️ Feminina</span>
                             </label>
-                            <div style="display: flex; gap: 1rem;">
-                                <label style="display: flex; align-items: center; gap: 0.5rem; cursor: pointer;">
-                                    <input 
-                                        type="radio" 
-                                        name="eva_voice_gender" 
-                                        value="female"
-                                        checked
-                                        style="cursor: pointer;"
-                                    />
-                                    <span>♀️ Feminina</span>
-                                </label>
-                                <label style="display: flex; align-items: center; gap: 0.5rem; cursor: pointer;">
-                                    <input 
-                                        type="radio" 
-                                        name="eva_voice_gender" 
-                                        value="male"
-                                        style="cursor: pointer;"
-                                    />
-                                    <span>♂️ Masculina</span>
-                                </label>
-                            </div>
+                            <label style="display: flex; align-items: center; gap: 0.5rem; cursor: pointer; padding: 0.5rem 1rem; border: 2px solid #e5e7eb; border-radius: 6px; transition: all 0.2s; flex: 1; justify-content: center;" class="voice-gender-option">
+                                <input 
+                                    type="radio" 
+                                    name="eva_voice_gender" 
+                                    value="male"
+                                    style="cursor: pointer;"
+                                />
+                                <span style="font-weight: 500;">♂️ Masculina</span>
+                            </label>
                         </div>
                     </div>
 
