@@ -240,22 +240,26 @@ export const AIConsultant = () => {
             });
 
             evaSpeechRec.onstart = () => {
+                console.log('[SPEECH REC] onstart fired');
+
                 // Cancel EVA's speech immediately when user starts talking
                 if (window.speechSynthesis.speaking) {
                     window.speechSynthesis.cancel();
                     console.log('[EVA] Speech interrupted by user');
                 }
 
-                // The startRecording function already handles setting state and UI
-                // We just need to ensure the speech recognition engine is started.
-                // The actual state and UI updates are now in startRecording.
-                // However, onstart is called *after* the recognition starts,
-                // so we should call startRecording *before* evaSpeechRec.start()
-                // in the micBtn.onclick handler.
-                // For onstart, we just confirm the state.
+                // Set recording state and update UI
                 isRecording = true;
                 isListening = true;
-                console.log('Speech recognition engine started.');
+
+                // Update mic button to show recording state
+                micBtn.classList.add('mic-recording');
+                micBtn.style.backgroundColor = '#ffebe9';
+                micBtn.style.borderColor = '#ef4444';
+                micBtn.style.boxShadow = '0 0 0 4px rgba(239, 68, 68, 0.1)';
+                input.placeholder = `Gravando... (${evaTimeout / 1000}s silêncio para enviar)`;
+
+                console.log('[SPEECH REC] Recording started, UI updated, timeout:', evaTimeout + 'ms');
             };
 
             evaSpeechRec.onend = () => {
@@ -325,17 +329,22 @@ export const AIConsultant = () => {
             };
 
             evaSpeechRec.onerror = (event) => {
-                console.error('[SPEECH REC] Error event:', event.error, 'Full event:', event);
+                console.error('[SPEECH REC] Error event:', event.error, 'Message:', event.message);
 
-                if (event.error !== 'no-speech') {
-                    isRecording = false;
-                    micBtn.classList.remove('mic-recording');
-                    micBtn.style.backgroundColor = 'transparent';
-                    micBtn.style.borderColor = '#d1d5db';
-                    micBtn.style.boxShadow = 'none';
-                } else {
-                    console.log('[SPEECH REC] no-speech error ignored (normal during silence)');
+                // Don't stop recording for no-speech errors (normal during silence)
+                if (event.error === 'no-speech') {
+                    console.log('[SPEECH REC] no-speech error - this is normal, waiting for speech...');
+                    return; // Don't stop, keep listening
                 }
+
+                // For other errors, log and stop
+                console.error('[SPEECH REC] Stopping due to error:', event.error);
+                isRecording = false;
+                isListening = false;
+                micBtn.classList.remove('mic-recording');
+                micBtn.style.backgroundColor = 'transparent';
+                micBtn.style.borderColor = '#d1d5db';
+                micBtn.style.boxShadow = 'none';
             };
 
             // Toggle recording on click
