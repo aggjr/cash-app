@@ -671,6 +671,11 @@ export const ParametrosGeraisManager = (project) => {
                     voiceSaveBtn.style.background = '#e5e7eb';
                     voiceSaveBtn.style.color = '#9ca3af';
                     voiceSaveBtn.style.cursor = 'not-allowed';
+
+                    // Update global voice rate immediately
+                    window.evaVoiceRateAdjustment = value;
+                    console.log('[Settings] Updated global voice rate to:', value);
+
                     showToast('✓ Velocidade da voz atualizada', 'success');
                 } else {
                     const error = await response.json();
