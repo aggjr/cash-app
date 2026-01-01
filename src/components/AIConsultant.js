@@ -259,6 +259,8 @@ export const AIConsultant = () => {
             };
 
             evaSpeechRec.onend = () => {
+                console.log('[SPEECH REC] onend fired! isRecording:', isRecording, 'accumulatedTranscript:', accumulatedTranscript);
+
                 isRecording = false;
                 isListening = false;
                 micBtn.classList.remove('mic-recording');
@@ -272,6 +274,8 @@ export const AIConsultant = () => {
                     clearTimeout(silenceTimer);
                     silenceTimer = null;
                 }
+
+                console.log('[SPEECH REC] onend completed, recording stopped');
             };
 
             evaSpeechRec.onresult = (event) => {
@@ -321,13 +325,16 @@ export const AIConsultant = () => {
             };
 
             evaSpeechRec.onerror = (event) => {
-                console.error('Speech recognition error:', event.error);
+                console.error('[SPEECH REC] Error event:', event.error, 'Full event:', event);
+
                 if (event.error !== 'no-speech') {
                     isRecording = false;
                     micBtn.classList.remove('mic-recording');
                     micBtn.style.backgroundColor = 'transparent';
                     micBtn.style.borderColor = '#d1d5db';
                     micBtn.style.boxShadow = 'none';
+                } else {
+                    console.log('[SPEECH REC] no-speech error ignored (normal during silence)');
                 }
             };
 
