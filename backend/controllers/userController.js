@@ -250,6 +250,8 @@ exports.updateUserProfile = async (req, res) => {
     try {
         const { userId } = req.params;
         const { name, preferred_name, job_title, department } = req.body;
+        console.log('[User Update] Request for ID:', userId);
+        console.log('[User Update] Payload:', { name, preferred_name, job_title, department });
         const requesterId = req.user.id; // From auth middleware
 
         // Authorization: Only allow user to update themselves OR master
