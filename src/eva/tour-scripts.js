@@ -3,47 +3,79 @@
  * Narration and configuration for overview and full tours
  */
 
-// Quick Overview Tour (2-3 minutes, 5 screens)
+// Quick Overview Tour (4-5 minutes, 10 screens)
 export const TOUR_OVERVIEW = [
     {
         id: 'overview-welcome',
         screenId: 'dashboard',
         title: 'Bem-vindo ao CASH!',
-        narration: 'Olá! Vou mostrar rapidamente as principais áreas do sistema CASH. Prometo ser breve!',
+        narration: 'Olá! Vou mostrar as principais áreas do sistema CASH. Preparei um tour objetivo focado nas funcionalidades essenciais!',
         duration: 4000
     },
     {
-        id: 'overview-cadastros',
-        screenId: 'usuarios',
-        title: 'Cadastros',
-        narration: 'Na seção de Cadastros você gerencia usuários, empresas e contas bancárias do sistema.',
+        id: 'overview-tipo-entrada',
+        screenId: 'tipo-entrada',
+        title: 'Tipos de Entrada',
+        narration: 'Começamos pelos Tipos de Entrada. Aqui você categoriza suas receitas: vendas, serviços, investimentos. Organize suas entradas por tipo para análises mais precisas.',
+        duration: 5000
+    },
+    {
+        id: 'overview-tipo-saida',
+        screenId: 'tipo-saida',
+        title: 'Tipos de Saída',
+        narration: 'Da mesma forma, os Tipos de Saída categorizam suas despesas: fornecedores, folha de pagamento, impostos. Essencial para controle de custos.',
+        duration: 5000
+    },
+    {
+        id: 'overview-entrada',
+        screenId: 'entrada',
+        title: 'Entradas Financeiras',
+        narration: 'Aqui você registra todas as receitas. Pode parcelar, anexar comprovantes e categorizar usando os tipos que acabamos de ver.',
         highlights: [
-            { selector: '.tree-node[data-item-id="usuarios"]', addArrow: true }
+            { selector: '.btn-new-entry, .btn-primary', addArrow: false }
         ],
         duration: 5000
     },
     {
-        id: 'overview-transacoes',
-        screenId: 'entrada',
-        title: 'Transações Financeiras',
-        narration: 'Aqui você registra suas entradas e saídas, controla transferências e gerencia produções. É o coração do sistema!',
-        highlights: [
-            { selector: '.btn-new-entry, .btn-primary', addArrow: false }
-        ],
+        id: 'overview-saida',
+        screenId: 'saida',
+        title: 'Saídas Financeiras',
+        narration: 'Nas Saídas você controla todas as despesas. Organize por categorias e acompanhe o que está pendente de pagamento.',
+        duration: 5000
+    },
+    {
+        id: 'overview-previsao',
+        screenId: 'previsao',
+        title: 'Previsão de Fluxo de Caixa',
+        narration: 'A Previsão mostra seu fluxo de caixa dia a dia. Você saberá exatamente quando terá dinheiro entrando ou saindo, evitando surpresas.',
         duration: 6000
     },
     {
-        id: 'overview-analise',
+        id: 'overview-fechamento',
+        screenId: 'fechamento-contas',
+        title: 'Fechamento Financeiro',
+        narration: 'O Fechamento permite consolidar períodos específicos. Útil para fechamentos mensais, trimestrais ou anuais.',
+        duration: 5000
+    },
+    {
+        id: 'overview-dre',
+        screenId: 'dre',
+        title: 'DRE - Demonstrativo de Resultados',
+        narration: 'O DRE apresenta seus resultados financeiros. Você pode alternar entre visão de caixa, que mostra o que realmente entrou e saiu, e visão de competência, que considera quando as transações foram registradas.',
+        duration: 7000
+    },
+    {
+        id: 'overview-consolidadas',
         screenId: 'consolidadas',
-        title: 'Análise Financeira',
-        narration: 'A análise financeira permite visualizar relatórios consolidados, previsões e gráficos para tomada de decisão.',
-        duration: 6000
+        title: 'Visão Consolidada',
+        narration: 'Aqui você vê todas as transações consolidadas: realizadas e previstas. Perfeito para planejamento de curto e médio prazo.',
+        duration: 5000
     },
     {
         id: 'overview-config',
         screenId: 'parametros-gerais',
         title: 'Configurações',
-        narration: 'Por fim, nas configurações você personaliza prazos, permissões e até minhas preferências de voz! Tour rápido concluído.',
+        narration: 'Por fim, nas configurações você personaliza prazos, permissões e até minhas preferências de voz! Tour concluído. Agora você conhece as principais funcionalidades do CASH!',
         duration: 6000
     }
 ];
