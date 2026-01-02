@@ -30,11 +30,12 @@ export const EvaNavigationIndicator = {
         arrow.style.cssText = `
             color: ${INDICATOR_COLOR};
             font-size: 1.2rem;
-            margin-left: 8px;
+            margin-left: 3px;
             animation: eva-arrow-pulse-left 1.5s ease-in-out infinite;
             display: inline-block;
             vertical-align: middle;
             font-weight: bold;
+            line-height: 1;
         `;
 
         target.appendChild(arrow);
