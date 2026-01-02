@@ -18,6 +18,12 @@ const chat = async (req, res, next) => {
         // Get user info - let LLM infer everything naturally
         const userName = user?.name || '';
         const preferredName = context.preferredName || user?.preferred_name || '';
+        const evaIntroduced = user?.eva_introduced || false;
+
+        // Get current time for natural greetings
+        const now = new Date();
+        const hour = now.getHours();
+        const timeOfDay = hour >= 5 && hour < 12 ? 'manhã' : hour >= 12 && hour < 19 ? 'tarde' : 'noite';
 
         // Build system prompt based on mode
         let systemPrompt;
@@ -55,8 +61,11 @@ Depois, em uma linha separada, adicione:
 INFORMAÇÕES DO USUÁRIO:
 - Nome completo: ${userName || 'Não informado'}
 - Nome preferido: ${preferredName || 'Não definido'}
+- Primeira interação: ${!evaIntroduced ? 'SIM - Apresente-se!' : 'NÃO - Já se apresentou'}
+- Período do dia: ${timeOfDay}
 
 INSTRUÇÕES IMPORTANTES:
+- Se primeira interação, apresente-se de forma natural e use saudação apropriada ao período (bom dia/boa tarde/boa noite)
 - Converse naturalmente com ${preferredName || userName || 'o usuário'}, inferindo tratamento apropriado do nome
 - Seja formal, respeitosa e prestativa
 - Responda de forma concisa e objetiva (máximo 2-3 parágrafos)
@@ -141,6 +150,8 @@ INSTRUÇÕES IMPORTANTES:
 const operate = async (req, res) => {
     try {
         const { message, currentScreen, availableScreens, screenContext, userName, preferredName, userSettings } = req.body;
+        const user = req.user;
+
         console.log('[EVA Operate] Processing:', message);
         console.log('[EVA Operate] Screen:', currentScreen?.id);
         console.log('[EVA Operate] User:', userName, preferredName);
@@ -154,6 +165,12 @@ const operate = async (req, res) => {
         const currentVoiceRate = userSettings?.evaVoiceRate || 88;
         const currentVoiceGender = userSettings?.evaVoiceMale ? 'M' : 'F';
         const currentVoiceEnabled = userSettings?.evaVoiceEnabled !== 0;
+
+        // Get state and time context
+        const evaIntroduced = user?.eva_introduced || false;
+        const now = new Date();
+        const hour = now.getHours();
+        const timeOfDay = hour >= 5 && hour < 12 ? 'manhã' : hour >= 12 && hour < 19 ? 'tarde' : 'noite';
 
         // Format screen context if available
         let screenContextText = '';
@@ -204,8 +221,12 @@ Sua função é traduzir a intenção do usuário em AÇÕES JSON para o sistema
 INFORMAÇÕES DO USUÁRIO:
 - Nome completo: ${userName || 'Não informado'}
 - Nome preferido: ${preferredName || 'Não definido'}
+- Primeira interação: ${!evaIntroduced ? 'SIM - Apresente-se!' : 'NÃO - Já se apresentou'}
+- Período do dia: ${timeOfDay}
 
-IMPORTANTE: Converse naturalmente com ${preferredName || userName || 'o usuário'}, inferindo tratamento e gênero apropriados do nome.
+IMPORTANTE: 
+- Se primeira interação, apresente-se de forma natural e use saudação apropriada ao período
+- Converse naturalmente com ${preferredName || userName || 'o usuário'}, inferindo tratamento e gênero apropriados do nome.
 
 CONFIGURAÇÕES ATUAIS DO USUÁRIO:
 - Velocidade da voz: ${currentVoiceRate} (Escala: 0=Muito Lento, 50=Normal, 100=Muito Rápido)

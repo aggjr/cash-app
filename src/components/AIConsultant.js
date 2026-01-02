@@ -984,34 +984,28 @@ Digite 1, 2 ou 3.`;
 
             // Check if messages empty (first open after login)
             if (messages.length === 0) {
-                if (user && !user.eva_introduced) {
-                    console.log('[EVA] Starting introduction flow');
-                    await startIntroductionFlow();
-                } else {
-                    console.log('[EVA] Sending time-based greeting');
-                    // Send greeting based on time (always on first open)
-                    const hour = new Date().getHours();
-                    let timeGreeting;
+                console.log('[EVA] First open - sending initial context to LLM');
 
-                    if (hour >= 5 && hour < 12) {
-                        timeGreeting = 'Bom dia';
-                    } else if (hour >= 12 && hour < 19) {
-                        timeGreeting = 'Boa tarde';
-                    } else {
-                        timeGreeting = 'Boa noite';
+                // Send simple greeting to trigger LLM response with full context
+                // LLM will decide: greeting type, introduction, tone based on eva_introduced flag
+                addMessage('user', 'Olá');
+
+                // LLM will receive context in backend and decide how to respond
+                setTimeout(async () => {
+                    const context = {
+                        currentScreen: EvaKnowledge.activeScreen,
+                        availableScreens: EvaKnowledge.screens
+                    };
+
+                    const decision = await EvaService.decideOperation('Olá', context);
+
+                    if (decision.action === 'REPLY') {
+                        addMessage('ai', decision.message);
+                        speak(decision.message);
                     }
-
-                    const preferredName = user?.preferred_name || user?.name || '';
-                    const pronoun = user?.gender === 'M' ? 'lo' : 'la';
-                    const greeting = `${timeGreeting}, ${preferredName}! 😊\n\nEstou aqui para ajudar com qualquer dúvida ou necessidade no uso do sistema. Como posso auxiliá-${pronoun} hoje?`;
-
-                    console.log('[EVA] Greeting:', timeGreeting, 'for', preferredName);
-                    addMessage('ai', greeting);
-                    speak(greeting.replace(/😊/g, '').replace(/\n\n/g, ' '));
-                }
+                }, 500);
             } else {
-                console.log('[EVA] Messages already exist, skipping greeting');
-                // Just scroll to bottom
+                console.log('[EVA] Messages already exist, skipping initial greeting');
                 renderMessages();
                 input.focus();
             }
