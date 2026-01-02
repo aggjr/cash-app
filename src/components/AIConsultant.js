@@ -1067,8 +1067,8 @@ Digite 1, 2 ou 3.`;
                     speak(msg);
                 }
                 else if (decision.action === 'START_TOUR') {
-                    // Show tour options from LLM
-                    const msg = decision.message || 'Posso mostrar:\n1 - Tour rápido (2-3 min)\n2 - Tour detalhado (10-15 min)\n\nDigite 1 ou 2.';
+                    // LLM provides gender-aware tour offer message
+                    const msg = decision.message || 'Posso mostrar um tour do sistema. Qual prefere: rápido ou completo?';
                     addMessage('ai', msg);
                     speak(msg.replace(/\n/g, ' '));
 
