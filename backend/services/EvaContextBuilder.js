@@ -1,4 +1,6 @@
 const systemPrompts = require('../config/eva-system-prompts');
+const financialKnowledge = require('../config/eva-financial-knowledge');
+const systemMap = require('../config/eva-system-map');
 
 /**
  * EVA Context Builder Service
@@ -188,10 +190,18 @@ CONTEXTO DO PROJETO:
 - Perfil Inferido: ${dynamicProfile}
 - Projeto: ${project?.name || 'CASH'}
 
+MAPA DO SISTEMA (Onde você pode buscar informações):
+${systemMap.screens.map(s => `- [${s.name}]: ${s.description} (Rota: ${s.route})`).join('\n')}
+
+DIRETRIZES DE ANÁLISE (METODOLOGIA FOCCUS):
+${financialKnowledge.principles.map(p => `[${p.severity}] ${p.topic}: ${p.rule} -> ${p.action_if_violated || ''}`).join('\n')}
+
 IMPORTANTE:
 - Se primeira interação, apresente-se de forma natural e use saudação apropriada ao período
 - Converse naturalmente com ${user?.preferred_name || user?.name || 'o usuário'}, inferindo tratamento e gênero apropriados
 - Adapte suas ações ao Perfil Inferido do negócio quando relevante (ex: foco financeiro vs. operacional)
+- USE O MAPA DO SISTEMA: Se o usuário perguntar algo que você não sabe, verifique qual tela pode ter a resposta e NAVEGUE até ela.
+- USE AS DIRETRIZES: Ao analisar dados, sempre confronte com as regras da FOCCUS.
 
 CONFIGURAÇÕES DE VOZ:
 - Velocidade: ${currentVoiceRate} (0=Muito Lento, 50=Normal, 100=Muito Rápido)
