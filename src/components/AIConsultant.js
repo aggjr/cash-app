@@ -925,11 +925,15 @@ Digite 1, 2 ou 3.`;
         if (isOpen) {
             const user = getUser();
 
+            console.log('[EVA] Chat opened. Messages count:', messages.length, 'User introduced:', user?.eva_introduced);
+
             // Check if messages empty (first open after login)
             if (messages.length === 0) {
                 if (user && !user.eva_introduced) {
+                    console.log('[EVA] Starting introduction flow');
                     await startIntroductionFlow();
                 } else {
+                    console.log('[EVA] Sending time-based greeting');
                     // Send greeting based on time (always on first open)
                     const hour = new Date().getHours();
                     let timeGreeting;
@@ -946,14 +950,20 @@ Digite 1, 2 ou 3.`;
                     const pronoun = user?.gender === 'M' ? 'lo' : 'la';
                     const greeting = `${timeGreeting}, ${preferredName}! 😊\n\nEstou aqui para ajudar com qualquer dúvida ou necessidade no uso do sistema. Como posso auxiliá-${pronoun} hoje?`;
 
+                    console.log('[EVA] Greeting:', timeGreeting, 'for', preferredName);
                     addMessage('ai', greeting);
                     speak(greeting.replace(/😊/g, '').replace(/\n\n/g, ' '));
                 }
             } else {
+                console.log('[EVA] Messages already exist, skipping greeting');
                 // Just scroll to bottom
                 renderMessages();
                 input.focus();
             }
+        } else {
+            // Clear messages when closing chat to ensure greeting on next open
+            console.log('[EVA] Chat closed, clearing messages for next session');
+            messages.length = 0;
         }
     };
 
