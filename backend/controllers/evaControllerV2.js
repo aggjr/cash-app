@@ -160,7 +160,7 @@ INSTRUÇÕES IMPORTANTES:
 
 const operate = async (req, res) => {
     try {
-        const { message, currentScreen, availableScreens, screenContext } = req.body;
+        const { message, currentScreen, availableScreens, screenContext, userSettings } = req.body;
         console.log('[EVA Operate] Processing:', message);
         console.log('[EVA Operate] Screen:', currentScreen?.id);
         console.log('[EVA Operate] Has screen context:', !!screenContext);
@@ -168,6 +168,11 @@ const operate = async (req, res) => {
         if (!message) {
             return res.status(400).json({ error: 'Mensagem e contexto são obrigatórios' });
         }
+
+        // Extract user voice settings
+        const currentVoiceRate = userSettings?.evaVoiceRate || 88;
+        const currentVoiceGender = userSettings?.evaVoiceMale ? 'M' : 'F';
+        const currentVoiceEnabled = userSettings?.evaVoiceEnabled !== 0;
 
         // Format screen context if available
         let screenContextText = '';
@@ -215,6 +220,11 @@ const operate = async (req, res) => {
         const systemPrompt = `Você é o "Córtex Motor" do sistema CASH.
 Sua função é traduzir a intenção do usuário em AÇÕES JSON para o sistema.
 
+CONFIGURAÇÕES ATUAIS DO USUÁRIO:
+- Velocidade da voz: ${currentVoiceRate}% (base 88% = normal)
+- Gênero da voz: ${currentVoiceGender === 'M' ? 'Masculina' : 'Feminina'}
+- Áudio: ${currentVoiceEnabled ? 'Ativado' : 'Desativado'}
+
 CONTEXTO GLOBAL (Telas disponíveis):
 ${JSON.stringify(availableScreens?.map(s => ({ id: s.id, name: s.name, keywords: s.keywords })) || [])}
 
@@ -230,9 +240,21 @@ INSTRUÇÕES:
    - FILL_FORM: Se o usuário quer preencher campos na TELA ATUAL.
    - CLICK_ACTION: Se o usuário quer clicar em botões na TELA ATUAL (Salvar, Novo, Cancelar).
    - START_TOUR: Se o usuário pede tour, demonstração, guia ou apresentação do sistema.
+   - SET_VOICE_RATE: Se pede para ajustar velocidade da voz.
+   - SET_VOICE_GENDER: Se pede para mudar gênero da voz.
+   - SET_VOICE_ENABLED: Se pede para ativar/desativar áudio.
    - REPLY: Se for uma pergunta, dúvida ou se não for possível realizar a ação.
    
 **IMPORTANTE:** Se o usuário fizer uma PERGUNTA sobre dados visíveis na tela, use os DADOS VISÍVEIS acima para responder contextualmente.
+
+**AJUSTES DE VELOCIDADE** - Cálculos percentuais RELATIVOS ao valor atual (${currentVoiceRate}%):
+- "mais rápido" / "acelera" → +10% = ${Math.round(currentVoiceRate * 1.10)}%
+- "muito mais rápido" → +30% = ${Math.round(currentVoiceRate * 1.30)}%
+- "só um pouquinho mais rápido" → +2% = ${Math.round(currentVoiceRate * 1.02)}%
+- "mais devagar" / "desacelera" → -5% = ${Math.round(currentVoiceRate * 0.95)}%
+- "muito mais devagar" → -15% = ${Math.round(currentVoiceRate * 0.85)}%
+- "só um pouquinho mais devagar" → -2% = ${Math.round(currentVoiceRate * 0.98)}%
+- "velocidade normal" → volta para 88%
 
 FORMATO DE RESPOSTA (JSON OBRIGATÓRIO):
 Retorne APENAS um objeto JSON válido.
@@ -253,6 +275,21 @@ JSON: { "action": "START_TOUR", "mode": "full", "message": "Claro! Vou guiá-lo 
 
 User: "Mostre o sistema" / "Apresente as telas" / "Conhecer funcionalidades"
 JSON: { "action": "START_TOUR", "mode": "full", "message": "Com prazer! Posso mostrar:\n1 - Tour rápido (2-3 min)\n2 - Tour detalhado (10-15 min)\n\nDigite 1 ou 2." }
+
+User: "Pode falar mais rápido?"
+JSON: { "action": "SET_VOICE_RATE", "value": ${Math.round(currentVoiceRate * 1.10)}, "message": "Claro! Aumentando velocidade em 10%. 🚀" }
+
+User: "Muito mais rápido ainda"
+JSON: { "action": "SET_VOICE_RATE", "value": ${Math.round(currentVoiceRate * 1.30)}, "message": "Entendido! Bem mais rápido agora (+30%)." }
+
+User: "Volta um pouquinho"
+JSON: { "action": "SET_VOICE_RATE", "value": ${Math.round(currentVoiceRate * 0.98)}, "message": "OK! Diminuindo levemente (-2%)." }
+
+User: "Prefiro voz masculina"
+JSON: { "action": "SET_VOICE_GENDER", "isMale": true, "message": "Perfeito! Mudando para voz masculina." }
+
+User: "Desative o áudio"
+JSON: { "action": "SET_VOICE_ENABLED", "enabled": false, "message": "Entendido! Responderei apenas com texto." }
 
 User: "Quantos usuários estão na tabela?" (Com dados visíveis)
 JSON: { "action": "REPLY", "message": "Há X usuários cadastrados, mostrando Y na tela." }

@@ -23,6 +23,9 @@ export const EvaService = {
                 hasScreenContext: !!screenContext
             });
 
+            // Get user settings from localStorage
+            const user = JSON.parse(localStorage.getItem('user') || '{}');
+
             const response = await fetch(`${API_BASE_URL}/eva/operate`, {
                 method: 'POST',
                 headers: {
@@ -33,7 +36,12 @@ export const EvaService = {
                     message: text,
                     currentScreen: context.currentScreen,
                     availableScreens: context.availableScreens ? Object.values(context.availableScreens) : [],
-                    screenContext // NEW: Include extracted screen data
+                    screenContext, // Include extracted screen data
+                    userSettings: { // NEW: Voice configuration
+                        evaVoiceRate: user?.eva_voice_rate || 88,
+                        evaVoiceMale: user?.eva_voice_male || 0,
+                        evaVoiceEnabled: user?.eva_voice_enabled !== 0
+                    }
                 })
             });
 

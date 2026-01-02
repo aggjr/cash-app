@@ -1020,6 +1020,92 @@ Digite 1, 2 ou 3.`;
                     // Set pending action for tour selection
                     pendingAction = 'tour_offer';
                 }
+                else if (decision.action === 'SET_VOICE_RATE') {
+                    // Update voice rate in DB
+                    try {
+                        await fetch(`${API_BASE_URL}/auth/update-preference`, {
+                            method: 'PUT',
+                            headers: getHeaders(),
+                            body: JSON.stringify({ evaVoiceRate: decision.value })
+                        });
+
+                        // Update local user
+                        const user = getUser();
+                        user.eva_voice_rate = decision.value;
+                        updateLocalUser(user);
+                        window.evaVoiceRateAdjustment = decision.value;
+
+                        console.log('[EVA] Voice rate updated to:', decision.value);
+
+                        // Show confirmation
+                        const msg = decision.message || `Velocidade ajustada para ${decision.value}%.`;
+                        addMessage('ai', msg);
+                        speak(msg);
+                    } catch (error) {
+                        console.error('[EVA] Error updating voice rate:', error);
+                        const errorMsg = 'Desculpe, não consegui ajustar a velocidade.';
+                        addMessage('ai', errorMsg);
+                        speak(errorMsg);
+                    }
+                }
+                else if (decision.action === 'SET_VOICE_GENDER') {
+                    // Update voice gender in DB
+                    try {
+                        await fetch(`${API_BASE_URL}/auth/update-preference`, {
+                            method: 'PUT',
+                            headers: getHeaders(),
+                            body: JSON.stringify({ evaVoiceMale: decision.isMale ? 1 : 0 })
+                        });
+
+                        // Update local user
+                        const user = getUser();
+                        user.eva_voice_male = decision.isMale ? 1 : 0;
+                        updateLocalUser(user);
+                        window.evaVoiceMale = decision.isMale ? 1 : 0;
+
+                        console.log('[EVA] Voice gender updated to:', decision.isMale ? 'Male' : 'Female');
+
+                        // Show confirmation
+                        const msg = decision.message || `Voz alterada para ${decision.isMale ? 'masculina' : 'feminina'}.`;
+                        addMessage('ai', msg);
+                        speak(msg);
+                    } catch (error) {
+                        console.error('[EVA] Error updating voice gender:', error);
+                        const errorMsg = 'Desculpe, não consegui mudar a voz.';
+                        addMessage('ai', errorMsg);
+                        speak(errorMsg);
+                    }
+                }
+                else if (decision.action === 'SET_VOICE_ENABLED') {
+                    // Update voice enabled in DB
+                    try {
+                        await fetch(`${API_BASE_URL}/auth/update-preference`, {
+                            method: 'PUT',
+                            headers: getHeaders(),
+                            body: JSON.stringify({ evaVoiceEnabled: decision.enabled ? 1 : 0 })
+                        });
+
+                        // Update local user
+                        const user = getUser();
+                        user.eva_voice_enabled = decision.enabled ? 1 : 0;
+                        updateLocalUser(user);
+
+                        console.log('[EVA] Voice enabled:', decision.enabled);
+
+                        // Show confirmation
+                        const msg = decision.message || `Áudio ${decision.enabled ? 'ativado' : 'desativado'}.`;
+                        addMessage('ai', msg);
+
+                        // Only speak if enabling
+                        if (decision.enabled) {
+                            speak(msg);
+                        }
+                    } catch (error) {
+                        console.error('[EVA] Error updating voice enabled:', error);
+                        const errorMsg = 'Desculpe, não consegui alterar o áudio.';
+                        addMessage('ai', errorMsg);
+                    }
+                }
                 else if (['NAVIGATE', 'FILL_FORM', 'CLICK_ACTION'].includes(decision.action)) {
 
                     const result = await EvaActions.handle(decision.action, decision);
