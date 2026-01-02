@@ -805,13 +805,9 @@ export const AIConsultant = () => {
                         const { gender } = await genderResponse.json();
                         if (gender) {
                             detectedGender = gender;
-                            // Save detected gender to user profile
-                            await fetch(`${API_BASE_URL}/auth/update-preference`, {
-                                method: 'PUT',
-                                headers: getHeaders(),
-                                body: JSON.stringify({ gender })
-                            });
-                            console.log('[EVA] Gender detected and saved:', gender);
+                            // Store for confirmation - DON'T auto-save yet
+                            window._tempDetectedGender = detectedGender;
+                            console.log('[EVA] Gender detected (awaiting user confirmation):', gender);
                         }
                     }
                 } catch (error) {
