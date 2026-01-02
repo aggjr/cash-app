@@ -136,6 +136,7 @@ const migrateLoans = require('./migrate_loans');
 const migratePreferredName = require('./migrate_add_preferred_name');
 const migrateEvaPreferences = require('./migrate-eva-user-preferences');
 const migrateEvaVoiceRate = require('./migrate_add_eva_voice_rate');
+const migrateAddGenderColumn = require('./migrate_add_gender_column');
 
 
 loadErrorCatalog()
@@ -153,6 +154,7 @@ loadErrorCatalog()
         await migrateVoiceSettingsToBoolean(); // Convert to boolean
         await migrateVoiceTierSystem(); // Upgrade to 3-tier system (0/1/2)
         await migrateVoicePremiumDefault(); // Set Premium as default
+        await migrateAddGenderColumn(); // Add gender column for LLM detection
         return migrateDataPrevistaAtraso(); // Continue the chain
     })
     .then(() => migrateComprovanteUrl())
