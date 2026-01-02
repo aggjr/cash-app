@@ -7,7 +7,7 @@ import { ExcelExporter } from '../utils/ExcelExporter.js';
 import { BatchOperationDialog } from './BatchOperationDialog.js';
 
 
-export const IncomeManager = (projectData) => {
+export const IncomeManager = (project) => {
     // --- EVA Knowledge Registration ---
     EvaKnowledge.registerScreen('entrada', {
         description: 'Tela para gerenciar entradas de receita.',

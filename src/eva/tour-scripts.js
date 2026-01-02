@@ -28,7 +28,7 @@ export const TOUR_OVERVIEW = [
         title: 'Transações Financeiras',
         narration: 'Aqui você registra suas entradas e saídas, controla transferências e gerencia produções. É o coração do sistema!',
         highlights: [
-            { selector: 'button:contains("Nova Entrada"), .btn-new-entry', addArrow: false }
+            { selector: '.btn-new-entry, .btn-primary', addArrow: false }
         ],
         duration: 6000
     },
@@ -94,7 +94,7 @@ export const TOUR_FULL = [
             // 2. Close date filter
             {
                 type: 'close',
-                selector: '.modal .close, .filter-modal .close, button:contains("Fechar")',
+                selector: '.modal .close, .filter-modal .close',
                 delay: 500,
                 waitAfter: 1000
             },
@@ -108,7 +108,7 @@ export const TOUR_FULL = [
             // 4. Close number filter
             {
                 type: 'close',
-                selector: '.modal .close, .filter-modal .close, button:contains("Fechar")',
+                selector: '.modal .close, .filter-modal .close',
                 delay: 500,
                 waitAfter: 1000
             },
@@ -122,7 +122,7 @@ export const TOUR_FULL = [
             // 6. Close text filter
             {
                 type: 'close',
-                selector: '.modal .close, .filter-modal .close, button:contains("Fechar")',
+                selector: '.modal .close, .filter-modal .close',
                 delay: 500,
                 waitAfter: 500
             }
@@ -152,7 +152,7 @@ export const TOUR_FULL = [
         title: 'Entradas Financeiras',
         narration: 'Agora as Transações Financeiras. Nas Entradas você registra todas as receitas: vendas, recebimentos, prestação de serviços. Pode parcelar, categorizar e anexar comprovantes.',
         highlights: [
-            { selector: '.btn-new, button:contains("Nova")', addArrow: true }
+            { selector: '.btn-new, .btn-primary', addArrow: true }
         ],
         duration: 11000
     },

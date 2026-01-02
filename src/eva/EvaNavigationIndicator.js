@@ -134,9 +134,13 @@ export const EvaNavigationIndicator = {
                     // Try to find the actual content box, not the full screen
                     const mainContent = document.querySelector('#main-content');
                     if (mainContent) {
-                        // Try to find first child with substantive content
-                        const contentBox = mainContent.querySelector('.card, .panel, .table-container, .dashboard-container');
-                        targetContainer = contentBox || mainContent;
+                        // Strategy 1: Look for specific content classes
+                        const contentBox = mainContent.querySelector('.glass-panel, .card, .panel, .dashboard-container');
+
+                        // Strategy 2: Look for the first substantial child of <main>
+                        const mainSection = mainContent.querySelector('main > div');
+
+                        targetContainer = contentBox || mainSection || mainContent;
                     }
                 }
 
