@@ -65,6 +65,8 @@ export const UserManager = (project) => {
             }
         },
         { key: 'email', label: 'E-mail', width: '250px', align: 'left', type: 'text' },
+        { key: 'job_title', label: 'Cargo', width: '150px', align: 'left', type: 'text', render: (user) => user.job_title || '-' },
+        { key: 'department', label: 'Departamento', width: '150px', align: 'left', type: 'text', render: (user) => user.department || '-' },
         {
             key: 'role', label: 'Função', width: '120px', align: 'center', type: 'text', render: (user) => {
                 const style = user.role === 'master'
@@ -93,11 +95,31 @@ export const UserManager = (project) => {
                 const isMaster = usersList.find(u => u.id === currentUser.id)?.role === 'master';
                 const isCurrentUser = user.id === currentUser.id;
 
+                if (isMaster || isCurrentUser) {
+                    const editBtn = document.createElement('button');
+                    editBtn.innerHTML = '✏️';
+                    editBtn.style.background = 'none';
+                    editBtn.style.border = 'none';
+                    editBtn.style.cursor = 'pointer';
+                    editBtn.style.fontSize = '1.2rem';
+                    editBtn.style.marginRight = '0.5rem';
+                    editBtn.title = 'Editar Perfil';
+                    editBtn.onclick = (e) => {
+                        e.stopPropagation();
+                        // Open Edit Modal
+                        UserModal.show({
+                            user,
+                            onSave: (data) => updateUser(data)
+                        });
+                    };
+                    return editBtn.outerHTML;
+                }
+
                 if (isMaster && !isCurrentUser && user.role !== 'master') {
-                    const btn = document.createElement('button');
-                    btn.innerHTML = '🗑️';
-                    btn.style.background = 'none';
-                    btn.style.border = 'none';
+                    const removeBtn = document.createElement('button');
+                    removeBtn.innerHTML = '🗑️';
+                    removeBtn.style.background = 'none';
+                    removeBtn.style.border = 'none';
                     btn.style.cursor = 'pointer';
                     btn.style.fontSize = '1.2rem';
                     btn.style.color = '#EF4444';

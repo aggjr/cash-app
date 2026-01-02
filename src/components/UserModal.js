@@ -63,6 +63,28 @@ export const UserModal = {
                         ` : ''}
 
                         <div class="form-group full-width" style="margin-top: 5px;">
+                            <label for="user-job-title">Cargo / Função (Opcional)</label>
+                            <input 
+                                type="text" 
+                                id="user-job-title" 
+                                class="form-input" 
+                                placeholder="Ex: Gerente Financeiro"
+                                value="${user?.job_title || ''}"
+                            />
+                        </div>
+
+                        <div class="form-group full-width" style="margin-top: 5px;">
+                            <label for="user-department">Departamento (Opcional)</label>
+                            <input 
+                                type="text" 
+                                id="user-department" 
+                                class="form-input" 
+                                placeholder="Ex: Financeiro"
+                                value="${user?.department || ''}"
+                            />
+                        </div>
+
+                        <div class="form-group full-width" style="margin-top: 5px;">
                             <label for="user-role">Função <span class="required">*</span></label>
                             <select 
                                 id="user-role" 
@@ -181,7 +203,9 @@ export const UserModal = {
                 const data = {
                     name: nameInput.value.trim(),
                     email: emailInput.value.trim(),
-                    role: roleSelect.value
+                    role: roleSelect.value,
+                    job_title: document.getElementById('user-job-title').value.trim(),
+                    department: document.getElementById('user-department').value.trim()
                 };
 
                 if (!isEdit) {

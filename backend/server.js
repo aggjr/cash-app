@@ -24,6 +24,7 @@ const fechamentoRoutes = require('./routes/fechamento');
 const consolidadasRoutes = require('./routes/consolidadas');
 const debugRoutes = require('./routes/debug');
 const settingsRoutes = require('./routes/settings');
+const userManagementRoutes = require('./routes/userManagement');
 
 const app = express();
 const PORT = process.env.PORT || 3001;
@@ -47,6 +48,7 @@ apiRouter.use('/accounts', accountsRoutes);
 apiRouter.use('/companies', companiesRoutes);
 apiRouter.use('/incomes', incomesRoutes);
 apiRouter.use('/saidas', saidasRoutes);
+apiRouter.use('/users', userManagementRoutes); // New global user mgt
 apiRouter.use('/aportes', aportesRoutes);
 apiRouter.use('/retiradas', retiradasRoutes);
 apiRouter.use('/transferencias', transferenciasRoutes);
