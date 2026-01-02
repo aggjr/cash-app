@@ -13,10 +13,11 @@ class EvaContextBuilder {
      * Build complete chat context
      * @param {Object} user - User object with eva_preferences
      * @param {Object} project - Project object with eva_context
+     * @param {string} dynamicProfile - Infered business profile from DB
      * @param {Object} options - Additional options (isIntroduction, etc)
      * @returns {string} Complete system prompt
      */
-    static buildChatContext(user, project, options = {}) {
+    static buildChatContext(user, project, dynamicProfile = '', options = {}) {
         const { isIntroduction = false } = options;
 
         // Level 1: System base
@@ -29,11 +30,16 @@ class EvaContextBuilder {
         const tone = projectContext.tone || 'formal';
         const projectInstructions = projectContext.custom_instructions || '';
 
-        // Level 3: User preferences
+        // Level 3: User preferences & Role
         const userPrefs = user?.eva_preferences || {};
         const communicationStyle = userPrefs.communication_style || 'padrão';
         const expertiseLevel = userPrefs.expertise_level || 'intermediário';
         const userInstructions = userPrefs.custom_instructions || '';
+
+        // User Role Context
+        const jobTitle = user?.job_title ? `Cargo: ${user.job_title}` : '';
+        const department = user?.department ? `Departamento: ${user.department}` : '';
+        const roleContext = (jobTitle || department) ? `${jobTitle} | ${department}` : 'Usuário padrão';
 
         // Get time context
         const now = new Date();
@@ -55,10 +61,12 @@ Abordagem: ${systemPrompts.introduction.approach}
 
 INFORMAÇÕES DO USUÁRIO:
 - Nome completo: ${user?.name || 'Não informado'}
+- Papel no sistema: ${roleContext}
 - Primeira interação: SIM
 
 CONTEXTO DO PROJETO:
 - Tipo de negócio: ${businessType}
+- Perfil Inferido: ${dynamicProfile}
 - Tom preferido: ${tone}
 
 INSTRUÇÕES:
@@ -76,12 +84,14 @@ CAPACIDADES:
 CONTEXTO DO PROJETO:
 - Tipo de negócio: ${businessType}
 - Setor: ${projectContext.industry || 'geral'}
+- Perfil de Negócio (Inferido): ${dynamicProfile}
 - Tom de comunicação: ${tone}
 ${projectInstructions ? `- Instruções específicas: ${projectInstructions}` : ''}
 
 PREFERÊNCIAS DO USUÁRIO:
 - Nome: ${user?.name || 'Não informado'}
 - Nome preferido: ${user?.preferred_name || 'Não definido'}
+- Papel Profissional: ${roleContext}
 - Primeira interação: ${!evaIntroduced ? 'SIM - Apresente-se!' : 'NÃO - Já se apresentou'}
 - Período do dia: ${timeOfDay}
 - Estilo de comunicação: ${communicationStyle}
@@ -91,6 +101,8 @@ ${userInstructions ? `- Instruções personalizadas: ${userInstructions}` : ''}
 INSTRUÇÕES IMPORTANTES:
 - Se primeira interação, apresente-se de forma natural e use saudação apropriada ao período
 - Converse naturalmente com ${user?.preferred_name || user?.name || 'o usuário'}, inferindo tratamento apropriado
+- Adapte a resposta ao cargo do usuário (ex: mais estratégico para gerentes, mais operacional para analistas)
+- Leve em conta o Perfil de Negócio inferido para dar respostas contextualizadas
 - Seja ${tone === 'casual' ? 'mais descontraída' : 'formal'}, respeitosa e prestativa
 - ${systemPrompts.common.response_length}
 - Projeto atual: ${project?.name || 'CASH'}
@@ -202,6 +214,63 @@ ${Object.entries(systemPrompts.operate.actions).map(([key, desc]) => `- ${key}: 
 
 REGRAS:
 ${systemPrompts.operate.rules.map(r => `- ${r}`).join('\n')}`;
+    }
+
+    /**
+     * Build dynamic business profile based on transaction data
+     * @param {Object} db - Database connection
+     * @param {number} projectId - Project ID
+     * @returns {Promise<string>} Natural language business description
+     */
+    static async buildDynamicBusinessProfile(db, projectId) {
+        if (!projectId) return "Projeto sem dados suficientes para inferência.";
+
+        try {
+            // 1. Analyze Income Types (What generates money?)
+            const [incomeTypes] = await db.query(`
+                SELECT DISTINCT t.nome 
+                FROM entradas e 
+                JOIN tipo_entrada t ON e.tipo_entrada_id = t.id 
+                WHERE e.project_id = ? 
+                LIMIT 5
+            `, [projectId]);
+
+            // 2. Analyze Production/Resale Types (What do they sell?)
+            const [prodTypes] = await db.query(`
+                SELECT DISTINCT t.label 
+                FROM producao_revenda p 
+                JOIN tipo_producao_revenda t ON p.tipo_id = t.id 
+                WHERE p.project_id = ? 
+                LIMIT 5
+            `, [projectId]);
+
+            // 3. Analyze Expense Types (Where does money go?)
+            const [expenseTypes] = await db.query(`
+                SELECT DISTINCT t.label 
+                FROM saidas s 
+                JOIN tipo_saida t ON s.tipo_saida_id = t.id 
+                WHERE s.project_id = ? 
+                LIMIT 5
+            `, [projectId]);
+
+            const incomes = incomeTypes.map(r => r.nome).join(', ');
+            const products = prodTypes.map(r => r.label).join(', ');
+            const expenses = expenseTypes.map(r => r.label).join(', ');
+
+            let profile = "";
+
+            if (incomes) profile += `Fontes de receita: ${incomes}. `;
+            if (products) profile += `Comercializa/Produz: ${products}. `;
+            if (expenses) profile += `Principais despesas: ${expenses}.`;
+
+            if (!profile) return "Projeto novo ou sem dados históricos suficientes.";
+
+            return `PERFIL DO NEGÓCIO (Inferido dos dados): ${profile}`;
+
+        } catch (error) {
+            console.error('Error building business profile:', error);
+            return "Erro ao analisar perfil do negócio.";
+        }
     }
 
     /**

@@ -20,6 +20,7 @@ const chat = async (req, res, next) => {
         // Fetch hierarchical context from DB
         // 1. User preferences (Level 3)
         // 2. Project context (Level 2)
+        // 3. Dynamic Business Profile (Inferred)
         const [userResult, projectResult] = await Promise.all([
             db.query('SELECT * FROM users WHERE id = $1', [user.id]),
             context.projectId ? db.query('SELECT * FROM projects WHERE id = $1', [context.projectId]) : Promise.resolve({ rows: [] })
@@ -28,8 +29,11 @@ const chat = async (req, res, next) => {
         const userData = userResult.rows[0] || user;
         const projectData = projectResult.rows[0] || {};
 
-        // Build system prompt using 3-level architecture
-        const systemPrompt = EvaContextBuilder.buildChatContext(userData, projectData, { isIntroduction });
+        // Build dynamic profile purely from transaction data (NEW)
+        const dynamicProfile = await EvaContextBuilder.buildDynamicBusinessProfile(db, context.projectId);
+
+        // Build system prompt using 3-level architecture + Dynamic Profile
+        const systemPrompt = EvaContextBuilder.buildChatContext(userData, projectData, dynamicProfile, { isIntroduction });
 
         // Prepare messages for OpenAI
         const messages = [

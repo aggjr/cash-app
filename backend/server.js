@@ -135,6 +135,7 @@ const migrateCreateAuditLogs = require('./migrate-create-audit-logs');
 const migrateLoans = require('./migrate_loans');
 const migratePreferredName = require('./migrate_preferred_name');
 const migrateAddEvaContext = require('./migrate_add_eva_context');
+const migrateAddUserRoles = require('./migrate_add_user_roles');
 const migrateEvaPreferences = require('./migrate-eva-user-preferences');
 const migrateEvaVoiceRate = require('./migrate_add_eva_voice_rate');
 const migrateAddGenderColumn = require('./migrate_add_gender_column');
@@ -168,7 +169,8 @@ loadErrorCatalog()
     .then(() => migrateCreateAuditLogs())
     .then(() => migrateLoans())
     .then(() => migratePreferredName())
-    .then(() => migrateAddEvaContext()) // NEW: 3-Level Context Architecture
+    .then(() => migrateAddEvaContext())
+    .then(() => migrateAddUserRoles()) // NEW: User Roles (Job Title/Dept)
     .then(() => migrateEvaPreferences())
     .then(() => migrateEvaVoiceRate())
     .then(() => migrateFixVoiceRate()) // NEW: Force reset of high voice rates to 50
