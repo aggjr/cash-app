@@ -294,6 +294,25 @@ export const SaidaManager = (project) => {
             renderSaidas();
             renderPagination();
 
+            // --- EVA Context Broadcast (The Eyes) ---
+            if (window.EVA && window.EVA.updateScreenContext) {
+                window.EVA.updateScreenContext({
+                    screenId: 'expenses',
+                    title: 'Saídas (Despesas)',
+                    pagination: pagination,
+                    filters: activeFilters,
+                    // Send a summary of what's currently visible
+                    visible_rows: saidas.slice(0, 10).map(row => ({
+                        date: row.data_fato,
+                        description: row.descricao,
+                        value: row.valor,
+                        category: row.tipo_saida_name
+                    })),
+                    total_records: pagination.total,
+                    summary_text: `Visualizando ${saidas.length} de ${pagination.total} registros.`
+                });
+            }
+
         } catch (error) {
             console.error('Error loading saidas:', error);
             showToast(error.message, 'error');

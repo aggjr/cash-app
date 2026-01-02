@@ -60,6 +60,36 @@ export const ConsolidadasManager = (project) => {
 
             renderAllTables();
 
+            // --- EVA Context Broadcast (The Eyes) ---
+            if (window.EVA && window.EVA.updateScreenContext) {
+                // Calculate high-level summaries for EVA
+                const summarizeRoot = (data, rootId) => {
+                    const node = data.find(n => n.id === rootId);
+                    return node ? { total: node.total, name: node.name } : null;
+                };
+
+                window.EVA.updateScreenContext({
+                    screenId: 'consolidadas_dre',
+                    title: 'Consolidadas (DRE / Fluxo)',
+                    viewType: viewType, // Caixa or Competencia
+                    period: { start: startMonth, end: endMonth },
+                    summary: {
+                        realized: {
+                            total_revenue: summarizeRoot(currentData.realized, 'entradas_root'),
+                            total_expenses: summarizeRoot(currentData.realized, 'saidas_root'),
+                            net_result: summarizeRoot(currentData.realized, 'resultado_operacional_root') || summarizeRoot(currentData.realized, 'fluxo_financeiro_root')
+                        },
+                        provisioned: {
+                            total_revenue: summarizeRoot(currentData.provisioned, 'entradas_root'),
+                            total_expenses: summarizeRoot(currentData.provisioned, 'saidas_root'),
+                            net_result: summarizeRoot(currentData.provisioned, 'resultado_operacional_root') || summarizeRoot(currentData.provisioned, 'fluxo_financeiro_root')
+                        }
+                    },
+                    // We can also pass the raw top-level nodes if token limit allows, but summary is safer for now
+                    raw_data_sample: null
+                });
+            }
+
         } catch (error) {
             console.error(error);
             showToast(error.message || 'Erro ao carregar dados', 'error');
