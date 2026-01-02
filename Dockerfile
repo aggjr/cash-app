@@ -11,7 +11,7 @@ FROM node:22-alpine
 WORKDIR /app
 
 # Copy backend manifest
-# Cache buster: 2024-12-31-eva-llm
+# Cache buster: 2026-01-02-google-tts
 COPY backend/package*.json ./
 
 RUN npm install --production
