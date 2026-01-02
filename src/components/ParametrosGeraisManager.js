@@ -958,6 +958,9 @@ export const ParametrosGeraisManager = (project) => {
 
                         if (response.ok) {
                             originalSettings.eva_voice_premium = value;
+
+                            // Update global variable immediately (no need to reload page!)
+                            window.evaVoicePremium = value;
                             console.log('[Settings] Auto-saved voice premium to:', value);
 
                             const tierNames = ['Gratuita', 'Standard', 'Premium'];
@@ -998,6 +1001,9 @@ export const ParametrosGeraisManager = (project) => {
 
                         if (response.ok) {
                             originalSettings.eva_voice_male = value;
+
+                            // Update global variable immediately
+                            window.evaVoiceMale = value;
                             console.log('[Settings] Auto-saved voice male to:', value);
                             showToast(`✓ Gênero da voz: ${value === 1 ? 'Masculina' : 'Feminina'}`, 'success');
                         } else {
