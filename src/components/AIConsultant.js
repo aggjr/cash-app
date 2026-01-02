@@ -974,6 +974,16 @@ Digite 1, 2 ou 3.`;
 
 
     const toggleChat = async () => {
+        // Unlock Audio Context immediately on user interaction to prevent Autoplay blocks
+        try {
+            if (window.speechSynthesis) window.speechSynthesis.resume();
+
+            // "Prime" the HTML5 Audio for Google TTS by playing a silent buffer
+            const silentAudio = new Audio('data:audio/wav;base64,UklGRigAAABXQVZFZm10IBIAAAABAAEARKwAAIhYAQACABAgZGF0YQQAAAAAAA==');
+            silentAudio.volume = 0.01;
+            silentAudio.play().catch(() => { }); // Low volume, catch error if strictly blocked
+        } catch (e) { console.error('Audio unlock failed', e); }
+
         isOpen = !isOpen;
         chatWindow.style.display = isOpen ? 'flex' : 'none';
 
