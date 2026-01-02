@@ -16,24 +16,29 @@ export const EvaNavigationIndicator = {
     addArrowIndicator(element) {
         if (!element) return null;
 
+        // Ensure we target the label for close proximity to text
+        // If element is the container (.menu-item), try to find .menu-label
+        const target = element.classList.contains('menu-label') ? element : (element.querySelector('.menu-label') || element);
+
         // Check if already has indicator
-        const existing = element.querySelector('.eva-nav-arrow');
+        const existing = target.querySelector('.eva-nav-arrow');
         if (existing) return existing;
 
         const arrow = document.createElement('span');
         arrow.className = 'eva-nav-arrow';
-        arrow.innerHTML = '➜';
+        arrow.innerHTML = '⬅'; // Left arrow pointing to text
         arrow.style.cssText = `
             color: ${INDICATOR_COLOR};
-            font-size: 1.5rem;
-            margin-left: 0.5rem;
-            animation: eva-arrow-pulse 1.5s ease-in-out infinite;
+            font-size: 1.2rem;
+            margin-left: 8px;
+            animation: eva-arrow-pulse-left 1.5s ease-in-out infinite;
             display: inline-block;
             vertical-align: middle;
+            font-weight: bold;
         `;
 
-        element.appendChild(arrow);
-        this.activeIndicators.push({ element, arrow });
+        target.appendChild(arrow);
+        this.activeIndicators.push({ element: target, arrow }); // Track using target
 
         return arrow;
     },
@@ -96,10 +101,10 @@ export const EvaNavigationIndicator = {
                 if (activeItem) {
                     console.log('[EVA Nav] Menu item found!', activeItem);
 
-                    // Add arrow to menu item
+                    // Add arrow to menu item (will target label internally)
                     this.addArrowIndicator(activeItem);
 
-                    // Highlight menu item
+                    // Highlight menu item ROW
                     activeItem.style.backgroundColor = `${INDICATOR_COLOR}20`;
 
                     // Find and mark parent items (for submenus)
@@ -116,7 +121,6 @@ export const EvaNavigationIndicator = {
                             console.log('[EVA Nav] Found parent menu item:', parentItem.querySelector('.menu-label')?.textContent);
                             this.addArrowIndicator(parentItem);
                             parentItem.style.backgroundColor = `${INDICATOR_COLOR}15`;
-
                             // Expand submenu if needed? usually handled by click but we just highlight
                             parentSubmenu.style.display = 'block';
                         }
@@ -232,13 +236,13 @@ export const EvaNavigationIndicator = {
 // Add CSS animations
 const style = document.createElement('style');
 style.textContent = `
-    @keyframes eva-arrow-pulse {
+    @keyframes eva-arrow-pulse-left {
         0%, 100% {
             transform: translateX(0);
             opacity: 0.8;
         }
         50% {
-            transform: translateX(5px);
+            transform: translateX(-5px); /* Move Left towards text */
             opacity: 1;
         }
     }
