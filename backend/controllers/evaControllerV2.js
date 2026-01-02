@@ -141,8 +141,8 @@ const operate = async (req, res) => {
         let userData = user;
 
         if (context?.projectId) {
-            const [pResult] = await db.query('SELECT * FROM projects WHERE id = $1', [context.projectId]);
-            projectData = pResult.rows[0] || {};
+            const [rows] = await db.query('SELECT * FROM projects WHERE id = ?', [context.projectId]);
+            projectData = rows[0] || {};
         }
 
         // Build dynamic profile for operate context
