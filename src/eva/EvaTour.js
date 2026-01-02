@@ -36,6 +36,13 @@ export const EvaTour = {
         // Show tour controls
         this.showControls();
 
+        // Ensure EVA Chat is valid and open for narration text
+        if (window.EVAConsultant) {
+            if (window.EVAConsultant.isOpen && !window.EVAConsultant.isOpen()) {
+                window.EVAConsultant.toggleChat();
+            }
+        }
+
         // Start first step
         await this.executeStep(0);
     },

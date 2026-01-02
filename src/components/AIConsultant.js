@@ -1419,6 +1419,13 @@ Digite 1, 2 ou 3.`;
         startLoanCategorization
     };
 
+    window.EVAConsultant = {
+        addMessage,
+        speak,
+        toggleChat,
+        isOpen: () => isOpen
+    };
+
     // Alias for backward compatibility if needed, temporary
     window.FOCCUS = window.EVA;
 
