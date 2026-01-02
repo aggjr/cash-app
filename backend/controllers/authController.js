@@ -263,7 +263,7 @@ exports.changePassword = async (req, res, next) => {
 
 exports.updatePreference = async (req, res, next) => {
     try {
-        const { preferredName, evaIntroduced, evaVoiceEnabled, gender } = req.body;
+        const { preferredName, evaIntroduced, evaVoiceEnabled, gender, evaVoiceRate } = req.body;
         const userId = req.user.id;
 
         // Build dynamic update query based on provided fields
@@ -288,6 +288,11 @@ exports.updatePreference = async (req, res, next) => {
         if (gender !== undefined) {
             updates.push('gender = ?');
             values.push(gender);
+        }
+
+        if (evaVoiceRate !== undefined) {
+            updates.push('eva_voice_rate = ?');
+            values.push(evaVoiceRate);
         }
 
         if (updates.length === 0) {

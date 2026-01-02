@@ -441,6 +441,14 @@ export const AIConsultant = () => {
                     }
                 }
 
+                // FIX: If we have text and stopped essentially (not restarting), SEND IT!
+                if (accumulatedTranscript && accumulatedTranscript.trim().length > 0) {
+                    console.log('[SPEECH REC] Auto-sending accumulated transcript on end...');
+                    input.value = accumulatedTranscript.trim();
+                    sendMessage(); // This will clear accumulatedTranscript in its logic or we clear it here
+                    accumulatedTranscript = '';
+                }
+
                 isRecording = false;
                 isListening = false;
                 micBtn.classList.remove('mic-recording');
