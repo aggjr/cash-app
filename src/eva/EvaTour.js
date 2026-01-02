@@ -216,6 +216,11 @@ export const EvaTour = {
         // Clear all highlights
         EvaNavigationIndicator.clearAll();
 
+        // Safety clear after 1.5s to catch any racing navigation indicators
+        setTimeout(() => {
+            EvaNavigationIndicator.clearAll();
+        }, 1500);
+
         // Hide controls
         this.hideControls();
 

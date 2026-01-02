@@ -1237,22 +1237,10 @@ export const ParametrosGeraisManager = (project) => {
         return evaContainer;
     };
 
-    // Create TabPanel
-    const tabPanel = TabPanel([
-        {
-            label: 'Geral',
-            icon: '⚙️',
-            content: container
-        },
-        {
-            label: 'IA EVA',
-            icon: '🤖',
-            content: evaTabContent
-        }
-    ], {
-        defaultTab: 0
-    });
+    // Create TabPanel - REMOVED TO FIX DOUBLE TABS
+    // The container already implements its own tabs (Geral / IA EVA) via renderSettings
+    // Wrapping it in TabPanel caused duplication and layout issues
 
-    wrapper.appendChild(tabPanel.element);
+    wrapper.appendChild(container);
     return wrapper;
 };
