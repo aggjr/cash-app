@@ -59,7 +59,7 @@ export const AIConsultant = () => {
     const speak = async (text) => {
         if (!window.speechSynthesis) return;
 
-        // Check if voice is enabled
+        // Check if voice is enabled and load rate adjustment
         const user = getUser();
         if (!user?.eva_voice_enabled) return;
 
@@ -68,10 +68,13 @@ export const AIConsultant = () => {
         const utterance = new SpeechSynthesisUtterance(text);
         utterance.lang = 'pt-BR';
 
+        // Load voice rate from user settings (eva_voice_rate field in DB)
+        const rateAdjustment = user?.eva_voice_rate !== undefined ? user.eva_voice_rate : 88;
+        window.evaVoiceRateAdjustment = rateAdjustment; // Update global
+
         // Apply voice rate: base 1.30 * (1 + adjustment/100)
-        const adjustment = window.evaVoiceRateAdjustment || 0;
-        utterance.rate = 1.30 * (1 + adjustment / 100);
-        console.log('[EVA Voice] Rate adjustment:', adjustment, '-> Final rate:', utterance.rate);
+        utterance.rate = 1.30 * (1 + rateAdjustment / 100);
+        console.log('[EVA Voice] Rate adjustment from DB:', rateAdjustment, '-> Final rate:', utterance.rate);
 
         const voices = window.speechSynthesis.getVoices();
 
@@ -82,8 +85,8 @@ export const AIConsultant = () => {
         // Use Google Cloud TTS for Standard (1) and Premium (2)
         if (voiceTier >= 1) {
             try {
-                const adjustment = window.evaVoiceRateAdjustment || 88;
-                const rate = 1.30 * (1 + adjustment / 100);
+                // Use rate adjustment already calculated above
+                const rate = utterance.rate;
 
                 console.log(`[EVA Voice] Requesting Google TTS (Tier ${voiceTier}, ${isMale ? 'Male' : 'Female'}, Rate: ${rate.toFixed(2)})`);
 
@@ -104,9 +107,9 @@ export const AIConsultant = () => {
                     // Play audio with dynamic delay to prevent first syllable cut
                     const audio = new Audio(`data:audio/mp3;base64,${audioContent}`);
 
-                    // Calculate delay based on speech rate (faster = longer delay needed)
-                    // Base delay: 150ms at 1x speed, increases with faster rates
-                    const delayMs = Math.max(150, Math.floor(150 * rate));
+                    // Calculate delay based on speech rate (faster = much longer delay needed)
+                    // Base delay: 300ms minimum, scales with rate to prevent syllable cutting
+                    const delayMs = Math.max(300, Math.floor(200 * rate));
 
                     // Wait for audio to be ready
                     audio.addEventListener('canplaythrough', () => {
