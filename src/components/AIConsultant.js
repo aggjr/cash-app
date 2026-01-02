@@ -451,6 +451,8 @@ export const AIConsultant = () => {
                         if (accumulatedTranscript.trim()) {
                             input.value = accumulatedTranscript.trim();
                             sendMessage();
+                            // Clear accumulated transcript for next voice input
+                            accumulatedTranscript = '';
                         }
                     }, 300);
                 }, evaTimeout);  // Configurable timeout
