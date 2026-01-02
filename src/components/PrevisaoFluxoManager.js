@@ -107,7 +107,44 @@ export const PrevisaoFluxoManager = (project) => {
 
             dayBalances[day] = { initial, final };
             runningBalance = final;
+            dayBalances[day] = { initial, final };
+            runningBalance = final;
         });
+
+        // --- EVA Context Broadcast (The Eyes) ---
+        if (window.EVA && window.EVA.updateScreenContext) {
+            // Calculate metrics for EVA
+            let lowestBalance = Infinity;
+            let lowestDate = null;
+            let negativeDays = [];
+
+            days.forEach(d => {
+                const bal = dayBalances[d].final;
+                if (bal < lowestBalance) {
+                    lowestBalance = bal;
+                    lowestDate = d;
+                }
+                if (bal < 0) {
+                    negativeDays.push({ date: d, balance: bal });
+                }
+            });
+
+            window.EVA.updateScreenContext({
+                screenId: 'cash_flow_daily',
+                title: 'Fluxo de Caixa Diário',
+                summary: {
+                    startDate: startStr,
+                    endDate: endStr,
+                    initialBalance: forecastData?.initialBalance || 0,
+                    finalBalance: runningBalance,
+                    lowestBalance,
+                    lowestDate,
+                    negativeDaysCount: negativeDays.length
+                },
+                critical_risks: negativeDays.length > 0 ? negativeDays : null,
+                raw_data_sample: days.slice(0, 5).map(d => ({ date: d, balance: dayBalances[d].final }))
+            });
+        }
 
         // Header
         let html = `

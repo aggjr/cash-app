@@ -1439,6 +1439,13 @@ Digite 1, 2 ou 3.`;
         }, 800);
     };
 
+    // --- Semantic Screen Reading "The Eyes" ---
+    const updateScreenContext = (contextData) => {
+        // Store in global knowledge
+        EvaKnowledge.activeScreenData = contextData;
+        console.log('[EVA Vision] Screen Context Updated:', contextData);
+    };
+
     // Public API
     const startLoanCategorization = async (data) => {
         return new Promise(async (resolve) => {
@@ -1490,7 +1497,8 @@ Digite 1, 2 ou 3.`;
     };
 
     window.EVA = {
-        startLoanCategorization
+        startLoanCategorization,
+        updateScreenContext // Exposed for screens to broadcast data
     };
 
     window.EVAConsultant = {
