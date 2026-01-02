@@ -36,7 +36,8 @@ export const EvaService = {
                     message: text,
                     currentScreen: context.currentScreen,
                     availableScreens: context.availableScreens ? Object.values(context.availableScreens) : [],
-                    screenContext, // Include extracted screen data
+                    screenContext, // Legacy/Fallback extraction
+                    activeScreenContext: context.currentScreenData, // NEW: Semantic Data (The Eyes)
                     userName: user?.name || '', // Full registered name for gender inference
                     preferredName: user?.preferred_name || '', // User's preferred form of address
                     userSettings: { // Voice configuration

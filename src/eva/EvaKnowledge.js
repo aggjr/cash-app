@@ -1,4 +1,5 @@
 export const EvaKnowledge = {
+    activeScreenData: null,
     screens: {
         'dashboard': {
             id: 'dashboard',

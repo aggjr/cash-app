@@ -1096,6 +1096,7 @@ Digite 1, 2 ou 3.`;
             // 1. Gather Context
             const context = {
                 currentScreen: EvaKnowledge.activeScreen,
+                currentScreenData: EvaKnowledge.activeScreenData, // THE EYES: Send semantic data
                 availableScreens: EvaKnowledge.screens
             };
 
