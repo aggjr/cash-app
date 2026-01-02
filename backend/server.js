@@ -125,6 +125,7 @@ const migrateInstallmentFields = require('./migrate_add_installment_fields');
 const migrateAddEvaTimeout = require('./migrate_add_eva_timeout');
 const migrateAddEvaVoiceSettings = require('./migrate_add_eva_voice_settings');
 const migrateVoiceSettingsToBoolean = require('./migrate_voice_settings_to_boolean');
+const migrateVoiceTierSystem = require('./migrate_voice_tier_system');
 const migrateInstallmentColumns = require('./migrate_add_installment_columns');
 const migrateSystemSettings = require('./migrate_add_system_settings');
 const migrateCreateAuditLogs = require('./migrate-create-audit-logs');
@@ -147,6 +148,7 @@ loadErrorCatalog()
 
         await migrateAddEvaVoiceSettings();
         await migrateVoiceSettingsToBoolean(); // Convert to boolean
+        await migrateVoiceTierSystem(); // Upgrade to 3-tier system (0/1/2)
         return migrateDataPrevistaAtraso(); // Continue the chain
     })
     .then(() => migrateComprovanteUrl())

@@ -68,10 +68,10 @@ const updateSetting = async (req, res) => {
             }
         }
 
-        // Validate eva_voice_premium (0 or 1)
+        // Validate eva_voice_premium (0, 1, or 2)
         if (field === 'eva_voice_premium') {
-            if (![0, 1].includes(numValue)) {
-                return res.status(400).json({ error: 'eva_voice_premium deve ser 0 (gratuita) ou 1 (premium)' });
+            if (![0, 1, 2].includes(numValue)) {
+                return res.status(400).json({ error: 'eva_voice_premium deve ser 0 (gratuita), 1 (standard) ou 2 (premium)' });
             }
         }
 
