@@ -925,43 +925,29 @@ Digite 1, 2 ou 3.`;
         if (isOpen) {
             const user = getUser();
 
-            // Check if messages empty (first open)
+            // Check if messages empty (first open after login)
             if (messages.length === 0) {
                 if (user && !user.eva_introduced) {
                     await startIntroductionFlow();
                 } else {
-                    // Check for daily greeting (once per day)
-                    const today = new Date().toDateString();
-                    const lastGreeting = localStorage.getItem('eva_last_greeting');
+                    // Send greeting based on time (always on first open)
+                    const hour = new Date().getHours();
+                    let timeGreeting;
 
-                    if (lastGreeting !== today) {
-                        // Send daily greeting based on time
-                        const hour = new Date().getHours();
-                        let timeGreeting;
-
-                        if (hour >= 5 && hour < 12) {
-                            timeGreeting = 'Bom dia';
-                        } else if (hour >= 12 && hour < 18) {
-                            timeGreeting = 'Boa tarde';
-                        } else {
-                            timeGreeting = 'Boa noite';
-                        }
-
-                        const preferredName = user?.preferred_name || user?.name || '';
-                        const greeting = `${timeGreeting}, ${preferredName}! 😊\n\nEstou aqui para ajudar com qualquer dúvida ou necessidade no uso do sistema. Como posso auxiliá-${user?.gender === 'M' ? 'lo' : 'la'} hoje?`;
-
-                        addMessage('ai', greeting);
-                        speak(greeting.replace(/😊/g, '').replace(/\n\n/g, ' '));
-
-                        // Mark greeting as sent for today
-                        localStorage.setItem('eva_last_greeting', today);
+                    if (hour >= 5 && hour < 12) {
+                        timeGreeting = 'Bom dia';
+                    } else if (hour >= 12 && hour < 18) {
+                        timeGreeting = 'Boa tarde';
                     } else {
-                        // Standard quick greeting (already greeted today)
-                        const preferredName = user?.preferred_name || user?.name || '';
-                        const greeting = `Olá, ${preferredName}. Em que posso auxiliar?`;
-                        addMessage('ai', greeting);
-                        speak(greeting);
+                        timeGreeting = 'Boa noite';
                     }
+
+                    const preferredName = user?.preferred_name || user?.name || '';
+                    const pronoun = user?.gender === 'M' ? 'lo' : 'la';
+                    const greeting = `${timeGreeting}, ${preferredName}! 😊\n\nEstou aqui para ajudar com qualquer dúvida ou necessidade no uso do sistema. Como posso auxiliá-${pronoun} hoje?`;
+
+                    addMessage('ai', greeting);
+                    speak(greeting.replace(/😊/g, '').replace(/\n\n/g, ' '));
                 }
             } else {
                 // Just scroll to bottom
