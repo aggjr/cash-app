@@ -865,6 +865,75 @@ export const ParametrosGeraisManager = (project) => {
         updateVoiceTypeBorders();
         updateGenderBorders();
 
+        // Check if Google Cloud TTS is available
+        (async () => {
+            try {
+                const response = await fetch(`${API_BASE_URL}/tts/status`, {
+                    headers: getHeaders()
+                });
+                const data = await response.json();
+
+                if (!data.available) {
+                    console.warn('[EVA Settings] Google Cloud TTS not available:', data.message);
+
+                    // Disable Standard and Premium options
+                    const standardRadio = container.querySelector('input[name="eva_voice_premium"][value="1"]');
+                    const premiumRadio = container.querySelector('input[name="eva_voice_premium"][value="2"]');
+                    const standardLabel = standardRadio?.closest('.voice-type-option');
+                    const premiumLabel = premiumRadio?.closest('.voice-type-option');
+
+                    if (standardRadio) {
+                        standardRadio.disabled = true;
+                        if (standardLabel) {
+                            standardLabel.style.opacity = '0.5';
+                            standardLabel.style.cursor = 'not-allowed';
+                            standardLabel.title = 'Google Cloud TTS não está disponível no momento';
+                        }
+                    }
+
+                    if (premiumRadio) {
+                        premiumRadio.disabled = true;
+                        if (premiumLabel) {
+                            premiumLabel.style.opacity = '0.5';
+                            premiumLabel.style.cursor = 'not-allowed';
+                            premiumLabel.title = 'Google Cloud TTS não está disponível no momento';
+                        }
+                    }
+
+                    // If user had tier 1 or 2 selected, force fallback to tier 0 (Free)
+                    if (currentSettings.eva_voice_premium >= 1) {
+                        console.log('[EVA Settings] Forcing fallback to Free tier (browser voice)');
+                        currentSettings.eva_voice_premium = 0;
+
+                        const freeRadio = container.querySelector('input[name="eva_voice_premium"][value="0"]');
+                        if (freeRadio) {
+                            freeRadio.checked = true;
+                            updateVoiceTypeBorders();
+                        }
+
+                        // Auto-save fallback
+                        try {
+                            await fetch(`${API_BASE_URL}/settings`, {
+                                method: 'PATCH',
+                                headers: getHeaders(),
+                                body: JSON.stringify({
+                                    setting: 'eva_voice_premium',
+                                    value: 0
+                                })
+                            });
+                            showToast('⚠️ Voz alterada para Gratuita (TTS não disponível)', 'warning');
+                        } catch (error) {
+                            console.error('[EVA Settings] Failed to save fallback:', error);
+                        }
+                    }
+                } else {
+                    console.log('[EVA Settings] Google Cloud TTS is available');
+                }
+            } catch (error) {
+                console.error('[EVA Settings] Failed to check TTS status:', error);
+            }
+        })();
+
         // Auto-save voice type
         let voiceTypeSaveTimer = null;
         voiceTypeRadios.forEach(radio => {

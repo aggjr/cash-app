@@ -56,6 +56,22 @@ if (textToSpeech) {
 }
 
 /**
+ * GET /api/eva/tts-status
+ * Check if Google Cloud TTS is available
+ */
+router.get('/status', (req, res) => {
+    res.json({
+        available: !!ttsClient,
+        moduleLoaded: !!textToSpeech,
+        message: ttsClient
+            ? 'Google Cloud TTS is available'
+            : textToSpeech
+                ? 'Google Cloud TTS module loaded but credentials not configured'
+                : 'Google Cloud TTS module not installed'
+    });
+});
+
+/**
  * POST /api/eva/synthesize
  * Synthesize speech using Google Cloud TTS
  * 
