@@ -443,11 +443,14 @@ export const AIConsultant = () => {
                     }
                 }
 
-                // FIX: If we have text and stopped essentially (not restarting), SEND IT!
-                if (accumulatedTranscript && accumulatedTranscript.trim().length > 0) {
-                    console.log('[SPEECH REC] Auto-sending accumulated transcript on end...');
-                    input.value = accumulatedTranscript.trim();
-                    sendMessage(); // This will clear accumulatedTranscript in its logic or we clear it here
+                // FIX: If we have text (accumulated OR currently in input from interim), SEND IT!
+                // We prioritize accumulated, but fallback to input.value if user spoke short phrase that didn't finalize.
+                const textToSend = accumulatedTranscript.trim() || input.value.trim();
+
+                if (textToSend) {
+                    console.log('[SPEECH REC] Auto-sending on end:', textToSend);
+                    input.value = textToSend;
+                    sendMessage();
                     accumulatedTranscript = '';
                 }
 
@@ -501,18 +504,9 @@ export const AIConsultant = () => {
 
                 // Set 10-second silence timer
                 silenceTimer = setTimeout(() => {
-                    console.log('10s silence detected, auto-sending...');
+                    console.log('10s silence detected, stopping...');
                     if (evaSpeechRec) evaSpeechRec.stop();
-
-                    // Auto-send after silence
-                    setTimeout(() => {
-                        if (accumulatedTranscript.trim()) {
-                            input.value = accumulatedTranscript.trim();
-                            sendMessage();
-                            // Clear accumulated transcript for next voice input
-                            accumulatedTranscript = '';
-                        }
-                    }, 300);
+                    // Cleanup handled by onend
                 }, evaTimeout);  // Configurable timeout
             };
 
@@ -563,17 +557,8 @@ export const AIConsultant = () => {
 
                 if (isRecording) {
                     console.log('[MIC BTN] Stopping recording...');
-                    // Stop recording and send
+                    // Stop recording, onend will handle sending
                     if (evaSpeechRec) evaSpeechRec.stop();
-                    setTimeout(() => {
-                        if (accumulatedTranscript.trim()) {
-                            console.log('[MIC BTN] Sending transcript:', accumulatedTranscript);
-                            input.value = accumulatedTranscript.trim();
-                            sendMessage();
-                        } else {
-                            console.log('[MIC BTN] No transcript to send');
-                        }
-                    }, 300);
                 } else {
                     // Start recording
                     console.log('[MIC BTN] Starting recording...');

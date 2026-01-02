@@ -144,17 +144,20 @@ export const EvaTour = {
                 }
             }
 
-            // 6. EVA narration
+            // 6. EVA narration WITH SYNCHRONIZATION
             if (window.EVAConsultant) {
                 window.EVAConsultant.addMessage?.('ai', step.narration);
-                window.EVAConsultant.speak?.(step.narration);
+
+                // Wait for speech to complete
+                await this.speakAndWait(step.narration);
             }
 
             // 7. Update progress
             this.updateProgress(index + 1, this.steps.length);
 
-            // 8. Wait duration before next step
-            await this.wait(step.duration || 6000);
+            // 8. Wait additional duration if specified (for user to read/observe)
+            const additionalWait = step.duration || 2000; // Reduced default from 6000 to 2000
+            await this.wait(additionalWait);
 
             // 9. Next step
             if (this.isActive && !this.isPaused) {
@@ -381,6 +384,44 @@ export const EvaTour = {
                 progressText.textContent = `Etapa ${current} de ${total}`;
             }
         }
+    },
+
+    /**
+     * Speak text and wait for completion
+     */
+    async speakAndWait(text) {
+        return new Promise((resolve) => {
+            const user = JSON.parse(localStorage.getItem('user') || '{}');
+
+            // If voice is disabled, resolve immediately
+            if (!user?.eva_voice_enabled) {
+                console.log('[EVA Tour] Voice disabled, skipping speech');
+                resolve();
+                return;
+            }
+
+            // Call speak function
+            if (window.EVAConsultant?.speak) {
+                window.EVAConsultant.speak(text);
+            }
+
+            // Calculate estimated speech duration
+            // Average speaking rate: ~150 words per minute (2.5 words/second)
+            // Adjust for voice rate setting (0.5x to 1.5x speed)
+            const voiceRate = user?.eva_voice_rate !== undefined ? user.eva_voice_rate : 75;
+            const actualRate = 0.5 + (voiceRate / 100); // 0.5 to 1.5
+
+            const wordCount = text.split(/\s+/).length;
+            const baseTimeMs = (wordCount / 2.5) * 1000; // Base time at normal speed
+            const adjustedTimeMs = baseTimeMs / actualRate; // Adjust for speed
+
+            // Add buffer for TTS initialization and safety margin
+            const totalWaitMs = adjustedTimeMs + 1500;
+
+            console.log(`[EVA Tour] Speech duration estimate: ${Math.round(totalWaitMs)}ms (${wordCount} words, rate: ${actualRate.toFixed(2)}x)`);
+
+            setTimeout(resolve, totalWaitMs);
+        });
     },
 
     /**
