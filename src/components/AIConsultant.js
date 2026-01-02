@@ -36,6 +36,7 @@ export const AIConsultant = () => {
     var silenceTimer = null;
     var accumulatedTranscript = '';
     var evaTimeout = 2000; // Default 2s
+    var shouldRestart = false; // Flag for auto-restart
 
     // --- State Helpers ---
     const getUser = () => {
@@ -53,6 +54,21 @@ export const AIConsultant = () => {
             localStorage.setItem('user', JSON.stringify(user));
         }
     };
+
+    // --- MIGRATION: Force update legacy default speed (88) to new slower default (70) ---
+    (() => {
+        const u = getUser();
+        if (u && (!u.eva_voice_rate || u.eva_voice_rate == 88)) {
+            console.log('[AIConsultant] Migrating legacy voice rate 88 -> 70');
+            u.eva_voice_rate = 70;
+            updateLocalUser(u);
+            fetch(`${API_BASE_URL}/auth/update-preference`, {
+                method: 'PUT',
+                headers: getHeaders(),
+                body: JSON.stringify({ evaVoiceRate: 70 })
+            }).catch(e => console.error('Migration sync failed:', e));
+        }
+    })();
 
     // --- Voice Logic (TTS) ---
     // == TTS Function (MODIFIED TO SUPPORT VOICE TYPES & RATES) ==
@@ -410,7 +426,19 @@ export const AIConsultant = () => {
             };
 
             evaSpeechRec.onend = () => {
-                console.log('[SPEECH REC] onend fired! isRecording:', isRecording, 'accumulatedTranscript:', accumulatedTranscript);
+                console.log('[SPEECH REC] onend fired! isRecording:', isRecording, 'accumulatedTranscript:', accumulatedTranscript, 'shouldRestart:', shouldRestart);
+
+                // Auto-restart if needed (e.g. after no-speech error)
+                if (shouldRestart) {
+                    console.log('[SPEECH REC] Restarting recognition due to no-speech...');
+                    shouldRestart = false;
+                    try {
+                        evaSpeechRec.start();
+                        return; // Keep UI active
+                    } catch (e) {
+                        console.error('[SPEECH REC] Failed to restart:', e);
+                    }
+                }
 
                 isRecording = false;
                 isListening = false;
@@ -425,8 +453,6 @@ export const AIConsultant = () => {
                     clearTimeout(silenceTimer);
                     silenceTimer = null;
                 }
-
-                // DON'T clear accumulatedTranscript here - it's cleared after sendMessage
 
                 console.log('[SPEECH REC] onend completed, recording stopped');
             };
@@ -484,8 +510,11 @@ export const AIConsultant = () => {
 
                 // Don't stop recording for no-speech errors (normal during silence)
                 if (event.error === 'no-speech') {
-                    console.log('[SPEECH REC] no-speech error - this is normal, waiting for speech...');
-                    return; // Don't stop, keep listening
+                    console.log('[SPEECH REC] no-speech error - flagging for restart...');
+                    shouldRestart = true;
+                    // stop() -> triggers onend -> checks shouldRestart -> start()
+                    evaSpeechRec.stop();
+                    return;
                 }
 
                 // For other errors, log and stop
