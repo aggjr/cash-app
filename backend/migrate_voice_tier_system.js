@@ -29,11 +29,11 @@ async function migrateVoiceTierSystem() {
             return;
         }
 
-        // Modify column to support 0/1/2
+        // Modify column to support 0/1/2 with Premium as default
         await connection.query(`
             ALTER TABLE system_settings 
-            MODIFY COLUMN eva_voice_premium TINYINT(1) DEFAULT 0 
-            COMMENT '0=Free (browser), 1=Standard (Google), 2=Premium (Neural2)'
+            MODIFY COLUMN eva_voice_premium TINYINT(1) DEFAULT 2 
+            COMMENT '0=Free (browser), 1=Standard (Google), 2=Premium (Neural2) - Default: Premium'
         `);
 
         console.log('✅ Column eva_voice_premium updated to support 3 tiers (0/1/2)');

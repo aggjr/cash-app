@@ -101,23 +101,27 @@ export const AIConsultant = () => {
                 if (response.ok) {
                     const { audioContent, voiceName, tier: tierName } = await response.json();
 
-                    // Play audio with small delay to prevent first syllable cut
+                    // Play audio with dynamic delay to prevent first syllable cut
                     const audio = new Audio(`data:audio/mp3;base64,${audioContent}`);
+
+                    // Calculate delay based on speech rate (faster = longer delay needed)
+                    // Base delay: 150ms at 1x speed, increases with faster rates
+                    const delayMs = Math.max(150, Math.floor(150 * rate));
 
                     // Wait for audio to be ready
                     audio.addEventListener('canplaythrough', () => {
-                        // Small delay to prevent cutting first syllable
+                        // Delay proportional to speech rate
                         setTimeout(() => {
                             audio.play().catch(err => {
                                 console.error('[EVA Voice] Play failed:', err);
                             });
-                        }, 100);
+                        }, delayMs);
                     }, { once: true });
 
                     // Start loading audio
                     audio.load();
 
-                    console.log(`[EVA Voice] Using ${voiceName} (${tierName})`);
+                    console.log(`[EVA Voice] Using ${voiceName} (${tierName}), delay: ${delayMs}ms`);
                     return;
                 } else {
                     const error = await response.json();
@@ -419,8 +423,7 @@ export const AIConsultant = () => {
                     silenceTimer = null;
                 }
 
-                // Clear accumulated transcript to prevent next message from accumulating
-                accumulatedTranscript = '';
+                // DON'T clear accumulatedTranscript here - it's cleared after sendMessage
 
                 console.log('[SPEECH REC] onend completed, recording stopped');
             };
