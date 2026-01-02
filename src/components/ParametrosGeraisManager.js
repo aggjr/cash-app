@@ -588,48 +588,38 @@ export const ParametrosGeraisManager = (project) => {
 
                 <!-- Tipo de Voz -->
                 <div style="margin-bottom: 2rem;">
-                    <label style="display: block; font-weight: 500; margin-bottom: 0.75rem; color: var(--color-text);">
-                        🎙️ Tipo de Voz
+                    <label style="display: block; font-weight: 500; margin-bottom: 1rem; color: var(--color-text); font-size: 1.1rem;">
+                        🎙️ Qualidade da Voz da EVA
                     </label>
-                    <script>console.log('[DEBUG] Voice Type UI section is rendering!');</script>
                     
-                    <!-- Free Voice Option -->
-                    <div style="margin-bottom: 0.75rem;">
-                        <label style="display: flex; align-items: center; gap: 0.5rem; cursor: pointer; padding: 0.75rem; border: 2px solid #e5e7eb; border-radius: 8px; transition: all 0.2s;" class="voice-type-option">
-                            <input 
-                                type="radio" 
-                                name="eva_voice_premium" 
-                                value="0" 
-                                checked
-                    <div style="background: linear-gradient(135deg, #f5f7fa 0%, #c3cfe2 100%); padding: 20px; border-radius: 12px; margin-bottom: 20px;">
-                    <h3 style="margin: 0 0 20px 0; font-size: 1.2em; color: #333;">🎙️ Tipo de Voz</h3>
-                    
-                    <label class="voice-type-option" style="display: flex; align-items: center; padding: 15px; background: white; border: 2px solid #e5e7eb; border-radius: 8px; margin-bottom: 12px; cursor: pointer; transition: all 0.3s;">
-                        <input type="radio" name="eva_voice_premium" value="0" style="margin-right: 12px; width: 18px; height: 18px;">
+                    <!-- Free - Row 1 -->
+                    <label class="voice-type-option" style="display: flex; align-items: center; padding: 1rem; background: white; border: 2px solid #e5e7eb; border-radius: 8px; margin-bottom: 0.75rem; cursor: pointer; transition: all 0.3s;">
+                        <input type="radio" name="eva_voice_premium" value="0" style="margin-right: 1rem; width: 20px; height: 20px; cursor: pointer;">
                         <div style="flex: 1;">
                             <div style="font-weight: 600; color: #333; margin-bottom: 4px;">🆓 Voz Gratuita</div>
                             <small style="color: #666;">Sintetizador do navegador (grátis)</small>
                         </div>
                     </label>
                     
-                    <label class="voice-type-option" style="display: flex; align-items: center; padding: 15px; background: white; border: 2px solid #e5e7eb; border-radius: 8px; margin-bottom: 12px; cursor: pointer; transition: all 0.3s;">
-                        <input type="radio" name="eva_voice_premium" value="1" style="margin-right: 12px; width: 18px; height: 18px;">
+                    <!-- Standard - Row 2 -->
+                    <label class="voice-type-option" style="display: flex; align-items: center; padding: 1rem; background: white; border: 2px solid #e5e7eb; border-radius: 8px; margin-bottom: 0.75rem; cursor: pointer; transition: all 0.3s;">
+                        <input type="radio" name="eva_voice_premium" value="1" style="margin-right: 1rem; width: 20px; height: 20px; cursor: pointer;">
                         <div style="flex: 1;">
                             <div style="font-weight: 600; color: #333; margin-bottom: 4px;">📢 Voz Standard</div>
                             <small style="color: #666;">Google TTS Standard (sempre grátis - 4M chars/mês)</small>
                         </div>
                     </label>
                     
-                    <label class="voice-type-option" style="display: flex; align-items: center; padding: 15px; background: white; border: 2px solid #e5e7eb; border-radius: 8px; cursor: pointer; transition: all 0.3s;">
-                        <input type="radio" name="eva_voice_premium" value="2" style="margin-right: 12px; width: 18px; height: 18px;">
+                    <!-- Premium - Row 3 -->
+                    <label class="voice-type-option" style="display: flex; align-items: center; padding: 1rem; background: white; border: 2px solid #e5e7eb; border-radius: 8px; margin-bottom: 1rem; cursor: pointer; transition: all 0.3s;">
+                        <input type="radio" name="eva_voice_premium" value="2" style="margin-right: 1rem; width: 20px; height: 20px; cursor: pointer;">
                         <div style="flex: 1;">
                             <div style="font-weight: 600; color: #333; margin-bottom: 4px;">🎤 Voz Premium</div>
                             <small style="color: #666;">Google TTS Neural2 (qualidade máxima - grátis 1º ano)</small>
                         </div>
                     </label>
-                </div>
 
-                    <!-- Gender selection (for both Free and Premium) -->
+                    <!-- Gender selection -->
                     <div style="margin-top: 1.5rem; padding: 1rem; background: rgba(37, 99, 235, 0.05); border-radius: 8px; border: 1px solid rgba(37, 99, 235, 0.2);">
                         <label style="display: block; font-weight: 500; margin-bottom: 0.75rem; color: var(--color-text); font-size: 0.95rem;">
                             👤 Gênero da Voz:
@@ -658,7 +648,7 @@ export const ParametrosGeraisManager = (project) => {
                     </div>
 
                     <small style="display: block; margin-top: 0.75rem; color: var(--color-text-muted); line-height: 1.5;">
-                        A voz natural oferece qualidade superior e sotaque brasileiro autêntico.
+                        A voz Premium oferece qualidade superior e sotaque brasileiro autêntico.
                     </small>
                 </div>
 
