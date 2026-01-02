@@ -12,45 +12,50 @@ async function migrate() {
 
     try {
         // Add eva_context to projects table
-        console.log('Adding eva_context column to projects...');
-        await db.query(`
-            ALTER TABLE projects 
-            ADD COLUMN IF NOT EXISTS eva_context JSONB DEFAULT '{}'::jsonb
-        `);
+        console.log('Checking projects table for eva_context column...');
+        const [projColumns] = await db.query(`
+            SELECT COLUMN_NAME 
+            FROM INFORMATION_SCHEMA.COLUMNS 
+            WHERE TABLE_SCHEMA = ? AND TABLE_NAME = 'projects' AND COLUMN_NAME = 'eva_context'
+        `, [process.env.DB_NAME]);
 
-        // Add GIN index for efficient JSONB queries
-        await db.query(`
-            CREATE INDEX IF NOT EXISTS idx_projects_eva_context 
-            ON projects USING GIN (eva_context)
-        `);
-
-        console.log('✅ projects.eva_context added');
+        if (projColumns.length === 0) {
+            console.log('Adding eva_context column to projects...');
+            await db.query(`ALTER TABLE projects ADD COLUMN eva_context JSON`);
+            console.log('✅ projects.eva_context added');
+        } else {
+            console.log('ℹ️ projects.eva_context already exists');
+        }
 
         // Add eva_preferences to users table
-        console.log('Adding eva_preferences column to users...');
-        await db.query(`
-            ALTER TABLE users 
-            ADD COLUMN IF NOT EXISTS eva_preferences JSONB DEFAULT '{}'::jsonb
-        `);
+        console.log('Checking users table for eva_preferences column...');
+        const [userColumns] = await db.query(`
+            SELECT COLUMN_NAME 
+            FROM INFORMATION_SCHEMA.COLUMNS 
+            WHERE TABLE_SCHEMA = ? AND TABLE_NAME = 'users' AND COLUMN_NAME = 'eva_preferences'
+        `, [process.env.DB_NAME]);
 
-        // Add GIN index for efficient JSONB queries
-        await db.query(`
-            CREATE INDEX IF NOT EXISTS idx_users_eva_preferences 
-            ON users USING GIN (eva_preferences)
-        `);
+        if (userColumns.length === 0) {
+            console.log('Adding eva_preferences column to users...');
+            await db.query(`ALTER TABLE users ADD COLUMN eva_preferences JSON`);
+            console.log('✅ users.eva_preferences added');
+        } else {
+            console.log('ℹ️ users.eva_preferences already exists');
+        }
 
-        console.log('✅ users.eva_preferences added');
-
-        // Set default context for existing projects (example)
+        // Set default context for existing projects (MySQL compatible JSON update)
+        // Note: JSON_OBJECT is MySQL syntax, jsonb_build_object is Postgres
         console.log('Setting default context for existing projects...');
+
+        // We handle null/empty check safely
         await db.query(`
             UPDATE projects 
-            SET eva_context = jsonb_build_object(
+            SET eva_context = JSON_OBJECT(
                 'business_type', 'general',
                 'tone', 'formal',
                 'custom_instructions', ''
             )
-            WHERE eva_context = '{}'::jsonb OR eva_context IS NULL
+            WHERE eva_context IS NULL 
         `);
 
         console.log('✅ Default context set for existing projects');
