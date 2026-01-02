@@ -16,4 +16,7 @@ router.post('/change-password', auth, authController.changePassword);
 // Update user preference (auth required)
 router.put('/update-preference', auth, authController.updatePreference);
 
+//Detect gender from name using LLM (auth required)
+router.post('/detect-gender', auth, authController.detectGender);
+
 module.exports = router;

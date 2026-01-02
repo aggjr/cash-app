@@ -146,6 +146,7 @@ exports.login = async (req, res, next) => {
                 u.email,
                 u.is_active,
                 u.preferred_name,
+                u.gender,
                 u.eva_introduced,
                 u.eva_voice_enabled,
                 pu.password,
@@ -195,6 +196,7 @@ exports.login = async (req, res, next) => {
                 id: user.id,
                 name: user.name,
                 preferred_name: user.preferred_name,
+                gender: user.gender,
                 eva_introduced: user.eva_introduced,
                 eva_voice_enabled: user.eva_voice_enabled,
                 email: user.email,
@@ -261,7 +263,7 @@ exports.changePassword = async (req, res, next) => {
 
 exports.updatePreference = async (req, res, next) => {
     try {
-        const { preferredName, evaIntroduced, evaVoiceEnabled } = req.body;
+        const { preferredName, evaIntroduced, evaVoiceEnabled, gender } = req.body;
         const userId = req.user.id;
 
         // Build dynamic update query based on provided fields
@@ -283,6 +285,11 @@ exports.updatePreference = async (req, res, next) => {
             values.push(evaVoiceEnabled);
         }
 
+        if (gender !== undefined) {
+            updates.push('gender = ?');
+            values.push(gender);
+        }
+
         if (updates.length === 0) {
             throw new AppError('VAL-002', 'Nenhuma preferência fornecida');
         }
@@ -296,13 +303,34 @@ exports.updatePreference = async (req, res, next) => {
 
         // Fetch updated user data to return
         const [updatedUser] = await db.query(
-            'SELECT preferred_name, eva_introduced, eva_voice_enabled FROM users WHERE id = ?',
+            'SELECT preferred_name, eva_introduced, eva_voice_enabled, gender FROM users WHERE id = ?',
             [userId]
         );
 
         res.json({
             message: 'Preferências atualizadas com sucesso',
             user: updatedUser[0]
+        });
+    } catch (error) {
+        next(error);
+    }
+};
+
+// Detect gender from name using LLM
+exports.detectGender = async (req, res, next) => {
+    try {
+        const { name } = req.body;
+
+        if (!name) {
+            throw new AppError('VAL-002', 'Nome é obrigatório');
+        }
+
+        const { detectGenderFromName } = require('../utils/genderDetection');
+        const gender = await detectGenderFromName(name);
+
+        res.json({
+            gender,
+            message: gender ? 'Gênero detectado com sucesso' : 'Não foi possível detectar o gênero'
         });
     } catch (error) {
         next(error);

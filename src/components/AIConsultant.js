@@ -790,18 +790,34 @@ export const AIConsultant = () => {
         try {
             const user = getUser();
 
-            // Detect gender
-            const detectGender = (name) => {
-                if (!name) return 'M';
-                const lastChar = name.toLowerCase().slice(-1);
-                const lastTwo = name.toLowerCase().slice(-2);
-                const femaleEndings = ['a', 'as'];
-                const maleEndings = ['o', 'os', 'el', 'eu', 'au'];
-                if (femaleEndings.includes(lastChar) && !maleEndings.includes(lastTwo)) {
-                    return 'F';
+            // Detect gender using LLM
+            let detectedGender = user?.gender || 'M'; // Default to M if not set
+
+            if (!user?.gender && user?.name) {
+                try {
+                    const genderResponse = await fetch(`${API_BASE_URL}/auth/detect-gender`, {
+                        method: 'POST',
+                        headers: getHeaders(),
+                        body: JSON.stringify({ name: user.name })
+                    });
+
+                    if (genderResponse.ok) {
+                        const { gender } = await genderResponse.json();
+                        if (gender) {
+                            detectedGender = gender;
+                            // Save detected gender to user profile
+                            await fetch(`${API_BASE_URL}/auth/update-preference`, {
+                                method: 'PUT',
+                                headers: getHeaders(),
+                                body: JSON.stringify({ gender })
+                            });
+                            console.log('[EVA] Gender detected and saved:', gender);
+                        }
+                    }
+                } catch (error) {
+                    console.error('[EVA] Gender detection failed, using default:', error);
                 }
-                return 'M';
-            };
+            }
 
             const response = await fetch(`${API_BASE_URL}/eva/chat`, {
                 method: 'POST',
@@ -813,9 +829,9 @@ export const AIConsultant = () => {
                         text: msg.text
                     })),
                     context: {
-                        gender: detectGender(user?.name),
+                        gender: detectedGender,
                         userName: user?.name,
-                        suggestedName: getSuggestedName(user?.name, detectGender(user?.name))
+                        suggestedName: getSuggestedName(user?.name, detectedGender)
                     },
                     isIntroduction: true
                 })
