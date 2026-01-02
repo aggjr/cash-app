@@ -1,13 +1,19 @@
 import { Dialogs } from './Dialogs.js';
 import { getApiBaseUrl } from '../utils/apiConfig.js';
+import { TabPanel } from './TabPanel.js';
 
 export const ParametrosGeraisManager = (project) => {
+    // Create main wrapper for tabs
+    const wrapper = document.createElement('div');
+    wrapper.style.padding = '2rem';
+    wrapper.style.margin = '2rem';
+    wrapper.style.maxWidth = '900px';
+    wrapper.style.height = 'calc(100vh - 200px)';
+
+    // Create container for "Geral" tab content
     const container = document.createElement('div');
     container.className = 'glass-panel';
     const API_BASE_URL = getApiBaseUrl();
-    container.style.padding = '2rem';
-    container.style.margin = '2rem';
-    container.style.maxWidth = '800px';
     container.style.display = 'flex';
     container.style.flexDirection = 'column';
 
@@ -1212,5 +1218,41 @@ export const ParametrosGeraisManager = (project) => {
 
     loadSettings();
 
-    return container;
+    // Create EVA tab content (placeholder for now)
+    const evaTabContent = () => {
+        const evaContainer = document.createElement('div');
+        evaContainer.innerHTML = `
+            <h2 style="margin-bottom: 1.5rem; color: var(--color-text-dark); font-size: 1.5rem;">
+                🤖 Configurações da IA EVA
+            </h2>
+            <p style="color: #6b7280; margin-bottom: 2rem;">
+                Personalize o comportamento e as preferências da assistente virtual EVA.
+            </p>
+            <div style="background: #f9fafb; padding: 2rem; border-radius: 8px; text-align: center;">
+                <p style="color: #9ca3af; font-size: 0.95rem;">
+                    ⚙️ Configurações avançadas da EVA em desenvolvimento...
+                </p>
+            </div>
+        `;
+        return evaContainer;
+    };
+
+    // Create TabPanel
+    const tabPanel = TabPanel([
+        {
+            label: 'Geral',
+            icon: '⚙️',
+            content: container
+        },
+        {
+            label: 'IA EVA',
+            icon: '🤖',
+            content: evaTabContent
+        }
+    ], {
+        defaultTab: 0
+    });
+
+    wrapper.appendChild(tabPanel.element);
+    return wrapper;
 };

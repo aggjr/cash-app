@@ -108,8 +108,10 @@ export const EvaNavigationIndicator = {
                     // Add arrow to menu item (will target label internally)
                     this.addArrowIndicator(activeItem);
 
-                    // Highlight menu item ROW
+                    // Highlight menu item ROW - store original background
+                    activeItem.dataset.evaOriginalBg = activeItem.style.backgroundColor || '';
                     activeItem.style.backgroundColor = `${INDICATOR_COLOR}20`;
+                    this.activeIndicators.push({ element: activeItem, type: 'background' });
 
                     // Find and mark parent items (for submenus)
                     // Structure: .menu-item-wrapper > .submenu > .menu-item-wrapper > .menu-item
@@ -124,7 +126,9 @@ export const EvaNavigationIndicator = {
                         if (parentItem && parentItem !== activeItem) {
                             console.log('[EVA Nav] Found parent menu item:', parentItem.querySelector('.menu-label')?.textContent);
                             this.addArrowIndicator(parentItem);
+                            parentItem.dataset.evaOriginalBg = parentItem.style.backgroundColor || '';
                             parentItem.style.backgroundColor = `${INDICATOR_COLOR}15`;
+                            this.activeIndicators.push({ element: parentItem, type: 'background' });
                             // Expand submenu if needed? usually handled by click but we just highlight
                             parentSubmenu.style.display = 'block';
                         }
@@ -199,7 +203,13 @@ export const EvaNavigationIndicator = {
                     delete element.dataset.evaOriginalBorder;
                 }
 
-                // Remove background colors
+                // Restore background colors
+                if (type === 'background' && element.dataset.evaOriginalBg !== undefined) {
+                    element.style.backgroundColor = element.dataset.evaOriginalBg;
+                    delete element.dataset.evaOriginalBg;
+                }
+
+                // Legacy cleanup for any remaining colored backgrounds
                 if (element.style.backgroundColor?.includes(INDICATOR_COLOR)) {
                     element.style.backgroundColor = '';
                 }
