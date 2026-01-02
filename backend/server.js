@@ -137,6 +137,7 @@ const migratePreferredName = require('./migrate_add_preferred_name');
 const migrateEvaPreferences = require('./migrate-eva-user-preferences');
 const migrateEvaVoiceRate = require('./migrate_add_eva_voice_rate');
 const migrateAddGenderColumn = require('./migrate_add_gender_column');
+const migrateFixVoiceRate = require('./migrations/migrate_fix_voice_rate');
 
 
 loadErrorCatalog()
@@ -165,8 +166,10 @@ loadErrorCatalog()
     .then(() => migrateCreateAuditLogs())
     .then(() => migrateLoans())
     .then(() => migratePreferredName())
+
     .then(() => migrateEvaPreferences())
     .then(() => migrateEvaVoiceRate())
+    .then(() => migrateFixVoiceRate()) // NEW: Force reset of high voice rates to 50
     .then(() => {
         startServer();
     })

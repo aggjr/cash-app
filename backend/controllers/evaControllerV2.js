@@ -221,7 +221,7 @@ const operate = async (req, res) => {
 Sua função é traduzir a intenção do usuário em AÇÕES JSON para o sistema.
 
 CONFIGURAÇÕES ATUAIS DO USUÁRIO:
-- Velocidade da voz: ${currentVoiceRate}% (base 88% = normal)
+- Velocidade da voz: ${currentVoiceRate} (Escala: 0=Muito Lento, 50=Normal, 100=Muito Rápido)
 - Gênero da voz: ${currentVoiceGender === 'M' ? 'Masculina' : 'Feminina'}
 - Áudio: ${currentVoiceEnabled ? 'Ativado' : 'Desativado'}
 
@@ -247,14 +247,13 @@ INSTRUÇÕES:
    
 **IMPORTANTE:** Se o usuário fizer uma PERGUNTA sobre dados visíveis na tela, use os DADOS VISÍVEIS acima para responder contextualmente.
 
-**AJUSTES DE VELOCIDADE** - Cálculos percentuais RELATIVOS ao valor atual (${currentVoiceRate}%):
-- "mais rápido" / "acelera" → +10% = ${Math.round(currentVoiceRate * 1.10)}%
-- "muito mais rápido" → +30% = ${Math.round(currentVoiceRate * 1.30)}%
-- "só um pouquinho mais rápido" → +2% = ${Math.round(currentVoiceRate * 1.02)}%
-- "mais devagar" / "desacelera" → -5% = ${Math.round(currentVoiceRate * 0.95)}%
-- "muito mais devagar" → -15% = ${Math.round(currentVoiceRate * 0.85)}%
-- "só um pouquinho mais devagar" → -2% = ${Math.round(currentVoiceRate * 0.98)}%
-- "velocidade normal" → volta para 88%
+**AJUSTES DE VELOCIDADE** - Escala Linear (0 a 100), onde 50 é NORMAL:
+- "mais rápido" / "acelera" → Soma +10 (Ex: ${currentVoiceRate} -> ${Math.min(100, currentVoiceRate + 10)})
+- "muito mais rápido" → Soma +25 (Ex: ${currentVoiceRate} -> ${Math.min(100, currentVoiceRate + 25)})
+- "só um pouquinho mais rápido" → Soma +5 (Ex: ${currentVoiceRate} -> ${Math.min(100, currentVoiceRate + 5)})
+- "mais devagar" / "desacelera" → Subtrai -10 (Ex: ${currentVoiceRate} -> ${Math.max(0, currentVoiceRate - 10)})
+- "muito mais devagar" → Subtrai -25 (Ex: ${currentVoiceRate} -> ${Math.max(0, currentVoiceRate - 25)})
+- "velocidade normal" → Define para 50
 
 FORMATO DE RESPOSTA (JSON OBRIGATÓRIO):
 Retorne APENAS um objeto JSON válido.
@@ -277,13 +276,16 @@ User: "Mostre o sistema" / "Apresente as telas" / "Conhecer funcionalidades"
 JSON: { "action": "START_TOUR", "mode": "full", "message": "Com prazer! Posso mostrar:\n1 - Tour rápido (2-3 min)\n2 - Tour detalhado (10-15 min)\n\nDigite 1 ou 2." }
 
 User: "Pode falar mais rápido?"
-JSON: { "action": "SET_VOICE_RATE", "value": ${Math.round(currentVoiceRate * 1.10)}, "message": "Claro! Aumentando velocidade em 10%. 🚀" }
+JSON: { "action": "SET_VOICE_RATE", "value": ${Math.min(100, currentVoiceRate + 15)}, "message": "Claro! Aumentando velocidade (+15). 🚀" }
 
 User: "Muito mais rápido ainda"
-JSON: { "action": "SET_VOICE_RATE", "value": ${Math.round(currentVoiceRate * 1.30)}, "message": "Entendido! Bem mais rápido agora (+30%)." }
+JSON: { "action": "SET_VOICE_RATE", "value": ${Math.min(100, currentVoiceRate + 30)}, "message": "Entendido! Bem mais rápido agora (+30)." }
 
-User: "Volta um pouquinho"
-JSON: { "action": "SET_VOICE_RATE", "value": ${Math.round(currentVoiceRate * 0.98)}, "message": "OK! Diminuindo levemente (-2%)." }
+User: "Volta um pouquinho/Mais devagar"
+JSON: { "action": "SET_VOICE_RATE", "value": ${Math.max(0, currentVoiceRate - 10)}, "message": "OK! Diminuindo levemente (-10)." }
+
+User: "Fale normal"
+JSON: { "action": "SET_VOICE_RATE", "value": 50, "message": "Voltando para velocidade normal. 👍" }
 
 User: "Prefiro voz masculina"
 JSON: { "action": "SET_VOICE_GENDER", "isMale": true, "message": "Perfeito! Mudando para voz masculina." }

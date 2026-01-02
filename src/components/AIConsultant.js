@@ -58,14 +58,14 @@ export const AIConsultant = () => {
     // --- MIGRATION: Force update legacy default speed (88) to new slower default (70) ---
     (() => {
         const u = getUser();
-        if (u && (!u.eva_voice_rate || u.eva_voice_rate == 88)) {
-            console.log('[AIConsultant] Migrating legacy voice rate 88 -> 70');
-            u.eva_voice_rate = 70;
+        if (u && (!u.eva_voice_rate || u.eva_voice_rate > 80)) {
+            console.log('[AIConsultant] Migrating HIGH legacy voice rate (>80) -> 50 (NORMAL)');
+            u.eva_voice_rate = 50;
             updateLocalUser(u);
             fetch(`${API_BASE_URL}/auth/update-preference`, {
                 method: 'PUT',
                 headers: getHeaders(),
-                body: JSON.stringify({ evaVoiceRate: 70 })
+                body: JSON.stringify({ evaVoiceRate: 50 })
             }).catch(e => console.error('Migration sync failed:', e));
         }
     })();
@@ -85,11 +85,12 @@ export const AIConsultant = () => {
         utterance.lang = 'pt-BR';
 
         // Load voice rate from user settings (eva_voice_rate field in DB)
-        const rateAdjustment = user?.eva_voice_rate !== undefined ? user.eva_voice_rate : 88;
+        const rateAdjustment = user?.eva_voice_rate !== undefined ? user.eva_voice_rate : 50;
         window.evaVoiceRateAdjustment = rateAdjustment; // Update global
 
-        // Apply voice rate: base 1.30 * (1 + adjustment/100)
-        utterance.rate = 1.30 * (1 + rateAdjustment / 100);
+        // Apply voice rate: Linear scale from 0.5 to 1.5 (Centering at 50 = 1.0)
+        // 0 -> 0.5x, 50 -> 1.0x, 100 -> 1.5x
+        utterance.rate = 0.5 + (rateAdjustment / 100);
         console.log('[EVA Voice] Rate adjustment from DB:', rateAdjustment, '-> Final rate:', utterance.rate);
 
         const voices = window.speechSynthesis.getVoices();

@@ -69,7 +69,7 @@ export const ParametrosGeraisManager = (project) => {
                 numero_dias: settings.numero_dias,
                 tempo_minutos_liberacao: settings.tempo_minutos_liberacao,
                 eva_timeout: settings.eva_timeout || 3, // Default 3s
-                eva_voice_rate: settings.eva_voice_rate || 88, // Default 88 = 2.08x speed
+                eva_voice_rate: settings.eva_voice_rate || 50, // Default 50 = Normal (1.0x)
                 eva_voice_premium: settings.eva_voice_premium || 0, // Default 0 = free
                 eva_voice_male: settings.eva_voice_male || 0 // Default 0 = female
             };
@@ -845,8 +845,8 @@ export const ParametrosGeraisManager = (project) => {
         let voiceSaveTimer = null;
 
         const updateVoiceDisplay = (value) => {
-            // Formula: voice_rate = 1.30 * (1 + value/100)
-            const rate = 1.30 * (1 + value / 100);
+            // Formula: 0.5 + (value/100) -> 50 = 1.0x
+            const rate = 0.5 + (value / 100);
             voiceDisplay.textContent = rate.toFixed(2) + 'x';
 
             // Move display above slider position
@@ -1091,7 +1091,8 @@ export const ParametrosGeraisManager = (project) => {
 
         // Helper function to calculate speech rate
         const calculateSpeechRate = (value) => {
-            return 1.30 * (1 + value / 100);
+            // Linear scale: 0.5 to 1.5
+            return 0.5 + (value / 100);
         };
 
         // Test voice speed button
@@ -1102,7 +1103,7 @@ export const ParametrosGeraisManager = (project) => {
                 window.speechSynthesis.cancel();
 
                 // Get current settings
-                const rate = calculateSpeechRate(currentSettings.eva_voice_rate || 88);
+                const rate = calculateSpeechRate(currentSettings.eva_voice_rate || 70);
                 const isMale = currentSettings.eva_voice_male === 1;
 
                 console.log('[Test Voice] Speaking at rate:', rate.toFixed(2), 'Gender:', isMale ? 'Male' : 'Female');
