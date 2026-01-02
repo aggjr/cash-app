@@ -222,9 +222,13 @@ export const EvaTour = {
         // Mark user as introduced
         if (window.EVAConsultant) {
             try {
+                const token = localStorage.getItem('token');
                 await fetch(`${window.API_BASE_URL}/auth/update-preference`, {
                     method: 'PUT',
-                    headers: window.getHeaders(),
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'Authorization': `Bearer ${token}`
+                    },
                     body: JSON.stringify({ evaIntroduced: 1 })
                 });
 
