@@ -74,33 +74,76 @@ export const AIConsultant = () => {
 
         const voices = window.speechSynthesis.getVoices();
 
-        // Priority: Female Portuguese voices
-        let ptVoice = voices.find(v =>
-            v.lang === 'pt-BR' &&
-            (v.name.toLowerCase().includes('female') ||
-                v.name.toLowerCase().includes('feminina') ||
-                v.name.toLowerCase().includes('luciana') ||
-                v.name.toLowerCase().includes('francisca'))
-        );
+        // Get gender preference from settings (default to female = 0)
+        const isMale = (window.evaVoiceMale === 1);
+        console.log('[EVA Voice] Gender preference:', isMale ? 'Male' : 'Female');
 
-        // Fallback: Any pt-BR voice that's NOT explicitly male
-        if (!ptVoice) {
-            ptVoice = voices.find(v =>
-                v.lang === 'pt-BR' &&
-                !v.name.toLowerCase().includes('male') &&
-                !v.name.toLowerCase().includes('masculino') &&
-                !v.name.toLowerCase().includes('ricardo')
-            );
+        // Known male and female voice names
+        const maleNames = ['daniel', 'ricardo', 'felipe', 'carlos', 'bruno', 'paulo', 'male'];
+        const femaleNames = ['maria', 'luciana', 'francisca', 'joana', 'ana', 'bruna', 'female', 'feminina'];
+
+        // Filter pt-BR voices
+        const ptBRVoices = voices.filter(v => v.lang === 'pt-BR' || v.lang.startsWith('pt'));
+        let ptVoice = null;
+
+        if (isMale) {
+            // Find male voice
+            ptVoice = ptBRVoices.find(v => {
+                const lowerName = v.name.toLowerCase();
+                return maleNames.some(name => lowerName.includes(name));
+            });
+
+            // Fallback: avoid female voices
+            if (!ptVoice) {
+                ptVoice = ptBRVoices.find(v => {
+                    const lowerName = v.name.toLowerCase();
+                    return !femaleNames.some(name => lowerName.includes(name));
+                });
+            }
+        } else {
+            // Prioritize younger/clearer female voices: Francisca, Joana, Bruna, then Maria/Luciana
+            const priorityFemaleNames = ['francisca', 'joana', 'bruna', 'ana'];
+            const secondaryFemaleNames = ['maria', 'luciana'];
+
+            // Try priority female voices first
+            ptVoice = ptBRVoices.find(v => {
+                const lowerName = v.name.toLowerCase();
+                return priorityFemaleNames.some(name => lowerName.includes(name));
+            });
+
+            // Try secondary female voices
+            if (!ptVoice) {
+                ptVoice = ptBRVoices.find(v => {
+                    const lowerName = v.name.toLowerCase();
+                    return secondaryFemaleNames.some(name => lowerName.includes(name));
+                });
+            }
+
+            // Try any female voice
+            if (!ptVoice) {
+                ptVoice = ptBRVoices.find(v => {
+                    const lowerName = v.name.toLowerCase();
+                    return femaleNames.some(name => lowerName.includes(name));
+                });
+            }
+
+            // Fallback: avoid male voices
+            if (!ptVoice) {
+                ptVoice = ptBRVoices.find(v => {
+                    const lowerName = v.name.toLowerCase();
+                    return !maleNames.some(name => lowerName.includes(name));
+                });
+            }
         }
 
-        // Last resort: Any pt-BR voice
-        if (!ptVoice) {
-            ptVoice = voices.find(v => v.lang === 'pt-BR');
+        // Ultimate fallback: first pt-BR voice
+        if (!ptVoice && ptBRVoices.length > 0) {
+            ptVoice = ptBRVoices[0];
         }
 
         if (ptVoice) {
             utterance.voice = ptVoice;
-            console.log('[EVA Voice] Using voice:', ptVoice.name, '(Female priority)');
+            console.log('[EVA Voice] Using voice:', ptVoice.name);
         } else {
             console.warn('[EVA Voice] No pt-BR voice found, using default');
         }
@@ -129,9 +172,20 @@ export const AIConsultant = () => {
                     window.evaVoiceRateAdjustment = settings.eva_voice_rate;
                     console.log('EVA Voice Rate Adjustment loaded:', settings.eva_voice_rate);
                 }
+
+                // Load voice gender and premium settings
+                if (settings.eva_voice_male !== undefined) {
+                    window.evaVoiceMale = settings.eva_voice_male;
+                    console.log('EVA Voice Gender loaded:', settings.eva_voice_male === 1 ? 'Male' : 'Female');
+                }
+
+                if (settings.eva_voice_premium !== undefined) {
+                    window.evaVoicePremium = settings.eva_voice_premium;
+                    console.log('EVA Voice Type loaded:', settings.eva_voice_premium === 1 ? 'Premium' : 'Free');
+                }
             }
-        } catch (e) {
-            console.error('Failed to load EVA settings:', e);
+        } catch (error) {
+            console.error('Failed to load EVA settings:', error);
         }
     };
 
