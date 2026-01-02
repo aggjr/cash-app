@@ -194,42 +194,7 @@ const operate = async (req, res) => {
             res.status(500).json({ error: 'Erro interno ao processar comando' });
         }
     };
-    JSON: { "action": "CLICK_ACTION", "selector": "#btn-save" } (Pegue o selector das ações locais)
-
-    User: "Pode fazer um tour do sistema?"
-    JSON: { "action": "START_TOUR", "mode": "full", "message": "Claro! Vou guiá-lo por todo o sistema. Escolha:\n1 - Visão Geral (2-3 min)\n2 - Tour Completo (10-15 min)" }
-
-    User: "Mostre o sistema" / "Apresente as telas" / "Conhecer funcionalidades"
-    JSON: { "action": "START_TOUR", "mode": "full", "message": "Com prazer! Posso mostrar:\n1 - Tour rápido (2-3 min)\n2 - Tour detalhado (10-15 min)\n\nDigite 1 ou 2." }
-
-    User: "Pode falar mais rápido?"
-    JSON: { "action": "SET_VOICE_RATE", "value": ${ Math.min(100, currentVoiceRate + 15) }, "message": "Claro! Aumentando velocidade (+15). 🚀" }
-
-    User: "Muito mais rápido ainda"
-    JSON: { "action": "SET_VOICE_RATE", "value": ${ Math.min(100, currentVoiceRate + 30) }, "message": "Entendido! Bem mais rápido agora (+30)." }
-
-    User: "Volta um pouquinho/Mais devagar"
-    JSON: { "action": "SET_VOICE_RATE", "value": ${ Math.max(0, currentVoiceRate - 10) }, "message": "OK! Diminuindo levemente (-10)." }
-
-    User: "Fale normal"
-    JSON: { "action": "SET_VOICE_RATE", "value": 50, "message": "Voltando para velocidade normal. 👍" }
-
-    User: "Grave essa velocidade como padrão" / "Salve essa configuração"
-    JSON: { "action": "REPLY", "message": "Pode deixar! Essa configuração já foi salva automaticamente no seu perfil. 😉" }
-
-    User: "Prefiro voz masculina"
-    JSON: { "action": "SET_VOICE_GENDER", "isMale": true, "message": "Perfeito! Mudando para voz masculina." }
-
-    User: "Desative o áudio"
-    JSON: { "action": "SET_VOICE_ENABLED", "enabled": false, "message": "Entendido! Responderei apenas com texto." }
-
-    User: "Quantos usuários estão na tabela?"(Com dados visíveis)
-    JSON: { "action": "REPLY", "message": "Há X usuários cadastrados, mostrando Y na tela." }
-
-    User: "Como faço um pix?"
-    JSON: { "action": "REPLY", "message": "Para fazer um pix, vá em Saídas e selecione o tipo PIX." }
-
-Se o usuário pedir para preencher algo que não existe na tela atual, responda com REPLY explicando o erro.`;
+    JSON: { "action": "REPLY", "message": "Se o usuário pedir para preencher algo que não existe na tela atual, responda com REPLY explicando o erro." } `;
 
         const messages = [
             { role: "system", content: systemPrompt },
