@@ -538,6 +538,25 @@ export const AIConsultant = () => {
                 micBtn.style.boxShadow = 'none';
             };
 
+            // Helper: Beep Sound
+            const playBeep = () => {
+                try {
+                    const AudioContext = window.AudioContext || window.webkitAudioContext;
+                    if (!AudioContext) return;
+                    const ctx = new AudioContext();
+                    const osc = ctx.createOscillator();
+                    const gain = ctx.createGain();
+                    osc.connect(gain);
+                    gain.connect(ctx.destination);
+                    osc.type = 'sine';
+                    osc.frequency.value = 880; // High beep
+                    gain.gain.value = 0.1;
+                    osc.start();
+                    gain.gain.exponentialRampToValueAtTime(0.00001, ctx.currentTime + 0.15);
+                    setTimeout(() => { osc.stop(); ctx.close(); }, 150);
+                } catch (e) { console.error('Beep failed', e); }
+            };
+
             // Toggle recording on click
             micBtn.onclick = () => {
                 console.log('[MIC BTN] Clicked! Current state:', { isRecording, evaSpeechRec: !!evaSpeechRec });
@@ -558,6 +577,13 @@ export const AIConsultant = () => {
                 } else {
                     // Start recording
                     console.log('[MIC BTN] Starting recording...');
+                    playBeep(); // Audio feedback immediately
+
+                    // Visual feedback "Preparing"
+                    micBtn.style.backgroundColor = '#FFF7ED'; // Orange tint
+                    micBtn.style.borderColor = '#F59E0B';
+                    input.placeholder = 'Iniciando microfone...';
+
                     try {
                         if (evaSpeechRec) {
                             evaSpeechRec.start();
@@ -567,6 +593,10 @@ export const AIConsultant = () => {
                         }
                     } catch (e) {
                         console.error('[MIC BTN] Error starting recognition:', e);
+                        // Reset UI if failed
+                        micBtn.style.backgroundColor = 'transparent';
+                        micBtn.style.borderColor = '#d1d5db';
+                        input.placeholder = 'Digite aqui...';
                     }
                 }
             };

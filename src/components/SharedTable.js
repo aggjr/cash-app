@@ -17,9 +17,12 @@ export class SharedTable {
         this.currentData = []; // Store current data for local distinct calculation
 
         // Selection State
-        this.enableSelection = !!container.dataset.enableSelection; // Passed via constructor options usually? 
-        // Wait, constructor arg "enableSelection" is better.
+        this.enableSelection = !!container.dataset.enableSelection;
+
+        // Initialize State
         this.selection = new Set();
+        this.activeFilters = {};
+        this.sortConfig = { key: null, direction: 'asc' };
     }
 
     // Allow updating options dynamically
