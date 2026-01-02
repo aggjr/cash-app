@@ -22,12 +22,12 @@ const chat = async (req, res, next) => {
         // 2. Project context (Level 2)
         // 3. Dynamic Business Profile (Inferred)
         const [userResult, projectResult] = await Promise.all([
-            db.query('SELECT * FROM users WHERE id = $1', [user.id]),
-            context.projectId ? db.query('SELECT * FROM projects WHERE id = $1', [context.projectId]) : Promise.resolve({ rows: [] })
+            db.query('SELECT * FROM users WHERE id = ?', [user.id]),
+            context.projectId ? db.query('SELECT * FROM projects WHERE id = ?', [context.projectId]) : Promise.resolve([[]])
         ]);
 
-        const userData = userResult.rows[0] || user;
-        const projectData = projectResult.rows[0] || {};
+        const userData = userResult[0][0] || user;
+        const projectData = projectResult[0][0] || {};
 
         // Build dynamic profile purely from transaction data (NEW)
         const dynamicProfile = await EvaContextBuilder.buildDynamicBusinessProfile(db, context.projectId);
@@ -109,7 +109,7 @@ const chat = async (req, res, next) => {
 
 const operate = async (req, res) => {
     try {
-        const { message, currentScreen, availableScreens, screenContext, userName, preferredName, userSettings, context } = req.body;
+        const { message, currentScreen, availableScreens, screenContext, userName, preferredName, userSettings, context, conversationHistory } = req.body;
         const user = req.user;
 
         console.log('[EVA Operate] Processing:', message);
@@ -159,11 +159,12 @@ const operate = async (req, res) => {
             dynamicProfile
         );
 
+        const history = conversationHistory || [];
         const messages = [
             { role: 'system', content: systemPrompt },
             ...history.map(msg => ({
-                role: msg.role === 'user' ? 'user' : 'assistant',
-                content: msg.content
+                role: msg.sender === 'user' ? 'user' : 'assistant', // Map sender to role
+                content: msg.text
             })),
             { role: 'user', content: message }
         ];
