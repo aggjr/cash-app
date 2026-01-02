@@ -872,11 +872,38 @@ export const AIConsultant = () => {
                 if (user && !user.eva_introduced) {
                     await startIntroductionFlow();
                 } else {
-                    // Standard greeting
-                    const preferredName = user?.preferred_name || user?.name || '';
-                    const greeting = `Olá, ${preferredName}. Em que posso auxiliar?`;
-                    addMessage('ai', greeting);
-                    speak(greeting);
+                    // Check for daily greeting (once per day)
+                    const today = new Date().toDateString();
+                    const lastGreeting = localStorage.getItem('eva_last_greeting');
+
+                    if (lastGreeting !== today) {
+                        // Send daily greeting based on time
+                        const hour = new Date().getHours();
+                        let timeGreeting;
+
+                        if (hour >= 5 && hour < 12) {
+                            timeGreeting = 'Bom dia';
+                        } else if (hour >= 12 && hour < 18) {
+                            timeGreeting = 'Boa tarde';
+                        } else {
+                            timeGreeting = 'Boa noite';
+                        }
+
+                        const preferredName = user?.preferred_name || user?.name || '';
+                        const greeting = `${timeGreeting}, ${preferredName}! 😊\n\nEstou aqui para ajudar com qualquer dúvida ou necessidade no uso do sistema. Como posso auxiliá-${user?.gender === 'M' ? 'lo' : 'la'} hoje?`;
+
+                        addMessage('ai', greeting);
+                        speak(greeting.replace(/😊/g, '').replace(/\n\n/g, ' '));
+
+                        // Mark greeting as sent for today
+                        localStorage.setItem('eva_last_greeting', today);
+                    } else {
+                        // Standard quick greeting (already greeted today)
+                        const preferredName = user?.preferred_name || user?.name || '';
+                        const greeting = `Olá, ${preferredName}. Em que posso auxiliar?`;
+                        addMessage('ai', greeting);
+                        speak(greeting);
+                    }
                 }
             } else {
                 // Just scroll to bottom
