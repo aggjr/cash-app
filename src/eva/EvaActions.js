@@ -15,15 +15,18 @@ export const EvaActions = {
                 if (window.cashApp && window.cashApp.navigate) {
                     window.cashApp.navigate(payload.target);
 
-                    // Highlight the full navigation path after navigation completes
+                    // Use persistent navigation indicators
                     setTimeout(() => {
-                        console.log('[EVA] Starting navigation path highlight...');
+                        console.log('[EVA] Starting persistent navigation indicators...');
                         try {
-                            EvaActions.highlightNavigationPath(payload.target);
+                            // Import and use new indicator system
+                            import('./EvaNavigationIndicator.js').then(module => {
+                                module.EvaNavigationIndicator.markNavigationPath(payload.target);
+                            });
                         } catch (error) {
-                            console.error('[EVA] Error highlighting path:', error);
+                            console.error('[EVA] Error showing indicators:', error);
                         }
-                    }, 800); // Increased wait time for DOM to settle
+                    }, 800); // Wait for navigation to complete
 
                     return { success: true, message: `Navegando para ${payload.target}` };
                 }
