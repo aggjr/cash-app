@@ -117,8 +117,8 @@ export const EvaNavigationIndicator = {
                     console.warn('[EVA Nav] Menu item not found for:', screenId);
                 }
 
-                // Highlight modal or main content
-                // Priority: .modal > .settings-panel > #main-content
+                // Highlight modal or main content area (more focused)
+                // Priority: .modal > .settings-panel > .content-wrapper > #main-content
                 let targetContainer = document.querySelector('.modal.show, .modal.visible, [role="dialog"]');
 
                 if (!targetContainer) {
@@ -126,11 +126,22 @@ export const EvaNavigationIndicator = {
                 }
 
                 if (!targetContainer) {
-                    targetContainer = document.querySelector('#main-content');
+                    // Look for more specific content areas before falling back to main-content
+                    targetContainer = document.querySelector('.content-wrapper, .main-panel, .screen-container');
+                }
+
+                if (!targetContainer) {
+                    // Try to find the actual content box, not the full screen
+                    const mainContent = document.querySelector('#main-content');
+                    if (mainContent) {
+                        // Try to find first child with substantive content
+                        const contentBox = mainContent.querySelector('.card, .panel, .table-container, .dashboard-container');
+                        targetContainer = contentBox || mainContent;
+                    }
                 }
 
                 if (targetContainer) {
-                    console.log('[EVA Nav] Highlighting container:', targetContainer.className);
+                    console.log('[EVA Nav] Highlighting container:', targetContainer.className || targetContainer.id);
                     this.addBorderHighlight(targetContainer);
                 } else {
                     console.warn('[EVA Nav] No container found to highlight');
