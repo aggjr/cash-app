@@ -84,7 +84,8 @@ export class SharedTable {
     }
 
     render(data) {
-        this.currentData = data;
+        // Sanitize data to remove any null/undefined entries which cause sort/render errors
+        this.currentData = Array.isArray(data) ? data.filter(item => item != null) : [];
 
         // Client Side Sort Fallback (if no server sort handler provided)
         if (!this.onSortChange && this.sortConfig.key) {
