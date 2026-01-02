@@ -960,10 +960,6 @@ Digite 1, 2 ou 3.`;
                 renderMessages();
                 input.focus();
             }
-        } else {
-            // Clear messages when closing chat to ensure greeting on next open
-            console.log('[EVA] Chat closed, clearing messages for next session');
-            messages.length = 0;
         }
     };
 
