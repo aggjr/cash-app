@@ -1,46 +1,59 @@
+```javascript
 const express = require('express');
-const textToSpeech = require('@google-cloud/text-to-speech');
 const router = express.Router();
 
-// Initialize Google Cloud TTS client
+// Try to load Google Cloud TTS (optional dependency)
+let textToSpeech = null;
 let ttsClient = null;
 
 try {
-    // Check if credentials are provided as JSON string in environment variable
-    if (process.env.GOOGLE_APPLICATION_CREDENTIALS_JSON) {
-        console.log('🔑 Loading Google Cloud credentials from GOOGLE_APPLICATION_CREDENTIALS_JSON...');
+    textToSpeech = require('@google-cloud/text-to-speech');
+    console.log('📦 Google Cloud TTS module loaded successfully');
+} catch (moduleError) {
+    console.warn('⚠️ Google Cloud TTS module not found');
+    console.warn('   Install with: npm install @google-cloud/text-to-speech');
+    console.warn('   Voice tiers 1 and 2 will not work until module is installed.');
+}
 
-        try {
-            const credentials = JSON.parse(process.env.GOOGLE_APPLICATION_CREDENTIALS_JSON);
-
-            ttsClient = new textToSpeech.TextToSpeechClient({
-                credentials: credentials
-            });
-
-            console.log('✅ Google Cloud TTS client initialized with JSON credentials');
-            console.log(`   Project: ${credentials.project_id}`);
-            console.log(`   Service Account: ${credentials.client_email}`);
-        } catch (parseError) {
-            console.error('❌ Failed to parse GOOGLE_APPLICATION_CREDENTIALS_JSON:', parseError.message);
-            throw parseError;
+// Initialize Google Cloud TTS client (if module loaded)
+if (textToSpeech) {
+    try {
+        // Check if credentials are provided as JSON string in environment variable
+        if (process.env.GOOGLE_APPLICATION_CREDENTIALS_JSON) {
+            console.log('🔑 Loading Google Cloud credentials from GOOGLE_APPLICATION_CREDENTIALS_JSON...');
+            
+            try {
+                const credentials = JSON.parse(process.env.GOOGLE_APPLICATION_CREDENTIALS_JSON);
+                
+                ttsClient = new textToSpeech.TextToSpeechClient({
+                    credentials: credentials
+                });
+                
+                console.log('✅ Google Cloud TTS client initialized with JSON credentials');
+                console.log(`   Project: ${ credentials.project_id } `);
+                console.log(`   Service Account: ${ credentials.client_email } `);
+            } catch (parseError) {
+                console.error('❌ Failed to parse GOOGLE_APPLICATION_CREDENTIALS_JSON:', parseError.message);
+                throw parseError;
+            }
+        } 
+        // Fallback: try file-based credentials (GOOGLE_APPLICATION_CREDENTIALS path)
+        else if (process.env.GOOGLE_APPLICATION_CREDENTIALS) {
+            console.log('🔑 Loading Google Cloud credentials from file:', process.env.GOOGLE_APPLICATION_CREDENTIALS);
+            ttsClient = new textToSpeech.TextToSpeechClient();
+            console.log('✅ Google Cloud TTS client initialized with file credentials');
         }
-    }
-    // Fallback: try file-based credentials (GOOGLE_APPLICATION_CREDENTIALS path)
-    else if (process.env.GOOGLE_APPLICATION_CREDENTIALS) {
-        console.log('🔑 Loading Google Cloud credentials from file:', process.env.GOOGLE_APPLICATION_CREDENTIALS);
-        ttsClient = new textToSpeech.TextToSpeechClient();
-        console.log('✅ Google Cloud TTS client initialized with file credentials');
-    }
-    // No credentials configured
-    else {
-        console.warn('⚠️ No Google Cloud credentials configured');
-        console.warn('   Set GOOGLE_APPLICATION_CREDENTIALS_JSON or GOOGLE_APPLICATION_CREDENTIALS');
+        // No credentials configured
+        else {
+            console.warn('⚠️ No Google Cloud credentials configured');
+            console.warn('   Set GOOGLE_APPLICATION_CREDENTIALS_JSON or GOOGLE_APPLICATION_CREDENTIALS');
+            console.warn('   Voice tiers 1 and 2 will not work.');
+        }
+    } catch (error) {
+        console.error('❌ Google Cloud TTS client failed to initialize:', error.message);
         console.warn('   Voice tiers 1 and 2 will not work.');
+        ttsClient = null;
     }
-} catch (error) {
-    console.error('❌ Google Cloud TTS client failed to initialize:', error.message);
-    console.warn('   Voice tiers 1 and 2 will not work.');
-    ttsClient = null;
 }
 
 /**
@@ -104,7 +117,7 @@ router.post('/synthesize', async (req, res) => {
 
         const tierName = tier === 2 ? 'Premium (Neural2)' : 'Standard';
         const gender = isMale ? 'Male' : 'Female';
-        console.log(`[TTS] Synthesized: "${text.substring(0, 50)}..." | ${voiceName} (${tierName}, ${gender}) | Rate: ${rate}`);
+        console.log(`[TTS] Synthesized: "${text.substring(0, 50)}..." | ${ voiceName } (${ tierName }, ${ gender }) | Rate: ${ rate } `);
 
         // Return audio as base64
         res.json({
