@@ -160,12 +160,56 @@ INSTRUÇÕES IMPORTANTES:
 
 const operate = async (req, res) => {
     try {
-        const { message, currentScreen, availableScreens } = req.body;
+        const { message, currentScreen, availableScreens, screenContext } = req.body;
         console.log('[EVA Operate] Processing:', message);
         console.log('[EVA Operate] Screen:', currentScreen?.id);
+        console.log('[EVA Operate] Has screen context:', !!screenContext);
 
         if (!message) {
             return res.status(400).json({ error: 'Mensagem e contexto são obrigatórios' });
+        }
+
+        // Format screen context if available
+        let screenContextText = '';
+        if (screenContext) {
+            screenContextText = `\nDADOS VISÍVEIS NA TELA ATUAL:\n`;
+            screenContextText += `Tela: ${screenContext.screen}\n`;
+            screenContextText += `Título: ${screenContext.pageTitle}\n\n`;
+
+            if (screenContext.summaries) {
+                screenContextText += `RESUMOS:\n`;
+                screenContext.summaries.forEach(s => {
+                    screenContextText += `- ${s.label}: ${s.value}\n`;
+                });
+                screenContextText += `\n`;
+            }
+
+            if (screenContext.tables) {
+                screenContextText += `TABELAS:\n`;
+                screenContext.tables.forEach((table, idx) => {
+                    screenContextText += `Tabela ${idx + 1}:\n`;
+                    screenContextText += `Colunas: ${table.headers.join(' | ')}\n`;
+                    screenContextText += `Total de ${table.totalRows} registros (mostrando ${table.rows.length})\n`;
+                    if (table.rows.length > 0) {
+                        screenContextText += `Primeiras linhas:\n`;
+                        table.rows.slice(0, 3).forEach((row, ridx) => {
+                            screenContextText += `  ${ridx + 1}: ${row.join(' | ')}\n`;
+                        });
+                    }
+                    screenContextText += `\n`;
+                });
+            }
+
+            if (screenContext.forms) {
+                screenContextText += `FORMULÁRIOS:\n`;
+                screenContext.forms.forEach((form, idx) => {
+                    screenContextText += `Form ${idx + 1}:\n`;
+                    form.fields.forEach(f => {
+                        screenContextText += `  - ${f.label}: ${f.value || '(vazio)'}\n`;
+                    });
+                    screenContextText += `\n`;
+                });
+            }
         }
 
         const systemPrompt = `Você é o "Córtex Motor" do sistema CASH.
@@ -177,6 +221,8 @@ ${JSON.stringify(availableScreens?.map(s => ({ id: s.id, name: s.name, keywords:
 CONTEXTO LOCAL (Tela atual):
 ${currentScreen ? JSON.stringify({ id: currentScreen.id, description: currentScreen.description, fields: currentScreen.fields, actions: currentScreen.actions }) : "Nenhuma tela aberta (Dashboard)"}
 
+${screenContextText}
+
 INSTRUÇÕES:
 1. Analise o comando do usuário.
 2. Decida a ação:
@@ -184,6 +230,8 @@ INSTRUÇÕES:
    - FILL_FORM: Se o usuário quer preencher campos na TELA ATUAL.
    - CLICK_ACTION: Se o usuário quer clicar em botões na TELA ATUAL (Salvar, Novo, Cancelar).
    - REPLY: Se for uma pergunta, dúvida ou se não for possível realizar a ação.
+   
+**IMPORTANTE:** Se o usuário fizer uma PERGUNTA sobre dados visíveis na tela, use os DADOS VISÍVEIS acima para responder contextualmente.
 
 FORMATO DE RESPOSTA (JSON OBRIGATÓRIO):
 Retorne APENAS um objeto JSON válido.
@@ -198,6 +246,9 @@ JSON: { "action": "FILL_FORM", "fields": { "income-valor": "500" } }
 
 User: "Salvar"
 JSON: { "action": "CLICK_ACTION", "selector": "#btn-save" } (Pegue o selector das ações locais)
+
+User: "Quantos usuários estão na tabela?" (Com dados visíveis)
+JSON: { "action": "REPLY", "message": "Há X usuários cadastrados, mostrando Y na tela." }
 
 User: "Como faço um pix?"
 JSON: { "action": "REPLY", "message": "Para fazer um pix, vá em Saídas e selecione o tipo PIX." }

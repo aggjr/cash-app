@@ -6,10 +6,21 @@ export const EvaService = {
             const token = localStorage.getItem('token');
             const API_BASE_URL = getApiBaseUrl();
 
+            // Extract screen context for contextual Q&A
+            let screenContext = null;
+            try {
+                const { ScreenContextExtractor } = await import('./ScreenContextExtractor.js');
+                screenContext = ScreenContextExtractor.extractFullContext();
+                console.log('[EvaService] Screen context extracted:', screenContext);
+            } catch (err) {
+                console.warn('[EvaService] Could not extract screen context:', err);
+            }
+
             console.log('[EvaService] Sending request to /eva/operate:', {
                 message: text,
                 currentScreen: context.currentScreen?.id || 'none',
-                screensCount: (context.availableScreens ? Object.values(context.availableScreens) : []).length
+                screensCount: (context.availableScreens ? Object.values(context.availableScreens) : []).length,
+                hasScreenContext: !!screenContext
             });
 
             const response = await fetch(`${API_BASE_URL}/eva/operate`, {
@@ -21,7 +32,8 @@ export const EvaService = {
                 body: JSON.stringify({
                     message: text,
                     currentScreen: context.currentScreen,
-                    availableScreens: context.availableScreens ? Object.values(context.availableScreens) : []
+                    availableScreens: context.availableScreens ? Object.values(context.availableScreens) : [],
+                    screenContext // NEW: Include extracted screen data
                 })
             });
 
