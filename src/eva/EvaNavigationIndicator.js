@@ -102,6 +102,9 @@ export const EvaNavigationIndicator = {
                 if (activeItem) {
                     console.log('[EVA Nav] Menu item found!', activeItem);
 
+                    // Scroll into view if needed
+                    activeItem.scrollIntoView({ behavior: 'smooth', block: 'center' });
+
                     // Add arrow to menu item (will target label internally)
                     this.addArrowIndicator(activeItem);
 

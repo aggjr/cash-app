@@ -245,7 +245,9 @@ export const EvaTour = {
         const msg = '🎉 Tour concluído! Agora você conhece todas as funcionalidades do CASH. Estarei sempre aqui para ajudar!';
         if (window.EVAConsultant) {
             window.EVAConsultant.addMessage?.('ai', msg);
-            window.EVAConsultant.speak?.(msg);
+            // Remove emojis for speech
+            const msgForSpeech = msg.replace(/[\u{1F300}-\u{1F9FF}]/gu, '').trim();
+            window.EVAConsultant.speak?.(msgForSpeech);
         }
     },
 

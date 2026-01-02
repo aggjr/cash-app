@@ -1253,8 +1253,14 @@ Digite 1, 2 ou 3.`;
                     return;
 
                 } else if (choice.includes('2') || /completo|guiado|full|detalhado/i.test(text)) {
-                    // Full tour
-                    addMessage('ai', 'Excelente escolha! Vou guiá-lo por todo o sistema em detalhes. Vamos lá!');
+                    // Full tour - detect gender for pronoun
+                    const user = getUser();
+                    const userName = user?.name || '';
+                    const lastChar = userName.toLowerCase().slice(-1);
+                    const isMale = lastChar === 'o' || !['a'].includes(lastChar);
+                    const pronoun = isMale ? 'guiá-lo' : 'guiá-la';
+
+                    addMessage('ai', `Excelente escolha! Vou ${pronoun} por todo o sistema em detalhes. Vamos lá!`);
 
                     // Mark as introduced before tour
                     await savePreferences({ evaIntroduced: 1 });
