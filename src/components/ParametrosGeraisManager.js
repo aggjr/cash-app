@@ -500,6 +500,41 @@ export const ParametrosGeraisManager = (project) => {
                             Duração da liberação temporária para editar datas antigas
                         </small>
                     </div>
+
+                    <!-- Separador -->
+                    <hr style="border: none; border-top: 1px solid var(--color-border-light); margin: 2rem 0;" />
+
+                    <!-- Botão de Liberação Temporária -->
+                    <div>
+                        <button 
+                            id="btn-activate-unlock"
+                            class="btn-unlock"
+                            style="
+                                width: 100%;
+                                padding: 1rem;
+                                background: var(--color-primary);
+                                color: white;
+                                border: none;
+                                border-radius: 8px;
+                                font-size: 1rem;
+                                font-weight: 600;
+                                cursor: pointer;
+                                transition: all 0.2s;
+                                display: flex;
+                                alignItems: center;
+                                justifyContent: center;
+                                gap: 0.5rem;
+                            "
+                            onmouseover="this.style.background='#1D4ED8'"
+                            onmouseout="this.style.background='var(--color-primary)'"
+                        >
+                            <span style="color: white; font-size: 1.1rem;">🔓</span> Liberar Edições Temporariamente
+                        </button>
+                        <div id="unlock-timer-display" style="display: none; margin-top: 0.75rem; text-align: center; font-size: 1.1rem;"></div>
+                        <small style="display: block; margin-top: 0.75rem; color: var(--color-text-muted); text-align: center;">
+                            Permite editar registros em qualquer data por tempo limitado
+                        </small>
+                    </div>
                 </div>
             </div>
 
