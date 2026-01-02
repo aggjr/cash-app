@@ -1,0 +1,336 @@
+/**
+ * EVA Guided Tour System
+ * Automatically navigates through system screens with narration and highlights
+ */
+
+import { EvaNavigationIndicator } from './EvaNavigationIndicator.js';
+import { EvaActions } from './EvaActions.js';
+
+export const EvaTour = {
+    currentStep: 0,
+    isActive: false,
+    steps: [],
+    isPaused: false,
+
+    /**
+     * Start tour
+     * @param {string} mode - 'overview' for quick 2min tour, 'full' for complete 10-15min tour
+     */
+    async start(mode = 'full') {
+        console.log('[EVA Tour] Starting tour:', mode);
+        this.isActive = true;
+        this.currentStep = 0;
+        this.isPaused = false;
+
+        // Load appropriate tour script
+        if (mode === 'overview') {
+            const { TOUR_OVERVIEW } = await import('./tour-scripts.js');
+            this.steps = TOUR_OVERVIEW;
+        } else {
+            const { TOUR_FULL } = await import('./tour-scripts.js');
+            this.steps = TOUR_FULL;
+        }
+
+        // Show tour controls
+        this.showControls();
+
+        // Start first step
+        await this.executeStep(0);
+    },
+
+    /**
+     * Execute a single tour step
+     */
+    async executeStep(index) {
+        if (!this.isActive || this.isPaused) return;
+        if (index >= this.steps.length) {
+            this.finish();
+            return;
+        }
+
+        const step = this.steps[index];
+        console.log(`[EVA Tour] Step ${index + 1}/${this.steps.length}:`, step.title);
+
+        try {
+            // 1. Clear previous highlights
+            EvaNavigationIndicator.clearAll();
+
+            // 2. Navigate to screen
+            if (step.screenId) {
+                EvaActions.handle('NAVIGATE', { target: step.screenId });
+            }
+
+            // 3. Wait for navigation to complete
+            await this.wait(1200);
+
+            // 4. Add navigation indicators (arrows + highlights)
+            if (step.screenId) {
+                EvaNavigationIndicator.markNavigationPath(step.screenId);
+            }
+
+            // 5. Highlight specific elements
+            if (step.highlights) {
+                await this.wait(500); // Wait a bit for page to stabilize
+                step.highlights.forEach(h => {
+                    const el = document.querySelector(h.selector);
+                    if (el) {
+                        EvaNavigationIndicator.addBorderHighlight(el);
+                        if (h.addArrow) {
+                            EvaNavigationIndicator.addArrowIndicator(el);
+                        }
+                        console.log('[EVA Tour] Highlighted:', h.selector);
+                    } else {
+                        console.warn('[EVA Tour] Element not found:', h.selector);
+                    }
+                });
+            }
+
+            // 6. EVA narration
+            if (window.EVAConsultant) {
+                window.EVAConsultant.addMessage?.('ai', step.narration);
+                window.EVAConsultant.speak?.(step.narration);
+            }
+
+            // 7. Update progress
+            this.updateProgress(index + 1, this.steps.length);
+
+            // 8. Wait duration before next step
+            await this.wait(step.duration || 6000);
+
+            // 9. Next step
+            if (this.isActive && !this.isPaused) {
+                this.currentStep = index + 1;
+                await this.executeStep(this.currentStep);
+            }
+
+        } catch (error) {
+            console.error('[EVA Tour] Error in step:', error);
+            // Continue to next step despite error
+            setTimeout(() => this.executeStep(index + 1), 2000);
+        }
+    },
+
+    /**
+     * Pause tour
+     */
+    pause() {
+        this.isPaused = true;
+        if (window.speechSynthesis) {
+            window.speechSynthesis.pause();
+        }
+        console.log('[EVA Tour] Paused');
+    },
+
+    /**
+     * Resume tour
+     */
+    resume() {
+        this.isPaused = false;
+        if (window.speechSynthesis) {
+            window.speechSynthesis.resume();
+        }
+        console.log('[EVA Tour] Resumed');
+        this.executeStep(this.currentStep);
+    },
+
+    /**
+     * Skip current step
+     */
+    skip() {
+        if (window.speechSynthesis) {
+            window.speechSynthesis.cancel();
+        }
+        this.executeStep(this.currentStep + 1);
+    },
+
+    /**
+     * Finish tour
+     */
+    async finish() {
+        console.log('[EVA Tour] Finishing tour');
+        this.isActive = false;
+        this.isPaused = false;
+
+        // Clear all highlights
+        EvaNavigationIndicator.clearAll();
+
+        // Hide controls
+        this.hideControls();
+
+        // Mark user as introduced
+        if (window.EVAConsultant) {
+            try {
+                await fetch(`${window.API_BASE_URL}/auth/update-preference`, {
+                    method: 'PUT',
+                    headers: window.getHeaders(),
+                    body: JSON.stringify({ evaIntroduced: 1 })
+                });
+
+                const user = JSON.parse(localStorage.getItem('user') || '{}');
+                user.eva_introduced = 1;
+                localStorage.setItem('user', JSON.stringify(user));
+
+            } catch (error) {
+                console.error('[EVA Tour] Error marking introduced:', error);
+            }
+        }
+
+        // Final message
+        const msg = '🎉 Tour concluído! Agora você conhece todas as funcionalidades do CASH. Estarei sempre aqui para ajudar!';
+        if (window.EVAConsultant) {
+            window.EVAConsultant.addMessage?.('ai', msg);
+            window.EVAConsultant.speak?.(msg);
+        }
+    },
+
+    /**
+     * Show tour controls UI
+     */
+    showControls() {
+        let controls = document.getElementById('eva-tour-controls');
+        if (!controls) {
+            controls = document.createElement('div');
+            controls.id = 'eva-tour-controls';
+            controls.innerHTML = `
+                <div class="eva-tour-progress">
+                    <div class="progress-bar"></div>
+                    <span class="progress-text">Etapa 0 de 0</span>
+                </div>
+                <div class="tour-buttons">
+                    <button onclick="window.EvaTour.pause()" class="btn-pause">⏸️ Pausar</button>
+                    <button onclick="window.EvaTour.resume()" class="btn-resume" style="display:none;">▶️ Continuar</button>
+                    <button onclick="window.EvaTour.skip()" class="btn-skip">⏭️ Pular</button>
+                    <button onclick="window.EvaTour.finish()" class="btn-exit">❌ Sair</button>
+                </div>
+            `;
+            controls.style.cssText = `
+                position: fixed;
+                bottom: 120px;
+                right: 20px;
+                background: white;
+                padding: 1rem;
+                border-radius: 12px;
+                box-shadow: 0 4px 20px rgba(0,0,0,0.15);
+                z-index: 9999999;
+                min-width: 280px;
+            `;
+            document.body.appendChild(controls);
+
+            // Add CSS for controls
+            if (!document.getElementById('eva-tour-styles')) {
+                const style = document.createElement('style');
+                style.id = 'eva-tour-styles';
+                style.textContent = `
+                    .eva-tour-progress {
+                        margin-bottom: 1rem;
+                    }
+                    .eva-tour-progress .progress-bar {
+                        height: 8px;
+                        background: #e5e7eb;
+                        border-radius: 4px;
+                        overflow: hidden;
+                        margin-bottom: 0.5rem;
+                    }
+                    .eva-tour-progress .progress-bar::after {
+                        content: '';
+                        display: block;
+                        height: 100%;
+                        background: linear-gradient(90deg, #DAB177 0%, #C8A060 100%);
+                        width: 0%;
+                        transition: width 0.3s ease;
+                    }
+                    .progress-text {
+                        font-size: 0.875rem;
+                        color: #6b7280;
+                        font-weight: 500;
+                    }
+                    .tour-buttons {
+                        display: flex;
+                        gap: 0.5rem;
+                        flex-wrap: wrap;
+                    }
+                    .tour-buttons button {
+                        padding: 0.5rem 0.75rem;
+                        border: none;
+                        border-radius: 6px;
+                        cursor: pointer;
+                        font-size: 0.875rem;
+                        font-weight: 500;
+                        transition: all 0.2s;
+                        flex: 1;
+                        min-width: 80px;
+                    }
+                    .btn-pause, .btn-resume {
+                        background: #f59e0b;
+                        color: white;
+                    }
+                    .btn-pause:hover, .btn-resume:hover {
+                        background: #d97706;
+                    }
+                    .btn-skip {
+                        background: #3b82f6;
+                        color: white;
+                    }
+                    .btn-skip:hover {
+                        background: #2563eb;
+                    }
+                    .btn-exit {
+                        background: #ef4444;
+                        color: white;
+                    }
+                    .btn-exit:hover {
+                        background: #dc2626;
+                    }
+                `;
+                document.head.appendChild(style);
+            }
+        }
+
+        // Expose to window for onclick handlers
+        window.EvaTour = this;
+    },
+
+    /**
+     * Hide tour controls
+     */
+    hideControls() {
+        const controls = document.getElementById('eva-tour-controls');
+        if (controls) {
+            controls.remove();
+        }
+    },
+
+    /**
+     * Update progress bar
+     */
+    updateProgress(current, total) {
+        const controls = document.getElementById('eva-tour-controls');
+        if (controls) {
+            const progressBar = controls.querySelector('.progress-bar');
+            const progressText = controls.querySelector('.progress-text');
+
+            const percentage = (current / total) * 100;
+            if (progressBar) {
+                progressBar.style.setProperty('--progress', `${percentage}%`);
+                const after = progressBar.querySelector('::after');
+                if (after) after.style.width = `${percentage}%`;
+                // Hack: use CSS variable
+                progressBar.setAttribute('style', `--width: ${percentage}%`);
+            }
+
+            if (progressText) {
+                progressText.textContent = `Etapa ${current} de ${total}`;
+            }
+        }
+    },
+
+    /**
+     * Utility: wait helper
+     */
+    wait(ms) {
+        return new Promise(resolve => setTimeout(resolve, ms));
+    }
+};
+
+// Auto-expose to window
+window.EvaTour = EvaTour;

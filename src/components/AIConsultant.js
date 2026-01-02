@@ -885,16 +885,26 @@ export const AIConsultant = () => {
             if (extracted && extracted.voicePreference) {
                 const voiceEnabled = extracted.voicePreference === 'audio' || extracted.voicePreference === 'both';
                 await savePreferences({
-                    evaVoiceEnabled: voiceEnabled ? 1 : 0,
-                    evaIntroduced: 1
+                    evaVoiceEnabled: voiceEnabled ? 1 : 0
+                    // Don't mark introduced yet - waiting for tour decision
                 });
 
-                pendingAction = null; // End introduction
+                // Offer tour
+                const user = getUser();
+                const tourMsg = `Perfeito, ${user?.preferred_name || user?.name}! 
 
-                // Process pending loan categorization if exists
-                if (loanContext && loanResolver) {
-                    setTimeout(() => processPendingLoanCategorization(), 2000);
-                }
+Agora, gostaria de conhecer o sistema?
+
+**1** - Visão Geral Rápida (2-3 minutos)
+**2** - Tour Completo Guiado (10-15 minutos)  
+**3** - Pular e explorar sozinho
+
+Digite 1, 2 ou 3.`;
+
+                addMessage('ai', tourMsg);
+                speak(tourMsg.replace(/\*\*/g, ''));
+
+                pendingAction = 'tour_offer';
             }
 
         } catch (error) {
@@ -1076,6 +1086,64 @@ export const AIConsultant = () => {
 
         setTimeout(async () => {
             loadingDiv.remove();
+
+            // Handle Tour Offer
+            if (pendingAction === 'tour_offer') {
+                const choice = text.trim();
+
+                if (choice.includes('1') || /vis[aã]o|r[aá]pida|quick/i.test(text)) {
+                    // Overview tour
+                    addMessage('ai', 'Ótimo! Vou mostrar uma visão geral rápida. Iniciando...');
+
+                    // Mark as introduced before tour
+                    await savePreferences({ evaIntroduced: 1 });
+
+                    // Import and start tour
+                    const { EvaTour } = await import('../eva/EvaTour.js');
+                    setTimeout(() => {
+                        EvaTour.start('overview');
+                    }, 2000);
+
+                    pendingAction = null;
+                    return;
+
+                } else if (choice.includes('2') || /completo|guiado|full|detalhado/i.test(text)) {
+                    // Full tour
+                    addMessage('ai', 'Excelente escolha! Vou guiá-lo por todo o sistema em detalhes. Vamos lá!');
+
+                    // Mark as introduced before tour
+                    await savePreferences({ evaIntroduced: 1 });
+
+                    // Import and start tour
+                    const { EvaTour } = await import('../eva/EvaTour.js');
+                    setTimeout(() => {
+                        EvaTour.start('full');
+                    }, 2000);
+
+                    pendingAction = null;
+                    return;
+
+                } else if (choice.includes('3') || /pular|n[aã]o|sozinho|explorar/i.test(text)) {
+                    // Skip tour
+                    addMessage('ai', 'Sem problemas! Fique à vontade para explorar. Estarei aqui caso precise de ajuda!');
+
+                    // Mark as introduced
+                    await savePreferences({ evaIntroduced: 1 });
+
+                    pendingAction = null;
+
+                    // Process pending loan if exists
+                    if (loanContext && loanResolver) {
+                        setTimeout(() => processPendingLoanCategorization(), 2000);
+                    }
+                    return;
+
+                } else {
+                    // Invalid choice
+                    addMessage('ai', 'Por favor, digite 1, 2 ou 3 para escolher.');
+                    return;
+                }
+            }
 
             // Intercept Introduction Flow
             if (pendingAction && pendingAction.startsWith('intro_')) {
