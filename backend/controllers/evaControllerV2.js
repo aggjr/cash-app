@@ -1,5 +1,5 @@
 const OpenAI = require('openai');
-const db = require('../db');
+const db = require('../config/database');
 const EvaContextBuilder = require('../services/EvaContextBuilder');
 
 const openai = new OpenAI({
