@@ -75,18 +75,18 @@ export const EvaNavigationIndicator = {
 
         setTimeout(() => {
             try {
-                // Strategy 1: Find by data-item-id attribute
-                let activeItem = document.querySelector(`[data-item-id="${screenId}"]`);
+                // Strategy 1: Find by data-id attribute (matches Sidebar.js)
+                let activeItem = document.querySelector(`.menu-item[data-id="${screenId}"]`);
 
-                // Strategy 2: If not found, search by text content in tree nodes
+                // Strategy 2: If not found, search by text content
                 if (!activeItem) {
                     console.log('[EVA Nav] Searching menu by screen name...');
-                    const treeLabels = document.querySelectorAll('.tree-node-label');
-                    for (const label of treeLabels) {
+                    const labels = document.querySelectorAll('.menu-label');
+                    for (const label of labels) {
                         const text = label.textContent.trim().toLowerCase();
                         const searchId = screenId.toLowerCase().replace(/-/g, ' ');
                         if (text.includes(searchId) || searchId.includes(text)) {
-                            activeItem = label;
+                            activeItem = label.closest('.menu-item');
                             console.log('[EVA Nav] Found menu item by text:', text);
                             break;
                         }
@@ -103,15 +103,25 @@ export const EvaNavigationIndicator = {
                     activeItem.style.backgroundColor = `${INDICATOR_COLOR}20`;
 
                     // Find and mark parent items (for submenus)
-                    let parent = activeItem.closest('.tree-node');
-                    while (parent) {
-                        const parentLabel = parent.querySelector('.tree-node-label');
-                        if (parentLabel && parentLabel !== activeItem) {
-                            console.log('[EVA Nav] Found parent menu item:', parentLabel.textContent.trim());
-                            this.addArrowIndicator(parentLabel);
-                            parentLabel.style.backgroundColor = `${INDICATOR_COLOR}15`;
+                    // Structure: .menu-item-wrapper > .submenu > .menu-item-wrapper > .menu-item
+                    let parentSubmenu = activeItem.closest('.submenu');
+                    while (parentSubmenu) {
+                        // The submenu is inside a wrapper. The previous sibling of the submenu in the wrapper is NOT the item.
+                        // Wait, Sidebar.js structure: wrapper > menu-item, submenu.
+                        // So submenu sibling is menu-item.
+                        const parentWrapper = parentSubmenu.closest('.menu-item-wrapper');
+                        const parentItem = parentWrapper ? parentWrapper.querySelector('.menu-item') : null;
+
+                        if (parentItem && parentItem !== activeItem) {
+                            console.log('[EVA Nav] Found parent menu item:', parentItem.querySelector('.menu-label')?.textContent);
+                            this.addArrowIndicator(parentItem);
+                            parentItem.style.backgroundColor = `${INDICATOR_COLOR}15`;
+
+                            // Expand submenu if needed? usually handled by click but we just highlight
+                            parentSubmenu.style.display = 'block';
                         }
-                        parent = parent.parentElement?.closest('.tree-node');
+
+                        parentSubmenu = parentWrapper ? parentWrapper.parentElement.closest('.submenu') : null;
                     }
                 } else {
                     console.warn('[EVA Nav] Menu item not found for:', screenId);
@@ -200,7 +210,7 @@ export const EvaNavigationIndicator = {
     setupManualNavigationDetector() {
         // Clear on manual menu clicks
         document.addEventListener('click', (e) => {
-            const isMenuClick = e.target.closest('.tree-node-label');
+            const isMenuClick = e.target.closest('.menu-item');
             const isEvaClick = e.target.closest('.eva-chat, #eva-icon');
 
             if (isMenuClick && !isEvaClick && this.isEvaNavigating) {
