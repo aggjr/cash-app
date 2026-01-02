@@ -1230,7 +1230,7 @@ Digite 1, 2 ou 3.`;
             if (pendingAction === 'tour_offer') {
                 const choice = text.trim();
 
-                if (choice.includes('1') || /vis[aã]o|r[aá]pida|quick/i.test(text)) {
+                if (choice.includes('1') || /vis[aã]o|r[aá]pid[oa]|quick|curto|breve/i.test(text)) {
                     // Overview tour
                     addMessage('ai', 'Ótimo! Vou mostrar uma visão geral rápida. Iniciando...');
 
@@ -1246,7 +1246,7 @@ Digite 1, 2 ou 3.`;
                     pendingAction = null;
                     return;
 
-                } else if (choice.includes('2') || /completo|guiado|full|detalhado/i.test(text)) {
+                } else if (choice.includes('2') || /complet[oa]|guiad[oa]|full|detalhad[oa]|inteiro|longo/i.test(text)) {
                     // Full tour - LLM will handle gender-appropriate language
                     addMessage('ai', 'Excelente escolha! Vou guiá-lo(a) por todo o sistema em detalhes. Vamos lá!');
 
@@ -1262,7 +1262,7 @@ Digite 1, 2 ou 3.`;
                     pendingAction = null;
                     return;
 
-                } else if (choice.includes('3') || /pular|n[aã]o|sozinho|explorar/i.test(text)) {
+                } else if (choice.includes('3') || /pular|n[aã]o|sozinho|explorar|cancelar|sair/i.test(text)) {
                     // Skip tour
                     addMessage('ai', 'Sem problemas! Fique à vontade para explorar. Estarei aqui caso precise de ajuda!');
 
@@ -1279,7 +1279,7 @@ Digite 1, 2 ou 3.`;
 
                 } else {
                     // Invalid choice
-                    addMessage('ai', 'Por favor, digite 1, 2 ou 3 para escolher.');
+                    addMessage('ai', 'Não entendi. Por favor, diga se prefere **Rápido**, **Completo** ou se quer **Pular** o tour.');
                     return;
                 }
             }
