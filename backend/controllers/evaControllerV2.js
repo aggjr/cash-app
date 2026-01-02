@@ -229,6 +229,7 @@ INSTRUÇÕES:
    - NAVIGATE: Se o usuário quer ir para outra tela.
    - FILL_FORM: Se o usuário quer preencher campos na TELA ATUAL.
    - CLICK_ACTION: Se o usuário quer clicar em botões na TELA ATUAL (Salvar, Novo, Cancelar).
+   - START_TOUR: Se o usuário pede tour, demonstração, guia ou apresentação do sistema.
    - REPLY: Se for uma pergunta, dúvida ou se não for possível realizar a ação.
    
 **IMPORTANTE:** Se o usuário fizer uma PERGUNTA sobre dados visíveis na tela, use os DADOS VISÍVEIS acima para responder contextualmente.
@@ -246,6 +247,12 @@ JSON: { "action": "FILL_FORM", "fields": { "income-valor": "500" } }
 
 User: "Salvar"
 JSON: { "action": "CLICK_ACTION", "selector": "#btn-save" } (Pegue o selector das ações locais)
+
+User: "Pode fazer um tour do sistema?"
+JSON: { "action": "START_TOUR", "mode": "full", "message": "Claro! Vou guiá-lo por todo o sistema. Escolha:\n1 - Visão Geral (2-3 min)\n2 - Tour Completo (10-15 min)" }
+
+User: "Mostre o sistema" / "Apresente as telas" / "Conhecer funcionalidades"
+JSON: { "action": "START_TOUR", "mode": "full", "message": "Com prazer! Posso mostrar:\n1 - Tour rápido (2-3 min)\n2 - Tour detalhado (10-15 min)\n\nDigite 1 ou 2." }
 
 User: "Quantos usuários estão na tabela?" (Com dados visíveis)
 JSON: { "action": "REPLY", "message": "Há X usuários cadastrados, mostrando Y na tela." }

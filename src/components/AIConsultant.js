@@ -1005,6 +1005,15 @@ Digite 1, 2 ou 3.`;
                     addMessage('ai', msg);
                     speak(msg);
                 }
+                else if (decision.action === 'START_TOUR') {
+                    // Show tour options from LLM
+                    const msg = decision.message || 'Posso mostrar:\n1 - Tour rápido (2-3 min)\n2 - Tour detalhado (10-15 min)\n\nDigite 1 ou 2.';
+                    addMessage('ai', msg);
+                    speak(msg.replace(/\n/g, ' '));
+
+                    // Set pending action for tour selection
+                    pendingAction = 'tour_offer';
+                }
                 else if (['NAVIGATE', 'FILL_FORM', 'CLICK_ACTION'].includes(decision.action)) {
 
                     const result = await EvaActions.handle(decision.action, decision);
