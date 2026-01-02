@@ -101,9 +101,21 @@ export const AIConsultant = () => {
                 if (response.ok) {
                     const { audioContent, voiceName, tier: tierName } = await response.json();
 
-                    // Play audio
+                    // Play audio with small delay to prevent first syllable cut
                     const audio = new Audio(`data:audio/mp3;base64,${audioContent}`);
-                    audio.play();
+
+                    // Wait for audio to be ready
+                    audio.addEventListener('canplaythrough', () => {
+                        // Small delay to prevent cutting first syllable
+                        setTimeout(() => {
+                            audio.play().catch(err => {
+                                console.error('[EVA Voice] Play failed:', err);
+                            });
+                        }, 100);
+                    }, { once: true });
+
+                    // Start loading audio
+                    audio.load();
 
                     console.log(`[EVA Voice] Using ${voiceName} (${tierName})`);
                     return;
@@ -406,6 +418,9 @@ export const AIConsultant = () => {
                     clearTimeout(silenceTimer);
                     silenceTimer = null;
                 }
+
+                // Clear accumulated transcript to prevent next message from accumulating
+                accumulatedTranscript = '';
 
                 console.log('[SPEECH REC] onend completed, recording stopped');
             };
