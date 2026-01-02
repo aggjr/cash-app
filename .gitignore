@@ -28,3 +28,4 @@ backend/.env
 
 # Backup files
 backups/
+logical-app-*.json

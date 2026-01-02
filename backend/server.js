@@ -137,7 +137,7 @@ const migratePreferredName = require('./migrate_add_preferred_name');
 const migrateEvaPreferences = require('./migrate-eva-user-preferences');
 const migrateEvaVoiceRate = require('./migrate_add_eva_voice_rate');
 const migrateAddGenderColumn = require('./migrate_add_gender_column');
-const migrateFixVoiceRate = require('./migrations/migrate_fix_voice_rate');
+const migrateFixVoiceRate = require('./migrate_fix_voice_rate');
 
 
 loadErrorCatalog()
