@@ -72,10 +72,21 @@ export const TOUR_FULL = [
         screenId: 'usuarios',
         title: 'Usuários do Sistema',
         narration: 'Vamos começar pelos Cadastros. Aqui você gerencia os usuários que têm acesso ao sistema, define permissões e controla quem pode fazer o quê.',
+        highlights: [],
+        duration: 8000
+    },
+    {
+        id: 'full-sharedtable-intro',
+        screenId: 'usuarios',
+        title: '📊 DESTAQUE: SharedTable',
+        narration: 'Antes de continuar, quero destacar um grande diferencial do CASH: a SharedTable! Esta tabela avançada funciona como o Excel, com filtros inteligentes por data, valor e texto, ordenação lexicográfica e numérica, e muito mais. Você verá ela em várias telas do sistema.',
         highlights: [
-            { selector: 'table', addArrow: false }
+            { selector: 'table, .shared-table, .table-container', addArrow: true },
+            { selector: 'thead th, .column-header', addArrow: false },
+            { selector: '.filter-icon, [class*="filter"]', addArrow: false }
         ],
-        duration: 9000
+        duration: 12000,
+        isSharedTableIntro: true // Flag para controle
     },
     {
         id: 'full-empresas',

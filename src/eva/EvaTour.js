@@ -11,6 +11,7 @@ export const EvaTour = {
     isActive: false,
     steps: [],
     isPaused: false,
+    sharedTablePresented: false, // Track if SharedTable was already presented
 
     /**
      * Start tour
@@ -21,6 +22,7 @@ export const EvaTour = {
         this.isActive = true;
         this.currentStep = 0;
         this.isPaused = false;
+        this.sharedTablePresented = false; // Reset for new tour
 
         // Load appropriate tour script
         if (mode === 'overview') {
@@ -49,6 +51,20 @@ export const EvaTour = {
         }
 
         const step = this.steps[index];
+
+        // Skip SharedTable intro if already presented
+        if (step.isSharedTableIntro && this.sharedTablePresented) {
+            console.log('[EVA Tour] SharedTable already presented, skipping...');
+            this.currentStep = index + 1;
+            await this.executeStep(this.currentStep);
+            return;
+        }
+
+        // Mark SharedTable as presented if this is the intro step
+        if (step.isSharedTableIntro) {
+            this.sharedTablePresented = true;
+        }
+
         console.log(`[EVA Tour] Step ${index + 1}/${this.steps.length}:`, step.title);
 
         try {
