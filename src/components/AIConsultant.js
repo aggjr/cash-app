@@ -982,31 +982,86 @@ Digite 1, 2 ou 3.`;
 
             console.log('[EVA] Chat opened. Messages count:', messages.length, 'User introduced:', user?.eva_introduced);
 
-            // Check if messages empty (first open after login)
-            if (messages.length === 0) {
-                console.log('[EVA] First open - sending initial context to LLM');
+            // Auto-greeting logic
+            const hasGreetedKey = 'eva_has_greeted_session_' + (user?.id || 'anon');
+            const lastLoginKey = 'eva_last_login_' + (user?.id || 'anon');
+            const hasGreeted = sessionStorage.getItem(hasGreetedKey);
 
-                // Send simple greeting to trigger LLM response with full context
-                // LLM will decide: greeting type, introduction, tone based on eva_introduced flag
-                addMessage('user', 'Olá');
+            if (!hasGreeted && messages.length === 0) {
+                console.log('[EVA] First open in session - triggering greeting');
+                sessionStorage.setItem(hasGreetedKey, 'true');
 
-                // LLM will receive context in backend and decide how to respond
+                // Calculate time since last visit
+                const lastLoginIndex = localStorage.getItem(lastLoginKey);
+                let timeMessage = '';
+
+                if (lastLoginIndex) {
+                    const lastDate = new Date(parseInt(lastLoginIndex));
+                    const now = new Date();
+                    const diffMs = now - lastDate;
+                    const diffMins = Math.floor(diffMs / 60000);
+                    const diffHours = Math.floor(diffMs / 3600000);
+                    const diffDays = Math.floor(diffMs / 86400000);
+
+                    if (diffDays > 0) {
+                        timeMessage = `O usuário não entrava há ${diffDays} dias.`;
+                    } else if (diffHours > 0) {
+                        timeMessage = `O usuário não entrava há ${diffHours} horas.`;
+                    } else if (diffMins > 0) {
+                        timeMessage = `O usuário esteve aqui há apenas ${diffMins} minutos.`;
+                    } else {
+                        timeMessage = `O usuário acabou de sair e voltou.`;
+                    }
+                } else {
+                    timeMessage = 'É a primeira vez que este usuário loga no sistema recentemente.';
+                }
+
+                // Update last login
+                localStorage.setItem(lastLoginKey, Date.now().toString());
+
+                // Simulate thinking state
+                const thinkingMsg = document.createElement('div');
+                thinkingMsg.className = 'thinking-bubble';
+                thinkingMsg.innerText = '...';
+                messagesContainer.appendChild(thinkingMsg);
+
+                // Send hidden trigger to LLM
+                // We use a special prefix or context to tell backend this is a SYSTEM TRIGGER, not user input
                 setTimeout(async () => {
                     const context = {
                         currentScreen: EvaKnowledge.activeScreen,
-                        availableScreens: EvaKnowledge.screens
+                        availableScreens: EvaKnowledge.screens,
+                        // Inject special instruction for greeting
+                        systemInstruction: `SYSTEM_TRIGGER: GREEETING_FLOW. 
+                        Contexto: ${timeMessage}
+                        Ação: Cumprimente o usuário educadamente pelo nome (se souber), comente brevemente sobre o tempo que ele demorou para voltar (se for relevante) e pergunte como pode ajudar.
+                        Seja curta e simpática. Não invente problemas, apenas se ofereça para ajudar.`
                     };
 
-                    const decision = await EvaService.decideOperation('Olá', context);
+                    // We send an empty message or metadata to trigger the greeting flow
+                    // For now, sending a distinct "system_greeting" text that backend/LLM should handle or treating it as a prompt injection
+                    // Since we can't easily change backend signature right now, we'll send it as text but handle it via prompt context injection above
 
-                    if (decision.action === 'REPLY') {
-                        addMessage('ai', decision.message);
-                        speak(decision.message);
+                    try {
+                        const decision = await EvaService.decideOperation('SYSTEM_GREETING_TRIGGER', context);
+
+                        if (thinkingMsg.parentNode) thinkingMsg.parentNode.removeChild(thinkingMsg);
+
+                        if (decision.action === 'REPLY') {
+                            addMessage('ai', decision.message);
+                            speak(decision.message);
+                        }
+                    } catch (e) {
+                        console.error('Greeting error:', e);
+                        if (thinkingMsg.parentNode) thinkingMsg.parentNode.removeChild(thinkingMsg);
+                        // Fallback
+                        addMessage('ai', 'Olá! Em que posso ajudar?');
                     }
                 }, 500);
+
             } else {
-                console.log('[EVA] Messages already exist, skipping initial greeting');
-                renderMessages();
+                console.log('[EVA] Already greeted or messages exist, skipping');
+                if (messages.length > 0) renderMessages();
                 input.focus();
             }
         }
