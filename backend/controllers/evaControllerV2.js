@@ -194,33 +194,9 @@ const operate = async (req, res) => {
             res.status(500).json({ error: 'Erro interno ao processar comando' });
         }
     };
-    JSON: { "action": "REPLY", "message": "Se o usuário pedir para preencher algo que não existe na tela atual, responda com REPLY explicando o erro." } `;
 
-        const messages = [
-            { role: "system", content: systemPrompt },
-            { role: "user", content: message }
-        ];
 
-        const response = await openai.chat.completions.create({
-            model: "gpt-4o-mini",
-            messages,
-            temperature: 0.1, // Low temperature for deterministic actions
-            response_format: { type: "json_object" },
-            max_tokens: 300
-        });
-
-        const actionJson = JSON.parse(response.choices[0].message.content);
-        console.log('[EVA Operate] Decision:', actionJson);
-
-        res.json(actionJson);
-
-    } catch (error) {
-        console.error('EVA Operate Error:', error);
-        res.status(500).json({ error: 'Erro ao processar operação', details: error.message });
-    }
-};
-
-module.exports = {
-    chat,
-    operate
-};
+    module.exports = {
+        chat,
+        operate
+    };
