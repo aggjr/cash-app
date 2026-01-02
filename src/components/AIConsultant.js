@@ -936,7 +936,7 @@ Digite 1, 2 ou 3.`;
 
                     if (hour >= 5 && hour < 12) {
                         timeGreeting = 'Bom dia';
-                    } else if (hour >= 12 && hour < 18) {
+                    } else if (hour >= 12 && hour < 19) {
                         timeGreeting = 'Boa tarde';
                     } else {
                         timeGreeting = 'Boa noite';
