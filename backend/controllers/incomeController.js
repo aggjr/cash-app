@@ -1414,18 +1414,6 @@ exports.bulkDeleteIncomes = async (req, res, next) => {
         if (connection) connection.release();
     }
 };
-message: `${deletedCount} de ${idsToDelete.length} registro(s) excluído(s)`,
-    deleted: deletedCount,
-        skipped: skippedCount,
-            total: idsToDelete.length,
-                errors: errors.length > 0 ? errors : undefined
-        });
 
-    } catch (error) {
-    if (connection) await connection.rollback();
-    next(error);
-} finally {
-    if (connection) connection.release();
-}
-};
+
 
