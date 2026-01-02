@@ -15,6 +15,21 @@ const chat = async (req, res, next) => {
             return res.status(400).json({ error: 'Mensagem é obrigatória' });
         }
 
+        // Infer gender from user name if gender field is null
+        const userName = user?.name || '';
+        let inferredGender = context.gender; // Use DB gender if available
+
+        if (!inferredGender || inferredGender === 'null') {
+            // Fallback to name-based inference
+            inferredGender = userName.toLowerCase().endsWith('a') ? 'F' : 'M';
+            console.log(`[EVA Chat] Gender inferred from name "${userName}": ${inferredGender}`);
+        } else {
+            console.log(`[EVA Chat] Using DB gender: ${inferredGender}`);
+        }
+
+        const pronoun = inferredGender === 'F' ? 'a senhora' : 'o senhor';
+        const userDisplayName = context.preferredName || userName || 'usuário(a)';
+
         // Build system prompt based on mode
         let systemPrompt;
 
@@ -31,7 +46,7 @@ CONTEXTO:
 - Se o usuário aceitar a sugestão (ex: "sim", "ok", "pode ser", "está bom", "tudo bem"), use "${context.suggestedName}" como preferredName
 
 INSTRUÇÕES:
-- Use ${context.gender === 'F' ? '"a senhora"' : '"o senhor"'}
+- Use "${pronoun}"
 - Seja natural, educada e conversacional
 - Se o usuário falar algo genérico ("oi", "tudo bem", "olá"), responda educadamente mas continue perguntando o que falta
 - Se o usuário ACEITAR a sugestão inicial, NÃO repita a pergunta sobre o nome. Vá direto para perguntar sobre áudio/texto
@@ -56,13 +71,13 @@ EVA: "Olá! Está tudo bem sim, obrigada. E ${context.gender === 'F' ? 'a senhor
 <<<END>>>"
 
 User: "Sim" (aceitando Sr. Augusto Jr)
-EVA: "Perfeito, ${context.suggestedName}! Para facilitar nosso dia a dia, ${context.gender === 'F' ? 'a senhora' : 'o senhor'} prefere que eu responda utilizando áudio e texto ou apenas texto?
+EVA: "Perfeito, ${context.suggestedName}! Para facilitar nosso dia a dia, ${pronoun} prefere que eu responda utilizando áudio e texto ou apenas texto?
 <<<DATA>>>
 {"preferredName": "${context.suggestedName}", "voicePreference": null}
 <<<END>>>"
 
 User: "Me chame de Augusto"
-EVA: "Augusto, perfeito! Para facilitar nosso dia a dia, ${context.gender === 'F' ? 'a senhora' : 'o senhor'} prefere que eu responda utilizando áudio e texto ou apenas texto?
+EVA: "Augusto, perfeito! Para facilitar nosso dia a dia, ${pronoun} prefere que eu responda utilizando áudio e texto ou apenas texto?
 <<<DATA>>>
 {"preferredName": "Augusto", "voicePreference": null}
 <<<END>>>"
@@ -77,7 +92,7 @@ EVA: "Entendido, Augusto! Configurado para respostas apenas em texto. Estou pron
             systemPrompt = `Você é EVA, assistente virtual financeira do sistema CASH.
 
 INSTRUÇÕES IMPORTANTES:
-- Use ${context.gender === 'F' ? '"a senhora"' : '"o senhor"'} e chame a pessoa de "${context.preferredName || 'senhor/senhora'}"
+- Use "${pronoun}" e chame a pessoa de "${userDisplayName}"
 - Seja formal, respeitosa e prestativa
 - Responda de forma concisa e objetiva (máximo 2-3 parágrafos)
 - Ajude com classificação de transações, análises financeiras, dúvidas sobre o sistema
