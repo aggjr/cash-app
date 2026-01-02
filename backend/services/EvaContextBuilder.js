@@ -116,9 +116,12 @@ INSTRUÇÕES IMPORTANTES:
      * @param {Object} project - Project object
      * @param {Object} screenContext - Current screen context
      * @param {Object} voiceSettings - Voice configuration
+     * @param {Array} availableScreens - List of available screens
+     * @param {Object} currentScreen - Current screen detailed definition
+     * @param {string} dynamicProfile - Inferred business profile
      * @returns {string} Complete system prompt for operations
      */
-    static buildOperateContext(user, project, screenContext, voiceSettings = {}, availableScreens = [], currentScreen = null) {
+    static buildOperateContext(user, project, screenContext, voiceSettings = {}, availableScreens = [], currentScreen = null, dynamicProfile = '') {
         const systemBase = systemPrompts.operate.base;
 
         // Project context
@@ -182,11 +185,13 @@ INFORMAÇÕES DO USUÁRIO:
 
 CONTEXTO DO PROJETO:
 - Tipo de negócio: ${businessType}
+- Perfil Inferido: ${dynamicProfile}
 - Projeto: ${project?.name || 'CASH'}
 
 IMPORTANTE:
 - Se primeira interação, apresente-se de forma natural e use saudação apropriada ao período
 - Converse naturalmente com ${user?.preferred_name || user?.name || 'o usuário'}, inferindo tratamento e gênero apropriados
+- Adapte suas ações ao Perfil Inferido do negócio quando relevante (ex: foco financeiro vs. operacional)
 
 CONFIGURAÇÕES DE VOZ:
 - Velocidade: ${currentVoiceRate} (0=Muito Lento, 50=Normal, 100=Muito Rápido)

@@ -140,17 +140,14 @@ const operate = async (req, res) => {
             const dynamicProfile = await EvaContextBuilder.buildDynamicBusinessProfile(db, context.projectId);
 
             // Build operate system prompt
-            // Note: buildOperateContext signature: (user, project, screenContext, voiceSettings, availableScreens = [], currentScreen = null)
-            // We need to pass dynamicProfile to it as well if we want it used there.
-            // Let's first look at EvaContextBuilder again to see if it supports dynamicProfile in buildOperateContext.
-            // It does NOT yet. But for now, let's just restore the valid code call.
             const systemPrompt = EvaContextBuilder.buildOperateContext(
                 userData,
                 projectData,
                 screenContext,
                 userSettings,
                 availableScreens,
-                activeScreenContext
+                activeScreenContext,
+                dynamicProfile
             );
 
             const messages = [
