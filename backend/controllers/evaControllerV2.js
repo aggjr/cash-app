@@ -109,7 +109,7 @@ const chat = async (req, res, next) => {
 
 const operate = async (req, res) => {
     try {
-        const { message, currentScreen, availableScreens, screenContext, userName, preferredName, userSettings } = req.body;
+        const { message, currentScreen, availableScreens, screenContext, userName, preferredName, userSettings, context } = req.body;
         const user = req.user;
 
         console.log('[EVA Operate] Processing:', message);
@@ -132,68 +132,77 @@ const operate = async (req, res) => {
         const hour = now.getHours();
         const timeOfDay = hour >= 5 && hour < 12 ? 'manhã' : hour >= 12 && hour < 19 ? 'tarde' : 'noite';
 
-        // Format screen context if available
-        let screenContextText = '';
-        if (screenContext) {
-            screenContextText = `\nDADOS VISÍVEIS NA TELA ATUAL:\n`;
-            // Build dynamic profile for operate context too
-            const dynamicProfile = await EvaContextBuilder.buildDynamicBusinessProfile(db, context.projectId);
+        // Fetch User and Project Data for Context
+        // Similar to chat, we ideally need projectData. 
+        // For now, let's assume partial data is fine or fetch it if needed. 
+        // Given we need project name etc in generic context, let's fetch strictly if context.projectId exists.
 
-            // Build operate system prompt
-            const systemPrompt = EvaContextBuilder.buildOperateContext(
-                userData,
-                projectData,
-                screenContext,
-                userSettings,
-                availableScreens,
-                activeScreenContext,
-                dynamicProfile
-            );
+        let projectData = {};
+        let userData = user;
 
-            const messages = [
-                { role: 'system', content: systemPrompt },
-                ...history.map(msg => ({
-                    role: msg.role === 'user' ? 'user' : 'assistant',
-                    content: msg.content
-                })),
-                { role: 'user', content: message }
-            ];
-
-            // Call LLM
-            const completion = await openai.chat.completions.create({
-                model: "gpt-4o-mini",
-                messages: messages,
-                temperature: 0.3, // Lower temperature for actions
-                response_format: { type: "json_object" }
-            });
-
-            const responseContent = completion.choices[0].message.content;
-            console.log('EVA Operate Response:', responseContent);
-
-            try {
-                const action = JSON.parse(responseContent);
-
-                // Add voice response to action if needed (simple echo or tailored)
-                // Ideally, the LLM should return { action: ..., voice_response: "..." }
-                // Let's assume the LLM prompt instructions (in EvaContextBuilder) handle that return format.
-
-                res.json(action);
-            } catch (e) {
-                console.error('Failed to parse EVA operate JSON:', e);
-                res.status(500).json({
-                    error: 'Falha ao processar comando',
-                    raw: responseContent
-                });
-            }
-
-        } catch (error) {
-            console.error('EVA Operate Error:', error);
-            res.status(500).json({ error: 'Erro interno ao processar comando' });
+        if (context?.projectId) {
+            const [pResult] = await db.query('SELECT * FROM projects WHERE id = $1', [context.projectId]);
+            projectData = pResult.rows[0] || {};
         }
-    };
+
+        // Build dynamic profile for operate context
+        const dynamicProfile = await EvaContextBuilder.buildDynamicBusinessProfile(db, context?.projectId);
+
+        // Build operate system prompt
+        const systemPrompt = EvaContextBuilder.buildOperateContext(
+            userData,
+            projectData,
+            screenContext,
+            userSettings,
+            availableScreens,
+            req.body.activeScreenContext || null, // Handle naming variation if any, or remove if unused param
+            dynamicProfile
+        );
+
+        const messages = [
+            { role: 'system', content: systemPrompt },
+            ...history.map(msg => ({
+                role: msg.role === 'user' ? 'user' : 'assistant',
+                content: msg.content
+            })),
+            { role: 'user', content: message }
+        ];
+
+        // Call LLM
+        const completion = await openai.chat.completions.create({
+            model: "gpt-4o-mini",
+            messages: messages,
+            temperature: 0.3, // Lower temperature for actions
+            response_format: { type: "json_object" }
+        });
+
+        const responseContent = completion.choices[0].message.content;
+        console.log('EVA Operate Response:', responseContent);
+
+        try {
+            const action = JSON.parse(responseContent);
+
+            // Add voice response to action if needed (simple echo or tailored)
+            // Ideally, the LLM should return { action: ..., voice_response: "..." }
+            // Let's assume the LLM prompt instructions (in EvaContextBuilder) handle that return format.
+
+            res.json(action);
+        } catch (e) {
+            console.error('Failed to parse EVA operate JSON:', e);
+            res.status(500).json({
+                error: 'Falha ao processar comando',
+                raw: responseContent
+            });
+        }
+
+    } catch (error) {
+        console.error('EVA Operate Error:', error);
+        res.status(500).json({ error: 'Erro interno ao processar comando' });
+    }
+};
 
 
-    module.exports = {
-        chat,
-        operate
-    };
+module.exports = {
+    chat,
+    operate
+};
