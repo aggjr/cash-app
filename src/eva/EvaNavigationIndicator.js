@@ -75,9 +75,27 @@ export const EvaNavigationIndicator = {
 
         setTimeout(() => {
             try {
-                // Find the active menu item
-                const activeItem = document.querySelector(`[data-item-id="${screenId}"]`);
+                // Strategy 1: Find by data-item-id attribute
+                let activeItem = document.querySelector(`[data-item-id="${screenId}"]`);
+
+                // Strategy 2: If not found, search by text content in tree nodes
+                if (!activeItem) {
+                    console.log('[EVA Nav] Searching menu by screen name...');
+                    const treeLabels = document.querySelectorAll('.tree-node-label');
+                    for (const label of treeLabels) {
+                        const text = label.textContent.trim().toLowerCase();
+                        const searchId = screenId.toLowerCase().replace(/-/g, ' ');
+                        if (text.includes(searchId) || searchId.includes(text)) {
+                            activeItem = label;
+                            console.log('[EVA Nav] Found menu item by text:', text);
+                            break;
+                        }
+                    }
+                }
+
                 if (activeItem) {
+                    console.log('[EVA Nav] Menu item found!', activeItem);
+
                     // Add arrow to menu item
                     this.addArrowIndicator(activeItem);
 
@@ -88,30 +106,40 @@ export const EvaNavigationIndicator = {
                     let parent = activeItem.closest('.tree-node');
                     while (parent) {
                         const parentLabel = parent.querySelector('.tree-node-label');
-                        if (parentLabel) {
+                        if (parentLabel && parentLabel !== activeItem) {
+                            console.log('[EVA Nav] Found parent menu item:', parentLabel.textContent.trim());
                             this.addArrowIndicator(parentLabel);
                             parentLabel.style.backgroundColor = `${INDICATOR_COLOR}15`;
                         }
                         parent = parent.parentElement?.closest('.tree-node');
                     }
+                } else {
+                    console.warn('[EVA Nav] Menu item not found for:', screenId);
                 }
 
-                // Highlight the main content area
-                const mainContent = document.querySelector('#main-content');
-                if (mainContent) {
-                    this.addBorderHighlight(mainContent);
+                // Highlight modal or main content
+                // Priority: .modal > .settings-panel > #main-content
+                let targetContainer = document.querySelector('.modal.show, .modal.visible, [role="dialog"]');
+
+                if (!targetContainer) {
+                    targetContainer = document.querySelector('.settings-panel');
                 }
 
-                // Highlight the screen header
-                const screenHeader = document.querySelector('.screen-title, h2, h1');
-                if (screenHeader && screenHeader.offsetParent) {
-                    this.addArrowIndicator(screenHeader.parentElement || screenHeader);
+                if (!targetContainer) {
+                    targetContainer = document.querySelector('#main-content');
+                }
+
+                if (targetContainer) {
+                    console.log('[EVA Nav] Highlighting container:', targetContainer.className);
+                    this.addBorderHighlight(targetContainer);
+                } else {
+                    console.warn('[EVA Nav] No container found to highlight');
                 }
 
             } catch (error) {
                 console.error('[EVA Nav] Error marking path:', error);
             }
-        }, 500); // Wait for navigation to complete
+        }, 800); // Increased wait time for modals to render
     },
 
     /**
