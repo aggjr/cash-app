@@ -60,11 +60,23 @@ export const EvaKnowledge = {
             description: 'Extrato detalhado das contas.',
             keywords: ['extrato', 'movimentação', 'histórico']
         },
+        'consolidadas': {
+            id: 'consolidadas',
+            name: 'Consolidadas',
+            description: 'Visão consolidada das transações financeiras - reais e previstas.',
+            keywords: ['consolidada', 'consolidadas', 'análise financeira', 'transações', 'consolidado']
+        },
+        'previsao': {
+            id: 'previsao',
+            name: 'Previsão Diária',
+            description: 'Previsão diária do fluxo de caixa.',
+            keywords: ['previsão', 'fluxo de caixa', 'forecast', 'projeção']
+        },
         'analise-financeira': {
-            id: 'dashboard', // Fallback to dashboard or specific analysis screen if exists
+            id: 'analise-financeira',
             name: 'Análise Financeira',
-            description: 'Visão geral financeira.',
-            keywords: ['análise', 'relatório', 'gráfico']
+            description: 'Relatórios e gráficos de análise financeira.',
+            keywords: ['análise', 'relatório', 'gráfico', 'ROI', 'performance']
         }
     },
 
