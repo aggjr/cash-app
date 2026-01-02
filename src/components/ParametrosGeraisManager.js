@@ -374,98 +374,139 @@ export const ParametrosGeraisManager = (project) => {
                 }
             </style>
             
-            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 2rem;">
-                <h2>⚙️ Parâmetros Gerais</h2>
+            <!-- Tab Navigation -->
+            <div style="display: flex; border-bottom: 2px solid var(--color-border-light); margin-bottom: 2rem;">
+                <button 
+                    id="tab-geral" 
+                    class="settings-tab active"
+                    style="
+                        flex: 1;
+                        padding: 1rem;
+                        border: none;
+                        background: transparent;
+                        font-size: 1rem;
+                        font-weight: 600;
+                        color: var(--color-text-muted);
+                        cursor: pointer;
+                        border-bottom: 3px solid transparent;
+                        transition: all 0.2s;
+                    "
+                >
+                    ⚙️ Geral
+                </button>
+                <button 
+                    id="tab-eva" 
+                    class="settings-tab"
+                    style="
+                        flex: 1;
+                        padding: 1rem;
+                        border: none;
+                        background: transparent;
+                        font-size: 1rem;
+                        font-weight: 600;
+                        color: var(--color-text-muted);
+                        cursor: pointer;
+                        border-bottom: 3px solid transparent;
+                        transition: all 0.2s;
+                    "
+                >
+                    🤖 IA EVA
+                </button>
             </div>
 
-            <div style="background: var(--color-surface); padding: 2rem; border-radius: 12px; border: 1px solid var(--color-border-light);">
-                
-                <!-- Número de Dias -->
-                <div style="margin-bottom: 2rem;">
-                    <label style="display: block; font-weight: 500; margin-bottom: 0.5rem; color: var(--color-text);">
-                        📅 Número de Dias
-                    </label>
-                    <div style="display: flex; align-items: center; gap: 0.75rem; height: 45px;">
-                        <input 
-                            type="number" 
-                            id="input-numero_dias" 
-                            class="settings-input"
-                            value="${currentSettings.numero_dias}"
-                            min="1"
-                            style="max-width: 150px; height: 100%; box-sizing: border-box;"
-                        />
-                        <button 
-                            id="save-numero_dias"
-                            class="btn-save-setting"
-                            disabled
-                            style="
-                                height: 100%;
-                                aspect-ratio: 1;
-                                padding: 0;
-                                display: flex;
-                                align-items: center;
-                                justify-content: center;
-                                background: #e5e7eb;
-                                color: #9ca3af;
-                                border: none;
-                                border-radius: 8px;
-                                font-size: 1.2rem;
-                                cursor: not-allowed;
-                                transition: all 0.2s;
-                            "
-                            title="Salvar alteração"
-                        >✓</button>
+            <!-- Tab Content: Geral -->
+            <div id="content-geral" class="tab-content" style="display: block;">
+                <h2 style="margin-bottom: 1.5rem;">⚙️ Configurações Gerais do Sistema</h2>
+                <div style="background: var(--color-surface); padding: 2rem; border-radius: 12px; border: 1px solid var(--color-border-light);">
+                    
+                    <!-- Número de Dias -->
+                    <div style="margin-bottom: 2rem;">
+                        <label style="display: block; font-weight: 500; margin-bottom: 0.5rem; color: var(--color-text);">
+                            📅 Número de Dias
+                        </label>
+                        <div style="display: flex; align-items: center; gap: 0.75rem; height: 45px;">
+                            <input 
+                                type="number" 
+                                id="input-numero_dias" 
+                                class="settings-input"
+                                value="${currentSettings.numero_dias}"
+                                min="1"
+                                style="max-width: 150px; height: 100%; box-sizing: border-box;"
+                            />
+                            <button 
+                                id="save-numero_dias"
+                                class="btn-save-setting"
+                                disabled
+                                style="
+                                    height: 100%;
+                                    aspect-ratio: 1;
+                                    padding: 0;
+                                    display: flex;
+                                    align-items: center;
+                                    justify-content: center;
+                                    background: #e5e7eb;
+                                    color: #9ca3af;
+                                    border: none;
+                                    border-radius: 8px;
+                                    font-size: 1.2rem;
+                                    cursor: not-allowed;
+                                    transition: all 0.2s;
+                                "
+                                title="Salvar alteração"
+                            >✓</button>
+                        </div>
+                        <small style="display: block; margin-top: 0.5rem; color: var(--color-text-muted);">
+                            Número de dias padrão utilizado pelo sistema
+                        </small>
                     </div>
-                    <small style="display: block; margin-top: 0.5rem; color: var(--color-text-muted);">
-                        Número de dias padrão utilizado pelo sistema
-                    </small>
-                </div>
 
-                <!-- Tempo em Minutos -->
-                <div style="margin-bottom: 2rem;">
-                    <label style="display: block; font-weight: 500; margin-bottom: 0.5rem; color: var(--color-text);">
-                        ⏱️ Tempo em minutos para usar o sistema sem regras de datas
-                    </label>
-                    <div style="display: flex; align-items: center; gap: 0.75rem; height: 45px;">
-                        <input 
-                            type="number" 
-                            id="input-tempo_minutos_liberacao" 
-                            class="settings-input"
-                            value="${currentSettings.tempo_minutos_liberacao}"
-                            min="1"
-                            style="max-width: 150px; height: 100%; box-sizing: border-box;"
-                        />
-                        <button 
-                            id="save-tempo_minutos_liberacao"
-                            class="btn-save-setting"
-                            disabled
-                            style="
-                                height: 100%;
-                                aspect-ratio: 1;
-                                padding: 0;
-                                display: flex;
-                                align-items: center;
-                                justify-content: center;
-                                background: #e5e7eb;
-                                color: #9ca3af;
-                                border: none;
-                                border-radius: 8px;
-                                font-size: 1.2rem;
-                                cursor: not-allowed;
-                                transition: all 0.2s;
-                            "
-                            title="Salvar alteração"
-                        >✓</button>
+                    <!-- Tempo em Minutos -->
+                    <div style="margin-bottom: 2rem;">
+                        <label style="display: block; font-weight: 500; margin-bottom: 0.5rem; color: var(--color-text);">
+                            ⏱️ Tempo em minutos para usar o sistema sem regras de datas
+                        </label>
+                        <div style="display: flex; align-items: center; gap: 0.75rem; height: 45px;">
+                            <input 
+                                type="number" 
+                                id="input-tempo_minutos_liberacao" 
+                                class="settings-input"
+                                value="${currentSettings.tempo_minutos_liberacao}"
+                                min="1"
+                                style="max-width: 150px; height: 100%; box-sizing: border-box;"
+                            />
+                            <button 
+                                id="save-tempo_minutos_liberacao"
+                                class="btn-save-setting"
+                                disabled
+                                style="
+                                    height: 100%;
+                                    aspect-ratio: 1;
+                                    padding: 0;
+                                    display: flex;
+                                    align-items: center;
+                                    justify-content: center;
+                                    background: #e5e7eb;
+                                    color: #9ca3af;
+                                    border: none;
+                                    border-radius: 8px;
+                                    font-size: 1.2rem;
+                                    cursor: not-allowed;
+                                    transition: all 0.2s;
+                                "
+                                title="Salvar alteração"
+                            >✓</button>
+                        </div>
+                        <small style="display: block; margin-top: 0.5rem; color: var(--color-text-muted);">
+                            Duração da liberação temporária para editar datas antigas
+                        </small>
                     </div>
-                    <small style="display: block; margin-top: 0.5rem; color: var(--color-text-muted);">
-                        Duração da liberação temporária para editar datas antigas
-                    </small>
                 </div>
+            </div>
 
-                <!-- Separador -->
-                <hr style="border: none; border-top: 1px solid var(--color-border-light); margin: 2rem 0;" />
-                
-                <h3 style="margin-bottom: 1.5rem; color: var(--color-primary);">🤖 Configuração EVA</h3>
+            <!-- Tab Content: EVA -->
+            <div id="content-eva" class="tab-content" style="display: none;">
+                <h2 style="margin-bottom: 1.5rem;">🤖 Configurações da IA EVA</h2>
+                <div style="background: var(--color-surface); padding: 2rem; border-radius: 12px; border: 1px solid var(--color-border-light);">
 
                 <!-- Tempo Resposta EVA - SLIDER -->
                 <div style="margin-bottom: 2rem;">
@@ -687,6 +728,46 @@ export const ParametrosGeraisManager = (project) => {
                         Permite editar registros em qualquer data por tempo limitado
                     </small>
                 </div>
+
+                </div>
+            </div>
+
+            <script>
+                // Tab switching logic
+                const tabButtons = document.querySelectorAll('.settings-tab');
+                const tabContents = document.querySelectorAll('.tab-content');
+
+                tabButtons.forEach(button => {
+                    button.addEventListener('click', () => {
+                        // Remove active from all tabs
+                        tabButtons.forEach(btn => {
+                            btn.classList.remove('active');
+                            btn.style.color = 'var(--color-text-muted)';
+                            btn.style.borderBottomColor = 'transparent';
+                        });
+
+                        // Hide all content
+                        tabContents.forEach(content => {
+                            content.style.display = 'none';
+                        });
+
+                        // Activate clicked tab
+                        button.classList.add('active');
+                        button.style.color = 'var(--color-primary)';
+                        button.style.borderBottomColor = 'var(--color-primary)';
+
+                        // Show corresponding content
+                        const tabId = button.id.replace('tab-', 'content-');
+                        document.getElementById(tabId).style.display = 'block';
+                    });
+                });
+
+                // Initialize first tab as active
+                document.querySelector('#tab-geral').style.color = 'var(--color-primary)';
+                document.querySelector('#tab-geral').style.borderBottomColor = 'var(--color-primary)';
+            </script
+
+>
 
             </div>
         `;
