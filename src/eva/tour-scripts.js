@@ -79,14 +79,56 @@ export const TOUR_FULL = [
         id: 'full-sharedtable-intro',
         screenId: 'usuarios',
         title: '📊 DESTAQUE: SharedTable',
-        narration: 'Antes de continuar, quero destacar um grande diferencial do CASH: a SharedTable! Esta tabela avançada funciona como o Excel, com filtros inteligentes por data, valor e texto, ordenação lexicográfica e numérica, e muito mais. Você verá ela em várias telas do sistema.',
+        narration: 'Antes de continuar, quero destacar um grande diferencial do CASH: a SharedTable! Vou demonstrar os filtros avançados. Observe os filtros por data, valor e texto que funcionam como no Excel.',
         highlights: [
-            { selector: 'table, .shared-table, .table-container', addArrow: true },
-            { selector: 'thead th, .column-header', addArrow: false },
-            { selector: '.filter-icon, [class*="filter"]', addArrow: false }
+            { selector: 'table, .shared-table, .table-container', addArrow: true }
         ],
-        duration: 12000,
-        isSharedTableIntro: true // Flag para controle
+        actions: [
+            // 1. Open date filter (assuming first column with date)
+            {
+                type: 'click',
+                selector: 'thead th:nth-child(1) .filter-icon, thead th:first-child [class*="filter"], thead th:first-child button',
+                delay: 2000,
+                waitAfter: 3000
+            },
+            // 2. Close date filter
+            {
+                type: 'close',
+                selector: '.modal .close, .filter-modal .close, button:contains("Fechar")',
+                delay: 500,
+                waitAfter: 1000
+            },
+            // 3. Open number/value filter (try status or another column)
+            {
+                type: 'click',
+                selector: 'thead th:nth-child(3) .filter-icon, thead th:nth-child(3) [class*="filter"], thead th:nth-child(3) button',
+                delay: 1000,
+                waitAfter: 3000
+            },
+            // 4. Close number filter
+            {
+                type: 'close',
+                selector: '.modal .close, .filter-modal .close, button:contains("Fechar")',
+                delay: 500,
+                waitAfter: 1000
+            },
+            // 5. Open text filter (name column)
+            {
+                type: 'click',
+                selector: 'thead th:nth-child(2) .filter-icon, thead th:nth-child(2) [class*="filter"], thead th:nth-child(2) button',
+                delay: 1000,
+                waitAfter: 3000
+            },
+            // 6. Close text filter
+            {
+                type: 'close',
+                selector: '.modal .close, .filter-modal .close, button:contains("Fechar")',
+                delay: 500,
+                waitAfter: 500
+            }
+        ],
+        duration: 8000, // After all actions complete
+        isSharedTableIntro: true
     },
     {
         id: 'full-empresas',

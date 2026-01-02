@@ -101,6 +101,42 @@ export const EvaTour = {
                 });
             }
 
+            // 5.5. Execute interactive actions (NEW!)
+            if (step.actions && Array.isArray(step.actions)) {
+                for (const action of step.actions) {
+                    await this.wait(action.delay || 1000);
+
+                    if (action.type === 'click') {
+                        const el = document.querySelector(action.selector);
+                        if (el) {
+                            console.log('[EVA Tour] Clicking:', action.selector);
+                            el.click();
+
+                            // Wait for modal/dropdown to appear
+                            if (action.waitAfter) {
+                                await this.wait(action.waitAfter);
+                            }
+                        } else {
+                            console.warn('[EVA Tour] Action element not found:', action.selector);
+                        }
+                    } else if (action.type === 'close') {
+                        // Close any open modals/overlays
+                        const closeBtn = document.querySelector(action.selector);
+                        if (closeBtn) {
+                            console.log('[EVA Tour] Closing:', action.selector);
+                            closeBtn.click();
+                        } else {
+                            // Try ESC key
+                            document.dispatchEvent(new KeyboardEvent('keydown', { key: 'Escape' }));
+                        }
+
+                        if (action.waitAfter) {
+                            await this.wait(action.waitAfter);
+                        }
+                    }
+                }
+            }
+
             // 6. EVA narration
             if (window.EVAConsultant) {
                 window.EVAConsultant.addMessage?.('ai', step.narration);
