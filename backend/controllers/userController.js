@@ -106,6 +106,8 @@ exports.listProjectUsers = async (req, res) => {
                 u.id,
                 u.name,
                 u.email,
+                u.job_title,
+                u.department,
                 u.is_active,
                 pu.role,
                 pu.status,
