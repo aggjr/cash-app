@@ -15,20 +15,9 @@ const chat = async (req, res, next) => {
             return res.status(400).json({ error: 'Mensagem é obrigatória' });
         }
 
-        // Infer gender from user name if gender field is null
+        // Get user info - let LLM infer everything naturally
         const userName = user?.name || '';
-        let inferredGender = context.gender; // Use DB gender if available
-
-        if (!inferredGender || inferredGender === 'null') {
-            // Fallback to name-based inference
-            inferredGender = userName.toLowerCase().endsWith('a') ? 'F' : 'M';
-            console.log(`[EVA Chat] Gender inferred from name "${userName}": ${inferredGender}`);
-        } else {
-            console.log(`[EVA Chat] Using DB gender: ${inferredGender}`);
-        }
-
-        const pronoun = inferredGender === 'F' ? 'a senhora' : 'o senhor';
-        const userDisplayName = context.preferredName || userName || 'usuário(a)';
+        const preferredName = context.preferredName || user?.preferred_name || '';
 
         // Build system prompt based on mode
         let systemPrompt;
@@ -41,58 +30,34 @@ OBJETIVO: Coletar informações do usuário de forma natural:
 1. Nome preferido (como quer ser chamado)
 2. Preferência de resposta (áudio, texto, ou ambos)
 
-CONTEXTO:
-- Nome sugerido para o usuário: "${context.suggestedName || ''}"
-- Se o usuário aceitar a sugestão (ex: "sim", "ok", "pode ser", "está bom", "tudo bem"), use "${context.suggestedName}" como preferredName
+INFORMAÇÕES DO USUÁRIO:
+- Nome completo: ${userName || 'Não informado'}
+- Nome sugerido: "${context.suggestedName || ''}"
 
 INSTRUÇÕES:
-- Use "${pronoun}"
+- Converse naturalmente com o usuário, inferindo gênero e tratamento apropriado do nome
+- Se o usuário aceitar a sugestão (ex: "sim", "ok", "pode ser"), use "${context.suggestedName}" como preferredName
 - Seja natural, educada e conversacional
-- Se o usuário falar algo genérico ("oi", "tudo bem", "olá"), responda educadamente mas continue perguntando o que falta
+- Se o usuário falar algo genérico ("oi", "tudo bem"), responda educadamente mas continue perguntando o que falta
 - Se o usuário ACEITAR a sugestão inicial, NÃO repita a pergunta sobre o nome. Vá direto para perguntar sobre áudio/texto
 - Se o usuário informar outro nome, use esse novo nome
 - Quando identificar o nome, confirme e pergunte sobre áudio/texto
-- Quando identificar preferência de áudio, confirme
-- Use português brasileiro formal
-
 FORMATO DE RESPOSTA:
 Escreva sua resposta normalmente.
 Depois, em uma linha separada, adicione:
 <<<DATA>>>
 {"preferredName": "nome ou null", "voicePreference": "audio|text|both|null"}
-<<<END>>>
-
-EXEMPLOS:
-
-User: "Oi, tudo bem?"
-EVA: "Olá! Está tudo bem sim, obrigada. E ${context.gender === 'F' ? 'a senhora' : 'o senhor'}, como está? Como gostaria de ser ${context.gender === 'F' ? 'chamada' : 'chamado'}?
-<<<DATA>>>
-{"preferredName": null, "voicePreference": null}
-<<<END>>>"
-
-User: "Sim" (aceitando Sr. Augusto Jr)
-EVA: "Perfeito, ${context.suggestedName}! Para facilitar nosso dia a dia, ${pronoun} prefere que eu responda utilizando áudio e texto ou apenas texto?
-<<<DATA>>>
-{"preferredName": "${context.suggestedName}", "voicePreference": null}
-<<<END>>>"
-
-User: "Me chame de Augusto"
-EVA: "Augusto, perfeito! Para facilitar nosso dia a dia, ${pronoun} prefere que eu responda utilizando áudio e texto ou apenas texto?
-<<<DATA>>>
-{"preferredName": "Augusto", "voicePreference": null}
-<<<END>>>"
-
-User: "Prefiro texto"
-EVA: "Entendido, Augusto! Configurado para respostas apenas em texto. Estou pronta para ajudar! Em que posso auxiliar?
-<<<DATA>>>
-{"preferredName": null, "voicePreference": "text"}
-<<<END>>>"`;
+<<<END>>>`;
         } else {
             // Normal assistant prompt
             systemPrompt = `Você é EVA, assistente virtual financeira do sistema CASH.
 
+INFORMAÇÕES DO USUÁRIO:
+- Nome completo: ${userName || 'Não informado'}
+- Nome preferido: ${preferredName || 'Não definido'}
+
 INSTRUÇÕES IMPORTANTES:
-- Use "${pronoun}" e chame a pessoa de "${userDisplayName}"
+- Converse naturalmente com ${preferredName || userName || 'o usuário'}, inferindo tratamento apropriado do nome
 - Seja formal, respeitosa e prestativa
 - Responda de forma concisa e objetiva (máximo 2-3 parágrafos)
 - Ajude com classificação de transações, análises financeiras, dúvidas sobre o sistema
@@ -190,11 +155,6 @@ const operate = async (req, res) => {
         const currentVoiceGender = userSettings?.evaVoiceMale ? 'M' : 'F';
         const currentVoiceEnabled = userSettings?.evaVoiceEnabled !== 0;
 
-        // Infer gender from userName for appropriate pronouns
-        const inferredGender = userName ? (userName.toLowerCase().endsWith('a') ? 'F' : 'M') : 'M';
-        const pronoun = inferredGender === 'F' ? 'a senhora' : 'o senhor';
-        const userDisplayName = preferredName || userName || 'usuário(a)';
-
         // Format screen context if available
         let screenContextText = '';
         if (screenContext) {
@@ -242,12 +202,10 @@ const operate = async (req, res) => {
 Sua função é traduzir a intenção do usuário em AÇÕES JSON para o sistema.
 
 INFORMAÇÕES DO USUÁRIO:
-- Nome: ${userName || 'Não informado'}
-- Nome preferido: ${userDisplayName}
-- Gênero inferido: ${inferredGender === 'F' ? 'Feminino' : 'Masculino'}
-- Tratamento: ${pronoun}
+- Nome completo: ${userName || 'Não informado'}
+- Nome preferido: ${preferredName || 'Não definido'}
 
-IMPORTANTE: Use "${pronoun}" e "${userDisplayName}" em suas respostas. Ajuste verbos e pronomes conforme o gênero (ex: "guiá-lo" vs "guiá-la", "bem-vindo" vs "bem-vinda").
+IMPORTANTE: Converse naturalmente com ${preferredName || userName || 'o usuário'}, inferindo tratamento e gênero apropriados do nome.
 
 CONFIGURAÇÕES ATUAIS DO USUÁRIO:
 - Velocidade da voz: ${currentVoiceRate} (Escala: 0=Muito Lento, 50=Normal, 100=Muito Rápido)
