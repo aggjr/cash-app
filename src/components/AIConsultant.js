@@ -827,7 +827,8 @@ export const AIConsultant = () => {
                     context: {
                         gender: detectedGender,
                         userName: user?.name,
-                        suggestedName: getSuggestedName(user?.name, detectedGender)
+                        suggestedName: getSuggestedName(user?.name, detectedGender),
+                        askGenderConfirmation: !user?.gender // Ask if not saved yet
                     },
                     isIntroduction: true
                 })
@@ -844,7 +845,39 @@ export const AIConsultant = () => {
             addMessage('ai', reply);
             speak(reply);
 
+
             // Save extracted data if available
+
+            // Handle gender confirmation first
+            if (extracted && extracted.genderConfirmation) {
+                let finalGender;
+
+                if (extracted.genderConfirmation === 'CORRECT') {
+                    // Use detected gender from temp storage
+                    finalGender = window._tempDetectedGender || 'M';
+                } else {
+                    // Use corrected gender from user
+                    finalGender = extracted.genderConfirmation;
+                }
+
+                // Save to database
+                await fetch(`${API_BASE_URL}/auth/update-preference`, {
+                    method: 'PUT',
+                    headers: getHeaders(),
+                    body: JSON.stringify({ gender: finalGender })
+                });
+
+                // Update local user object
+                const user = getUser();
+                if (user) {
+                    user.gender = finalGender;
+                    localStorage.setItem('user', JSON.stringify(user));
+                }
+
+                console.log('[EVA] Gender confirmed and saved:', finalGender);
+                delete window._tempDetectedGender;
+            }
+
             if (extracted && extracted.preferredName) {
                 await savePreferences({ preferredName: extracted.preferredName });
             }
