@@ -136,52 +136,98 @@ const operate = async (req, res) => {
         let screenContextText = '';
         if (screenContext) {
             screenContextText = `\nDADOS VISÍVEIS NA TELA ATUAL:\n`;
-FORMATO DE RESPOSTA(JSON OBRIGATÓRIO):
-Retorne APENAS um objeto JSON válido.
+            // Build dynamic profile for operate context too
+            const dynamicProfile = await EvaContextBuilder.buildDynamicBusinessProfile(db, context.projectId);
 
-                Exemplos:
-            User: "Abra a tela de contas"
-            JSON: { "action": "NAVIGATE", "target": "contas" }
+            // Build operate system prompt
+            // Note: buildOperateContext signature: (user, project, screenContext, voiceSettings, availableScreens = [], currentScreen = null)
+            // We need to pass dynamicProfile to it as well if we want it used there.
+            // Let's first look at EvaContextBuilder again to see if it supports dynamicProfile in buildOperateContext.
+            // It does NOT yet. But for now, let's just restore the valid code call.
+            const systemPrompt = EvaContextBuilder.buildOperateContext(
+                userData,
+                projectData,
+                screenContext,
+                userSettings,
+                availableScreens,
+                activeScreenContext
+            );
 
-            User: "Preencha o valor com 500"(Estando na tela de entrada)
-            JSON: { "action": "FILL_FORM", "fields": { "income-valor": "500" } }
-            (Nota: Use o ID exato dos campos listados no Contexto Local.Se o usuário falar "valor" e o ID for "income-valor", faça o mapeamento).
+            const messages = [
+                { role: 'system', content: systemPrompt },
+                ...history.map(msg => ({
+                    role: msg.role === 'user' ? 'user' : 'assistant',
+                    content: msg.content
+                })),
+                { role: 'user', content: message }
+            ];
 
-                User: "Salvar"
-            JSON: { "action": "CLICK_ACTION", "selector": "#btn-save" } (Pegue o selector das ações locais)
+            // Call LLM
+            const completion = await openai.chat.completions.create({
+                model: "gpt-4o-mini",
+                messages: messages,
+                temperature: 0.3, // Lower temperature for actions
+                response_format: { type: "json_object" }
+            });
 
-            User: "Pode fazer um tour do sistema?"
-            JSON: { "action": "START_TOUR", "mode": "full", "message": "Claro! Vou guiá-lo por todo o sistema. Escolha:\n1 - Visão Geral (2-3 min)\n2 - Tour Completo (10-15 min)" }
+            const responseContent = completion.choices[0].message.content;
+            console.log('EVA Operate Response:', responseContent);
 
-            User: "Mostre o sistema" / "Apresente as telas" / "Conhecer funcionalidades"
-            JSON: { "action": "START_TOUR", "mode": "full", "message": "Com prazer! Posso mostrar:\n1 - Tour rápido (2-3 min)\n2 - Tour detalhado (10-15 min)\n\nDigite 1 ou 2." }
+            try {
+                const action = JSON.parse(responseContent);
 
-            User: "Pode falar mais rápido?"
-            JSON: { "action": "SET_VOICE_RATE", "value": ${ Math.min(100, currentVoiceRate + 15) }, "message": "Claro! Aumentando velocidade (+15). 🚀" }
+                // Add voice response to action if needed (simple echo or tailored)
+                // Ideally, the LLM should return { action: ..., voice_response: "..." }
+                // Let's assume the LLM prompt instructions (in EvaContextBuilder) handle that return format.
 
-            User: "Muito mais rápido ainda"
-            JSON: { "action": "SET_VOICE_RATE", "value": ${ Math.min(100, currentVoiceRate + 30) }, "message": "Entendido! Bem mais rápido agora (+30)." }
+                res.json(action);
+            } catch (e) {
+                console.error('Failed to parse EVA operate JSON:', e);
+                res.status(500).json({
+                    error: 'Falha ao processar comando',
+                    raw: responseContent
+                });
+            }
 
-            User: "Volta um pouquinho/Mais devagar"
-            JSON: { "action": "SET_VOICE_RATE", "value": ${ Math.max(0, currentVoiceRate - 10) }, "message": "OK! Diminuindo levemente (-10)." }
+        } catch (error) {
+            console.error('EVA Operate Error:', error);
+            res.status(500).json({ error: 'Erro interno ao processar comando' });
+        }
+    };
+    JSON: { "action": "CLICK_ACTION", "selector": "#btn-save" } (Pegue o selector das ações locais)
 
-            User: "Fale normal"
-            JSON: { "action": "SET_VOICE_RATE", "value": 50, "message": "Voltando para velocidade normal. 👍" }
+    User: "Pode fazer um tour do sistema?"
+    JSON: { "action": "START_TOUR", "mode": "full", "message": "Claro! Vou guiá-lo por todo o sistema. Escolha:\n1 - Visão Geral (2-3 min)\n2 - Tour Completo (10-15 min)" }
 
-            User: "Grave essa velocidade como padrão" / "Salve essa configuração"
-            JSON: { "action": "REPLY", "message": "Pode deixar! Essa configuração já foi salva automaticamente no seu perfil. 😉" }
+    User: "Mostre o sistema" / "Apresente as telas" / "Conhecer funcionalidades"
+    JSON: { "action": "START_TOUR", "mode": "full", "message": "Com prazer! Posso mostrar:\n1 - Tour rápido (2-3 min)\n2 - Tour detalhado (10-15 min)\n\nDigite 1 ou 2." }
 
-            User: "Prefiro voz masculina"
-            JSON: { "action": "SET_VOICE_GENDER", "isMale": true, "message": "Perfeito! Mudando para voz masculina." }
+    User: "Pode falar mais rápido?"
+    JSON: { "action": "SET_VOICE_RATE", "value": ${ Math.min(100, currentVoiceRate + 15) }, "message": "Claro! Aumentando velocidade (+15). 🚀" }
 
-            User: "Desative o áudio"
-            JSON: { "action": "SET_VOICE_ENABLED", "enabled": false, "message": "Entendido! Responderei apenas com texto." }
+    User: "Muito mais rápido ainda"
+    JSON: { "action": "SET_VOICE_RATE", "value": ${ Math.min(100, currentVoiceRate + 30) }, "message": "Entendido! Bem mais rápido agora (+30)." }
 
-            User: "Quantos usuários estão na tabela?"(Com dados visíveis)
-            JSON: { "action": "REPLY", "message": "Há X usuários cadastrados, mostrando Y na tela." }
+    User: "Volta um pouquinho/Mais devagar"
+    JSON: { "action": "SET_VOICE_RATE", "value": ${ Math.max(0, currentVoiceRate - 10) }, "message": "OK! Diminuindo levemente (-10)." }
 
-            User: "Como faço um pix?"
-            JSON: { "action": "REPLY", "message": "Para fazer um pix, vá em Saídas e selecione o tipo PIX." }
+    User: "Fale normal"
+    JSON: { "action": "SET_VOICE_RATE", "value": 50, "message": "Voltando para velocidade normal. 👍" }
+
+    User: "Grave essa velocidade como padrão" / "Salve essa configuração"
+    JSON: { "action": "REPLY", "message": "Pode deixar! Essa configuração já foi salva automaticamente no seu perfil. 😉" }
+
+    User: "Prefiro voz masculina"
+    JSON: { "action": "SET_VOICE_GENDER", "isMale": true, "message": "Perfeito! Mudando para voz masculina." }
+
+    User: "Desative o áudio"
+    JSON: { "action": "SET_VOICE_ENABLED", "enabled": false, "message": "Entendido! Responderei apenas com texto." }
+
+    User: "Quantos usuários estão na tabela?"(Com dados visíveis)
+    JSON: { "action": "REPLY", "message": "Há X usuários cadastrados, mostrando Y na tela." }
+
+    User: "Como faço um pix?"
+    JSON: { "action": "REPLY", "message": "Para fazer um pix, vá em Saídas e selecione o tipo PIX." }
 
 Se o usuário pedir para preencher algo que não existe na tela atual, responda com REPLY explicando o erro.`;
 
