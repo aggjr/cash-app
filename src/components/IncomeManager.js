@@ -38,7 +38,10 @@ export const IncomeManager = (projectData) => {
     let incomes = [];
     let pagination = { page: 1, limit: 50, total: 0, pages: 1 };
     let activeFilters = {};
+
     let sortConfig = { key: 'data_fato', direction: 'desc' }; // Default server sort
+    let selectedItems = new Set(); // Store IDs
+    let selectedItemsData = []; // Store Objects for Sum
 
     // Define Columns for SharedTable
     const columns = [
@@ -286,6 +289,14 @@ export const IncomeManager = (projectData) => {
                     if (key === 'company_name' && filter.text) params.append('company', filter.text);
                     if (key === 'tipo_entrada_name' && filter.text) params.append('tipoEntrada', filter.text);
 
+                    // Handle List Filters (Exact Match)
+                    if (filter.textIn && filter.textIn.length > 0 && !filter.textIn.includes('__NONE__')) {
+                        if (key === 'descricao') filter.textIn.forEach(v => params.append('descriptionList', v));
+                        if (key === 'account_name') filter.textIn.forEach(v => params.append('accountList', v));
+                        if (key === 'company_name') filter.textIn.forEach(v => params.append('companyList', v));
+                        if (key === 'tipo_entrada_name') filter.textIn.forEach(v => params.append('tipoEntradaList', v));
+                    }
+
                     // Fallback or "Contains" generic operator if matched
                     if (filter.val1 && filter.operator === 'contains') {
                         if (key === 'descricao') params.append('description', filter.val1);
@@ -326,11 +337,48 @@ export const IncomeManager = (projectData) => {
         }
     };
 
+    const handleBulkDelete = async () => {
+        if (selectedItems.size === 0) return;
+
+        const confirm = await showCustomConfirm(
+            `Tem certeza que deseja excluir ${selectedItems.size} itens selecionados?`,
+            'Sim, Excluir Tudo'
+        );
+
+        if (confirm) {
+            try {
+                const response = await fetch(`${API_BASE_URL}/incomes/bulk-delete`, {
+                    method: 'POST',
+                    headers: getHeaders(),
+                    body: JSON.stringify({ ids: Array.from(selectedItems) })
+                });
+
+                const result = await response.json();
+                if (response.ok) {
+                    showToast(result.message, 'success');
+                    selectedItems.clear();
+                    selectedItemsData = [];
+                    sharedTable.clearSelection();
+                    loadIncomes();
+                } else {
+                    showToast(result.error || 'Erro ao excluir itens', 'error');
+                }
+            } catch (error) {
+                console.error(error);
+                showToast('Erro de conexão', 'error');
+            }
+        }
+    };
+
     const renderPagination = () => {
         const pagContainer = container.querySelector('.pagination-controls');
         if (!pagContainer) return;
 
         pagContainer.innerHTML = '';
+
+        // If selection active, show Bulk Actions instead of just Pagination?
+        // Or show both? User wants "calculation" and "delete in batch".
+        // Better to show Total Selected in the Total Bar, and Batch Action near it.
 
         const btnPrev = document.createElement('button');
         btnPrev.className = 'btn-sm';
@@ -355,13 +403,39 @@ export const IncomeManager = (projectData) => {
         // Update Total
         const totalContainer = container.querySelector('#total-display');
         if (totalContainer) {
-            const totalVal = incomes.reduce((sum, inc) => sum + parseFloat(inc.valor || 0), 0);
+            const pageTotal = incomes.reduce((sum, inc) => sum + parseFloat(inc.valor || 0), 0);
+            const selectionTotal = selectedItemsData.reduce((sum, inc) => sum + parseFloat(inc.valor || 0), 0);
+
+            const hasSelection = selectedItems.size > 0;
+
             totalContainer.innerHTML = `
-                <span style="font-size: 1.1rem; margin-right: 0.5rem;">Total (Página):</span>
-                <span style="font-weight: 700; font-size: 1.1rem; color: ${totalVal >= 0 ? '#10B981' : '#EF4444'};">
-                    ${new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(totalVal)}
-                </span>
+                <div style="display: flex; gap: 2rem; align-items: center;">
+                    <div>
+                        <span style="font-size: 1.1rem; margin-right: 0.5rem;">Total (Página):</span>
+                        <span style="font-weight: 700; font-size: 1.1rem; color: ${pageTotal >= 0 ? '#10B981' : '#EF4444'};">
+                            ${new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(pageTotal)}
+                        </span>
+                    </div>
+                    ${hasSelection ? `
+                    <div class="animate-fade-in" style="display: flex; align-items: center; gap: 1rem; background: #eef2ff; padding: 4px 12px; border-radius: 6px; border: 1px solid #c7d2fe;">
+                        <span style="font-size: 1.1rem; margin-right: 0.5rem; color: #4338ca;">Total Selecionados (${selectedItems.size}):</span>
+                        <span style="font-weight: 700; font-size: 1.1rem; color: #4338ca;">
+                            ${new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(selectionTotal)}
+                        </span>
+                        <button id="btn-bulk-delete" style="
+                            background: #EF4444; color: white; border: none; padding: 4px 8px; 
+                            border-radius: 4px; cursor: pointer; font-size: 0.9rem; display: flex; align-items: center; gap: 4px;">
+                            🗑️ Excluir
+                        </button>
+                    </div>
+                    ` : ''}
+                </div>
             `;
+
+            if (hasSelection) {
+                const btnBulk = totalContainer.querySelector('#btn-bulk-delete');
+                if (btnBulk) btnBulk.onclick = handleBulkDelete;
+            }
         }
     };
 
@@ -634,6 +708,12 @@ export const IncomeManager = (projectData) => {
         onSortChange: (sort) => {
             sortConfig = sort;
             loadIncomes(1);
+        },
+        enableSelection: true,
+        onSelectionChange: (items, ids) => {
+            selectedItems = ids;
+            selectedItemsData = items;
+            renderPagination();
         }
     });
 

@@ -1,20 +1,31 @@
 import { getApiBaseUrl } from '../utils/apiConfig.js';
 
 export class SharedTable {
-    constructor({ container, columns, projectId, endpointPrefix, onFilterChange, onSortChange }) {
+    constructor({ container, columns, projectId, endpointPrefix, onFilterChange, onSortChange, enableSelection, onSelectionChange }) {
         this.container = container;
         this.columns = columns;
         this.projectId = projectId;
         this.endpointPrefix = endpointPrefix; // If null, assumes client-side distinct values from passed data
         this.onFilterChange = onFilterChange;
         this.onSortChange = onSortChange;
+        this.enableSelection = enableSelection || false;
+        this.onSelectionChange = onSelectionChange;
         this.API_BASE_URL = getApiBaseUrl();
 
         // State
-        this.activeFilters = {};
-        this.sortConfig = { key: null, direction: 'desc' };
         this.scrollState = { top: 0, left: 0 };
         this.currentData = []; // Store current data for local distinct calculation
+
+        // Selection State
+        this.enableSelection = !!container.dataset.enableSelection; // Passed via constructor options usually? 
+        // Wait, constructor arg "enableSelection" is better.
+        this.selection = new Set();
+    }
+
+    // Allow updating options dynamically
+    updateOptions({ enableSelection, onSelectionChange }) {
+        if (enableSelection !== undefined) this.enableSelection = enableSelection;
+        if (onSelectionChange !== undefined) this.onSelectionChange = onSelectionChange;
     }
 
     getHeaders() {
@@ -140,6 +151,37 @@ export class SharedTable {
                 tr.className = 'hoverable-row';
                 tr.style.borderBottom = '1px solid var(--color-background)';
 
+                // Checkbox Column
+                if (this.enableSelection) {
+                    const tdCb = document.createElement('td');
+                    tdCb.style.padding = 'var(--row-padding)';
+                    tdCb.style.textAlign = 'center';
+                    tdCb.style.width = '40px';
+
+                    const cb = document.createElement('input');
+                    cb.type = 'checkbox';
+                    cb.className = 'row-cb';
+                    cb.checked = this.selection.has(item.id);
+                    cb.style.cursor = 'pointer';
+                    cb.style.transform = 'scale(1.2)';
+
+                    cb.onclick = (e) => {
+                        e.stopPropagation();
+                        if (e.target.checked) this.selection.add(item.id);
+                        else this.selection.delete(item.id);
+
+                        this.notifySelectionChange();
+                        // Optional: Update Select All Checkbox state without full re-render?
+                        // For now, simple enough.
+                        const allChecked = this.currentData.every(i => this.selection.has(i.id));
+                        const headerCb = this.container.querySelector('.select-all-cb');
+                        if (headerCb) headerCb.checked = allChecked;
+                    };
+
+                    tdCb.appendChild(cb);
+                    tr.appendChild(tdCb);
+                }
+
                 this.columns.forEach(col => {
                     const td = document.createElement('td');
                     td.style.padding = 'var(--row-padding)';
@@ -199,7 +241,7 @@ export class SharedTable {
     renderHeaderContent() {
         const FILTER_ICON = `<svg viewBox="0 0 24 24" fill="currentColor" class="filter-icon" width="14" height="14"><path d="M10 18h4v-2h-4v2zM3 6v2h18V6H3zm3 7h12v-2H6v2z"/></svg>`;
 
-        return this.columns.map(col => {
+        const headers = this.columns.map(col => {
             const isActive = this.activeFilters[col.key];
             // User Report: "Cor apagada". Force pure white #FFFFFF for inactive.
             const color = isActive ? 'var(--color-gold)' : '#FFFFFF';
@@ -240,9 +282,41 @@ export class SharedTable {
 
             return `<th style="text-align: ${col.align || 'left'}; padding: var(--row-padding); font-size: 0.9rem; width: ${col.width || 'auto'}; vertical-align: middle; color: white;">${content}</th>`;
         }).join('');
+
+        // Prepend Checkbox Header if enabled
+        if (this.enableSelection) {
+            const isAllSelected = this.currentData.length > 0 && this.currentData.every(item => this.selection.has(item.id));
+            const checkboxHtml = `
+                <th style="width: 40px; text-align: center; vertical-align: middle; padding: var(--row-padding);">
+                    <input type="checkbox" class="select-all-cb" ${isAllSelected ? 'checked' : ''} style="cursor: pointer; transform: scale(1.2);">
+                </th>
+            `;
+            return checkboxHtml + headers;
+        }
+        return headers;
     }
 
     attachHeaderEvents(headerRow) {
+        if (this.enableSelection) {
+            const selectAllCb = headerRow.querySelector('.select-all-cb');
+            if (selectAllCb) {
+                selectAllCb.onclick = (e) => {
+                    e.stopPropagation();
+                    const isChecked = e.target.checked;
+                    if (isChecked) {
+                        this.currentData.forEach(item => this.selection.add(item.id));
+                    } else {
+                        // Deselect visible items (or clear all? usually clear all visible, but here selection might be global? 
+                        // For simplicity, let's treat "Select All" as "Select All on Page".
+                        // If we want global, we need 'ids' logic but we only have currentData.
+                        this.currentData.forEach(item => this.selection.delete(item.id));
+                    }
+                    this.notifySelectionChange();
+                    this.render(this.currentData); // Re-render to update row checkboxes
+                };
+            }
+        }
+
         headerRow.querySelectorAll('.header-sort-trigger').forEach(trigger => {
             trigger.onclick = (e) => {
                 // Ignore if clicked on filter trigger or specific sort btn (handled separately)

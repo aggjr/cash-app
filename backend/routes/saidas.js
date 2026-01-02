@@ -24,4 +24,7 @@ router.put('/:id/batch', saidaController.batchUpdateSaida);
 // DELETE /api/saidas/:id/batch - Batch delete with scope
 router.delete('/:id/batch', saidaController.batchDeleteSaida);
 
+// POST /api/saidas/bulk-delete - Delete multiple items by IDs
+router.post('/bulk-delete', saidaController.bulkDeleteSaidas);
+
 module.exports = router;

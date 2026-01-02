@@ -29,4 +29,7 @@ router.put('/:id/batch', auth, incomeController.batchUpdateIncome);
 // DELETE /api/incomes/:id/batch - Batch delete with scope
 router.delete('/:id/batch', auth, incomeController.batchDeleteIncome);
 
+// POST /api/incomes/bulk-delete - Delete multiple items by IDs
+router.post('/bulk-delete', auth, incomeController.bulkDeleteIncomes);
+
 module.exports = router;

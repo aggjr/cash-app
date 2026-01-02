@@ -113,6 +113,22 @@ exports.listIncomes = async (req, res, next) => {
             params.push(`%${req.query.tipoEntrada}%`);
         }
 
+        // List Filters for Text Columns
+        const addTextListFilter = (field, listParam) => {
+            if (req.query[listParam]) {
+                const values = Array.isArray(req.query[listParam]) ? req.query[listParam] : [req.query[listParam]];
+                if (values.length > 0) {
+                    whereClauses.push(`${field} IN (?)`);
+                    params.push(values);
+                }
+            }
+        };
+
+        addTextListFilter('e.descricao', 'descriptionList');
+        addTextListFilter('c.name', 'accountList');
+        addTextListFilter('emp.name', 'companyList');
+        addTextListFilter('th.full_path', 'tipoEntradaList');
+
         // Attachment Filter
         if (req.query.hasAttachment === '1') {
             whereClauses.push('e.comprovante_url IS NOT NULL AND e.comprovante_url != ""');
@@ -1317,10 +1333,9 @@ exports.batchDeleteIncome = async (req, res, next) => {
 
         res.json({
             success: true,
-            message: `${deletedCount} de ${idsToDelete.length} registro(s) excluído(s)`,
+            message: `${deletedCount} registro(s) excluído(s)`,
             deleted: deletedCount,
             skipped: skippedCount,
-            total: idsToDelete.length,
             errors: errors.length > 0 ? errors : undefined
         });
 
@@ -1330,5 +1345,87 @@ exports.batchDeleteIncome = async (req, res, next) => {
     } finally {
         if (connection) connection.release();
     }
+};
+
+// Bulk Delete - Delete a list of arbitrary IDs
+exports.bulkDeleteIncomes = async (req, res, next) => {
+    let connection;
+    try {
+        const { ids } = req.body;
+
+        if (!ids || !Array.isArray(ids) || ids.length === 0) {
+            throw new AppError('VAL-002', 'Lista de IDs inválida ou vazia');
+        }
+
+        connection = await db.getConnection();
+        await connection.beginTransaction();
+
+        let deletedCount = 0;
+        let skippedCount = 0;
+        const errors = [];
+
+        for (const deleteId of ids) {
+            try {
+                // Get income details for balance adjustment
+                const [income] = await connection.query(
+                    'SELECT valor, account_id, data_real_recebimento FROM entradas WHERE id = ? AND active = 1',
+                    [deleteId]
+                );
+
+                if (income.length === 0) {
+                    skippedCount++;
+                    continue;
+                }
+
+                // Soft delete
+                await connection.query('UPDATE entradas SET active = 0 WHERE id = ?', [deleteId]);
+
+                // Decrease account balance only if it was already received
+                if (income[0].account_id && income[0].data_real_recebimento) {
+                    await connection.query(
+                        'UPDATE contas SET current_balance = current_balance - ? WHERE id = ?',
+                        [income[0].valor, income[0].account_id]
+                    );
+                }
+
+                deletedCount++;
+            } catch (error) {
+                console.error(`Error deleting ID ${deleteId}:`, error);
+                skippedCount++;
+                errors.push(`ID ${deleteId}: ${error.message}`);
+            }
+        }
+
+        await connection.commit();
+        logAudit(req, 'BULK_DELETE', 'entradas', ids.join(','), { count: deletedCount });
+
+        res.json({
+            success: true,
+            message: `${deletedCount} registro(s) excluído(s) com sucesso.`,
+            deleted: deletedCount,
+            skipped: skippedCount,
+            errors: errors.length > 0 ? errors : undefined
+        });
+
+    } catch (error) {
+        if (connection) await connection.rollback();
+        next(error);
+    } finally {
+        if (connection) connection.release();
+    }
+};
+message: `${deletedCount} de ${idsToDelete.length} registro(s) excluído(s)`,
+    deleted: deletedCount,
+        skipped: skippedCount,
+            total: idsToDelete.length,
+                errors: errors.length > 0 ? errors : undefined
+        });
+
+    } catch (error) {
+    if (connection) await connection.rollback();
+    next(error);
+} finally {
+    if (connection) connection.release();
+}
 };
 

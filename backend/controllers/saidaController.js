@@ -101,6 +101,22 @@ exports.listSaidas = async (req, res, next) => {
             params.push(`%${req.query.tipoSaida}%`);
         }
 
+        // List Filters for Text Columns
+        const addTextListFilter = (field, listParam) => {
+            if (req.query[listParam]) {
+                const values = Array.isArray(req.query[listParam]) ? req.query[listParam] : [req.query[listParam]];
+                if (values.length > 0) {
+                    whereClauses.push(`${field} IN (?)`);
+                    params.push(values);
+                }
+            }
+        };
+
+        addTextListFilter('s.descricao', 'descriptionList');
+        addTextListFilter('c.name', 'accountList');
+        addTextListFilter('emp.name', 'companyList');
+        addTextListFilter('th.full_path', 'tipoSaidaList');
+
         // Attachment Filter
         if (req.query.hasAttachment === '1') {
             whereClauses.push('s.comprovante_url IS NOT NULL AND s.comprovante_url != ""');
@@ -1060,4 +1076,71 @@ exports.batchDeleteSaida = async (req, res, next) => {
     } finally {
         if (connection) connection.release();
     }
-};
+
+    // Bulk Delete - Delete a list of arbitrary IDs
+    exports.bulkDeleteSaidas = async (req, res, next) => {
+        let connection;
+        try {
+            const { ids } = req.body;
+
+            if (!ids || !Array.isArray(ids) || ids.length === 0) {
+                throw new AppError('VAL-002', 'Lista de IDs inválida ou vazia');
+            }
+
+            connection = await db.getConnection();
+            await connection.beginTransaction();
+
+            let deletedCount = 0;
+            let skippedCount = 0;
+            const errors = [];
+
+            for (const deleteId of ids) {
+                try {
+                    // Get saida details
+                    const [saida] = await connection.query(
+                        'SELECT valor, account_id, data_real_pagamento FROM saidas WHERE id = ? AND active = 1',
+                        [deleteId]
+                    );
+
+                    if (saida.length === 0) {
+                        skippedCount++;
+                        continue;
+                    }
+
+                    // Soft delete
+                    await connection.query('UPDATE saidas SET active = 0 WHERE id = ?', [deleteId]);
+
+                    // Balance Adjustment: Expense deleted -> Return money to account -> ADD
+                    if (saida[0].account_id && saida[0].data_real_pagamento) {
+                        await connection.query(
+                            'UPDATE contas SET current_balance = current_balance + ? WHERE id = ?',
+                            [saida[0].valor, saida[0].account_id]
+                        );
+                    }
+
+                    deletedCount++;
+                } catch (error) {
+                    console.error(`Error deleting ID ${deleteId}:`, error);
+                    skippedCount++;
+                    errors.push(`ID ${deleteId}: ${error.message}`);
+                }
+            }
+
+            await connection.commit();
+            logAudit(req, 'BULK_DELETE', 'saidas', ids.join(','), { count: deletedCount });
+
+            res.json({
+                success: true,
+                message: `${deletedCount} registro(s) excluído(s) com sucesso.`,
+                deleted: deletedCount,
+                skipped: skippedCount,
+                errors: errors.length > 0 ? errors : undefined
+            });
+
+        } catch (error) {
+            if (connection) await connection.rollback();
+            next(error);
+        } finally {
+            if (connection) connection.release();
+        }
+    };
