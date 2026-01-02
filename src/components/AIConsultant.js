@@ -55,7 +55,8 @@ export const AIConsultant = () => {
     };
 
     // --- Voice Logic (TTS) ---
-    const speak = (text) => {
+    // == TTS Function (MODIFIED TO SUPPORT VOICE TYPES & RATES) ==
+    const speak = async (text) => {
         if (!window.speechSynthesis) return;
 
         // Check if voice is enabled
@@ -74,9 +75,53 @@ export const AIConsultant = () => {
 
         const voices = window.speechSynthesis.getVoices();
 
-        // Get gender preference from settings (default to female = 0)
+        // Get voice tier preference from settings (0=Free, 1=Standard, 2=Premium)
+        const voiceTier = window.evaVoicePremium !== undefined ? window.evaVoicePremium : 0;
         const isMale = (window.evaVoiceMale === 1);
-        console.log('[EVA Voice] Gender preference:', isMale ? 'Male' : 'Female');
+
+        // Use Google Cloud TTS for Standard (1) and Premium (2)
+        if (voiceTier >= 1) {
+            try {
+                const adjustment = window.evaVoiceRateAdjustment || 88;
+                const rate = 1.30 * (1 + adjustment / 100);
+
+                console.log(`[EVA Voice] Requesting Google TTS (Tier ${voiceTier}, ${isMale ? 'Male' : 'Female'}, Rate: ${rate.toFixed(2)})`);
+
+                const response = await fetch(`${API_BASE_URL}/tts/synthesize`, {
+                    method: 'POST',
+                    headers: getHeaders(),
+                    body: JSON.stringify({
+                        text,
+                        isMale,
+                        rate,
+                        tier: voiceTier
+                    })
+                });
+
+                if (response.ok) {
+                    const { audioContent, voiceName, tier: tierName } = await response.json();
+
+                    // Play audio
+                    const audio = new Audio(`data:audio/mp3;base64,${audioContent}`);
+                    audio.play();
+
+                    console.log(`[EVA Voice] Using ${voiceName} (${tierName})`);
+                    return;
+                } else {
+                    const error = await response.json();
+                    console.error('[EVA Voice] Google TTS failed:', error.error);
+                    console.warn('[EVA Voice] Falling back to browser voice');
+                }
+            } catch (error) {
+                console.error('[EVA Voice] Google TTS request failed:', error);
+                console.warn('[EVA Voice] Falling back to browser voice');
+            }
+        }
+
+        // Tier 0 or fallback: Use browser Web Speech API
+        console.log('[EVA Voice] Using browser voice (Free tier or fallback)');
+
+        const isMaleVoice = isMale;
 
         // Known male and female voice names
         const maleNames = ['daniel', 'ricardo', 'felipe', 'carlos', 'bruno', 'paulo', 'male'];
@@ -86,7 +131,7 @@ export const AIConsultant = () => {
         const ptBRVoices = voices.filter(v => v.lang === 'pt-BR' || v.lang.startsWith('pt'));
         let ptVoice = null;
 
-        if (isMale) {
+        if (isMaleVoice) {
             // Find male voice
             ptVoice = ptBRVoices.find(v => {
                 const lowerName = v.name.toLowerCase();

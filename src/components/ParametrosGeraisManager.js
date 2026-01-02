@@ -601,30 +601,33 @@ export const ParametrosGeraisManager = (project) => {
                                 name="eva_voice_premium" 
                                 value="0" 
                                 checked
-                                style="width: 18px; height: 18px; cursor: pointer;"
-                            />
-                            <div style="flex: 1;">
-                                <div style="font-weight: 600; color: var(--color-text);">🆓 Voz Gratuita</div>
-                                <small style="color: var(--color-text-muted);">Sintetizador do navegador (atual)</small>
-                            </div>
-                        </label>
-                    </div>
-
-                    <!-- Premium Voice Option -->
-                    <div>
-                        <label style="display: flex; align-items: center; gap: 0.5rem; cursor: pointer; padding: 0.75rem; border: 2px solid #e5e7eb; border-radius: 8px; transition: all 0.2s;" class="voice-type-option">
-                            <input 
-                                type="radio" 
-                                name="eva_voice_premium" 
-                                value="1"
-                                style="width: 18px; height: 18px; cursor: pointer;"
-                            />
-                            <div style="flex: 1;">
-                                <div style="font-weight: 600; color: var(--color-text);">💎 Voz Natural Paga</div>
-                                <small style="color: var(--color-text-muted);">Google Cloud TTS (~R$ 0,50/mês)</small>
-                            </div>
-                        </label>
-                    </div>
+                    <div style="background: linear-gradient(135deg, #f5f7fa 0%, #c3cfe2 100%); padding: 20px; border-radius: 12px; margin-bottom: 20px;">
+                    <h3 style="margin: 0 0 20px 0; font-size: 1.2em; color: #333;">🎙️ Tipo de Voz</h3>
+                    
+                    <label class="voice-type-option" style="display: flex; align-items: center; padding: 15px; background: white; border: 2px solid #e5e7eb; border-radius: 8px; margin-bottom: 12px; cursor: pointer; transition: all 0.3s;">
+                        <input type="radio" name="eva_voice_premium" value="0" style="margin-right: 12px; width: 18px; height: 18px;">
+                        <div style="flex: 1;">
+                            <div style="font-weight: 600; color: #333; margin-bottom: 4px;">🆓 Voz Gratuita</div>
+                            <small style="color: #666;">Sintetizador do navegador (grátis)</small>
+                        </div>
+                    </label>
+                    
+                    <label class="voice-type-option" style="display: flex; align-items: center; padding: 15px; background: white; border: 2px solid #e5e7eb; border-radius: 8px; margin-bottom: 12px; cursor: pointer; transition: all 0.3s;">
+                        <input type="radio" name="eva_voice_premium" value="1" style="margin-right: 12px; width: 18px; height: 18px;">
+                        <div style="flex: 1;">
+                            <div style="font-weight: 600; color: #333; margin-bottom: 4px;">📢 Voz Standard</div>
+                            <small style="color: #666;">Google TTS Standard (sempre grátis - 4M chars/mês)</small>
+                        </div>
+                    </label>
+                    
+                    <label class="voice-type-option" style="display: flex; align-items: center; padding: 15px; background: white; border: 2px solid #e5e7eb; border-radius: 8px; cursor: pointer; transition: all 0.3s;">
+                        <input type="radio" name="eva_voice_premium" value="2" style="margin-right: 12px; width: 18px; height: 18px;">
+                        <div style="flex: 1;">
+                            <div style="font-weight: 600; color: #333; margin-bottom: 4px;">🎤 Voz Premium</div>
+                            <small style="color: #666;">Google TTS Neural2 (qualidade máxima - grátis 1º ano)</small>
+                        </div>
+                    </label>
+                </div>
 
                     <!-- Gender selection (for both Free and Premium) -->
                     <div style="margin-top: 1.5rem; padding: 1rem; background: rgba(37, 99, 235, 0.05); border-radius: 8px; border: 1px solid rgba(37, 99, 235, 0.2);">
@@ -887,7 +890,9 @@ export const ParametrosGeraisManager = (project) => {
                         if (response.ok) {
                             originalSettings.eva_voice_premium = value;
                             console.log('[Settings] Auto-saved voice premium to:', value);
-                            showToast(`✓ Tipo de voz: ${value === 1 ? 'Natural Paga' : 'Gratuita'}`, 'success');
+
+                            const tierNames = ['Gratuita', 'Standard', 'Premium'];
+                            showToast(`✓ Tipo de voz: ${tierNames[value] || 'Desconhecido'}`, 'success');
                         } else {
                             const error = await response.json();
                             showToast(error.error || 'Erro ao salvar', 'error');

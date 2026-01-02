@@ -6,6 +6,7 @@ require('dotenv').config();
 const authRoutes = require('./routes/auth');
 const genericTreeController = require('./controllers/genericTreeController');
 const auth = require('./middleware/auth');
+const ttsRoutes = require('./routes/tts');  // Google Cloud TTS
 const { errorHandler, loadErrorCatalog } = require('./middleware/errorMiddleware');
 
 const incomesRoutes = require('./routes/incomes');
@@ -61,6 +62,7 @@ apiRouter.use('/settings', settingsRoutes);
 apiRouter.use('/audit-logs', auditRoutes);
 apiRouter.use('/loans', require('./routes/loans'));
 apiRouter.use('/eva', require('./routes/eva'));
+apiRouter.use('/tts', ttsRoutes); // Google Cloud TTS
 
 // Static Uploads Serving
 // Static Uploads Serving
