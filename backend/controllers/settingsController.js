@@ -15,7 +15,7 @@ const getSettings = async (req, res) => {
         if (settings.length === 0) {
             // Initialize default settings if not exists
             await connection.query(
-                'INSERT INTO system_settings (project_id, numero_dias, tempo_minutos_liberacao, eva_timeout) VALUES (?, 3, 5, 2)',
+                'INSERT INTO system_settings (project_id, numero_dias, tempo_minutos_liberacao, eva_timeout, eva_voice_premium, eva_voice_male) VALUES (?, 3, 5, 2, 2, 0)',
                 [projectId]
             );
 
@@ -25,6 +25,8 @@ const getSettings = async (req, res) => {
                 numero_dias: 3,
                 tempo_minutos_liberacao: 5,
                 eva_timeout: 2,
+                eva_voice_premium: 2,  // Premium as default
+                eva_voice_male: 0,      // Female as default
                 unlock_expires_at: null
             });
         }
