@@ -112,7 +112,7 @@ export const UserManager = (project) => {
                             onSave: (data) => updateUser(data)
                         });
                     };
-                    return editBtn.outerHTML;
+                    return editBtn;
                 }
 
                 if (isMaster && !isCurrentUser && user.role !== 'master') {
@@ -120,15 +120,15 @@ export const UserManager = (project) => {
                     removeBtn.innerHTML = '🗑️';
                     removeBtn.style.background = 'none';
                     removeBtn.style.border = 'none';
-                    btn.style.cursor = 'pointer';
-                    btn.style.fontSize = '1.2rem';
-                    btn.style.color = '#EF4444';
-                    btn.title = 'Remover Usuário';
-                    btn.onclick = (e) => {
+                    removeBtn.style.cursor = 'pointer';
+                    removeBtn.style.fontSize = '1.2rem';
+                    removeBtn.style.color = '#EF4444';
+                    removeBtn.title = 'Remover Usuário';
+                    removeBtn.onclick = (e) => {
                         e.stopPropagation();
                         removeUser(user.id, user.name);
                     };
-                    return btn;
+                    return removeBtn;
                 }
                 return '-';
             }
