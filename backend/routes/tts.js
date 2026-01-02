@@ -1,4 +1,3 @@
-```javascript
 const express = require('express');
 const router = express.Router();
 
@@ -21,22 +20,22 @@ if (textToSpeech) {
         // Check if credentials are provided as JSON string in environment variable
         if (process.env.GOOGLE_APPLICATION_CREDENTIALS_JSON) {
             console.log('🔑 Loading Google Cloud credentials from GOOGLE_APPLICATION_CREDENTIALS_JSON...');
-            
+
             try {
                 const credentials = JSON.parse(process.env.GOOGLE_APPLICATION_CREDENTIALS_JSON);
-                
+
                 ttsClient = new textToSpeech.TextToSpeechClient({
                     credentials: credentials
                 });
-                
+
                 console.log('✅ Google Cloud TTS client initialized with JSON credentials');
-                console.log(`   Project: ${ credentials.project_id } `);
-                console.log(`   Service Account: ${ credentials.client_email } `);
+                console.log(`   Project: ${credentials.project_id}`);
+                console.log(`   Service Account: ${credentials.client_email}`);
             } catch (parseError) {
                 console.error('❌ Failed to parse GOOGLE_APPLICATION_CREDENTIALS_JSON:', parseError.message);
                 throw parseError;
             }
-        } 
+        }
         // Fallback: try file-based credentials (GOOGLE_APPLICATION_CREDENTIALS path)
         else if (process.env.GOOGLE_APPLICATION_CREDENTIALS) {
             console.log('🔑 Loading Google Cloud credentials from file:', process.env.GOOGLE_APPLICATION_CREDENTIALS);
@@ -117,7 +116,7 @@ router.post('/synthesize', async (req, res) => {
 
         const tierName = tier === 2 ? 'Premium (Neural2)' : 'Standard';
         const gender = isMale ? 'Male' : 'Female';
-        console.log(`[TTS] Synthesized: "${text.substring(0, 50)}..." | ${ voiceName } (${ tierName }, ${ gender }) | Rate: ${ rate } `);
+        console.log(`[TTS] Synthesized: "${text.substring(0, 50)}..." | ${voiceName} (${tierName}, ${gender}) | Rate: ${rate}`);
 
         // Return audio as base64
         res.json({
