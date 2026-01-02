@@ -160,9 +160,10 @@ INSTRUÇÕES IMPORTANTES:
 
 const operate = async (req, res) => {
     try {
-        const { message, currentScreen, availableScreens, screenContext, userSettings } = req.body;
+        const { message, currentScreen, availableScreens, screenContext, userName, preferredName, userSettings } = req.body;
         console.log('[EVA Operate] Processing:', message);
         console.log('[EVA Operate] Screen:', currentScreen?.id);
+        console.log('[EVA Operate] User:', userName, preferredName);
         console.log('[EVA Operate] Has screen context:', !!screenContext);
 
         if (!message) {
@@ -173,6 +174,11 @@ const operate = async (req, res) => {
         const currentVoiceRate = userSettings?.evaVoiceRate || 88;
         const currentVoiceGender = userSettings?.evaVoiceMale ? 'M' : 'F';
         const currentVoiceEnabled = userSettings?.evaVoiceEnabled !== 0;
+
+        // Infer gender from userName for appropriate pronouns
+        const inferredGender = userName ? (userName.toLowerCase().endsWith('a') ? 'F' : 'M') : 'M';
+        const pronoun = inferredGender === 'F' ? 'a senhora' : 'o senhor';
+        const userDisplayName = preferredName || userName || 'usuário(a)';
 
         // Format screen context if available
         let screenContextText = '';
@@ -219,6 +225,14 @@ const operate = async (req, res) => {
 
         const systemPrompt = `Você é o "Córtex Motor" do sistema CASH.
 Sua função é traduzir a intenção do usuário em AÇÕES JSON para o sistema.
+
+INFORMAÇÕES DO USUÁRIO:
+- Nome: ${userName || 'Não informado'}
+- Nome preferido: ${userDisplayName}
+- Gênero inferido: ${inferredGender === 'F' ? 'Feminino' : 'Masculino'}
+- Tratamento: ${pronoun}
+
+IMPORTANTE: Use "${pronoun}" e "${userDisplayName}" em suas respostas. Ajuste verbos e pronomes conforme o gênero (ex: "guiá-lo" vs "guiá-la", "bem-vindo" vs "bem-vinda").
 
 CONFIGURAÇÕES ATUAIS DO USUÁRIO:
 - Velocidade da voz: ${currentVoiceRate} (Escala: 0=Muito Lento, 50=Normal, 100=Muito Rápido)

@@ -37,7 +37,9 @@ export const EvaService = {
                     currentScreen: context.currentScreen,
                     availableScreens: context.availableScreens ? Object.values(context.availableScreens) : [],
                     screenContext, // Include extracted screen data
-                    userSettings: { // NEW: Voice configuration
+                    userName: user?.name || '', // Full registered name for gender inference
+                    preferredName: user?.preferred_name || '', // User's preferred form of address
+                    userSettings: { // Voice configuration
                         evaVoiceRate: user?.eva_voice_rate || 70,
                         evaVoiceMale: user?.eva_voice_male || 0,
                         evaVoiceEnabled: user?.eva_voice_enabled !== 0
