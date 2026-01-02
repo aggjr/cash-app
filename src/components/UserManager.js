@@ -138,6 +138,33 @@ export const UserManager = (project) => {
     // Store users list for action logic since SharedTable render doesn't pass full context easily without it
     let usersList = [];
 
+    const updateUser = async (data) => {
+        try {
+            // Update Profile (Global)
+            const profileResponse = await fetch(`${API_BASE_URL}/users/${data.id}`, {
+                method: 'PUT',
+                headers: getHeaders(),
+                body: JSON.stringify({
+                    job_title: data.job_title,
+                    department: data.department,
+                    name: data.name // optional
+                })
+            });
+
+            if (!profileResponse.ok) {
+                const error = await profileResponse.json();
+                throw new Error(error.error || 'Erro ao atualizar perfil');
+            }
+
+            showToast('Perfil atualizado com sucesso!', 'success');
+            loadUsers();
+
+        } catch (error) {
+            console.error('Update error:', error);
+            showToast(error.message || 'Erro ao atualizar usuário', 'error');
+        }
+    };
+
     const loadUsers = async () => {
         try {
             // Container layout creation if needed (first time)
