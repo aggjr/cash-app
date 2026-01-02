@@ -10,20 +10,38 @@ async function migrate() {
 
     try {
         // Add job_title
-        console.log('Adding job_title column to users...');
-        await db.query(`
-            ALTER TABLE users 
-            ADD COLUMN IF NOT EXISTS job_title VARCHAR(100) DEFAULT NULL
-        `);
+        console.log('Checking users table for job_title column...');
+        const [jobTitleCol] = await db.query(`
+            SELECT COLUMN_NAME 
+            FROM INFORMATION_SCHEMA.COLUMNS 
+            WHERE TABLE_SCHEMA = ? AND TABLE_NAME = 'users' AND COLUMN_NAME = 'job_title'
+        `, [process.env.DB_NAME]);
+
+        if (jobTitleCol.length === 0) {
+            console.log('Adding job_title column to users...');
+            await db.query(`ALTER TABLE users ADD COLUMN job_title VARCHAR(100) DEFAULT NULL`);
+            console.log('✅ job_title added');
+        } else {
+            console.log('ℹ️ job_title already exists');
+        }
 
         // Add department
-        console.log('Adding department column to users...');
-        await db.query(`
-            ALTER TABLE users 
-            ADD COLUMN IF NOT EXISTS department VARCHAR(100) DEFAULT NULL
-        `);
+        console.log('Checking users table for department column...');
+        const [deptCol] = await db.query(`
+            SELECT COLUMN_NAME 
+            FROM INFORMATION_SCHEMA.COLUMNS 
+            WHERE TABLE_SCHEMA = ? AND TABLE_NAME = 'users' AND COLUMN_NAME = 'department'
+        `, [process.env.DB_NAME]);
 
-        console.log('✅ User role columns added successfully');
+        if (deptCol.length === 0) {
+            console.log('Adding department column to users...');
+            await db.query(`ALTER TABLE users ADD COLUMN department VARCHAR(100) DEFAULT NULL`);
+            console.log('✅ department added');
+        } else {
+            console.log('ℹ️ department already exists');
+        }
+
+        console.log('✅ User role columns migration completed successfully');
         return true;
 
     } catch (error) {
