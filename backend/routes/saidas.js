@@ -18,4 +18,10 @@ router.put('/:id', saidaController.updateSaida);
 // DELETE /api/saidas/:id - Delete a saida (soft delete)
 router.delete('/:id', saidaController.deleteSaida);
 
+// PUT /api/saidas/:id/batch - Batch update with scope
+router.put('/:id/batch', saidaController.batchUpdateSaida);
+
+// DELETE /api/saidas/:id/batch - Batch delete with scope
+router.delete('/:id/batch', saidaController.batchDeleteSaida);
+
 module.exports = router;

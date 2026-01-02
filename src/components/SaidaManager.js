@@ -3,6 +3,7 @@ import { SharedTable } from './SharedTable.js';
 import { showToast } from '../utils/toast.js';
 import { getApiBaseUrl } from '../utils/apiConfig.js';
 import { ExcelExporter } from '../utils/ExcelExporter.js';
+import { BatchOperationDialog } from './BatchOperationDialog.js';
 
 export const SaidaManager = (project) => {
     const container = document.createElement('div');
@@ -102,7 +103,7 @@ export const SaidaManager = (project) => {
                 btnDelete.style.border = 'none';
                 btnDelete.style.cursor = 'pointer';
                 btnDelete.style.fontSize = '1.1rem';
-                btnDelete.onclick = (e) => { e.stopPropagation(); deleteSaida(item.id, item.descricao); };
+                btnDelete.onclick = (e) => { e.stopPropagation(); deleteSaida(item.id, item.descricao, item); };
 
                 div.appendChild(btnEdit);
                 div.appendChild(btnDelete);
@@ -360,19 +361,47 @@ export const SaidaManager = (project) => {
     };
 
     const updateSaida = async (saida) => {
+        let scope = 'single';
+        if (saida.installment_group_id && saida.installment_number && saida.installment_total) {
+            scope = await BatchOperationDialog.show({
+                operation: 'edit',
+                currentNumber: saida.installment_number,
+                totalCount: saida.installment_total,
+                description: saida.descricao
+            });
+            if (!scope) return;
+        }
+
         await SaidaModal.show({
             saida: saida,
             projectId: project.id,
             onSave: async (saidaData) => {
                 try {
-                    const response = await fetch(`${API_BASE_URL}/saidas/${saida.id}`, {
+                    const url = scope === 'single'
+                        ? `${API_BASE_URL}/saidas/${saida.id}`
+                        : `${API_BASE_URL}/saidas/${saida.id}/batch`;
+
+                    const body = scope === 'single'
+                        ? saidaData
+                        : { ...saidaData, scope };
+
+                    const response = await fetch(url, {
                         method: 'PUT',
                         headers: getHeaders(),
-                        body: JSON.stringify(saidaData)
+                        body: JSON.stringify(body)
                     });
 
                     if (response.ok) {
-                        showToast('Saída atualizada com sucesso!', 'success');
+                        const result = await response.json();
+                        const message = result.message || 'Saída atualizada com sucesso!';
+                        showToast(message, 'success');
+
+                        if (result.skipped && result.skipped > 0) {
+                            setTimeout(() => {
+                                showToast(`⚠️ ${result.skipped} parcela(s) não puderam ser atualizadas (restrição de data)`, 'warning');
+                            }, 2000);
+                        }
+
                         loadSaidas();
                     } else {
                         const error = await response.json();
@@ -385,18 +414,54 @@ export const SaidaManager = (project) => {
         });
     };
 
-    const deleteSaida = async (id, description) => {
-        const confirmed = await showCustomConfirm(`Tem certeza que deseja excluir "${description || 'item'}"?`, 'Sim, Excluir');
+    const deleteSaida = async (id, description, item = null) => {
+        let scope = 'single';
+        if (item && item.installment_group_id && item.installment_number && item.installment_total) {
+            scope = await BatchOperationDialog.show({
+                operation: 'delete',
+                currentNumber: item.installment_number,
+                totalCount: item.installment_total,
+                description: description
+            });
+            if (!scope) return;
+        }
+
+        const confirmMessage = scope === 'single'
+            ? `Tem certeza que deseja excluir "${description || 'item'}"?`
+            : scope === 'all'
+                ? `Tem certeza que deseja excluir TODAS as ${item?.installment_total || 'X'} parcelas?`
+                : `Tem certeza que deseja excluir esta e as próximas parcelas?`;
+
+        const confirmed = await showCustomConfirm(confirmMessage, 'Sim, Excluir');
         if (!confirmed) return;
 
         try {
-            const response = await fetch(`${API_BASE_URL}/saidas/${id}`, {
+            const url = scope === 'single'
+                ? `${API_BASE_URL}/saidas/${id}`
+                : `${API_BASE_URL}/saidas/${id}/batch`;
+
+            const options = {
                 method: 'DELETE',
                 headers: getHeaders()
-            });
+            };
+
+            if (scope !== 'single') {
+                options.body = JSON.stringify({ scope });
+            }
+
+            const response = await fetch(url, options);
 
             if (response.ok) {
-                showToast('Saída excluída com sucesso!', 'success');
+                const result = await response.json();
+                const message = result.message || 'Saída excluída com sucesso!';
+                showToast(message, 'success');
+
+                if (result.skipped && result.skipped > 0) {
+                    setTimeout(() => {
+                        showToast(`ℹ️ ${result.skipped} parcela(s) não puderam ser excluídas`, 'info');
+                    }, 2000);
+                }
+
                 loadSaidas();
             } else {
                 const error = await response.json();

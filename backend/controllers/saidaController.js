@@ -565,3 +565,499 @@ exports.deleteSaida = async (req, res, next) => {
         if (connection) connection.release();
     }
 };
+
+// Helper function for single update (used by batch)
+async function executeSingleUpdate(connection, id, updateData, projectId) {
+    const [oldSaida] = await connection.query(
+        'SELECT valor, account_id, data_real_pagamento FROM saidas WHERE id = ?',
+        [id]
+    );
+
+    if (!oldSaida.length) {
+        throw new AppError('RES-001', 'Registro não encontrado');
+    }
+
+    const oldData = oldSaida[0];
+
+    // Validate dataRealPagamento if provided AND changed
+    let shouldUpdateRealDate = false;
+    if (updateData.dataRealPagamento !== undefined) {
+        const newDate = updateData.dataRealPagamento ? updateData.dataRealPagamento.split('T')[0] : null;
+        const oldDate = oldData.data_real_pagamento ? new Date(oldData.data_real_pagamento).toISOString().split('T')[0] : null;
+
+        if (newDate !== oldDate) {
+            shouldUpdateRealDate = true;
+            if (newDate) {
+                const validation = await validateDateWithinRange(updateData.dataRealPagamento, projectId);
+                if (!validation.isValid) {
+                    throw new AppError('VAL-DATE', validation.error);
+                }
+            }
+        }
+    }
+
+    const updates = [];
+    const values = [];
+
+    if (updateData.dataFato !== undefined) {
+        updates.push('data_fato = ?');
+        values.push(updateData.dataFato);
+    }
+    if (updateData.dataPrevistaPagamento !== undefined) {
+        updates.push('data_prevista_pagamento = ?');
+        values.push(updateData.dataPrevistaPagamento);
+    }
+    if (shouldUpdateRealDate) {
+        updates.push('data_real_pagamento = ?');
+        values.push(updateData.dataRealPagamento || null);
+    }
+    if (updateData.dataAtraso !== undefined) {
+        updates.push('data_atraso = ?');
+        values.push(updateData.dataAtraso || null);
+    }
+
+    let newValor = oldData.valor;
+    if (updateData.valor !== undefined) {
+        const valorDecimal = parseFloat(updateData.valor);
+        if (!isNaN(valorDecimal)) {
+            updates.push('valor = ?');
+            values.push(valorDecimal);
+            newValor = valorDecimal;
+        }
+    }
+
+    if (updateData.descricao !== undefined) {
+        updates.push('descricao = ?');
+        values.push(updateData.descricao);
+    }
+    if (updateData.tipoSaidaId !== undefined) {
+        updates.push('tipo_saida_id = ?');
+        values.push(updateData.tipoSaidaId);
+    }
+    if (updateData.companyId !== undefined) {
+        updates.push('company_id = ?');
+        values.push(updateData.companyId);
+    }
+
+    let newAccountId = oldData.account_id;
+    if (updateData.accountId !== undefined) {
+        updates.push('account_id = ?');
+        values.push(updateData.accountId);
+        newAccountId = updateData.accountId;
+    }
+
+    if (updateData.active !== undefined) {
+        updates.push('active = ?');
+        values.push(updateData.active);
+    }
+
+    if (updateData.comprovanteUrl !== undefined) {
+        updates.push('comprovante_url = ?');
+        values.push(updateData.comprovanteUrl);
+    }
+    if (updateData.formaPagamento !== undefined) {
+        updates.push('forma_pagamento = ?');
+        values.push(updateData.formaPagamento || null);
+    }
+
+    if (updates.length > 0) {
+        values.push(id);
+        await connection.query(
+            `UPDATE saidas SET ${updates.join(', ')} WHERE id = ?`,
+            values
+        );
+
+        // Update balances for SAIDAS
+        // 1. Revert old transaction (ADD back the money because it was an expense)
+        if (oldData.account_id && oldData.data_real_pagamento) {
+            await connection.query(
+                'UPDATE contas SET current_balance = current_balance + ? WHERE id = ?',
+                [oldData.valor, oldData.account_id]
+            );
+        }
+
+        // 2. Apply new transaction (SUBTRACT the money because it is an expense)
+        if (newAccountId && (updateData.dataRealPagamento || oldData.data_real_pagamento)) {
+            await connection.query(
+                'UPDATE contas SET current_balance = current_balance - ? WHERE id = ?',
+                [newValor, newAccountId]
+            );
+        }
+    }
+
+    return true;
+}
+
+// Batch update saidas based on scope
+exports.batchUpdateSaida = async (req, res, next) => {
+    let connection;
+    try {
+        const { id } = req.params;
+        const { scope, ...updateData } = req.body;
+
+        if (!['single', 'all', 'future'].includes(scope)) {
+            throw new AppError('VAL-002', 'Escopo inválido. Use: single, all ou future');
+        }
+
+        connection = await db.getConnection();
+        await connection.beginTransaction();
+
+        // Get the current record's installment info
+        const [current] = await connection.query(
+            'SELECT installment_group_id, installment_number, installment_total, installment_interval, installment_custom_days, project_id FROM saidas WHERE id = ?',
+            [id]
+        );
+
+        if (!current.length) {
+            throw new AppError('RES-001', 'Registro não encontrado');
+        }
+
+        const currentData = current[0];
+
+        // For scope 'single', just update the current record normally
+        if (scope === 'single') {
+            const updateResult = await executeSingleUpdate(connection, id, updateData, currentData.project_id);
+            await connection.commit();
+            return res.json({ success: true, message: 'Registro atualizado com sucesso', updated: 1 });
+        }
+
+        // For 'all' and 'future', we need to fetch all relevant installments
+        let baseInstallmentNumber;
+        let installmentsToUpdate;
+
+        if (scope === 'all' && currentData.installment_group_id) {
+            baseInstallmentNumber = 1;
+            const [allInstallments] = await connection.query(
+                'SELECT id, installment_number FROM saidas WHERE installment_group_id = ? AND active = 1 ORDER BY installment_number ASC',
+                [currentData.installment_group_id]
+            );
+            installmentsToUpdate = allInstallments;
+        } else if (scope === 'future' && currentData.installment_group_id) {
+            baseInstallmentNumber = currentData.installment_number;
+            const [futureInstallments] = await connection.query(
+                'SELECT id, installment_number FROM saidas WHERE installment_group_id = ? AND installment_number >= ? AND active = 1 ORDER BY installment_number ASC',
+                [currentData.installment_group_id, currentData.installment_number]
+            );
+            installmentsToUpdate = futureInstallments;
+        } else {
+            // No installment group, treat as single
+            const updateResult = await executeSingleUpdate(connection, id, updateData, currentData.project_id);
+            await connection.commit();
+            return res.json({ success: true, message: 'Registro atualizado com sucesso', updated: 1 });
+        }
+
+        const interval = currentData.installment_interval || 'mensal';
+        const isReplicar = true;
+
+        let updatedCount = 0;
+        let skippedCount = 0;
+        const errors = [];
+
+        // Calculate base dates
+        let baseDataFato = updateData.dataFato;
+        let baseDataPrevista = updateData.dataPrevistaPagamento; // Note: dataPrevistaPagamento
+
+        if ((scope === 'all' || scope === 'future') && interval) {
+            const intervalsToSubtract = currentData.installment_number - baseInstallmentNumber;
+
+            if (baseDataFato && intervalsToSubtract > 0) {
+                const providedDate = parseLocalDate(baseDataFato);
+                let calculatedBaseDate = new Date(providedDate);
+
+                switch (interval) {
+                    case 'semanal': calculatedBaseDate.setDate(calculatedBaseDate.getDate() - (7 * intervalsToSubtract)); break;
+                    case 'quinzenal': calculatedBaseDate.setDate(calculatedBaseDate.getDate() - (15 * intervalsToSubtract)); break;
+                    case 'mensal': calculatedBaseDate = addMonths(calculatedBaseDate, -intervalsToSubtract); break;
+                    case 'trimestral': calculatedBaseDate = addMonths(calculatedBaseDate, -(3 * intervalsToSubtract)); break;
+                    case 'semestral': calculatedBaseDate = addMonths(calculatedBaseDate, -(6 * intervalsToSubtract)); break;
+                    case 'anual': calculatedBaseDate = addMonths(calculatedBaseDate, -(12 * intervalsToSubtract)); break;
+                    case 'personalizado':
+                        if (currentData.installment_custom_days) {
+                            calculatedBaseDate.setDate(calculatedBaseDate.getDate() - (parseInt(currentData.installment_custom_days) * intervalsToSubtract));
+                        }
+                        break;
+                }
+
+                const year = calculatedBaseDate.getFullYear();
+                const month = String(calculatedBaseDate.getMonth() + 1).padStart(2, '0');
+                const day = String(calculatedBaseDate.getDate()).padStart(2, '0');
+                baseDataFato = `${year}-${month}-${day}`;
+            }
+
+            if (baseDataPrevista && intervalsToSubtract > 0) {
+                const providedDate = parseLocalDate(baseDataPrevista);
+                let calculatedBaseDate = new Date(providedDate);
+
+                switch (interval) {
+                    case 'semanal': calculatedBaseDate.setDate(calculatedBaseDate.getDate() - (7 * intervalsToSubtract)); break;
+                    case 'quinzenal': calculatedBaseDate.setDate(calculatedBaseDate.getDate() - (15 * intervalsToSubtract)); break;
+                    case 'mensal': calculatedBaseDate = addMonths(calculatedBaseDate, -intervalsToSubtract); break;
+                    case 'trimestral': calculatedBaseDate = addMonths(calculatedBaseDate, -(3 * intervalsToSubtract)); break;
+                    case 'semestral': calculatedBaseDate = addMonths(calculatedBaseDate, -(6 * intervalsToSubtract)); break;
+                    case 'anual': calculatedBaseDate = addMonths(calculatedBaseDate, -(12 * intervalsToSubtract)); break;
+                    case 'personalizado':
+                        if (currentData.installment_custom_days) {
+                            calculatedBaseDate.setDate(calculatedBaseDate.getDate() - (parseInt(currentData.installment_custom_days) * intervalsToSubtract));
+                        }
+                        break;
+                }
+
+                const year = calculatedBaseDate.getFullYear();
+                const month = String(calculatedBaseDate.getMonth() + 1).padStart(2, '0');
+                const day = String(calculatedBaseDate.getDate()).padStart(2, '0');
+                baseDataPrevista = `${year}-${month}-${day}`;
+            }
+        }
+
+        // Update each installment
+        for (const installment of installmentsToUpdate) {
+            try {
+                const installmentId = installment.id;
+                const installmentNum = installment.installment_number;
+                const offsetFromBase = installmentNum - baseInstallmentNumber;
+
+                const [oldSaida] = await connection.query(
+                    'SELECT valor, account_id, data_real_pagamento, data_fato, data_prevista_pagamento FROM saidas WHERE id = ?',
+                    [installmentId]
+                );
+
+                if (!oldSaida.length) continue;
+                const oldData = oldSaida[0];
+
+                let shouldUpdateRealDate = false;
+                if (updateData.dataRealPagamento !== undefined) {
+                    const newDate = updateData.dataRealPagamento ? updateData.dataRealPagamento.split('T')[0] : null;
+                    const oldDate = oldData.data_real_pagamento ? new Date(oldData.data_real_pagamento).toISOString().split('T')[0] : null;
+
+                    if (newDate !== oldDate) {
+                        shouldUpdateRealDate = true;
+                        if (newDate) {
+                            const validation = await validateDateWithinRange(updateData.dataRealPagamento, currentData.project_id);
+                            if (!validation.isValid) {
+                                skippedCount++;
+                                errors.push(`Parcela ${installmentNum}: ${validation.error}`);
+                                continue;
+                            }
+                        }
+                    }
+                }
+
+                const updates = [];
+                const values = [];
+
+                if (baseDataFato !== undefined) {
+                    let finalDataFato;
+                    if (offsetFromBase === 0) finalDataFato = baseDataFato;
+                    else {
+                        const allDates = calculateDates(baseDataFato, offsetFromBase + 1, interval, currentData.installment_custom_days);
+                        finalDataFato = allDates[offsetFromBase];
+                    }
+                    updates.push('data_fato = ?');
+                    values.push(finalDataFato);
+                }
+
+                if (baseDataPrevista !== undefined) {
+                    let finalDataPrevista;
+                    if (offsetFromBase === 0) finalDataPrevista = baseDataPrevista;
+                    else {
+                        const allDates = calculateDates(baseDataPrevista, offsetFromBase + 1, interval, currentData.installment_custom_days);
+                        finalDataPrevista = allDates[offsetFromBase];
+                    }
+                    updates.push('data_prevista_pagamento = ?'); // Updated field name
+                    values.push(finalDataPrevista);
+                }
+
+                if (shouldUpdateRealDate) {
+                    updates.push('data_real_pagamento = ?');
+                    values.push(updateData.dataRealPagamento || null);
+                }
+                if (updateData.dataAtraso !== undefined) {
+                    updates.push('data_atraso = ?');
+                    values.push(updateData.dataAtraso || null);
+                }
+
+                let newValor = oldData.valor;
+                if (updateData.valor !== undefined) {
+                    const valorDecimal = parseFloat(updateData.valor);
+                    if (!isNaN(valorDecimal)) {
+                        updates.push('valor = ?');
+                        values.push(valorDecimal);
+                        newValor = valorDecimal;
+                    }
+                }
+
+                if (updateData.descricao !== undefined) {
+                    updates.push('descricao = ?');
+                    values.push(updateData.descricao);
+                }
+                if (updateData.tipoSaidaId !== undefined) {
+                    updates.push('tipo_saida_id = ?');
+                    values.push(updateData.tipoSaidaId);
+                }
+                if (updateData.companyId !== undefined) {
+                    updates.push('company_id = ?');
+                    values.push(updateData.companyId);
+                }
+
+                let newAccountId = oldData.account_id;
+                if (updateData.accountId !== undefined) {
+                    updates.push('account_id = ?');
+                    values.push(updateData.accountId);
+                    newAccountId = updateData.accountId;
+                }
+
+                if (updateData.active !== undefined) {
+                    updates.push('active = ?');
+                    values.push(updateData.active);
+                }
+
+                if (updateData.comprovanteUrl !== undefined) {
+                    updates.push('comprovante_url = ?');
+                    values.push(updateData.comprovanteUrl);
+                }
+                if (updateData.formaPagamento !== undefined) {
+                    updates.push('forma_pagamento = ?');
+                    values.push(updateData.formaPagamento || null);
+                }
+
+                if (updates.length > 0) {
+                    values.push(installmentId);
+                    await connection.query(
+                        `UPDATE saidas SET ${updates.join(', ')} WHERE id = ?`,
+                        values
+                    );
+
+                    // Update balances for SAIDAS
+                    // 1. Revert old transaction (ADD back)
+                    if (oldData.account_id && oldData.data_real_pagamento) {
+                        await connection.query(
+                            'UPDATE contas SET current_balance = current_balance + ? WHERE id = ?',
+                            [oldData.valor, oldData.account_id]
+                        );
+                    }
+
+                    // 2. Apply new transaction (SUBTRACT)
+                    if (newAccountId && (updateData.dataRealPagamento || oldData.data_real_pagamento)) {
+                        await connection.query(
+                            'UPDATE contas SET current_balance = current_balance - ? WHERE id = ?',
+                            [newValor, newAccountId]
+                        );
+                    }
+
+                    updatedCount++;
+                }
+            } catch (error) {
+                console.error(`Error updating installment ${installment.id}:`, error);
+                skippedCount++;
+                errors.push(`Parcela ${installment.installment_number}: ${error.message}`);
+            }
+        }
+
+        await connection.commit();
+
+        res.json({
+            success: true,
+            message: `${updatedCount} de ${installmentsToUpdate.length} registro(s) atualizado(s)`,
+            updated: updatedCount,
+            skipped: skippedCount,
+            errors: errors.length > 0 ? errors : undefined
+        });
+
+    } catch (error) {
+        if (connection) await connection.rollback();
+        next(error);
+    } finally {
+        if (connection) connection.release();
+    }
+};
+
+exports.batchDeleteSaida = async (req, res, next) => {
+    let connection;
+    try {
+        const { id } = req.params;
+        const { scope } = req.body;
+
+        if (!['single', 'all', 'future'].includes(scope)) {
+            throw new AppError('VAL-002', 'Escopo inválido. Use: single, all ou future');
+        }
+
+        connection = await db.getConnection();
+        await connection.beginTransaction();
+
+        const [current] = await connection.query(
+            'SELECT installment_group_id, installment_number FROM saidas WHERE id = ? AND active = 1',
+            [id]
+        );
+
+        if (!current.length) {
+            throw new AppError('RES-001', 'Registro não encontrado');
+        }
+
+        const currentData = current[0];
+        let idsToDelete = [id];
+
+        if (scope === 'all' && currentData.installment_group_id) {
+            const [allInstallments] = await connection.query(
+                'SELECT id FROM saidas WHERE installment_group_id = ? AND active = 1',
+                [currentData.installment_group_id]
+            );
+            idsToDelete = allInstallments.map(i => i.id);
+        } else if (scope === 'future' && currentData.installment_group_id) {
+            const [futureInstallments] = await connection.query(
+                'SELECT id FROM saidas WHERE installment_group_id = ? AND installment_number >= ? AND active = 1',
+                [currentData.installment_group_id, currentData.installment_number]
+            );
+            idsToDelete = futureInstallments.map(i => i.id);
+        }
+
+        let deletedCount = 0;
+        let skippedCount = 0;
+        const errors = [];
+
+        for (const deleteId of idsToDelete) {
+            try {
+                const [saida] = await connection.query(
+                    'SELECT valor, account_id, data_real_pagamento FROM saidas WHERE id = ? AND active = 1',
+                    [deleteId]
+                );
+
+                if (saida.length === 0) continue;
+
+                await connection.query('UPDATE saidas SET active = 0 WHERE id = ?', [deleteId]);
+
+                // Balance adjustment for SAIDAS:
+                // Expense deleted -> Money returns to account -> ADD
+                if (saida[0].account_id && saida[0].data_real_pagamento) {
+                    await connection.query(
+                        'UPDATE contas SET current_balance = current_balance + ? WHERE id = ?',
+                        [saida[0].valor, saida[0].account_id]
+                    );
+                }
+
+                deletedCount++;
+            } catch (error) {
+                console.error(`Error deleting installment ${deleteId}:`, error);
+                skippedCount++;
+                errors.push(`Parcela ${deleteId}: ${error.message}`);
+            }
+        }
+
+        await connection.commit();
+        logAudit(req, 'DELETE', 'saidas', id, { scope, deletedCount });
+
+        res.json({
+            success: true,
+            message: `${deletedCount} de ${idsToDelete.length} registro(s) excluído(s)`,
+            deleted: deletedCount,
+            skipped: skippedCount,
+            total: idsToDelete.length,
+            errors: errors.length > 0 ? errors : undefined
+        });
+
+    } catch (error) {
+        if (connection) await connection.rollback();
+        next(error);
+    } finally {
+        if (connection) connection.release();
+    }
+};

@@ -1,0 +1,20 @@
+﻿e0513cb fix(llm): update system prompt to confirm voice settings persistence
+5d5595f fix(all): resolve update-preference 400 error and auto-send speech on stop
+18c8837 fix(backend): robust voice rate migration (create column if missing)
+9fccfd9 fix(backend): correct migration script path and import to resolve module not found
+6c26f54 fix(eva): enforce normal voice speed (50) via DB migration and update speech logic
+67bbc9a fix(eva): implement speech recognition auto-restart on no-speech and migrate default voice rate
+870c968 feat(settings): add tabbed interface for Geral and IA EVA settings
+605f3d0 feat(eva): implement LLM-driven voice configuration with percentage-based adjustments
+191b81d fix(eva): remove messages clear, focus highlights on content not full screen
+fbc4881 fix(eva): remove message clear on close, focus highlights on content area
+74639a9 fix(eva): clear messages on chat close to ensure greeting on next login
+c723311 fix(eva): change good night greeting to start at 19h
+bfb2d15 feat(eva): add LLM-based tour detection with START_TOUR action
+a027632 feat(eva): greet on every login instead of once per day
+c35d09b fix(eva): load voice rate from DB, fix first syllable cut, increase delay
+7bb07b4 fix(db): add gender column migration to fix login error
+68fe776 feat(eva): add context-aware Q&A with screen data extraction
+f49faa0 feat(eva): add interactive filter demonstrations in SharedTable tour
+a5f3a3c feat(eva): add SharedTable feature introduction in tour (shown once)
+1ada3af feat(eva): implement guided tour system with overview and full modes
