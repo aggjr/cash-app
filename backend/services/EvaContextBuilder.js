@@ -140,158 +140,47 @@ INSTRUÇÕES IMPORTANTES:
         const db = require('../config/database');
         return await this.buildUnifiedContext(user, project, db, availableScreens, {});
     }
-    const systemBase = systemPrompts.operate.base;
-
-    // Project context
-    const projectContext = project?.eva_context || {};
-    const businessType = projectContext.business_type || 'general';
-
-    // User context
-    const userPrefs = user?.eva_preferences || {};
-    const evaIntroduced = user?.eva_introduced || false;
-
-    // Time context
-    const now = new Date();
-    const hour = now.getHours();
-    const timeOfDay = hour >= 5 && hour < 12 ? 'manhã' : hour >= 12 && hour < 19 ? 'tarde' : 'noite';
-
-    // Voice settings
-    const currentVoiceRate = voiceSettings.evaVoiceRate || 88;
-    const currentVoiceGender = voiceSettings.evaVoiceMale ? 'M' : 'F';
-    const currentVoiceEnabled = voiceSettings?.evaVoiceEnabled !== 0;
-
-        // Format SEMANTIC screen data (The Eyes - High Fidelity)
-        let activeScreenDataText = '';
-if (activeScreenData) {
-    try {
-        // Circular reference handler
-        const seen = new WeakSet();
-        const jsonStr = JSON.stringify(activeScreenData, (key, value) => {
-            if (typeof value === "object" && value !== null) {
-                if (seen.has(value)) return "[Circular]";
-                seen.add(value);
-            }
-            return value;
-        }, 2);
-
-        const maxLength = 2000; // 2000 chars max for now
-        const truncated = jsonStr.length > maxLength ? jsonStr.substring(0, maxLength) + '\n... (truncated)' : jsonStr;
-        activeScreenDataText = `\n[DADOS VIVOS DA TELA ATUAL (Prioridade Alta)]:\n${truncated}\n`;
-    } catch (e) {
-        console.error('[EvaContextBuilder] Error stringifying activeScreenData:', e);
-        activeScreenDataText = '\n[DADOS DA TELA: Erro ao processar]\n';
-    }
-}
-
-// Format LEGACY screen context (The Eyes - DOM Scraper)
-let screenContextText = '';
-if (screenContext) {
-    // Only add legacy context if semantic data is sparse, to save tokens
-    // or keep it as backup.
-    if (screenContext.title) screenContextText += `TELA (Contexto Visual): ${screenContext.title}\n`;
-    // ... (keep legacy formatting logic derived from previous content)
-    if (screenContext.tables) {
-        screenContextText += `TABELAS (Visual):\n`;
-        screenContext.tables.forEach((table, idx) => {
-            screenContextText += `Tabela ${idx + 1}: ${table.headers.join(' | ')}\n`;
-            // Limit rows to avoid token overload if semantic data exists
-            const rowLimit = activeScreenData ? 2 : 5;
-            screenContextText += `(Mostrando ${Math.min(table.rows.length, rowLimit)} de ${table.totalRows} linhas)\n`;
-            if (table.rows.length > 0) {
-                table.rows.slice(0, rowLimit).forEach((row, ridx) => {
-                    screenContextText += `  ${ridx + 1}: ${row.join(' | ')}\n`;
-                });
-            }
-        });
-    }
-}
-
-return `${systemBase}
-
-INFORMAÇÕES DO USUÁRIO:
-- Nome: ${user?.preferred_name || user?.name || 'Usuário'}
-- Período: ${timeOfDay}
-${user?.job_title ? `- Cargo: ${user.job_title}` : ''}
-${user?.department ? `- Departamento: ${user.department}` : ''}
-
-ADAPTAÇÃO DE COMUNICAÇÃO:
-Adapte DINAMICAMENTE sua comunicação ao perfil do usuário acima:
-- **Pronomes de tratamento**: Escolha entre "Dr.", "Sr.", "Sra.", "você", etc., baseado no cargo
-- **Nível de formalidade**: Ajuste entre formal, profissional ou casual conforme apropriado
-- **Vocabulário**: Use termos técnicos ou simplificados conforme o contexto do cargo/departamento
-- **Tom**: Estratégico, analítico, prático, educativo - decida dinamicamente
-
-Seja natural e apropriado. Não force formalidade desnecessária nem seja casual demais.
-${dynamicProfile}
-ÁRVORE DE MENUS DO SISTEMA:
-${this.formatMenuTree(availableScreens)}
-
-INSTRUÇÕES PARA NAVEGAÇÃO:
-1. Quando o usuário pedir para ver algo, analise a ÁRVORE DE MENUS acima
-2. Encontre o item do menu mais apropriado
-3. Use o ID EXATO do menu no campo "target" (ex: "previsao", não "fluxo-caixa")
-4. Priorize correspondência de palavras-chave (keywords)
-
-AÇÕES DISPONÍVEIS:
-- REPLY: Responder perguntas simples
-- NAVIGATE: Abrir uma tela (use target: {id do menu})
-
-FORMATO DE RESPOSTA (JSON):
-{
-  "action": "REPLY" ou "NAVIGATE",
-  "message": "explicação para o usuário",
-  "target": "id-exato-do-menu" (apenas se NAVIGATE)
-}
-
-EXEMPLOS:
-Usuário: "mostre a previsão de caixa"
-Resposta: {"action": "NAVIGATE", "target": "previsao", "message": "Abrindo previsão de fluxo de caixa"}
-
-Usuário: "você consegue me ouvir?"
-Resposta: {"action": "REPLY", "message": "Sim, consigo te ouvir perfeitamente!"}
-`;
-    }
 
     /**
      * Format menu tree for LLM understanding (RECURSIVE - supports infinite nesting)
      * Includes ALL metadata: id, label, description, route, keywords, submenus
      */
     static formatMenuTree(screens, depth = 0) {
-    if (!screens || !Array.isArray(screens)) return 'Nenhum menu disponível';
+        if (!screens || !Array.isArray(screens)) return 'Nenhum menu disponível';
 
-    const indent = '  '.repeat(depth); // 2 spaces per level
+        const indent = '  '.repeat(depth); // 2 spaces per level
 
-    return screens.map(screen => {
-        // Build metadata string with ALL available information
-        const parts = [];
+        return screens.map(screen => {
+            // Build metadata string with ALL available information
+            const parts = [];
 
-        // Always include ID and label
-        parts.push(`${indent}- **${screen.label}** (id: "${screen.id}")`);
+            // Always include ID and label
+            parts.push(`${indent}- **${screen.label}** (id: "${screen.id}")`);
 
-        // Add description if available
-        if (screen.description) {
-            parts.push(`${indent}  Descrição: ${screen.description}`);
-        }
+            // Add description if available
+            if (screen.description) {
+                parts.push(`${indent}  Descrição: ${screen.description}`);
+            }
 
-        // Add route if available
-        if (screen.route) {
-            parts.push(`${indent}  Rota: ${screen.route}`);
-        }
+            // Add route if available
+            if (screen.route) {
+                parts.push(`${indent}  Rota: ${screen.route}`);
+            }
 
-        // Add keywords if available
-        if (screen.keywords && screen.keywords.length > 0) {
-            parts.push(`${indent}  Keywords: ${screen.keywords.join(', ')}`);
-        }
+            // Add keywords if available
+            if (screen.keywords && screen.keywords.length > 0) {
+                parts.push(`${indent}  Keywords: ${screen.keywords.join(', ')}`);
+            }
 
-        // Recursively process submenus (INFINITE DEPTH)
-        if (screen.submenu && Array.isArray(screen.submenu) && screen.submenu.length > 0) {
-            parts.push(`${indent}  Submenus:`);
-            parts.push(this.formatMenuTree(screen.submenu, depth + 2)); // Recursive call
-        }
+            // Recursively process submenus (INFINITE DEPTH)
+            if (screen.submenu && Array.isArray(screen.submenu) && screen.submenu.length > 0) {
+                parts.push(`${indent}  Submenus:`);
+                parts.push(this.formatMenuTree(screen.submenu, depth + 2)); // Recursive call
+            }
 
-        return parts.join('\n');
-    }).join('\n\n'); // Double newline between root-level items for clarity
-}
+            return parts.join('\n');
+        }).join('\n\n'); // Double newline between root-level items for clarity
+    }
 
     /**
      * Build dynamic business profile based on transaction data
@@ -301,11 +190,11 @@ Resposta: {"action": "REPLY", "message": "Sim, consigo te ouvir perfeitamente!"}
      * @returns {Promise<string>} Structured business context for LLM inference
      */
     static async buildDynamicBusinessProfile(db, projectId) {
-    if (!projectId) return "";
+        if (!projectId) return "";
 
-    try {
-        // 1. Analyze Income Types (What generates money?)
-        const [incomeTypes] = await db.query(`
+        try {
+            // 1. Analyze Income Types (What generates money?)
+            const [incomeTypes] = await db.query(`
                 SELECT DISTINCT t.nome 
                 FROM entradas e 
                 JOIN tipo_entrada t ON e.tipo_entrada_id = t.id 
@@ -314,8 +203,8 @@ Resposta: {"action": "REPLY", "message": "Sim, consigo te ouvir perfeitamente!"}
                 LIMIT 10
             `, [projectId]);
 
-        // 2. Analyze Production/Resale Types (What do they sell/produce?)
-        const [prodTypes] = await db.query(`
+            // 2. Analyze Production/Resale Types (What do they sell/produce?)
+            const [prodTypes] = await db.query(`
                 SELECT DISTINCT t.label 
                 FROM producao_revenda p 
                 JOIN tipo_producao_revenda t ON p.tipo_id = t.id 
@@ -324,8 +213,8 @@ Resposta: {"action": "REPLY", "message": "Sim, consigo te ouvir perfeitamente!"}
                 LIMIT 10
             `, [projectId]);
 
-        // 3. Analyze Expense Types (Where does money go?)
-        const [expenseTypes] = await db.query(`
+            // 3. Analyze Expense Types (Where does money go?)
+            const [expenseTypes] = await db.query(`
                 SELECT DISTINCT t.label 
                 FROM saidas s 
                 JOIN tipo_saida t ON s.tipo_saida_id = t.id 
@@ -334,41 +223,41 @@ Resposta: {"action": "REPLY", "message": "Sim, consigo te ouvir perfeitamente!"}
                 LIMIT 10
             `, [projectId]);
 
-        // Format for LLM understanding
-        let context = "\n\nCONTEXTO DO NEGÓCIO (Análise Dinâmica):\n";
+            // Format for LLM understanding
+            let context = "\n\nCONTEXTO DO NEGÓCIO (Análise Dinâmica):\n";
 
-        if (incomeTypes.length > 0) {
-            context += `TIPOS DE ENTRADA (Fontes de receita):\n`;
-            context += incomeTypes.map(r => `  - ${r.nome}`).join('\n') + '\n\n';
+            if (incomeTypes.length > 0) {
+                context += `TIPOS DE ENTRADA (Fontes de receita):\n`;
+                context += incomeTypes.map(r => `  - ${r.nome}`).join('\n') + '\n\n';
+            }
+
+            if (prodTypes.length > 0) {
+                context += `TIPOS DE PRODUÇÃO/REVENDA (O que comercializa):\n`;
+                context += prodTypes.map(r => `  - ${r.label}`).join('\n') + '\n\n';
+            }
+
+            if (expenseTypes.length > 0) {
+                context += `TIPOS DE SAÍDA (Principais despesas):\n`;
+                context += expenseTypes.map(r => `  - ${r.label}`).join('\n') + '\n\n';
+            }
+
+            if (!incomeTypes.length && !prodTypes.length && !expenseTypes.length) {
+                return ""; // No data to infer from
+            }
+
+            context += `INSTRUÇÃO: Com base nos tipos de transações acima, infira dinamicamente:\n`;
+            context += `- O ramo de atuação desta empresa (ex: consultoria, varejo, indústria, serviços)\n`;
+            context += `- O segmento específico\n`;
+            context += `- O modelo de negócio (recorrente, projeto, produto)\n`;
+            context += `- Adapte seu vocabulário, sugestões e análises para esse contexto específico\n`;
+
+            return context;
+
+        } catch (error) {
+            console.error('Error building business profile:', error);
+            return "";
         }
-
-        if (prodTypes.length > 0) {
-            context += `TIPOS DE PRODUÇÃO/REVENDA (O que comercializa):\n`;
-            context += prodTypes.map(r => `  - ${r.label}`).join('\n') + '\n\n';
-        }
-
-        if (expenseTypes.length > 0) {
-            context += `TIPOS DE SAÍDA (Principais despesas):\n`;
-            context += expenseTypes.map(r => `  - ${r.label}`).join('\n') + '\n\n';
-        }
-
-        if (!incomeTypes.length && !prodTypes.length && !expenseTypes.length) {
-            return ""; // No data to infer from
-        }
-
-        context += `INSTRUÇÃO: Com base nos tipos de transações acima, infira dinamicamente:\n`;
-        context += `- O ramo de atuação desta empresa (ex: consultoria, varejo, indústria, serviços)\n`;
-        context += `- O segmento específico\n`;
-        context += `- O modelo de negócio (recorrente, projeto, produto)\n`;
-        context += `- Adapte seu vocabulário, sugestões e análises para esse contexto específico\n`;
-
-        return context;
-
-    } catch (error) {
-        console.error('Error building business profile:', error);
-        return "";
     }
-}
 
     /**
      * Build unified context for EVA (all 3 layers with security)
@@ -381,117 +270,117 @@ Resposta: {"action": "REPLY", "message": "Sim, consigo te ouvir perfeitamente!"}
      * @returns {Promise<string>} Complete unified prompt
      */
     static async buildUnifiedContext(user, project, db, availableScreens = [], options = {}) {
-    const systemBase = systemPrompts.operate?.base || systemPrompts.chat?.base;
+        const systemBase = systemPrompts.operate?.base || systemPrompts.chat?.base;
 
-    // Get time context
-    const now = new Date();
-    const hour = now.getHours();
-    const timeOfDay = hour >= 5 && hour < 12 ? 'manhã' : hour >= 12 && hour < 19 ? 'tarde' : 'noite';
+        // Get time context
+        const now = new Date();
+        const hour = now.getHours();
+        const timeOfDay = hour >= 5 && hour < 12 ? 'manhã' : hour >= 12 && hour < 19 ? 'tarde' : 'noite';
 
-    // ========================================
-    // LAYER 2: PROJECT/BUSINESS CONTEXT
-    // ========================================
+        // ========================================
+        // LAYER 2: PROJECT/BUSINESS CONTEXT
+        // ========================================
 
-    // Validate and sanitize project context
-    const rawProjectContext = project?.eva_context || {};
-    const projectContext = EvaSecurityValidator.validateEvaContext(rawProjectContext);
+        // Validate and sanitize project context
+        const rawProjectContext = project?.eva_context || {};
+        const projectContext = EvaSecurityValidator.validateEvaContext(rawProjectContext);
 
-    // Check if we need to refresh cached profile
-    const needsRefresh = !projectContext.inferred_profile ||
-        EvaSecurityValidator.needsMigration(projectContext);
+        // Check if we need to refresh cached profile
+        const needsRefresh = !projectContext.inferred_profile ||
+            EvaSecurityValidator.needsMigration(projectContext);
 
-    let businessContext = '';
+        let businessContext = '';
 
-    // Use cached inference if available and fresh
-    if (projectContext.inferred_profile && !needsRefresh) {
-        businessContext = projectContext.inferred_profile;
-    } else if (db && project?.id) {
-        // Generate fresh inference from transaction types
-        businessContext = await this.buildDynamicBusinessProfile(db, project.id);
-        // Note: Cache update should be done separately to avoid blocking
-    }
+        // Use cached inference if available and fresh
+        if (projectContext.inferred_profile && !needsRefresh) {
+            businessContext = projectContext.inferred_profile;
+        } else if (db && project?.id) {
+            // Generate fresh inference from transaction types
+            businessContext = await this.buildDynamicBusinessProfile(db, project.id);
+            // Note: Cache update should be done separately to avoid blocking
+        }
 
-    // Build Layer 2 prompt section
-    let layer2 = '\n\nCAMADA 2 - CONTEXTO DO NEGÓCIO:\n';
+        // Build Layer 2 prompt section
+        let layer2 = '\n\nCAMADA 2 - CONTEXTO DO NEGÓCIO:\n';
 
-    if (projectContext.business_type) {
-        layer2 += `Tipo de negócio (salvo): ${projectContext.business_type}\n`;
-    }
+        if (projectContext.business_type) {
+            layer2 += `Tipo de negócio (salvo): ${projectContext.business_type}\n`;
+        }
 
-    if (projectContext.industry) {
-        layer2 += `Setor: ${projectContext.industry}\n`;
-    }
+        if (projectContext.industry) {
+            layer2 += `Setor: ${projectContext.industry}\n`;
+        }
 
-    if (businessContext) {
-        layer2 += businessContext; // Dynamic inference from transactions
-    }
+        if (businessContext) {
+            layer2 += businessContext; // Dynamic inference from transactions
+        }
 
-    if (projectContext.custom_instructions) {
-        layer2 += `\nInstruções específicas do projeto: ${projectContext.custom_instructions}\n`;
-    }
+        if (projectContext.custom_instructions) {
+            layer2 += `\nInstruções específicas do projeto: ${projectContext.custom_instructions}\n`;
+        }
 
-    if (projectContext.tone) {
-        layer2 += `Tom preferido (salvo): ${projectContext.tone}\n`;
-    } else {
-        layer2 += `Tom: Escolha o mais adequado dinamicamente\n`;
-    }
+        if (projectContext.tone) {
+            layer2 += `Tom preferido (salvo): ${projectContext.tone}\n`;
+        } else {
+            layer2 += `Tom: Escolha o mais adequado dinamicamente\n`;
+        }
 
-    // ========================================
-    // LAYER 3: USER PREFERENCES & PROFILE
-    // ========================================
+        // ========================================
+        // LAYER 3: USER PREFERENCES & PROFILE
+        // ========================================
 
-    // Validate and sanitize user preferences
-    const rawUserPrefs = user?.eva_preferences || {};
-    const userPrefs = EvaSecurityValidator.validateEvaPreferences(rawUserPrefs);
+        // Validate and sanitize user preferences
+        const rawUserPrefs = user?.eva_preferences || {};
+        const userPrefs = EvaSecurityValidator.validateEvaPreferences(rawUserPrefs);
 
-    // Clear preference hierarchy implementation
-    const communicationStyle = this.getCommunicationStyle(user, userPrefs);
-    const expertiseLevel = this.getExpertiseLevel(user, userPrefs);
-    const formalityLevel = this.getFormalityLevel(user, userPrefs);
+        // Clear preference hierarchy implementation
+        const communicationStyle = this.getCommunicationStyle(user, userPrefs);
+        const expertiseLevel = this.getExpertiseLevel(user, userPrefs);
+        const formalityLevel = this.getFormalityLevel(user, userPrefs);
 
-    let layer3 = '\nCAMADA 3 - PERFIL DO USUÁRIO:\n';
-    layer3 += `- Nome: ${user?.preferred_name || user?.name || 'Usuário'}\n`;
-    layer3 += `- Período: ${timeOfDay}\n`;
+        let layer3 = '\nCAMADA 3 - PERFIL DO USUÁRIO:\n';
+        layer3 += `- Nome: ${user?.preferred_name || user?.name || 'Usuário'}\n`;
+        layer3 += `- Período: ${timeOfDay}\n`;
 
-    if (user?.job_title) {
-        layer3 += `- Cargo: ${user.job_title}\n`;
-    }
+        if (user?.job_title) {
+            layer3 += `- Cargo: ${user.job_title}\n`;
+        }
 
-    if (user?.department) {
-        layer3 += `- Departamento: ${user.department}\n`;
-    }
+        if (user?.department) {
+            layer3 += `- Departamento: ${user.department}\n`;
+        }
 
-    layer3 += '\nADAPTAÇÃO DE COMUNICAÇÃO:\n';
-    layer3 += 'Adapte DINAMICAMENTE sua comunicação ao perfil do usuário:\n';
-    layer3 += `- **Pronomes de tratamento**: ${formalityLevel}\n`;
-    layer3 += `- **Estilo de comunicação**: ${communicationStyle}\n`;
-    layer3 += `- **Nível de expertise**: ${expertiseLevel}\n`;
-    layer3 += '- **Vocabulário**: Use termos apropriados ao cargo/departamento\n';
-    layer3 += '- **Tom**: Estratégico, analítico, prático ou educativo conforme contexto\n\n';
-    layer3 += 'Seja natural e apropriado. Não force formalidade desnecessária nem seja casual demais.\n';
+        layer3 += '\nADAPTAÇÃO DE COMUNICAÇÃO:\n';
+        layer3 += 'Adapte DINAMICAMENTE sua comunicação ao perfil do usuário:\n';
+        layer3 += `- **Pronomes de tratamento**: ${formalityLevel}\n`;
+        layer3 += `- **Estilo de comunicação**: ${communicationStyle}\n`;
+        layer3 += `- **Nível de expertise**: ${expertiseLevel}\n`;
+        layer3 += '- **Vocabulário**: Use termos apropriados ao cargo/departamento\n';
+        layer3 += '- **Tom**: Estratégico, analítico, prático ou educativo conforme contexto\n\n';
+        layer3 += 'Seja natural e apropriado. Não force formalidade desnecessária nem seja casual demais.\n';
 
-    if (userPrefs.custom_instructions) {
-        layer3 += `\nPreferências pessoais: ${userPrefs.custom_instructions}\n`;
-    }
+        if (userPrefs.custom_instructions) {
+            layer3 += `\nPreferências pessoais: ${userPrefs.custom_instructions}\n`;
+        }
 
-    // ========================================
-    // MENU STRUCTURE
-    // ========================================
+        // ========================================
+        // MENU STRUCTURE
+        // ========================================
 
-    let menuSection = '\n\nÁRVORE DE MENUS DO SISTEMA:\n';
-    menuSection += this.formatMenuTree(availableScreens);
+        let menuSection = '\n\nÁRVORE DE MENUS DO SISTEMA:\n';
+        menuSection += this.formatMenuTree(availableScreens);
 
-    let navigationInstructions = '\n\nINSTRUÇÕES PARA NAVEGAÇÃO:\n';
-    navigationInstructions += '1. Quando o usuário pedir para ver algo, analise a ÁRVORE DE MENUS acima\n';
-    navigationInstructions += '2. Encontre o item do menu mais apropriado\n';
-    navigationInstructions += '3. Use o ID EXATO do menu no campo "target" (ex: "previsao", não "fluxo-caixa")\n';
-    navigationInstructions += '4. Priorize correspondência de palavras-chave (keywords)\n';
+        let navigationInstructions = '\n\nINSTRUÇÕES PARA NAVEGAÇÃO:\n';
+        navigationInstructions += '1. Quando o usuário pedir para ver algo, analise a ÁRVORE DE MENUS acima\n';
+        navigationInstructions += '2. Encontre o item do menu mais apropriado\n';
+        navigationInstructions += '3. Use o ID EXATO do menu no campo "target" (ex: "previsao", não "fluxo-caixa")\n';
+        navigationInstructions += '4. Priorize correspondência de palavras-chave (keywords)\n';
 
-    // ========================================
-    // FINAL ASSEMBLY
-    // ========================================
+        // ========================================
+        // FINAL ASSEMBLY
+        // ========================================
 
-    return `${systemBase}${layer2}${layer3}${menuSection}${navigationInstructions}
+        return `${systemBase}${layer2}${layer3}${menuSection}${navigationInstructions}
 
 AÇÕES DISPONÍVEIS:
 - REPLY: Responder perguntas simples
@@ -511,80 +400,80 @@ Resposta: {"action": "NAVIGATE", "target": "previsao", "message": "Abrindo previ
 Usuário: "você consegue me ouvir?"
 Resposta: {"action": "REPLY", "message": "Sim, consigo te ouvir perfeitamente!"}
 `;
-}
+    }
 
     /**
      * Get communication style with clear hierarchy
      * Priority: user override > inferred from job > LLM default
      */
     static getCommunicationStyle(user, sanitizedPrefs) {
-    // Priority 1: User explicit preference
-    if (sanitizedPrefs.communication_style) {
-        return `${sanitizedPrefs.communication_style} (preferência salva do usuário)`;
-    }
+        // Priority 1: User explicit preference
+        if (sanitizedPrefs.communication_style) {
+            return `${sanitizedPrefs.communication_style} (preferência salva do usuário)`;
+        }
 
-    // Priority 2: Infer from job title
-    const title = (user?.job_title || '').toLowerCase();
-    if (title.includes('diretor') || title.includes('ceo') || title.includes('gerente')) {
-        return 'Estratégico/Executivo (inferido do cargo)';
-    }
-    if (title.includes('analista') || title.includes('contador')) {
-        return 'Técnico/Analítico (inferido do cargo)';
-    }
-    if (title.includes('vendedor') || title.includes('operacional')) {
-        return 'Prático/Operacional (inferido do cargo)';
-    }
+        // Priority 2: Infer from job title
+        const title = (user?.job_title || '').toLowerCase();
+        if (title.includes('diretor') || title.includes('ceo') || title.includes('gerente')) {
+            return 'Estratégico/Executivo (inferido do cargo)';
+        }
+        if (title.includes('analista') || title.includes('contador')) {
+            return 'Técnico/Analítico (inferido do cargo)';
+        }
+        if (title.includes('vendedor') || title.includes('operacional')) {
+            return 'Prático/Operacional (inferido do cargo)';
+        }
 
-    // Priority 3: LLM decides
-    return 'Adapte dinamicamente ao contexto da conversa';
-}
+        // Priority 3: LLM decides
+        return 'Adapte dinamicamente ao contexto da conversa';
+    }
 
     /**
      * Get expertise level with clear hierarchy
      */
     static getExpertiseLevel(user, sanitizedPrefs) {
-    // Priority 1: User explicit preference
-    if (sanitizedPrefs.expertise_level) {
-        return `${sanitizedPrefs.expertise_level} (preferência salva)`;
-    }
+        // Priority 1: User explicit preference
+        if (sanitizedPrefs.expertise_level) {
+            return `${sanitizedPrefs.expertise_level} (preferência salva)`;
+        }
 
-    // Priority 2: Infer from job title
-    const title = (user?.job_title || '').toLowerCase();
-    if (title.includes('diretor') || title.includes('gerente') || title.includes('senior')) {
-        return 'Avançado (inferido do cargo)';
-    }
-    if (title.includes('junior') || title.includes('assistente')) {
-        return 'Intermediário (inferido do cargo)';
-    }
+        // Priority 2: Infer from job title
+        const title = (user?.job_title || '').toLowerCase();
+        if (title.includes('diretor') || title.includes('gerente') || title.includes('senior')) {
+            return 'Avançado (inferido do cargo)';
+        }
+        if (title.includes('junior') || title.includes('assistente')) {
+            return 'Intermediário (inferido do cargo)';
+        }
 
-    // Priority 3: LLM decides
-    return 'Avalie dinamicamente pelas perguntas do usuário';
-}
+        // Priority 3: LLM decides
+        return 'Avalie dinamicamente pelas perguntas do usuário';
+    }
 
     /**
      * Get formality level for pronoun selection
      */
     static getFormalityLevel(user, sanitizedPrefs) {
-    const title = (user?.job_title || '').toLowerCase();
+        const title = (user?.job_title || '').toLowerCase();
 
-    // High formality for executives
-    if (title.includes('diretor') || title.includes('ceo') || title.includes('presidente')) {
-        return 'Use "Sr./Sra." ou "Dr./Dra." (cargo executivo)';
+        // High formality for executives
+        if (title.includes('diretor') || title.includes('ceo') || title.includes('presidente')) {
+            return 'Use "Sr./Sra." ou "Dr./Dra." (cargo executivo)';
+        }
+
+        // Medium formality for managers and professionals
+        if (title.includes('gerente') || title.includes('coordenador') || title.includes('consultor')) {
+            return 'Use "Sr./Sra." ou "você" profissionalmente (cargo de gestão)';
+        }
+
+        // Casual for operational roles
+        if (title.includes('vendedor') || title.includes('operador') || title.includes('assistente')) {
+            return 'Use "você" de forma amigável (cargo operacional)';
+        }
+
+        // Default: LLM decides
+        return 'Escolha entre "Dr.", "Sr.", "Sra.", "você" baseado no contexto';
     }
-
-    // Medium formality for managers and professionals
-    if (title.includes('gerente') || title.includes('coordenador') || title.includes('consultor')) {
-        return 'Use "Sr./Sra." ou "você" profissionalmente (cargo de gestão)';
-    }
-
-    // Casual for operational roles
-    if (title.includes('vendedor') || title.includes('operador') || title.includes('assistente')) {
-        return 'Use "você" de forma amigável (cargo operacional)';
-    }
-
-    // Default: LLM decides
-    return 'Escolha entre "Dr.", "Sr.", "Sra.", "você" baseado no contexto';
-}
 }
 
 module.exports = EvaContextBuilder;
