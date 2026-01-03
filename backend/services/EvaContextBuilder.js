@@ -196,14 +196,25 @@ INFORMAÇÕES DO USUÁRIO:
 - Nome: ${user?.preferred_name || user?.name || 'Usuário'}
 - Período: ${timeOfDay}
 
+TELAS DISPONÍVEIS (use NAVIGATE para abrir):
+1. **dashboard** - Visão geral com resumos e gráficos financeiros
+   Quando usar: "mostre o resumo", "como está o negócio", "visão geral"
+   
+2. **fluxo-caixa** - Previsão diária de entradas e saídas
+   Quando usar: "fluxo de caixa", "previsão", "quanto vou receber", "datas futuras"
+   
+3. **consolidadas** - Todas as transações (reais + previstas)
+   Quando usar: "todas as transações", "histórico completo", "consolidado"
+
 AÇÕES DISPONÍVEIS:
 - REPLY: Responder ao usuário
-- NAVIGATE: Navegar para tela (use target: "dashboard", "fluxo-caixa", "consolidadas", "entradas", "saidas")
+- NAVIGATE: Navegar para tela (use target: "dashboard", "fluxo-caixa", "consolidadas")
 
 IMPORTANTE:
 - Sempre responda em português brasileiro
-- Sea cumulatedTranscript: Se a pergunta for simples ("você consegue me ouvir", "olá"), use REPLY
-- Se precisar ver dados financeiros, use NAVIGATE + target
+- Se a pergunta for simples ("você consegue me ouvir", "olá"), use REPLY
+- Se precisar ver dados financeiros, identifique a tela certa e use NAVIGATE
+- Após navegar, você NÃO verá os dados automaticamente - o usuário precisará perguntar novamente
 
 FORMATO DE RESPOSTA (JSON):
 {
