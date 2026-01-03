@@ -149,7 +149,7 @@ const operate = async (req, res) => {
         const dynamicProfile = await EvaContextBuilder.buildDynamicBusinessProfile(db, context?.projectId);
 
         // Build operate system prompt
-        const systemPrompt = EvaContextBuilder.buildOperateContext(
+        const systemPrompt = await EvaContextBuilder.buildOperateContext(
             userData,
             projectData,
             screenContext,
