@@ -155,8 +155,9 @@ const operate = async (req, res) => {
             screenContext,
             userSettings,
             availableScreens,
-            req.body.activeScreenContext || null, // Handle naming variation if any, or remove if unused param
-            dynamicProfile
+            currentScreen || null, // Correctly pass the screen metadata
+            dynamicProfile,
+            req.body.activeScreenContext || null // New Semantic Data (Arg 8)
         );
 
         const history = conversationHistory || [];

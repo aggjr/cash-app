@@ -123,7 +123,7 @@ INSTRUÇÕES IMPORTANTES:
      * @param {string} dynamicProfile - Inferred business profile
      * @returns {string} Complete system prompt for operations
      */
-    static buildOperateContext(user, project, screenContext, voiceSettings = {}, availableScreens = [], currentScreen = null, dynamicProfile = '') {
+    static buildOperateContext(user, project, screenContext, voiceSettings = {}, availableScreens = [], currentScreen = null, dynamicProfile = '', activeScreenData = null) {
         const systemBase = systemPrompts.operate.base;
 
         // Project context
@@ -142,37 +142,33 @@ INSTRUÇÕES IMPORTANTES:
         // Voice settings
         const currentVoiceRate = voiceSettings.evaVoiceRate || 88;
         const currentVoiceGender = voiceSettings.evaVoiceMale ? 'M' : 'F';
-        const currentVoiceEnabled = voiceSettings.evaVoiceEnabled !== 0;
+        const currentVoiceEnabled = userSettings?.evaVoiceEnabled !== 0;
 
-        // Format screen context
+        // Format SEMANTIC screen data (The Eyes - High Fidelity)
+        let activeScreenDataText = '';
+        if (activeScreenData) {
+            activeScreenDataText = `\n[DADOS VIVOS DA TELA ATUAL (Prioridade Alta)]:\n${JSON.stringify(activeScreenData, null, 2)}\n`;
+        }
+
+        // Format LEGACY screen context (The Eyes - DOM Scraper)
         let screenContextText = '';
         if (screenContext) {
-            if (screenContext.title) screenContextText += `TELA ATUAL: ${screenContext.title}\n`;
-
+            // Only add legacy context if semantic data is sparse, to save tokens
+            // or keep it as backup.
+            if (screenContext.title) screenContextText += `TELA (Contexto Visual): ${screenContext.title}\n`;
+            // ... (keep legacy formatting logic derived from previous content)
             if (screenContext.tables) {
-                screenContextText += `TABELAS:\n`;
+                screenContextText += `TABELAS (Visual):\n`;
                 screenContext.tables.forEach((table, idx) => {
-                    screenContextText += `Tabela ${idx + 1}:\n`;
-                    screenContextText += `Colunas: ${table.headers.join(' | ')}\n`;
-                    screenContextText += `Total de ${table.totalRows} registros (mostrando ${table.rows.length})\n`;
+                    screenContextText += `Tabela ${idx + 1}: ${table.headers.join(' | ')}\n`;
+                    // Limit rows to avoid token overload if semantic data exists
+                    const rowLimit = activeScreenData ? 2 : 5;
+                    screenContextText += `(Mostrando ${Math.min(table.rows.length, rowLimit)} de ${table.totalRows} linhas)\n`;
                     if (table.rows.length > 0) {
-                        screenContextText += `Primeiras linhas:\n`;
-                        table.rows.slice(0, 3).forEach((row, ridx) => {
+                        table.rows.slice(0, rowLimit).forEach((row, ridx) => {
                             screenContextText += `  ${ridx + 1}: ${row.join(' | ')}\n`;
                         });
                     }
-                    screenContextText += `\n`;
-                });
-            }
-
-            if (screenContext.forms) {
-                screenContextText += `FORMULÁRIOS:\n`;
-                screenContext.forms.forEach((form, idx) => {
-                    screenContextText += `Form ${idx + 1}:\n`;
-                    form.fields.forEach(f => {
-                        screenContextText += `  - ${f.label}: ${f.value || '(vazio)'}\n`;
-                    });
-                    screenContextText += `\n`;
                 });
             }
         }
@@ -213,6 +209,8 @@ ${JSON.stringify(availableScreens?.map(s => ({ id: s.id, name: s.name, keywords:
 
 CONTEXTO LOCAL (Tela atual):
 ${currentScreen ? JSON.stringify({ id: currentScreen.id, description: currentScreen.description, fields: currentScreen.fields, actions: currentScreen.actions }) : "Nenhuma tela aberta (Dashboard)"}
+
+${activeScreenDataText}
 
 ${screenContextText}
 
