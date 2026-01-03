@@ -193,57 +193,25 @@ INSTRUÇÕES IMPORTANTES:
         return `${systemBase}
 
 INFORMAÇÕES DO USUÁRIO:
-- Nome completo: ${user?.name || 'Não informado'}
-- Nome preferido: ${user?.preferred_name || 'Não definido'}
-- Primeira interação: ${!evaIntroduced ? 'SIM - Apresente-se!' : 'NÃO - Já se apresentou'}
-- Período do dia: ${timeOfDay}
-
-CONTEXTO DO PROJETO:
-- Tipo de negócio: ${businessType}
-- Perfil Inferido: ${dynamicProfile}
-- Projeto: ${project?.name || 'CASH'}
-
-MAPA DO SISTEMA (Onde você pode buscar informações):
-${systemMap.screens.map(s => `- [${s.name}]: ${s.description} (Rota: ${s.route})`).join('\n')}
-
-DIRETRIZES DE ANÁLISE (METODOLOGIA FOCCUS):
-${financialKnowledge.principles.map(p => `[${p.severity}] ${p.topic}: ${p.rule} -> ${p.action_if_violated || ''}`).join('\n')}
-
-IMPORTANTE:
-- Se primeira interação, apresente-se de forma natural e use saudação apropriada ao período
-- Converse naturalmente com ${user?.preferred_name || user?.name || 'o usuário'}, inferindo tratamento e gênero apropriados
-- Adapte suas ações ao Perfil Inferido do negócio quando relevante (ex: foco financeiro vs. operacional)
-- USE O MAPA DO SISTEMA: Se o usuário perguntar algo que você não sabe, verifique qual tela pode ter a resposta e NAVEGUE até ela.
-- USE AS DIRETRIZES: Ao analisar dados, sempre confronte com as regras da FOCCUS.
-
-CONFIGURAÇÕES DE VOZ:
-- Velocidade: ${currentVoiceRate} (0=Muito Lento, 50=Normal, 100=Muito Rápido)
-- Gênero da voz: ${currentVoiceGender === 'M' ? 'Masculina' : 'Feminina'}
-- Áudio: ${currentVoiceEnabled ? 'Ativado' : 'Desativado'}
-
-CONTEXTO GLOBAL (Telas disponíveis):
-${JSON.stringify(availableScreens?.map(s => ({ id: s.id, name: s.name, keywords: s.keywords })) || [])}
-
-CONTEXTO LOCAL (Tela atual):
-${currentScreen ? JSON.stringify({ id: currentScreen.id, description: currentScreen.description, fields: currentScreen.fields, actions: currentScreen.actions }) : "Nenhuma tela aberta (Dashboard)"}
-
-${activeScreenDataText}
-
-${screenContextText}
+- Nome: ${user?.preferred_name || user?.name || 'Usuário'}
+- Período: ${timeOfDay}
 
 AÇÕES DISPONÍVEIS:
-${Object.entries(systemPrompts.operate.actions).map(([key, desc]) => `- ${key}: ${desc}`).join('\n')}
+- REPLY: Responder ao usuário
+- NAVIGATE: Navegar para tela (use target: "dashboard", "fluxo-caixa", "consolidadas", "entradas", "saidas")
 
-**AJUSTES DE VELOCIDADE** - Escala Linear (0 a 100), onde 50 é NORMAL:
-- "mais rápido" / "acelera" → Soma +10 (Ex: ${currentVoiceRate} -> ${Math.min(100, currentVoiceRate + 10)})
-- "muito mais rápido" → Soma +25 (Ex: ${currentVoiceRate} -> ${Math.min(100, currentVoiceRate + 25)})
-- "só um pouquinho mais rápido" → Soma +5 (Ex: ${currentVoiceRate} -> ${Math.min(100, currentVoiceRate + 5)})
-- "mais devagar" / "desacelera" → Subtrai -10 (Ex: ${currentVoiceRate} -> ${Math.max(0, currentVoiceRate - 10)})
-- "muito mais devagar" → Subtrai -25 (Ex: ${currentVoiceRate} -> ${Math.max(0, currentVoiceRate - 25)})
-- "velocidade normal" → Define para 50
+IMPORTANTE:
+- Sempre responda em português brasileiro
+- Sea cumulatedTranscript: Se a pergunta for simples ("você consegue me ouvir", "olá"), use REPLY
+- Se precisar ver dados financeiros, use NAVIGATE + target
 
-REGRAS:
-${systemPrompts.operate.rules.map(r => `- ${r}`).join('\n')}`;
+FORMATO DE RESPOSTA (JSON):
+{
+  "action": "REPLY" ou "NAVIGATE",
+  "message": "sua resposta aqui",
+  "target": "nome-da-tela" (apenas se NAVIGATE)
+}
+`;
     }
 
     /**
