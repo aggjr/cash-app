@@ -25,6 +25,21 @@ export const EvaService = {
 
             // Get user settings from localStorage
             const user = JSON.parse(localStorage.getItem('user') || '{}');
+            const projectId = user?.default_project_id || localStorage.getItem('selectedProjectId');
+
+            // Build context object matching backend expectations
+            const requestContext = {
+                projectId: projectId ? parseInt(projectId) : null,
+                screenContext: screenContext, // Nested under context as backend expects
+                currentScreenData: context.currentScreenData
+            };
+
+            console.log('[EvaService] Sending request with context:', {
+                hasProjectId: !!requestContext.projectId,
+                hasScreenContext: !!requestContext.screenContext,
+                screenId: requestContext.screenContext?.screenId || 'none',
+                currentScreenId: context.currentScreen?.id || 'none'
+            });
 
             const response = await fetch(`${API_BASE_URL}/eva/operate`, {
                 method: 'POST',
@@ -34,9 +49,10 @@ export const EvaService = {
                 },
                 body: JSON.stringify({
                     message: text,
+                    context: requestContext, // CRITICAL: Nest under 'context' as backend expects
                     currentScreen: context.currentScreen,
                     availableScreens: context.availableScreens ? Object.values(context.availableScreens) : [],
-                    screenContext, // Legacy/Fallback extraction
+                    screenContext, // Legacy/Fallback extraction (keep for backward compat)
                     activeScreenContext: context.currentScreenData, // NEW: Semantic Data (The Eyes)
                     userName: user?.name || '', // Full registered name for gender inference
                     preferredName: user?.preferred_name || '', // User's preferred form of address

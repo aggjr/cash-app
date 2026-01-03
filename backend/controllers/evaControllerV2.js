@@ -160,10 +160,21 @@ const operate = async (req, res) => {
         const { message, conversationHistory, context, screenContext, currentScreen, availableScreens, userSettings } = req.body;
         const user = req.user;
 
+        // EXTENSIVE DEBUG LOGGING
+        console.log('[EVA Operate] ========== REQUEST DEBUG ==========');
         console.log('[EVA Operate] Processing:', message);
-        console.log('[EVA Operate] Screen:', screenContext?.screenId);
-        console.log('[EVA Operate] User:', user.name, user.preferred_name);
-        console.log('[EVA Operate] Has screen context:', !!req.body.activeScreenContext);
+        console.log('[EVA Operate] req.body keys:', Object.keys(req.body));
+        console.log('[EVA Operate] context:', JSON.stringify(context, null, 2));
+        console.log('[EVA Operate] screenContext (root):', screenContext?.screenId);
+        console.log('[EVA Operate] context.screenContext:', context?.screenContext?.screenId);
+        console.log('[EVA Operate] currentScreen:', currentScreen?.id);
+        console.log('[EVA Operate] req.user:', JSON.stringify({
+            id: user?.id,
+            name: user?.name,
+            preferred_name: user?.preferred_name
+        }));
+        console.log('[EVA Operate] Has activeScreenContext:', !!req.body.activeScreenContext);
+        console.log('[EVA Operate] ====================================');
 
         if (!message || !message.trim()) {
             return res.status(400).json({ error: 'Mensagem é obrigatória' });
