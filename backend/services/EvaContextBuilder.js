@@ -198,7 +198,14 @@ INFORMAÇÕES DO USUÁRIO:
 ${user?.job_title ? `- Cargo: ${user.job_title}` : ''}
 ${user?.department ? `- Departamento: ${user.department}` : ''}
 
-IMPORTANTE: Adapte sua linguagem, tom e profundidade das respostas de acordo com o cargo e departamento do usuário acima.
+ADAPTAÇÃO DE COMUNICAÇÃO:
+Adapte DINAMICAMENTE sua comunicação ao perfil do usuário acima:
+- **Pronomes de tratamento**: Escolha entre "Dr.", "Sr.", "Sra.", "você", etc., baseado no cargo
+- **Nível de formalidade**: Ajuste entre formal, profissional ou casual conforme apropriado
+- **Vocabulário**: Use termos técnicos ou simplificados conforme o contexto do cargo/departamento
+- **Tom**: Estratégico, analítico, prático, educativo - decida dinamicamente
+
+Seja natural e apropriado. Não force formalidade desnecessária nem seja casual demais.
 
 ÁRVORE DE MENUS DO SISTEMA:
 ${this.formatMenuTree(availableScreens)}
