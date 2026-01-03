@@ -407,6 +407,7 @@ export const AIConsultant = () => {
 
             evaSpeechRec.onstart = () => {
                 console.log('[SPEECH REC] onstart fired');
+                playBeep(); // Audio cue: NOW we are listening
 
                 // Cancel EVA's speech immediately when user starts talking
                 if (window.speechSynthesis.speaking) {
@@ -562,7 +563,7 @@ export const AIConsultant = () => {
                 } else {
                     // Start recording
                     console.log('[MIC BTN] Starting recording...');
-                    playBeep(); // Audio feedback immediately
+                    // playBeep(); // MOVED TO onstart to prevent clipping
 
                     // Visual feedback "Preparing"
                     micBtn.style.backgroundColor = '#FFF7ED'; // Orange tint
