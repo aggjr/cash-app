@@ -195,6 +195,11 @@ INSTRUÇÕES IMPORTANTES:
 INFORMAÇÕES DO USUÁRIO:
 - Nome: ${user?.preferred_name || user?.name || 'Usuário'}
 - Período: ${timeOfDay}
+${user?.job_title ? `- Cargo: ${user.job_title}` : ''}
+${user?.department ? `- Departamento: ${user.department}` : ''}
+
+CONTEXTO DE ACESSO E COMUNICAÇÃO:
+${this.getRoleBasedInstructions(user?.job_title, user?.department)}
 
 ÁRVORE DE MENUS DO SISTEMA:
 ${this.formatMenuTree(availableScreens)}
@@ -223,6 +228,87 @@ Resposta: {"action": "NAVIGATE", "target": "previsao", "message": "Abrindo previ
 Usuário: "você consegue me ouvir?"
 Resposta: {"action": "REPLY", "message": "Sim, consigo te ouvir perfeitamente!"}
 `;
+    }
+
+    /**
+     * Get role-based communication instructions for LLM
+     */
+    static getRoleBasedInstructions(jobTitle, department) {
+        const title = (jobTitle || '').toLowerCase();
+        const dept = (department || '').toLowerCase();
+
+        // Strategic/Executive roles - Full access, strategic insights
+        if (title.includes('diretor') || title.includes('gerente') ||
+            title.includes('consultor') || title.includes('estratégico') ||
+            title.includes('ceo') || title.includes('cfo')) {
+            return `
+NÍVEL DE ACESSO: Estratégico/Executivo
+COMUNICAÇÃO:
+- Pode discutir informações financeiras sensíveis (margens, lucros, custos)
+- Foque em análises estratégicas, tendências e recomendações
+- Use linguagem profissional e dados consolidados
+- Destaque riscos, oportunidades e impactos no negócio
+TÓPICOS PERMITIDOS:
+- Fluxo de caixa completo
+- Análise de rentabilidade
+- Previsões e planejamento
+- Relatórios consolidados
+- Recomendações estratégicas`;
+        }
+
+        // Operational roles - Limited financial access
+        if (title.includes('vendedor') || title.includes('operacion') ||
+            title.includes('assistente') || dept.includes('vendas')) {
+            return `
+NÍVEL DE ACESSO: Operacional
+COMUNICAÇÃO:
+- NÃO revele margens, custos ou lucros detalhados
+- Foque em métricas operacionais e metas
+- Use linguagem simples e objetiva
+- Priorize ações práticas do dia a dia
+TÓPICOS PERMITIDOS:
+- Metas de vendas
+- Status de pedidos
+- Entregas e produção
+- Dados agregados (sem detalhes financeiros sensíveis)
+RESTRIÇÕES:
+- Não discuta custos ou margens de produtos
+- Não revele salários ou informações confidenciais`;
+        }
+
+        // Analyst/Support roles - Moderate access
+        if (title.includes('analista') || title.includes('contador') ||
+            title.includes('financeiro') || dept.includes('financ')) {
+            return `
+NÍVEL DE ACESSO: Analítico
+COMUNICAÇÃO:
+- Pode acessar dados financeiros operacionais
+- Foque em análises técnicas e relatórios
+- Use terminologia contábil/financeira apropriada
+- Destaque discrepâncias e oportunidades de melhoria
+TÓPICOS PERMITIDOS:
+- Lançamentos e reconciliações
+- Fluxo de caixa detalhado
+- Relatórios fiscais e contábeis
+- Análises de variação
+RESTRIÇÕES:
+- Decisões estratégicas devem ser encaminhadas à gerência`;
+        }
+
+        // Default - Basic access
+        return `
+NÍVEL DE ACESSO: Padrão
+COMUNICAÇÃO:
+- Forneça informações gerais do sistema
+- Use linguagem clara e acessível
+- Foque em funcionalidades básicas
+TÓPICOS PERMITIDOS:
+- Navegação no sistema
+- Dashboards gerais
+- Próprios dados do usuário
+RESTRIÇÕES:
+- Não revele informações financeiras sensíveis
+- Para dados confidenciais, sugira contatar o gestor`;
     }
 
     /**
