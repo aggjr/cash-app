@@ -147,7 +147,11 @@ INSTRUÇÕES IMPORTANTES:
         // Format SEMANTIC screen data (The Eyes - High Fidelity)
         let activeScreenDataText = '';
         if (activeScreenData) {
-            activeScreenDataText = `\n[DADOS VIVOS DA TELA ATUAL (Prioridade Alta)]:\n${JSON.stringify(activeScreenData, null, 2)}\n`;
+            // Limit size to prevent timeout - stringify and truncate if needed
+            const jsonStr = JSON.stringify(activeScreenData, null, 2);
+            const maxLength = 2000; // 2000 chars max for now
+            const truncated = jsonStr.length > maxLength ? jsonStr.substring(0, maxLength) + '\n... (truncated)' : jsonStr;
+            activeScreenDataText = `\n[DADOS VIVOS DA TELA ATUAL (Prioridade Alta)]:\n${truncated}\n`;
         }
 
         // Format LEGACY screen context (The Eyes - DOM Scraper)
