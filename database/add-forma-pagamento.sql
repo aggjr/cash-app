@@ -1,4 +1,0 @@
-
-ALTER TABLE entradas ADD COLUMN forma_pagamento VARCHAR(50) DEFAULT NULL;
-ALTER TABLE saidas ADD COLUMN forma_pagamento VARCHAR(50) DEFAULT NULL;
-ALTER TABLE producao_revenda ADD COLUMN forma_pagamento VARCHAR(50) DEFAULT NULL;

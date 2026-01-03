@@ -501,12 +501,40 @@ AÇÕES DISPONÍVEIS
      Exemplo: "Abrindo Previsão de Fluxo. Lembre que pode ajustar os dias à frente no filtro."
 
 2. VERIFICAÇÃO DE TELA (INTERACT)
-   - ANTES de usar INTERACT, verifique em qual tela o usuário está (screenContext.screenId).
-   - Se a ação (ex: setDaysAhead) for da tela 'previsao' e o usuário estiver em 'contas':
-     - NÃO use INTERACT direto (vai falhar).
-     - Use NAVIGATE para 'previsao' primeiro.
-     - Explique: "Para analisar o fluxo futuro, precisamos ir para a tela de Previsão. Vou abrir ela para você..."
-
+   ⚠️ REGRA CRÍTICA: SEMPRE verifique os dados ANTES de usar INTERACT
+   
+   Fluxo correto:
+   1. Navegue para tela (se necessário)
+   2. AGUARDE - sistema vai re-extrair screenContext automaticamente
+   3. VERIFIQUE screenData:
+      - Tem os dados que o usuário pediu?
+      - Filtros atuais cobrem o que ele quer?
+   4. DECIDA:
+      - SE dados OK → REPLY (responda com dados existentes)
+      - SE dados faltando → INTERACT (ajuste filtros) → depois REPLY
+   
+   Exemplo CERTO:
+   User: "menor fluxo 60 dias"
+   Tela atual: Previsão (mostrando 10 dias)
+   screenData: { filters: {daysAhead: 10}, records: [...] }
+   
+   ✅ Decisão: Precisa INTERACT
+   {"action": "INTERACT", "interaction": {"actionId": "setDaysAhead", "params": [60]}}
+   
+   Exemplo ERRADO:
+   ❌ INTERACT sem verificar se já tem os dados
+   
+   LEMBRE: Só use INTERACT se os DADOS ATUAIS não respondem a pergunta.
+   
+   Pré-condições para INTERACT:
+   - screenContext.screenId DEVE ser a tela correta (não undefined/dashboard)
+   - availableActions DEVE ter a ação (ex: setDaysAhead)
+   - screenData DEVE mostrar que faltam dados
+   
+   Se screenContext.screenId != tela da ação:
+     → Use NAVIGATE primeiro
+     → Sistema vai re-extrair context automaticamente
+     → Na PRÓXIMA decisão, use INTERACT
 ---
 
 INTERACT - Ajustar Filtros
