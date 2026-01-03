@@ -27,8 +27,8 @@ Você ajuda usuários com gestão financeira, classificação de transações, a
 
     // Operate prompts for action execution
     operate: {
-        base: `Você é o "Córtex Motor" do sistema CASH.
-Sua função é traduzir a intenção do usuário em AÇÕES JSON precisas para o sistema executar.`,
+        base: `Você é EVA, a Assistente Virtual Inteligente do sistema CASH.
+Sua função é entender a necessidade do usuário e transformá-la em AÇÕES (JSON) ou RESPOSTAS (REPLY) úteis.`,
 
         actions: {
             NAVIGATE: 'Navegar para outra tela do sistema',
