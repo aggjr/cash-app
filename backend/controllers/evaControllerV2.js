@@ -1,6 +1,7 @@
 const OpenAI = require('openai');
 const db = require('../config/database');
 const EvaContextBuilder = require('../services/EvaContextBuilder');
+const EvaIntentValidator = require('../utils/evaIntentValidator');
 
 const openai = new OpenAI({
     apiKey: process.env.OPENAI_API_KEY
@@ -15,6 +16,16 @@ const chat = async (req, res, next) => {
 
         if (!message || !message.trim()) {
             return res.status(400).json({ error: 'Mensagem é obrigatória' });
+        }
+
+        // Validate intent before calling LLM (security layer)
+        const validation = EvaIntentValidator.validate(message);
+        if (!validation.valid) {
+            console.log(`[EVA Security] Blocked ${validation.reason}:`, message.substring(0, 50));
+            return res.json({
+                reply: validation.response,
+                validationError: validation.reason
+            });
         }
 
         // Fetch hierarchical context from DB
@@ -114,16 +125,27 @@ const chat = async (req, res, next) => {
 
 const operate = async (req, res) => {
     try {
-        const { message, currentScreen, availableScreens, screenContext, userName, preferredName, userSettings, context, conversationHistory } = req.body;
+        const { message, conversationHistory, context, screenContext, currentScreen, availableScreens, userSettings } = req.body;
         const user = req.user;
 
         console.log('[EVA Operate] Processing:', message);
-        console.log('[EVA Operate] Screen:', currentScreen?.id);
-        console.log('[EVA Operate] User:', userName, preferredName);
-        console.log('[EVA Operate] Has screen context:', !!screenContext);
+        console.log('[EVA Operate] Screen:', screenContext?.screenId);
+        console.log('[EVA Operate] User:', user.name, user.preferred_name);
+        console.log('[EVA Operate] Has screen context:', !!req.body.activeScreenContext);
 
-        if (!message) {
-            return res.status(400).json({ error: 'Mensagem e contexto são obrigatórios' });
+        if (!message || !message.trim()) {
+            return res.status(400).json({ error: 'Mensagem é obrigatória' });
+        }
+
+        // Validate intent before calling LLM (security layer)
+        const validation = EvaIntentValidator.validate(message);
+        if (!validation.valid) {
+            console.log(`[EVA Security] Blocked ${validation.reason}:`, message.substring(0, 50));
+            return res.json({
+                action: { action: 'REPLY' },
+                message: validation.response,
+                validationError: validation.reason
+            });
         }
 
         // Extract user voice settings
