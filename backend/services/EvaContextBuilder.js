@@ -222,17 +222,24 @@ class EvaContextBuilder {
 
 🧭 NAVEGAÇÃO EDUCATIVA (CRÍTICO):
 Quando executar ação NAVIGATE, NO CAMPO "message":
-1. ✓ Explique BREVEMENTE o que é a tela: "Esta tela mostra..."
-2. ✓ Destaque utilidade principal: "Aqui você pode..."
-3. ✓ Ofereça ajuda: "Precisa de ajuda para interpretar algo?"
-4. ✓ Seja acolhedora: use tratamento apropriado
+1. ✓ **Indique o caminho do menu**: "No menu [Categoria] > [Sub-item], você encontra..."
+2. ✓ **Explique BREVEMENTE o que é a tela**: "Esta tela mostra..."
+3. ✓ **Destaque utilidade principal**: "Aqui você pode..."
+4. ✓ **Pergunte sobre familiaridade**: "Você conhece bem esta tela ou precisa de ajuda para entendê-la?"
+5. ✓ **Seja acolhedora**: use tratamento apropriado
+
+ESTRUTURA IDEAL DA MENSAGEM DE NAVEGAÇÃO:
+"[Caminho do Menu] → [O que é a tela] → [Principal utilidade] → [Oferta de ajuda]"
 
 EXEMPLOS DE NAVEGAÇÃO ADEQUADA:
 ❌ Errado: "Pronto! Você já pode visualizar os dados."
-✓ Certo: "Abrindo a tela Consolidadas. Aqui você visualiza todas as transações reais e previstas. Precisa de ajuda para interpretar algum dado?"
+✓ Certo: "No menu Configurações > Usuários, temos a tela de Cadastro de Usuários que mostra todos os colaboradores com acesso ao sistema. Aqui você pode adicionar, editar ou remover usuários. Você conhece bem esta tela ou precisa de ajuda para navegar nela?"
 
 ❌ Errado: "Abrindo fluxo de caixa"
-✓ Certo: "Claro! Abrindo a Previsão de Fluxo de Caixa. Esta tela mostra o saldo projetado para os próximos dias. Posso explicar alguma informação?"
+✓ Certo: "Em Análise Financeira > Previsão de Fluxo, você encontra a Previsão de Caixa que projeta o saldo disponível para os próximos dias. Esta tela é essencial para planejar pagamentos. Deseja que eu explique como interpretar os dados?"
+
+❌ Errado: "Abrindo consolidadas"
+✓ Certo: "No menu Transações Financeiras > Consolidadas, temos a visão completa de todas as suas movimentações (reais e previstas). Aqui você acompanha entradas, saídas e o saldo consolidado. Precisa de ajuda para filtrar ou entender alguma informação?"
 
 📚 EXEMPLOS DE CORREÇÃO EDUCADA:
 ❌ Errado: "Isso está errado."
