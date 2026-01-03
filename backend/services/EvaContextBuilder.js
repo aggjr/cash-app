@@ -206,7 +206,7 @@ Adapte DINAMICAMENTE sua comunicação ao perfil do usuário acima:
 - **Tom**: Estratégico, analítico, prático, educativo - decida dinamicamente
 
 Seja natural e apropriado. Não force formalidade desnecessária nem seja casual demais.
-
+${dynamicProfile}
 ÁRVORE DE MENUS DO SISTEMA:
 ${this.formatMenuTree(availableScreens)}
 
@@ -279,12 +279,13 @@ Resposta: {"action": "REPLY", "message": "Sim, consigo te ouvir perfeitamente!"}
 
     /**
      * Build dynamic business profile based on transaction data
+     * Returns structured data for LLM to infer business context dynamically
      * @param {Object} db - Database connection
      * @param {number} projectId - Project ID
-     * @returns {Promise<string>} Natural language business description
+     * @returns {Promise<string>} Structured business context for LLM inference
      */
     static async buildDynamicBusinessProfile(db, projectId) {
-        if (!projectId) return "Projeto sem dados suficientes para inferência.";
+        if (!projectId) return "";
 
         try {
             // 1. Analyze Income Types (What generates money?)
@@ -292,17 +293,19 @@ Resposta: {"action": "REPLY", "message": "Sim, consigo te ouvir perfeitamente!"}
                 SELECT DISTINCT t.nome 
                 FROM entradas e 
                 JOIN tipo_entrada t ON e.tipo_entrada_id = t.id 
-                WHERE e.project_id = ? 
-                LIMIT 5
+                WHERE e.project_id = ? AND e.active = 1
+                ORDER BY t.nome
+                LIMIT 10
             `, [projectId]);
 
-            // 2. Analyze Production/Resale Types (What do they sell?)
+            // 2. Analyze Production/Resale Types (What do they sell/produce?)
             const [prodTypes] = await db.query(`
                 SELECT DISTINCT t.label 
                 FROM producao_revenda p 
                 JOIN tipo_producao_revenda t ON p.tipo_id = t.id 
-                WHERE p.project_id = ? 
-                LIMIT 5
+                WHERE p.project_id = ? AND p.active = 1
+                ORDER BY t.label
+                LIMIT 10
             `, [projectId]);
 
             // 3. Analyze Expense Types (Where does money go?)
@@ -310,27 +313,44 @@ Resposta: {"action": "REPLY", "message": "Sim, consigo te ouvir perfeitamente!"}
                 SELECT DISTINCT t.label 
                 FROM saidas s 
                 JOIN tipo_saida t ON s.tipo_saida_id = t.id 
-                WHERE s.project_id = ? 
-                LIMIT 5
+                WHERE s.project_id = ? AND s.active = 1
+                ORDER BY t.label
+                LIMIT 10
             `, [projectId]);
 
-            const incomes = incomeTypes.map(r => r.nome).join(', ');
-            const products = prodTypes.map(r => r.label).join(', ');
-            const expenses = expenseTypes.map(r => r.label).join(', ');
+            // Format for LLM understanding
+            let context = "\n\nCONTEXTO DO NEGÓCIO (Análise Dinâmica):\n";
 
-            let profile = "";
+            if (incomeTypes.length > 0) {
+                context += `TIPOS DE ENTRADA (Fontes de receita):\n`;
+                context += incomeTypes.map(r => `  - ${r.nome}`).join('\n') + '\n\n';
+            }
 
-            if (incomes) profile += `Fontes de receita: ${incomes}. `;
-            if (products) profile += `Comercializa/Produz: ${products}. `;
-            if (expenses) profile += `Principais despesas: ${expenses}.`;
+            if (prodTypes.length > 0) {
+                context += `TIPOS DE PRODUÇÃO/REVENDA (O que comercializa):\n`;
+                context += prodTypes.map(r => `  - ${r.label}`).join('\n') + '\n\n';
+            }
 
-            if (!profile) return "Projeto novo ou sem dados históricos suficientes.";
+            if (expenseTypes.length > 0) {
+                context += `TIPOS DE SAÍDA (Principais despesas):\n`;
+                context += expenseTypes.map(r => `  - ${r.label}`).join('\n') + '\n\n';
+            }
 
-            return `PERFIL DO NEGÓCIO (Inferido dos dados): ${profile}`;
+            if (!incomeTypes.length && !prodTypes.length && !expenseTypes.length) {
+                return ""; // No data to infer from
+            }
+
+            context += `INSTRUÇÃO: Com base nos tipos de transações acima, infira dinamicamente:\n`;
+            context += `- O ramo de atuação desta empresa (ex: consultoria, varejo, indústria, serviços)\n`;
+            context += `- O segmento específico\n`;
+            context += `- O modelo de negócio (recorrente, projeto, produto)\n`;
+            context += `- Adapte seu vocabulário, sugestões e análises para esse contexto específico\n`;
+
+            return context;
 
         } catch (error) {
             console.error('Error building business profile:', error);
-            return "Erro ao analisar perfil do negócio.";
+            return "";
         }
     }
 
