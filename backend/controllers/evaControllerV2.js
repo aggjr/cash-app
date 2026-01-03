@@ -182,11 +182,21 @@ const operate = async (req, res) => {
         console.log('EVA Operate Response:', responseContent);
 
         try {
-            const action = JSON.parse(responseContent);
+            let action = JSON.parse(responseContent);
 
-            // Add voice response to action if needed (simple echo or tailored)
-            // Ideally, the LLM should return { action: ..., voice_response: "..." }
-            // Let's assume the LLM prompt instructions (in EvaContextBuilder) handle that return format.
+            // NORMALIZE LLM OUTPUT
+            // Handle { REPLY: "message" } format
+            if (!action.action && action.REPLY) {
+                action = { action: 'REPLY', message: action.REPLY };
+            }
+            // Handle { NAVIGATE: "screen" } format
+            else if (!action.action && action.NAVIGATE) {
+                action = { action: 'NAVIGATE', screen: action.NAVIGATE, target: action.NAVIGATE };
+            }
+            // Handle raw { action: "NAVIGATE", target: "screen" } vs { action: "NAVIGATE", screen: "screen" }
+            else if (action.action === 'NAVIGATE' && !action.screen && action.target) {
+                action.screen = action.target;
+            }
 
             res.json(action);
         } catch (e) {
