@@ -181,6 +181,10 @@ const operate = async (req, res) => {
         const responseContent = completion.choices[0].message.content;
         console.log('EVA Operate Response:', responseContent);
 
+        if (!responseContent) {
+            throw new Error('OpenAI returned empty response');
+        }
+
         try {
             let action = JSON.parse(responseContent);
 
@@ -209,6 +213,7 @@ const operate = async (req, res) => {
 
     } catch (error) {
         console.error('EVA Operate Error:', error);
+        console.error('Request Body Slice:', JSON.stringify(req.body).slice(0, 500)); // Log safe amount
         res.status(500).json({ error: 'Erro interno ao processar comando' });
     }
 };
