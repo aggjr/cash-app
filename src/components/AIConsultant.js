@@ -1221,269 +1221,243 @@ Digite 1, 2 ou 3.`;
                         addMessage('ai', errorMsg);
                     }
                 }
-                else if (['NAVIGATE', 'FILL_FORM', 'CLICK_ACTION'].includes(decision.action)) {
+                const result = await EvaActions.handle(decision.action, decision);
 
-                    const result = await EvaActions.handle(decision.action, decision);
 
-                    const result = await EvaActions.handle(decision.action, decision);
 
-                    if (result.success) {
-                        if (decision.action === 'NAVIGATE') {
-                            // --- AUTONOMY LOOP (The Eyes -> The Brain) ---
-                            const navigationMsg = 'Cheguei. Deixe-me analisar os dados desta tela...';
-                            addMessage('ai', navigationMsg);
-                            speak(navigationMsg);
+                if (result.success) {
+                    if (decision.action === 'NAVIGATE') {
+                        // --- AUTONOMY LOOP (The Eyes -> The Brain) ---
+                        const navigationMsg = 'Cheguei. Deixe-me analisar os dados desta tela...';
+                        addMessage('ai', navigationMsg);
+                        speak(navigationMsg);
 
-                            // Verify if it's main dashboard to avoid loop or generic analysis
-                            if (decision.screen === 'dashboard') {
-                                const m = 'Estou no painel principal via visão geral.';
-                                addMessage('ai', m);
-                                speak(m);
-                                return;
-                            }
+                        // Verify if it's main dashboard to avoid loop or generic analysis
+                        if (decision.screen === 'dashboard') {
+                            const m = 'Estou no painel principal via visão geral.';
+                            addMessage('ai', m);
+                            speak(m);
+                            return;
+                        }
 
-                            // Wait for screen to load and context to update (2.5s)
-                            setTimeout(async () => {
-                                console.log('[EVA Autonomy] Triggering post-navigation analysis...');
+                        // Wait for screen to load and context to update (2.5s)
+                        setTimeout(async () => {
+                            console.log('[EVA Autonomy] Triggering post-navigation analysis...');
 
-                                // Create a visual "Analyzing" indicator
-                                const analyzingDiv = document.createElement('div');
-                                analyzingDiv.innerHTML = '<i>🔍 Analisando dados da tela...</i>';
-                                analyzingDiv.style.color = '#6b7280';
-                                analyzingDiv.style.marginLeft = '10px';
-                                messagesContainer.appendChild(analyzingDiv);
-                                messagesContainer.scrollTop = messagesContainer.scrollHeight;
+                            // Create a visual "Analyzing" indicator
+                            const analyzingDiv = document.createElement('div');
+                            analyzingDiv.innerHTML = '<i>🔍 Analisando dados da tela...</i>';
+                            analyzingDiv.style.color = '#6b7280';
+                            analyzingDiv.style.marginLeft = '10px';
+                            messagesContainer.appendChild(analyzingDiv);
+                            messagesContainer.scrollTop = messagesContainer.scrollHeight;
 
-                                try {
-                                    // Recursive call to LLM with updated context
-                                    // specific "system instruction" style message
-                                    const analysisRequest = `SYSTEM_EVENT: NAVIGATION_COMPLETE to ${decision.screen}. 
+                            try {
+                                // Recursive call to LLM with updated context
+                                // specific "system instruction" style message
+                                const analysisRequest = `SYSTEM_EVENT: NAVIGATION_COMPLETE to ${decision.screen}. 
                                     ACTION: Analyze the 'activeScreenContext' data immediately based on the user's previous intention. 
                                     Ignore "how can I help", just give the answer/analysis.`;
 
-                                    // Re-uses sendMessage logic but bypassing UI input
-                                    // We need to call the internal decision logic directly to avoid user bubble
+                                // Re-uses sendMessage logic but bypassing UI input
+                                // We need to call the internal decision logic directly to avoid user bubble
 
-                                    // 1. Gather NEW Context (Post-Navigation)
-                                    const newContext = {
-                                        currentScreen: EvaKnowledge.activeScreen,
-                                        currentScreenData: EvaKnowledge.activeScreenData,
-                                        availableScreens: EvaKnowledge.screens
-                                    };
+                                // 1. Gather NEW Context (Post-Navigation)
+                                const newContext = {
+                                    currentScreen: EvaKnowledge.activeScreen,
+                                    currentScreenData: EvaKnowledge.activeScreenData,
+                                    availableScreens: EvaKnowledge.screens
+                                };
 
-                                    const nextDecision = await EvaService.decideOperation(analysisRequest, newContext);
+                                const nextDecision = await EvaService.decideOperation(analysisRequest, newContext);
 
-                                    if (analyzingDiv.parentNode) analyzingDiv.parentNode.removeChild(analyzingDiv);
+                                if (analyzingDiv.parentNode) analyzingDiv.parentNode.removeChild(analyzingDiv);
 
-                                    if (nextDecision.action === 'REPLY') {
-                                        addMessage('ai', nextDecision.message);
-                                        speak(nextDecision.message);
-                                    } else {
-                                        // Chain actions (Rare, but possible)
-                                        // For now, just report the action
-                                        const m = nextDecision.message || 'Análise concluída. O que mais deseja?';
-                                        addMessage('ai', m);
-                                        speak(m);
-                                    }
-
-                                } catch (e) {
-                                    console.error('[EVA Autonomy] Error:', e);
-                                    if (analyzingDiv.parentNode) analyzingDiv.parentNode.removeChild(analyzingDiv);
-                                    addMessage('ai', 'Não consegui ler os dados da tela automaticamente. Pode me perguntar novamente?');
+                                if (nextDecision.action === 'REPLY') {
+                                    addMessage('ai', nextDecision.message);
+                                    speak(nextDecision.message);
+                                } else {
+                                    // Chain actions (Rare, but possible)
+                                    // For now, just report the action
+                                    const m = nextDecision.message || 'Análise concluída. O que mais deseja?';
+                                    addMessage('ai', m);
+                                    speak(m);
                                 }
-                            }, 2500);
 
-                        } else {
-                            // Generic Success for non-navigation
-                            const followUps = ['Feito. O que mais?', 'Pronto.', 'Algo mais?'];
-                            const followUp = followUps[Math.floor(Math.random() * followUps.length)];
-                            const msg = (result.message || 'Ação realizada.') + ' ' + followUp;
-                            addMessage('ai', msg);
-                            speak(msg);
-                        }
+                            } catch (e) {
+                                console.error('[EVA Autonomy] Error:', e);
+                                if (analyzingDiv.parentNode) analyzingDiv.parentNode.removeChild(analyzingDiv);
+                                addMessage('ai', 'Não consegui ler os dados da tela automaticamente. Pode me perguntar novamente?');
+                            }
+                        }, 2500);
+
                     } else {
-                        const msg = result.message || 'Não consegui realizar a ação.';
+                        // Generic Success for non-navigation
+                        const followUps = ['Feito. O que mais?', 'Pronto.', 'Algo mais?'];
+                        const followUp = followUps[Math.floor(Math.random() * followUps.length)];
+                        const msg = (result.message || 'Ação realizada.') + ' ' + followUp;
                         addMessage('ai', msg);
                         speak(msg);
                     }
                 } else {
-                    console.warn('Unknown decision action:', decision.action);
-                    const msg = 'Não entendi o que fazer.';
+                    const msg = result.message || 'Não consegui realizar a ação.';
                     addMessage('ai', msg);
+                    speak(msg);
                 }
-
-            } catch (err) {
-                console.error('[EVA] Operation error:', err);
-                if (thinkingMsg.parentNode) thinkingMsg.parentNode.removeChild(thinkingMsg);
-                addMessage('ai', 'Erro ao processar comando.');
-            }
-
-            return; // Stop here, fulfilled by LLM
-        }
-
-        /* REGEX BLOCKS REMOVED - REPLACED BY LLM ABOVE */
-        // DEBUG: Reset Command
-        if (text === '/reset') {
-            const user = getUser();
-            if (user) {
-                user.eva_introduced = false;
-                user.eva_voice_enabled = null; // Reset voice pref
-                user.preferred_name = null; // Reset name pref
-                localStorage.setItem('user', JSON.stringify(user));
-                // Also update backend if possible, but for now local is enough to trigger flow locally next reload
-                // Or better, let's just trigger it now:
-
-                addMessage('ai', '♻️ Reiniciando apresentação...');
-                setTimeout(() => {
-                    messages.length = 0; // Clear history
-                    pendingAction = null;
-                    startIntroductionFlow();
-                }, 1000);
-                return;
-            }
-        }
-
-        // Simulate thinking
-        const loadingDiv = document.createElement('div');
-        loadingDiv.textContent = '...';
-        loadingDiv.style.alignSelf = 'flex-start';
-        loadingDiv.style.marginLeft = '1rem';
-        loadingDiv.style.color = '#6b7280';
-        messagesContainer.appendChild(loadingDiv);
-        messagesContainer.scrollTop = messagesContainer.scrollHeight;
-
-        setTimeout(async () => {
-            loadingDiv.remove();
-
-            // Handle Tour Offer
-            if (pendingAction === 'tour_offer') {
-                const choice = text.trim();
-
-                if (choice.includes('1') || /vis[aã]o|r[aá]pid[oa]|quick|curto|breve/i.test(text)) {
-                    // Overview tour
-                    addMessage('ai', 'Ótimo! Vou mostrar uma visão geral rápida. Iniciando...');
-
-                    // Mark as introduced before tour
-                    await savePreferences({ evaIntroduced: 1 });
-
-                    // Import and start tour
-                    const { EvaTour } = await import('../eva/EvaTour.js');
-                    setTimeout(() => {
-                        EvaTour.start('overview');
-                    }, 2000);
-
-                    pendingAction = null;
-                    return;
-
-                } else if (choice.includes('2') || /complet[oa]|guiad[oa]|full|detalhad[oa]|inteiro|longo/i.test(text)) {
-                    // Full tour - LLM will handle gender-appropriate language
-                    addMessage('ai', 'Excelente escolha! Vou guiá-lo(a) por todo o sistema em detalhes. Vamos lá!');
-
-                    // Mark as introduced before tour
-                    await savePreferences({ evaIntroduced: 1 });
-
-                    // Import and start tour
-                    const { EvaTour } = await import('../eva/EvaTour.js');
-                    setTimeout(() => {
-                        EvaTour.start('full');
-                    }, 2000);
-
-                    pendingAction = null;
-                    return;
-
-                } else if (choice.includes('3') || /pular|n[aã]o|sozinho|explorar|cancelar|sair/i.test(text)) {
-                    // Skip tour
-                    addMessage('ai', 'Sem problemas! Fique à vontade para explorar. Estarei aqui caso precise de ajuda!');
-
-                    // Mark as introduced
-                    await savePreferences({ evaIntroduced: 1 });
-
-                    pendingAction = null;
-
-                    // Process pending loan if exists
-                    if (loanContext && loanResolver) {
-                        setTimeout(() => processPendingLoanCategorization(), 2000);
-                    }
-                    return;
-
-                } else {
-                    // Invalid choice
-                    addMessage('ai', 'Não entendi. Por favor, diga se prefere **Rápido**, **Completo** ou se quer **Pular** o tour.');
-                    return;
-                }
-            }
-
-            // Intercept Introduction Flow
-            if (pendingAction && pendingAction.startsWith('intro_')) {
-                if (pendingAction === 'intro_llm') {
-                    await handleIntroductionLLM(text);
-                } else {
-                    await handleIntroductionResponse(text);
-                }
-                return;
-            }
-
-            // Command: Change Timeout
-            const lowerText = text.toLowerCase();
-            if (lowerText.includes('mudar') && lowerText.includes('tempo') && (lowerText.includes('espera') || lowerText.includes('segundos'))) {
-                // Extract number
-                const match = text.match(/\d+/);
-                if (match) {
-                    const newSeconds = parseInt(match[0]);
-                    if (newSeconds >= 3 && newSeconds <= 60) {
-                        try {
-                            const res = await fetch(`${API_BASE_URL}/settings/eva_timeout`, {
-                                method: 'PUT',
-                                headers: getHeaders(),
-                                body: JSON.stringify({ value: newSeconds })
-                            });
-                            if (res.ok) {
-                                evaTimeout = newSeconds * 1000;
-                                const msg = `Entendido. Alterei meu tempo de espera para **${newSeconds} segundos**.`;
-                                addMessage('ai', msg);
-                                speak(msg);
-                                return;
-                            }
-                        } catch (e) { console.error(e); }
-                    }
-                }
-                const msg = "Para alterar o tempo, diga algo como 'Mudar tempo de espera para 5 segundos'. (Mínimo 3s, Máximo 60s)";
+            } else {
+                console.warn('Unknown decision action:', decision.action);
+                const msg = 'Não entendi o que fazer.';
                 addMessage('ai', msg);
-                speak(msg);
-                return;
             }
 
-            // Intercept Loan Flows
-            if (pendingAction && pendingAction.startsWith('loan_')) {
-                if (pendingAction === 'loan_cat_confirm') {
-                    const lowerText = text.toLowerCase();
-                    let responseText = '';
-                    if (lowerText.includes('sim') || lowerText.includes('ok') || lowerText.includes('concordo')) {
-                        responseText = "Confirmado. Processando o contrato...";
-                        if (loanResolver) {
-                            loanResolver({
-                                feeCategoryId: loanContext.suggestions.fees.id,
-                                interestCategoryId: loanContext.suggestions.interest.id
-                            });
-                            loanResolver = null;
-                            pendingAction = null;
-                            setTimeout(() => { if (isOpen) toggleChat(); }, 2000);
+        } catch (err) {
+            console.error('[EVA] Operation error:', err);
+            if (thinkingMsg.parentNode) thinkingMsg.parentNode.removeChild(thinkingMsg);
+            addMessage('ai', 'Erro ao processar comando.');
+        }
+
+        return; // Stop here, fulfilled by LLM
+    }
+
+    /* REGEX BLOCKS REMOVED - REPLACED BY LLM ABOVE */
+    // DEBUG: Reset Command
+    if (text === '/reset') {
+        const user = getUser();
+        if (user) {
+            user.eva_introduced = false;
+            user.eva_voice_enabled = null; // Reset voice pref
+            user.preferred_name = null; // Reset name pref
+            localStorage.setItem('user', JSON.stringify(user));
+            // Also update backend if possible, but for now local is enough to trigger flow locally next reload
+            // Or better, let's just trigger it now:
+
+            addMessage('ai', '♻️ Reiniciando apresentação...');
+            setTimeout(() => {
+                messages.length = 0; // Clear history
+                pendingAction = null;
+                startIntroductionFlow();
+            }, 1000);
+            return;
+        }
+    }
+
+    // Simulate thinking
+    const loadingDiv = document.createElement('div');
+    loadingDiv.textContent = '...';
+    loadingDiv.style.alignSelf = 'flex-start';
+    loadingDiv.style.marginLeft = '1rem';
+    loadingDiv.style.color = '#6b7280';
+    messagesContainer.appendChild(loadingDiv);
+    messagesContainer.scrollTop = messagesContainer.scrollHeight;
+
+    setTimeout(async () => {
+        loadingDiv.remove();
+
+        // Handle Tour Offer
+        if (pendingAction === 'tour_offer') {
+            const choice = text.trim();
+
+            if (choice.includes('1') || /vis[aã]o|r[aá]pid[oa]|quick|curto|breve/i.test(text)) {
+                // Overview tour
+                addMessage('ai', 'Ótimo! Vou mostrar uma visão geral rápida. Iniciando...');
+
+                // Mark as introduced before tour
+                await savePreferences({ evaIntroduced: 1 });
+
+                // Import and start tour
+                const { EvaTour } = await import('../eva/EvaTour.js');
+                setTimeout(() => {
+                    EvaTour.start('overview');
+                }, 2000);
+
+                pendingAction = null;
+                return;
+
+            } else if (choice.includes('2') || /complet[oa]|guiad[oa]|full|detalhad[oa]|inteiro|longo/i.test(text)) {
+                // Full tour - LLM will handle gender-appropriate language
+                addMessage('ai', 'Excelente escolha! Vou guiá-lo(a) por todo o sistema em detalhes. Vamos lá!');
+
+                // Mark as introduced before tour
+                await savePreferences({ evaIntroduced: 1 });
+
+                // Import and start tour
+                const { EvaTour } = await import('../eva/EvaTour.js');
+                setTimeout(() => {
+                    EvaTour.start('full');
+                }, 2000);
+
+                pendingAction = null;
+                return;
+
+            } else if (choice.includes('3') || /pular|n[aã]o|sozinho|explorar|cancelar|sair/i.test(text)) {
+                // Skip tour
+                addMessage('ai', 'Sem problemas! Fique à vontade para explorar. Estarei aqui caso precise de ajuda!');
+
+                // Mark as introduced
+                await savePreferences({ evaIntroduced: 1 });
+
+                pendingAction = null;
+
+                // Process pending loan if exists
+                if (loanContext && loanResolver) {
+                    setTimeout(() => processPendingLoanCategorization(), 2000);
+                }
+                return;
+
+            } else {
+                // Invalid choice
+                addMessage('ai', 'Não entendi. Por favor, diga se prefere **Rápido**, **Completo** ou se quer **Pular** o tour.');
+                return;
+            }
+        }
+
+        // Intercept Introduction Flow
+        if (pendingAction && pendingAction.startsWith('intro_')) {
+            if (pendingAction === 'intro_llm') {
+                await handleIntroductionLLM(text);
+            } else {
+                await handleIntroductionResponse(text);
+            }
+            return;
+        }
+
+        // Command: Change Timeout
+        const lowerText = text.toLowerCase();
+        if (lowerText.includes('mudar') && lowerText.includes('tempo') && (lowerText.includes('espera') || lowerText.includes('segundos'))) {
+            // Extract number
+            const match = text.match(/\d+/);
+            if (match) {
+                const newSeconds = parseInt(match[0]);
+                if (newSeconds >= 3 && newSeconds <= 60) {
+                    try {
+                        const res = await fetch(`${API_BASE_URL}/settings/eva_timeout`, {
+                            method: 'PUT',
+                            headers: getHeaders(),
+                            body: JSON.stringify({ value: newSeconds })
+                        });
+                        if (res.ok) {
+                            evaTimeout = newSeconds * 1000;
+                            const msg = `Entendido. Alterei meu tempo de espera para **${newSeconds} segundos**.`;
+                            addMessage('ai', msg);
+                            speak(msg);
+                            return;
                         }
-                    } else {
-                        responseText = "Entendido. Qual categoria deseja usar para as **Tarifas**?";
-                        pendingAction = 'loan_cat_ask_fees';
-                    }
-                    addMessage('ai', responseText);
-                    speak(responseText);
-                } else if (pendingAction === 'loan_cat_ask_fees') {
-                    loanContext.customFeeName = text;
-                    const responseText = `Certo, **${text}**. E para os **Juros**?`;
-                    pendingAction = 'loan_cat_ask_interest';
-                    addMessage('ai', responseText);
-                    speak(responseText);
-                } else if (pendingAction === 'loan_cat_ask_interest') {
-                    loanContext.customInterestName = text;
-                    const responseText = "Registrado. Finalizando o contrato.";
+                    } catch (e) { console.error(e); }
+                }
+            }
+            const msg = "Para alterar o tempo, diga algo como 'Mudar tempo de espera para 5 segundos'. (Mínimo 3s, Máximo 60s)";
+            addMessage('ai', msg);
+            speak(msg);
+            return;
+        }
+
+        // Intercept Loan Flows
+        if (pendingAction && pendingAction.startsWith('loan_')) {
+            if (pendingAction === 'loan_cat_confirm') {
+                const lowerText = text.toLowerCase();
+                let responseText = '';
+                if (lowerText.includes('sim') || lowerText.includes('ok') || lowerText.includes('concordo')) {
+                    responseText = "Confirmado. Processando o contrato...";
                     if (loanResolver) {
                         loanResolver({
                             feeCategoryId: loanContext.suggestions.fees.id,
@@ -1493,87 +1467,111 @@ Digite 1, 2 ou 3.`;
                         pendingAction = null;
                         setTimeout(() => { if (isOpen) toggleChat(); }, 2000);
                     }
-                    addMessage('ai', responseText);
-                    speak(responseText);
+                } else {
+                    responseText = "Entendido. Qual categoria deseja usar para as **Tarifas**?";
+                    pendingAction = 'loan_cat_ask_fees';
                 }
-                return;
-            }
-
-            // Old fallback chat logic removed - now handled by EvaService above
-        }, 800);
-    };
-
-    // --- Semantic Screen Reading "The Eyes" ---
-    const updateScreenContext = (contextData) => {
-        // Store in global knowledge
-        EvaKnowledge.activeScreenData = contextData;
-        console.log('[EVA Vision] Screen Context Updated:', contextData);
-    };
-
-    // Public API
-    const startLoanCategorization = async (data) => {
-        return new Promise(async (resolve) => {
-            const user = getUser();
-
-            // Check if user has completed introduction
-            if (!user?.eva_introduced) {
-                // Store the loan data and resolver for after introduction
-                loanResolver = resolve;
-                loanContext = data;
-
-                // Start introduction flow if chat is not open
-                if (!isOpen) {
-                    toggleChat();
+                addMessage('ai', responseText);
+                speak(responseText);
+            } else if (pendingAction === 'loan_cat_ask_fees') {
+                loanContext.customFeeName = text;
+                const responseText = `Certo, **${text}**. E para os **Juros**?`;
+                pendingAction = 'loan_cat_ask_interest';
+                addMessage('ai', responseText);
+                speak(responseText);
+            } else if (pendingAction === 'loan_cat_ask_interest') {
+                loanContext.customInterestName = text;
+                const responseText = "Registrado. Finalizando o contrato.";
+                if (loanResolver) {
+                    loanResolver({
+                        feeCategoryId: loanContext.suggestions.fees.id,
+                        interestCategoryId: loanContext.suggestions.interest.id
+                    });
+                    loanResolver = null;
+                    pendingAction = null;
+                    setTimeout(() => { if (isOpen) toggleChat(); }, 2000);
                 }
-
-                // The introduction flow will call processPendingLoanCategorization when done
-                return;
+                addMessage('ai', responseText);
+                speak(responseText);
             }
+            return;
+        }
 
-            // User already introduced, proceed directly
+        // Old fallback chat logic removed - now handled by EvaService above
+    }, 800);
+};
+
+// --- Semantic Screen Reading "The Eyes" ---
+const updateScreenContext = (contextData) => {
+    // Store in global knowledge
+    EvaKnowledge.activeScreenData = contextData;
+    console.log('[EVA Vision] Screen Context Updated:', contextData);
+};
+
+// Public API
+const startLoanCategorization = async (data) => {
+    return new Promise(async (resolve) => {
+        const user = getUser();
+
+        // Check if user has completed introduction
+        if (!user?.eva_introduced) {
+            // Store the loan data and resolver for after introduction
             loanResolver = resolve;
             loanContext = data;
 
-            if (!isOpen) toggleChat();
-
-            // Fetch Suggestions
-            try {
-                const [feeRes, intRes] = await Promise.all([
-                    fetch(`${API_BASE_URL}/loans/suggest-category?projectId=${data.projectId}&type=fees`, { headers: getHeaders() }),
-                    fetch(`${API_BASE_URL}/loans/suggest-category?projectId=${data.projectId}&type=interest`, { headers: getHeaders() })
-                ]);
-                const feeSugg = await feeRes.json();
-                const intSugg = await intRes.json();
-
-                loanContext.suggestions = { fees: feeSugg, interest: intSugg };
-
-                const msg = `Detectei um contrato com taxas de **${new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(data.feeAmount)}**.\n\nSugiro classificar as **Tarifas** em: *"${feeSugg.name}"* e os **Juros** em: *"${intSugg.name}"*.\n\nO(a) senhor(a) concorda?`;
-
-                addMessage('ai', msg);
-                speak(msg.replace(/\*\*/g, '').replace(/\*/g, ''));
-                pendingAction = 'loan_cat_confirm';
-
-            } catch (e) {
-                console.error(e);
-                resolve(null);
+            // Start introduction flow if chat is not open
+            if (!isOpen) {
+                toggleChat();
             }
-        });
-    };
 
-    window.EVA = {
-        startLoanCategorization,
-        updateScreenContext // Exposed for screens to broadcast data
-    };
+            // The introduction flow will call processPendingLoanCategorization when done
+            return;
+        }
 
-    window.EVAConsultant = {
-        addMessage,
-        speak,
-        toggleChat,
-        isOpen: () => isOpen
-    };
+        // User already introduced, proceed directly
+        loanResolver = resolve;
+        loanContext = data;
 
-    // Alias for backward compatibility if needed, temporary
-    window.FOCCUS = window.EVA;
+        if (!isOpen) toggleChat();
 
-    return container;
+        // Fetch Suggestions
+        try {
+            const [feeRes, intRes] = await Promise.all([
+                fetch(`${API_BASE_URL}/loans/suggest-category?projectId=${data.projectId}&type=fees`, { headers: getHeaders() }),
+                fetch(`${API_BASE_URL}/loans/suggest-category?projectId=${data.projectId}&type=interest`, { headers: getHeaders() })
+            ]);
+            const feeSugg = await feeRes.json();
+            const intSugg = await intRes.json();
+
+            loanContext.suggestions = { fees: feeSugg, interest: intSugg };
+
+            const msg = `Detectei um contrato com taxas de **${new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(data.feeAmount)}**.\n\nSugiro classificar as **Tarifas** em: *"${feeSugg.name}"* e os **Juros** em: *"${intSugg.name}"*.\n\nO(a) senhor(a) concorda?`;
+
+            addMessage('ai', msg);
+            speak(msg.replace(/\*\*/g, '').replace(/\*/g, ''));
+            pendingAction = 'loan_cat_confirm';
+
+        } catch (e) {
+            console.error(e);
+            resolve(null);
+        }
+    });
+};
+
+window.EVA = {
+    startLoanCategorization,
+    updateScreenContext // Exposed for screens to broadcast data
+};
+
+window.EVAConsultant = {
+    addMessage,
+    speak,
+    toggleChat,
+    isOpen: () => isOpen
+};
+
+// Alias for backward compatibility if needed, temporary
+window.FOCCUS = window.EVA;
+
+return container;
 };
