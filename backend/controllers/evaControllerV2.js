@@ -53,15 +53,20 @@ const chat = async (req, res, next) => {
         // Add current message
         messages.push({ role: "user", content: message });
 
-        // Call OpenAI API
-        const response = await openai.chat.completions.create({
-            model: "gpt-4o-mini",
-            messages,
-            temperature: 0.7,
-            max_tokens: 500,  // Control cost
-            presence_penalty: 0.1,
-            frequency_penalty: 0.1
-        });
+        // Call OpenAI API with 60-second timeout
+        const response = await Promise.race([
+            openai.chat.completions.create({
+                model: "gpt-4o-mini",
+                messages,
+                temperature: 0.7,
+                max_tokens: 500,
+                presence_penalty: 0.1,
+                frequency_penalty: 0.1
+            }),
+            new Promise((_, reject) =>
+                setTimeout(() => reject(new Error('OpenAI request timeout (60s)')), 60000)
+            )
+        ]);
 
         const llmResponse = response.choices[0].message.content;
 
@@ -171,7 +176,7 @@ const operate = async (req, res) => {
             { role: 'user', content: message }
         ];
 
-        // Call LLM with timeout protection
+        // Call LLM with 60-second timeout protection
         const completion = await Promise.race([
             openai.chat.completions.create({
                 model: "gpt-4o-mini",
@@ -180,7 +185,7 @@ const operate = async (req, res) => {
                 response_format: { type: "json_object" }
             }),
             new Promise((_, reject) =>
-                setTimeout(() => reject(new Error('OpenAI timeout after 60s')), 60000)
+                setTimeout(() => reject(new Error('OpenAI request timeout (60s)')), 60000)
             )
         ]);
 
