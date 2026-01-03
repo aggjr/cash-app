@@ -1239,6 +1239,13 @@ Digite 1, 2 ou 3.`;
 
                     if (result.success) {
                         if (decision.action === 'NAVIGATE') {
+                            // --- AUTONOMY LOOP TEMPORARILY DISABLED ---
+                            // Causing timeouts when navigating
+                            const navigationMsg = 'Pronto! Você já pode visualizar os dados.';
+                            addMessage('ai', navigationMsg);
+                            speak(navigationMsg);
+
+                            /* DISABLED FOR NOW - CAUSING RECURSION ISSUES
                             // --- AUTONOMY LOOP (The Eyes -> The Brain) ---
                             const navigationMsg = 'Cheguei. Deixe-me analisar os dados desta tela...';
                             addMessage('ai', navigationMsg);
@@ -1302,6 +1309,7 @@ Digite 1, 2 ou 3.`;
                                     addMessage('ai', 'Não consegui ler os dados da tela automaticamente. Pode me perguntar novamente?');
                                 }
                             }, 2500);
+                            */
 
                         } else {
                             // Generic Success for non-navigation
