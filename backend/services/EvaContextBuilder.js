@@ -198,8 +198,7 @@ INFORMAÇÕES DO USUÁRIO:
 ${user?.job_title ? `- Cargo: ${user.job_title}` : ''}
 ${user?.department ? `- Departamento: ${user.department}` : ''}
 
-ESTILO DE COMUNICAÇÃO PERSONALIZADO:
-${this.getRoleBasedInstructions(user?.job_title, user?.department)}
+IMPORTANTE: Adapte sua linguagem, tom e profundidade das respostas de acordo com o cargo e departamento do usuário acima.
 
 ÁRVORE DE MENUS DO SISTEMA:
 ${this.formatMenuTree(availableScreens)}
@@ -228,66 +227,6 @@ Resposta: {"action": "NAVIGATE", "target": "previsao", "message": "Abrindo previ
 Usuário: "você consegue me ouvir?"
 Resposta: {"action": "REPLY", "message": "Sim, consigo te ouvir perfeitamente!"}
 `;
-    }
-
-    /**
-     * Get role-based communication style instructions for LLM
-     * IMPORTANT: This does NOT control access, only communication style
-     */
-    static getRoleBasedInstructions(jobTitle, department) {
-        const title = (jobTitle || '').toLowerCase();
-        const dept = (department || '').toLowerCase();
-
-        // Strategic/Executive roles - Strategic focus
-        if (title.includes('diretor') || title.includes('gerente') ||
-            title.includes('consultor') || title.includes('estratégico') ||
-            title.includes('ceo') || title.includes('cfo') || title.includes('sócio')) {
-            return `
-ESTILO DE COMUNICAÇÃO: Estratégico/Executivo
-- Use linguagem profissional e objetiva
-- Foque em análises estratégicas, tendências e impactos no negócio
-- Destaque riscos, oportunidades e recomendações
-- Seja direto e conte com conhecimento técnico do usuário
-- Priorize visão macro e dados consolidados
-- Use termos como: ROI, margem, rentabilidade, fluxo de caixa, planejamento`;
-        }
-
-        // Financial/Accounting roles - Technical focus
-        if (title.includes('analista') || title.includes('contador') ||
-            title.includes('financeiro') || title.includes('contábil') ||
-            dept.includes('financ') || dept.includes('contab')) {
-            return `
-ESTILO DE COMUNICAÇÃO: Técnico/Analítico
-- Use terminologia contábil e financeira apropriada
-- Foque em precisão, detalhes e conformidade
-- Destaque discrepâncias, reconciliações e ajustes
-- Seja metódico e baseado em dados
-- Priorize relatórios, lançamentos e análises de variação
-- Use termos como: DRE, balanço, conciliação, provisão, lançamento`;
-        }
-
-        // Operational roles - Practical focus
-        if (title.includes('vendedor') || title.includes('operacion') ||
-            title.includes('assistente') || title.includes('coordenador') ||
-            dept.includes('vendas') || dept.includes('operac') || dept.includes('produção')) {
-            return `
-ESTILO DE COMUNICAÇÃO: Operacional/Prático
-- Use linguagem simples, clara e direta
-- Foque em ações práticas e resultados imediatos
-- Priorize metas, prazos e status
-- Evite jargões financeiros complexos
-- Seja objetivo e orientado a tarefas
-- Use termos como: meta, desempenho, entrega, produção, vendas`;
-        }
-
-        // Default - Balanced approach
-        return `
-ESTILO DE COMUNICAÇÃO: Padrão/Equilibrado
-- Use linguagem clara e profissional
-- Explique termos técnicos quando necessário
-- Equilibre informações estratégicas e operacionais
-- Seja prestativo e educativo
-- Adapte-se ao contexto da conversa`;
     }
 
     /**
