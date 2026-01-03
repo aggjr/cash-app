@@ -1392,6 +1392,23 @@ Digite 1, 2 ou 3.`;
                                 console.error('[EVA] Tracking failed (non-critical):', trackError);
                             }
 
+                            // CRITICAL: Wait for screen to load and re-extract screen context
+                            // This allows subsequent INTERACT actions to work on the new screen
+                            await new Promise(r => setTimeout(r, 1500)); // Wait for navigation + render
+
+                            // Re-extract screen context for the newly loaded screen
+                            const newScreenContext = ScreenContextExtractor.extract();
+                            console.log('[EVA] Screen context after navigation:', newScreenContext);
+
+                            // Update screenContext in closure so next decision uses updated context
+                            screenContext = newScreenContext;
+
+                            // Also update availableActions for new screen
+                            if (screenContext && screenContext.screenId) {
+                                screenContext.availableActions = EvaScreenActions.getAvailableActions(screenContext.screenId);
+                                console.log('[EVA] Available actions on new screen:', screenContext.availableActions);
+                            }
+
                             /* DISABLED FOR NOW - CAUSING RECURSION ISSUES
                             // --- AUTONOMY LOOP (The Eyes -> The Brain) ---
                             const navigationMsg = 'Cheguei. Deixe-me analisar os dados desta tela...';
