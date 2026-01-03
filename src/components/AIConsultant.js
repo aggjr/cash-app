@@ -7,7 +7,7 @@ import EvaScreenActions from '../eva/EvaScreenActions.js';
 import EvaHighlighter from '../eva/EvaHighlighter.js';
 
 export const AIConsultant = () => {
-    console.log('AIConsultant: Version 2.0 (evaSpeechRec fix applied)');
+    console.log('AIConsultant: Version 2.1 (Eva UI Interactions fixed)');
     const API_BASE_URL = getApiBaseUrl();
     const getHeaders = () => {
         const token = localStorage.getItem('token');

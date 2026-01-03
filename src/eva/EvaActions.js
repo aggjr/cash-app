@@ -6,6 +6,11 @@ export const EvaActions = {
     FILL_FORM: 'FILL_FORM',
     CLICK_ACTION: 'CLICK_ACTION',
 
+    // Convenience methods
+    navigate: async (target) => {
+        return EvaActions.handle('NAVIGATE', { target });
+    },
+
     // Action Handlers
     handle: async (action, payload) => {
         console.log(`[EVA] Executing action: ${action}`, payload);
