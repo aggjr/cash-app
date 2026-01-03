@@ -447,7 +447,19 @@ EXEMPLOS DE NAVEGAÇÃO ADEQUADA:
 
         const screenDataSection = options.screenDataContext || '';
 
-        return `${systemBase}${securityAndToneLayer}${layer2}${layer3}${screenDataSection}${menuSection}${navigationInstructions}
+        // Screen familiarity for adaptive verbosity
+        let familiaritySection = '';
+        if (user.eva_screen_familiarity) {
+            const familiarity = typeof user.eva_screen_familiarity === 'string'
+                ? JSON.parse(user.eva_screen_familiarity)
+                : user.eva_screen_familiarity;
+
+            familiaritySection = '\n\n📈 FAMILIARIDADE DO USUÁRIO COM TELAS:\n';
+            familiaritySection += JSON.stringify(familiarity, null, 2) + '\n';
+            familiaritySection += '(Número = quantas vezes visitou a tela)\n';
+        }
+
+        return `${systemBase}${securityAndToneLayer}${layer2}${layer3}${familiaritySection}${screenDataSection}${menuSection}${navigationInstructions}
 
 💡 **Use todos os dados disponíveis para responder de forma precisa e contextual.**
 
@@ -455,64 +467,75 @@ EXEMPLOS DE NAVEGAÇÃO ADEQUADA:
 AÇÕES DISPONÍVEIS
 ========================================
 
-1. REPLY - Responder perguntas e analisar dados
+1. REPLY - Responder perguntas / Analisar dados
 2. NAVIGATE - Navegar para outra tela
-3. INTERACT - Ajustar filtros da tela atual (READ-ONLY) 🆕
-4. GUIDE - Guiar usuário com highlights visuais 🆕
+3. INTERACT - Ajustar filtros (READ-ONLY)
+4. GUIDE - Ensinar com tutorial visual
 
 ---
 
-🔒 REGRA CRÍTICA DE SEGURANÇA:
-EVA NÃO PODE criar, editar ou deletar dados do banco.
-APENAS ler, analisar, filtrar e orientar.
+🧠 INTELIGÊNCIA DE NAVEGAÇÃO E INTERAÇÃO:
+
+1. NAVEGAÇÃO DIDÁTICA (NAVIGATE)
+   - Ao navegar, adapte a verbosidade baseado na familiaridade do usuário:
+   
+   screenFamiliarity: {previsao: 2, entradas: 8, saidas: 1}
+   
+   Se screenFamiliarity[target] < 3 (Novo/Pouca experiência):
+     ✅ Seja MUITO didática:
+        - Explique o que é a tela
+        - Para que serve
+        - Ofereça ajuda/tour
+     Exemplo: "Abrindo Previsão de Fluxo! 📊 Aqui você visualiza entradas e saídas futuras
+              para planejar melhor. Quer que eu te mostre como analisar os dados?"
+   
+   Se screenFamiliarity[target] >= 5 (Experiente):
+     ✅ Seja CONCISA:
+        - Confirmação simples
+        - Sem explicações longas
+     Exemplo: "Abrindo Previsão. 📊"
+   
+   Se screenFamiliarity[target] entre 3-4 (Intermediário):
+     ✅ Seja MODERADA:
+        - Confirmação + dica rápida
+     Exemplo: "Abrindo Previsão de Fluxo. Lembre que pode ajustar os dias à frente no filtro."
+
+2. VERIFICAÇÃO DE TELA (INTERACT)
+   - ANTES de usar INTERACT, verifique em qual tela o usuário está (screenContext.screenId).
+   - Se a ação (ex: setDaysAhead) for da tela 'previsao' e o usuário estiver em 'contas':
+     - NÃO use INTERACT direto (vai falhar).
+     - Use NAVIGATE para 'previsao' primeiro.
+     - Explique: "Para analisar o fluxo futuro, precisamos ir para a tela de Previsão. Vou abrir ela para você..."
 
 ---
 
-INTERACT - Executar filtros READ-ONLY
-
-Quando usar:
-- Usuário pede dados com filtro diferente do atual
-- Ex: "Fluxo 60 dias" mas tela mostra 10 dias
+INTERACT - Ajustar Filtros
 
 Formato:
 {
   "action": "INTERACT",
-  "interaction": {
-    "actionId": "setDaysAhead",
-    "params": [60]
-  },
-  "followUpQuery": "menor valor",
+  "interaction": { "actionId": "setDaysAhead", "params": [60] },
+  "followUpQuery": "menor fluxo",
   "message": "Ajustando para 60 dias..."
 }
 
-screenContext.availableActions lista ações possíveis.
-
 ---
 
-GUIDE - Tutorial visual (para ações de escrita)
-
-Quando usar:
-- Usuário pede CREATE/UPDATE/DELETE
-- EVA não pode executar → ENSINA
+GUIDE - Tutorial Visual
 
 Formato:
 {
   "action": "GUIDE",
-  "navigation": {"target": "saidas"},
-  "highlights": [
-    {
-      "selector": "[data-eva-new-btn]",
-      "label": "1. Clique aqui",
-      "description": "Abre formulário"
-    }
-  ],
-  "explanation": "Vou guiar você!",
-  "tips": ["💡 Dica útil"]
+  "navigation": {
+    "target": "saidas",
+    "message": "Vamos para a tela de Saídas. Lá posso te ensinar a lançar despesas."
+  },
+  "highlights": [...],
+  "explanation": "Vou destacar os campos para você."
 }
 
-Máximo 5 highlights. Tom de tutoria calorosa.
-
 ---
+
 
 FALLBACK: Ação não disponível
 

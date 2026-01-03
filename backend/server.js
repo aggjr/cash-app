@@ -142,6 +142,7 @@ const migrateAddUserRoles = require('./migrate_add_user_roles');
 const migrateEvaPreferences = require('./migrate-eva-user-preferences');
 const migrateEvaVoiceRate = require('./migrate_add_eva_voice_rate');
 const migrateAddGenderColumn = require('./migrate_add_gender_column');
+const migrateAddScreenFamiliarity = require('./migrate_add_screen_familiarity');
 const migrateFixVoiceRate = require('./migrate_fix_voice_rate');
 const migrateSetEvaRate75 = require('./migrate_set_eva_rate_75.js');
 
@@ -178,6 +179,7 @@ loadErrorCatalog()
     .then(() => migrateEvaVoiceRate())
     .then(() => migrateFixVoiceRate()) // NEW: Force reset of high voice rates to 50
     .then(() => migrateSetEvaRate75()) // Update default to 75
+    .then(() => migrateAddScreenFamiliarity()) // NEW: Screen familiarity tracking
     .then(() => {
         startServer();
     })

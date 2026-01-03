@@ -1375,11 +1375,22 @@ Digite 1, 2 ou 3.`;
 
                     if (result.success) {
                         if (decision.action === 'NAVIGATE') {
-                            // --- AUTONOMY LOOP TEMPORARILY DISABLED ---
-                            // Causing timeouts when navigating
-                            const navigationMsg = 'Pronto! Você já pode visualizar os dados.';
+                            // Use LLM-generated message (adaptive verbosity)
+                            const navigationMsg = decision.message || 'Navegando...';
                             addMessage('ai', navigationMsg);
                             speak(navigationMsg);
+
+                            // Track navigation for familiarity learning
+                            try {
+                                await fetch(`${API_BASE_URL}/api/eva/track-navigation`, {
+                                    method: 'POST',
+                                    headers: getHeaders(),
+                                    body: JSON.stringify({ screen: decision.target })
+                                });
+                                console.log('[EVA] Navigation tracked:', decision.target);
+                            } catch (trackError) {
+                                console.error('[EVA] Tracking failed (non-critical):', trackError);
+                            }
 
                             /* DISABLED FOR NOW - CAUSING RECURSION ISSUES
                             // --- AUTONOMY LOOP (The Eyes -> The Brain) ---

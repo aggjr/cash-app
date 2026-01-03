@@ -42,6 +42,14 @@ class ScreenContextExtractor {
             return 'producao_revenda';
         } else if (path.includes('/consolidadas')) {
             return 'consolidadas';
+        } else if (path.includes('/dashboard') || path === '/') {
+            return 'dashboard';
+        } else if (path.includes('/contas') || path.includes('/banking')) {
+            return 'contas';
+        } else if (path.includes('/usuarios') || path.includes('/users')) {
+            return 'usuarios';
+        } else if (path.includes('/configuracoes') || path.includes('/settings')) {
+            return 'configuracoes';
         }
 
         return null;
