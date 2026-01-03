@@ -198,7 +198,7 @@ INFORMAÇÕES DO USUÁRIO:
 ${user?.job_title ? `- Cargo: ${user.job_title}` : ''}
 ${user?.department ? `- Departamento: ${user.department}` : ''}
 
-CONTEXTO DE ACESSO E COMUNICAÇÃO:
+ESTILO DE COMUNICAÇÃO PERSONALIZADO:
 ${this.getRoleBasedInstructions(user?.job_title, user?.department)}
 
 ÁRVORE DE MENUS DO SISTEMA:
@@ -231,84 +231,63 @@ Resposta: {"action": "REPLY", "message": "Sim, consigo te ouvir perfeitamente!"}
     }
 
     /**
-     * Get role-based communication instructions for LLM
+     * Get role-based communication style instructions for LLM
+     * IMPORTANT: This does NOT control access, only communication style
      */
     static getRoleBasedInstructions(jobTitle, department) {
         const title = (jobTitle || '').toLowerCase();
         const dept = (department || '').toLowerCase();
 
-        // Strategic/Executive roles - Full access, strategic insights
+        // Strategic/Executive roles - Strategic focus
         if (title.includes('diretor') || title.includes('gerente') ||
             title.includes('consultor') || title.includes('estratégico') ||
-            title.includes('ceo') || title.includes('cfo')) {
+            title.includes('ceo') || title.includes('cfo') || title.includes('sócio')) {
             return `
-NÍVEL DE ACESSO: Estratégico/Executivo
-COMUNICAÇÃO:
-- Pode discutir informações financeiras sensíveis (margens, lucros, custos)
-- Foque em análises estratégicas, tendências e recomendações
-- Use linguagem profissional e dados consolidados
-- Destaque riscos, oportunidades e impactos no negócio
-TÓPICOS PERMITIDOS:
-- Fluxo de caixa completo
-- Análise de rentabilidade
-- Previsões e planejamento
-- Relatórios consolidados
-- Recomendações estratégicas`;
+ESTILO DE COMUNICAÇÃO: Estratégico/Executivo
+- Use linguagem profissional e objetiva
+- Foque em análises estratégicas, tendências e impactos no negócio
+- Destaque riscos, oportunidades e recomendações
+- Seja direto e conte com conhecimento técnico do usuário
+- Priorize visão macro e dados consolidados
+- Use termos como: ROI, margem, rentabilidade, fluxo de caixa, planejamento`;
         }
 
-        // Operational roles - Limited financial access
-        if (title.includes('vendedor') || title.includes('operacion') ||
-            title.includes('assistente') || dept.includes('vendas')) {
-            return `
-NÍVEL DE ACESSO: Operacional
-COMUNICAÇÃO:
-- NÃO revele margens, custos ou lucros detalhados
-- Foque em métricas operacionais e metas
-- Use linguagem simples e objetiva
-- Priorize ações práticas do dia a dia
-TÓPICOS PERMITIDOS:
-- Metas de vendas
-- Status de pedidos
-- Entregas e produção
-- Dados agregados (sem detalhes financeiros sensíveis)
-RESTRIÇÕES:
-- Não discuta custos ou margens de produtos
-- Não revele salários ou informações confidenciais`;
-        }
-
-        // Analyst/Support roles - Moderate access
+        // Financial/Accounting roles - Technical focus
         if (title.includes('analista') || title.includes('contador') ||
-            title.includes('financeiro') || dept.includes('financ')) {
+            title.includes('financeiro') || title.includes('contábil') ||
+            dept.includes('financ') || dept.includes('contab')) {
             return `
-NÍVEL DE ACESSO: Analítico
-COMUNICAÇÃO:
-- Pode acessar dados financeiros operacionais
-- Foque em análises técnicas e relatórios
-- Use terminologia contábil/financeira apropriada
-- Destaque discrepâncias e oportunidades de melhoria
-TÓPICOS PERMITIDOS:
-- Lançamentos e reconciliações
-- Fluxo de caixa detalhado
-- Relatórios fiscais e contábeis
-- Análises de variação
-RESTRIÇÕES:
-- Decisões estratégicas devem ser encaminhadas à gerência`;
+ESTILO DE COMUNICAÇÃO: Técnico/Analítico
+- Use terminologia contábil e financeira apropriada
+- Foque em precisão, detalhes e conformidade
+- Destaque discrepâncias, reconciliações e ajustes
+- Seja metódico e baseado em dados
+- Priorize relatórios, lançamentos e análises de variação
+- Use termos como: DRE, balanço, conciliação, provisão, lançamento`;
         }
 
-        // Default - Basic access
+        // Operational roles - Practical focus
+        if (title.includes('vendedor') || title.includes('operacion') ||
+            title.includes('assistente') || title.includes('coordenador') ||
+            dept.includes('vendas') || dept.includes('operac') || dept.includes('produção')) {
+            return `
+ESTILO DE COMUNICAÇÃO: Operacional/Prático
+- Use linguagem simples, clara e direta
+- Foque em ações práticas e resultados imediatos
+- Priorize metas, prazos e status
+- Evite jargões financeiros complexos
+- Seja objetivo e orientado a tarefas
+- Use termos como: meta, desempenho, entrega, produção, vendas`;
+        }
+
+        // Default - Balanced approach
         return `
-NÍVEL DE ACESSO: Padrão
-COMUNICAÇÃO:
-- Forneça informações gerais do sistema
-- Use linguagem clara e acessível
-- Foque em funcionalidades básicas
-TÓPICOS PERMITIDOS:
-- Navegação no sistema
-- Dashboards gerais
-- Próprios dados do usuário
-RESTRIÇÕES:
-- Não revele informações financeiras sensíveis
-- Para dados confidenciais, sugira contatar o gestor`;
+ESTILO DE COMUNICAÇÃO: Padrão/Equilibrado
+- Use linguagem clara e profissional
+- Explique termos técnicos quando necessário
+- Equilibre informações estratégicas e operacionais
+- Seja prestativo e educativo
+- Adapte-se ao contexto da conversa`;
     }
 
     /**
