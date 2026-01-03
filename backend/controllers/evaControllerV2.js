@@ -170,13 +170,18 @@ const operate = async (req, res) => {
             { role: 'user', content: message }
         ];
 
-        // Call LLM
-        const completion = await openai.chat.completions.create({
-            model: "gpt-4o-mini",
-            messages: messages,
-            temperature: 0.3, // Lower temperature for actions
-            response_format: { type: "json_object" }
-        });
+        // Call LLM with timeout protection
+        const completion = await Promise.race([
+            openai.chat.completions.create({
+                model: "gpt-4o-mini",
+                messages: messages,
+                temperature: 0.3, // Lower temperature for actions
+                response_format: { type: "json_object" }
+            }),
+            new Promise((_, reject) =>
+                setTimeout(() => reject(new Error('OpenAI timeout after 60s')), 60000)
+            )
+        ]);
 
         const responseContent = completion.choices[0].message.content;
         console.log('EVA Operate Response:', responseContent);
