@@ -147,11 +147,24 @@ INSTRUÇÕES IMPORTANTES:
         // Format SEMANTIC screen data (The Eyes - High Fidelity)
         let activeScreenDataText = '';
         if (activeScreenData) {
-            // Limit size to prevent timeout - stringify and truncate if needed
-            const jsonStr = JSON.stringify(activeScreenData, null, 2);
-            const maxLength = 2000; // 2000 chars max for now
-            const truncated = jsonStr.length > maxLength ? jsonStr.substring(0, maxLength) + '\n... (truncated)' : jsonStr;
-            activeScreenDataText = `\n[DADOS VIVOS DA TELA ATUAL (Prioridade Alta)]:\n${truncated}\n`;
+            try {
+                // Circular reference handler
+                const seen = new WeakSet();
+                const jsonStr = JSON.stringify(activeScreenData, (key, value) => {
+                    if (typeof value === "object" && value !== null) {
+                        if (seen.has(value)) return "[Circular]";
+                        seen.add(value);
+                    }
+                    return value;
+                }, 2);
+
+                const maxLength = 2000; // 2000 chars max for now
+                const truncated = jsonStr.length > maxLength ? jsonStr.substring(0, maxLength) + '\n... (truncated)' : jsonStr;
+                activeScreenDataText = `\n[DADOS VIVOS DA TELA ATUAL (Prioridade Alta)]:\n${truncated}\n`;
+            } catch (e) {
+                console.error('[EvaContextBuilder] Error stringifying activeScreenData:', e);
+                activeScreenDataText = '\n[DADOS DA TELA: Erro ao processar]\n';
+            }
         }
 
         // Format LEGACY screen context (The Eyes - DOM Scraper)
