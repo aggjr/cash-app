@@ -139,30 +139,20 @@ export const EvaNavigationIndicator = {
                     console.warn('[EVA Nav] Menu item not found for:', screenId);
                 }
 
-                // Highlight modal or main content area (more focused)
-                // Priority: .modal > .settings-panel > .content-wrapper > #main-content
+                // Highlight modal or main content area (EXCLUDING FOOTER)
+                // Priority: .modal > .settings-panel > content within #main-content
                 let targetContainer = document.querySelector('.modal.show, .modal.visible, [role="dialog"]');
 
                 if (!targetContainer) {
                     targetContainer = document.querySelector('.settings-panel');
                 }
 
+                // CRITICAL: Search ONLY inside #main-content to avoid highlighting footer
                 if (!targetContainer) {
-                    // Look for more specific content areas before falling back to main-content
-                    targetContainer = document.querySelector('.content-wrapper, .main-panel, .screen-container');
-                }
-
-                if (!targetContainer) {
-                    // Try to find the actual content box, not the full screen
                     const mainContent = document.querySelector('#main-content');
                     if (mainContent) {
-                        // Strategy 1: Look for specific content classes
-                        const contentBox = mainContent.querySelector('.glass-panel, .card, .panel, .dashboard-container');
-
-                        // Strategy 2: Look for the first substantial child of <main>
-                        const mainSection = mainContent.querySelector('main > div');
-
-                        targetContainer = contentBox || mainSection || mainContent;
+                        // Look for content containers INSIDE main-content only
+                        targetContainer = mainContent.querySelector('.glass-panel, .card, .panel, .dashboard-container, main > div:first-child');
                     }
                 }
 

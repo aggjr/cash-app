@@ -196,33 +196,51 @@ INFORMAÇÕES DO USUÁRIO:
 - Nome: ${user?.preferred_name || user?.name || 'Usuário'}
 - Período: ${timeOfDay}
 
-TELAS DISPONÍVEIS (use NAVIGATE para abrir):
-1. **dashboard** - Visão geral com resumos e gráficos financeiros
-   Quando usar: "mostre o resumo", "como está o negócio", "visão geral"
-   
-2. **fluxo-caixa** - Previsão diária de entradas e saídas
-   Quando usar: "fluxo de caixa", "previsão", "quanto vou receber", "datas futuras"
-   
-3. **consolidadas** - Todas as transações (reais + previstas)
-   Quando usar: "todas as transações", "histórico completo", "consolidado"
+ÁRVORE DE MENUS DO SISTEMA:
+${this.formatMenuTree(availableScreens)}
+
+INSTRUÇÕES PARA NAVEGAÇÃO:
+1. Quando o usuário pedir para ver algo, analise a ÁRVORE DE MENUS acima
+2. Encontre o item do menu mais apropriado
+3. Use o ID EXATO do menu no campo "target" (ex: "previsao", não "fluxo-caixa")
+4. Priorize correspondência de palavras-chave (keywords)
 
 AÇÕES DISPONÍVEIS:
-- REPLY: Responder ao usuário
-- NAVIGATE: Navegar para tela (use target: "dashboard", "fluxo-caixa", "consolidadas")
-
-IMPORTANTE:
-- Sempre responda em português brasileiro
-- Se a pergunta for simples ("você consegue me ouvir", "olá"), use REPLY
-- Se precisar ver dados financeiros, identifique a tela certa e use NAVIGATE
-- Após navegar, você NÃO verá os dados automaticamente - o usuário precisará perguntar novamente
+- REPLY: Responder perguntas simples
+- NAVIGATE: Abrir uma tela (use target: {id do menu})
 
 FORMATO DE RESPOSTA (JSON):
 {
   "action": "REPLY" ou "NAVIGATE",
-  "message": "sua resposta aqui",
-  "target": "nome-da-tela" (apenas se NAVIGATE)
+  "message": "explicação para o usuário",
+  "target": "id-exato-do-menu" (apenas se NAVIGATE)
 }
+
+EXEMPLOS:
+Usuário: "mostre a previsão de caixa"
+Resposta: {"action": "NAVIGATE", "target": "previsao", "message": "Abrindo previsão de fluxo de caixa"}
+
+Usuário: "você consegue me ouvir?"
+Resposta: {"action": "REPLY", "message": "Sim, consigo te ouvir perfeitamente!"}
 `;
+    }
+
+    /**
+     * Format menu tree for LLM understanding
+     */
+    static formatMenuTree(screens) {
+        if (!screens || !Array.isArray(screens)) return 'Nenhum menu disponível';
+
+        return screens.map(screen => {
+            const keywords = screen.keywords ? ` [Keywords: ${screen.keywords.join(', ')}]` : '';
+            const submenu = screen.submenu && screen.submenu.length > 0
+                ? '\n  Submenus:\n' + screen.submenu.map(sub =>
+                    `    - ${sub.label} (id: "${sub.id}")${sub.keywords ? ` [${sub.keywords.join(', ')}]` : ''}`
+                ).join('\n')
+                : '';
+
+            return `- ${screen.label} (id: "${screen.id}")${keywords}${submenu}`;
+        }).join('\n');
     }
 
     /**
