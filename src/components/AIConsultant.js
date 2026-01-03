@@ -1225,19 +1225,82 @@ Digite 1, 2 ou 3.`;
 
                     const result = await EvaActions.handle(decision.action, decision);
 
-                    if (result.success) {
-                        // Success message + follow-up prompt
-                        const followUps = [
-                            'E agora?',
-                            'O que mais?',
-                            'Posso ajudar em algo mais?',
-                            'Prosseguimos?'
-                        ];
-                        const followUp = followUps[Math.floor(Math.random() * followUps.length)];
-                        const msg = (result.message || 'Feito.') + ' ' + followUp;
+                    const result = await EvaActions.handle(decision.action, decision);
 
-                        addMessage('ai', msg);
-                        speak(msg);
+                    if (result.success) {
+                        if (decision.action === 'NAVIGATE') {
+                            // --- AUTONOMY LOOP (The Eyes -> The Brain) ---
+                            const navigationMsg = 'Cheguei. Deixe-me analisar os dados desta tela...';
+                            addMessage('ai', navigationMsg);
+                            speak(navigationMsg);
+
+                            // Verify if it's main dashboard to avoid loop or generic analysis
+                            if (decision.screen === 'dashboard') {
+                                const m = 'Estou no painel principal via visão geral.';
+                                addMessage('ai', m);
+                                speak(m);
+                                return;
+                            }
+
+                            // Wait for screen to load and context to update (2.5s)
+                            setTimeout(async () => {
+                                console.log('[EVA Autonomy] Triggering post-navigation analysis...');
+
+                                // Create a visual "Analyzing" indicator
+                                const analyzingDiv = document.createElement('div');
+                                analyzingDiv.innerHTML = '<i>🔍 Analisando dados da tela...</i>';
+                                analyzingDiv.style.color = '#6b7280';
+                                analyzingDiv.style.marginLeft = '10px';
+                                messagesContainer.appendChild(analyzingDiv);
+                                messagesContainer.scrollTop = messagesContainer.scrollHeight;
+
+                                try {
+                                    // Recursive call to LLM with updated context
+                                    // specific "system instruction" style message
+                                    const analysisRequest = `SYSTEM_EVENT: NAVIGATION_COMPLETE to ${decision.screen}. 
+                                    ACTION: Analyze the 'activeScreenContext' data immediately based on the user's previous intention. 
+                                    Ignore "how can I help", just give the answer/analysis.`;
+
+                                    // Re-uses sendMessage logic but bypassing UI input
+                                    // We need to call the internal decision logic directly to avoid user bubble
+
+                                    // 1. Gather NEW Context (Post-Navigation)
+                                    const newContext = {
+                                        currentScreen: EvaKnowledge.activeScreen,
+                                        currentScreenData: EvaKnowledge.activeScreenData,
+                                        availableScreens: EvaKnowledge.screens
+                                    };
+
+                                    const nextDecision = await EvaService.decideOperation(analysisRequest, newContext);
+
+                                    if (analyzingDiv.parentNode) analyzingDiv.parentNode.removeChild(analyzingDiv);
+
+                                    if (nextDecision.action === 'REPLY') {
+                                        addMessage('ai', nextDecision.message);
+                                        speak(nextDecision.message);
+                                    } else {
+                                        // Chain actions (Rare, but possible)
+                                        // For now, just report the action
+                                        const m = nextDecision.message || 'Análise concluída. O que mais deseja?';
+                                        addMessage('ai', m);
+                                        speak(m);
+                                    }
+
+                                } catch (e) {
+                                    console.error('[EVA Autonomy] Error:', e);
+                                    if (analyzingDiv.parentNode) analyzingDiv.parentNode.removeChild(analyzingDiv);
+                                    addMessage('ai', 'Não consegui ler os dados da tela automaticamente. Pode me perguntar novamente?');
+                                }
+                            }, 2500);
+
+                        } else {
+                            // Generic Success for non-navigation
+                            const followUps = ['Feito. O que mais?', 'Pronto.', 'Algo mais?'];
+                            const followUp = followUps[Math.floor(Math.random() * followUps.length)];
+                            const msg = (result.message || 'Ação realizada.') + ' ' + followUp;
+                            addMessage('ai', msg);
+                            speak(msg);
+                        }
                     } else {
                         const msg = result.message || 'Não consegui realizar a ação.';
                         addMessage('ai', msg);
