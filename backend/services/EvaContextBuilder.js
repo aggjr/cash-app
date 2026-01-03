@@ -132,12 +132,15 @@ INSTRUÇÕES IMPORTANTES:
      * @param {Object} currentScreen - Current screen detailed definition (not used in unified)
      * @param {string} dynamicProfile - Inferred business profile (deprecated - now cached in DB)
      * @param {Object} activeScreenData - Active screen data (not used in unified)
+     * @param {Object} db - Database connection (required for unified context)
      * @returns {Promise<string>} Complete system prompt for operations
      */
-    static async buildOperateContext(user, project, screenContext, voiceSettings = {}, availableScreens = [], currentScreen = null, dynamicProfile = '', activeScreenData = null) {
+    static async buildOperateContext(user, project, screenContext, voiceSettings = {}, availableScreens = [], currentScreen = null, dynamicProfile = '', activeScreenData = null, db = null) {
         // For backward compatibility, delegate to unified builder
-        // Note: We need db connection which isn't passed here, so we'll need to get it
-        const db = require('../config/database');
+        if (!db) {
+            // Fallback: try to get db, but this might fail
+            db = require('../config/database');
+        }
         return await this.buildUnifiedContext(user, project, db, availableScreens, {});
     }
 

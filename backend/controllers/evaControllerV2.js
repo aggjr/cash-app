@@ -155,9 +155,10 @@ const operate = async (req, res) => {
             screenContext,
             userSettings,
             availableScreens,
-            currentScreen || null, // Correctly pass the screen metadata
+            currentScreen || null,
             dynamicProfile,
-            req.body.activeScreenContext || null // New Semantic Data (Arg 8)
+            req.body.activeScreenContext || null,
+            db // Pass db connection for unified context
         );
 
         const history = conversationHistory || [];
