@@ -407,7 +407,9 @@ export const AIConsultant = () => {
 
             evaSpeechRec.onstart = () => {
                 console.log('[SPEECH REC] onstart fired');
-                playBeep(); // Audio cue: NOW we are listening
+
+                // First beep: Engine is starting
+                playBeep();
 
                 // Cancel EVA's speech immediately when user starts talking
                 if (window.speechSynthesis.speaking) {
@@ -415,18 +417,27 @@ export const AIConsultant = () => {
                     console.log('[EVA] Speech interrupted by user');
                 }
 
-                // Set recording state and update UI
-                isRecording = true;
-                isListening = true;
+                // Show "warming up" state
+                input.placeholder = 'Aquecendo microfone...';
 
-                // Update mic button to show recording state
-                micBtn.classList.add('mic-recording');
-                micBtn.style.backgroundColor = '#ffebe9';
-                micBtn.style.borderColor = '#ef4444';
-                micBtn.style.boxShadow = '0 0 0 4px rgba(239, 68, 68, 0.1)';
-                input.placeholder = `Gravando... (${evaTimeout / 1000}s silêncio para enviar)`;
+                // Wait 400ms for mic to fully initialize, THEN indicate ready
+                setTimeout(() => {
+                    // Second beep: Ready to record
+                    playBeep();
 
-                console.log('[SPEECH REC] Recording started, UI updated, timeout:', evaTimeout + 'ms');
+                    // Set recording state and update UI to READY
+                    isRecording = true;
+                    isListening = true;
+
+                    // Update mic button to show recording state
+                    micBtn.classList.add('mic-recording');
+                    micBtn.style.backgroundColor = '#ffebe9';
+                    micBtn.style.borderColor = '#ef4444';
+                    micBtn.style.boxShadow = '0 0 0 4px rgba(239, 68, 68, 0.1)';
+                    input.placeholder = `Gravando... (${evaTimeout / 1000}s silêncio para enviar)`;
+
+                    console.log('[SPEECH REC] Mic fully warmed up and ready');
+                }, 400); // 400ms warmup delay
             };
 
             evaSpeechRec.onend = () => {
