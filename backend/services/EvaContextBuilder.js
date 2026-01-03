@@ -22,103 +22,19 @@ const EvaSecurityValidator = require('../utils/evaSecurityValidator');
 class EvaContextBuilder {
     /**
      * Build complete chat context
+     * @deprecated Use buildUnifiedContext instead - kept for backward compatibility
      * @param {Object} user - User object with eva_preferences
      * @param {Object} project - Project object with eva_context
-     * @param {string} dynamicProfile - Infered business profile from DB
+     * @param {string} dynamicProfile - Infered business profile from DB (deprecated - now in unified)
      * @param {Object} options - Additional options (isIntroduction, etc)
-     * @returns {string} Complete system prompt
+     * @returns {Promise<string>} Complete system prompt
      */
-    static buildChatContext(user, project, dynamicProfile = '', options = {}) {
-        const { isIntroduction = false } = options;
-
-        // Level 1: System base
-        const systemBase = systemPrompts.chat.base;
-        const capabilities = systemPrompts.chat.capabilities.join('\n- ');
-
-        // Level 2: Project context
-        const projectContext = project?.eva_context || {};
-        const businessType = projectContext.business_type || 'general';
-        const tone = projectContext.tone || 'formal';
-        const projectInstructions = projectContext.custom_instructions || '';
-
-        // Level 3: User preferences & Role
-        const userPrefs = user?.eva_preferences || {};
-        const communicationStyle = userPrefs.communication_style || 'padrão';
-        const expertiseLevel = userPrefs.expertise_level || 'intermediário';
-        const userInstructions = userPrefs.custom_instructions || '';
-
-        // User Role Context
-        const jobTitle = user?.job_title ? `Cargo: ${user.job_title}` : '';
-        const department = user?.department ? `Departamento: ${user.department}` : '';
-        const roleContext = (jobTitle || department) ? `${jobTitle} | ${department}` : 'Usuário padrão';
-
-        // Get time context
-        const now = new Date();
-        const hour = now.getHours();
-        const timeOfDay = hour >= 5 && hour < 12 ? 'manhã' : hour >= 12 && hour < 19 ? 'tarde' : 'noite';
-        const evaIntroduced = user?.eva_introduced || false;
-
-        // Build final prompt
-        if (isIntroduction) {
-            return `${systemBase}
-
-FASE: INTRODUÇÃO
-${systemPrompts.introduction.objective}
-
-Passos:
-${systemPrompts.introduction.steps.map((s, i) => `${i + 1}. ${s}`).join('\n')}
-
-Abordagem: ${systemPrompts.introduction.approach}
-
-INFORMAÇÕES DO USUÁRIO:
-- Nome completo: ${user?.name || 'Não informado'}
-- Papel no sistema: ${roleContext}
-- Primeira interação: SIM
-
-CONTEXTO DO PROJETO:
-- Tipo de negócio: ${businessType}
-- Perfil Inferido: ${dynamicProfile}
-- Tom preferido: ${tone}
-
-INSTRUÇÕES:
-- Converse naturalmente, inferindo gênero e tratamento do nome
-- ${systemPrompts.common.language}
-- ${systemPrompts.common.uncertainty}`;
-        }
-
-        // Normal chat context
-        return `${systemBase}
-
-CAPACIDADES:
-- ${capabilities}
-
-CONTEXTO DO PROJETO:
-- Tipo de negócio: ${businessType}
-- Setor: ${projectContext.industry || 'geral'}
-- Perfil de Negócio (Inferido): ${dynamicProfile}
-- Tom de comunicação: ${tone}
-${projectInstructions ? `- Instruções específicas: ${projectInstructions}` : ''}
-
-PREFERÊNCIAS DO USUÁRIO:
-- Nome: ${user?.name || 'Não informado'}
-- Nome preferido: ${user?.preferred_name || 'Não definido'}
-- Papel Profissional: ${roleContext}
-- Primeira interação: ${!evaIntroduced ? 'SIM - Apresente-se!' : 'NÃO - Já se apresentou'}
-- Período do dia: ${timeOfDay}
-- Estilo de comunicação: ${communicationStyle}
-- Nível de expertise: ${expertiseLevel}
-${userInstructions ? `- Instruções personalizadas: ${userInstructions}` : ''}
-
-INSTRUÇÕES IMPORTANTES:
-- Se primeira interação, apresente-se de forma natural e use saudação apropriada ao período
-- Converse naturalmente com ${user?.preferred_name || user?.name || 'o usuário'}, inferindo tratamento apropriado
-- Adapte a resposta ao cargo do usuário (ex: mais estratégico para gerentes, mais operacional para analistas)
-- Leve em conta o Perfil de Negócio inferido para dar respostas contextualizadas
-- Seja ${tone === 'casual' ? 'mais descontraída' : 'formal'}, respeitosa e prestativa
-- ${systemPrompts.common.response_length}
-- Projeto atual: ${project?.name || 'CASH'}
-- ${systemPrompts.common.uncertainty}
-- ${systemPrompts.common.language}`;
+    static async buildChatContext(user, project, dynamicProfile = '', options = {}) {
+        // For introduction flow or chat, delegate to unified builder
+        // Note: buildUnifiedContext doesn't have introduction mode yet, but it has all the user info
+        const db = require('../config/database');
+        const availableScreens = []; // Chat doesn't navigate, so empty screens
+        return await this.buildUnifiedContext(user, project, db, availableScreens, options);
     }
 
     /**

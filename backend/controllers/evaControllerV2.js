@@ -44,7 +44,7 @@ const chat = async (req, res, next) => {
         const dynamicProfile = await EvaContextBuilder.buildDynamicBusinessProfile(db, context.projectId);
 
         // Build system prompt using 3-level architecture + Dynamic Profile
-        const systemPrompt = EvaContextBuilder.buildChatContext(userData, projectData, dynamicProfile, { isIntroduction });
+        const systemPrompt = await EvaContextBuilder.buildChatContext(userData, projectData, dynamicProfile, { isIntroduction });
 
         // Prepare messages for OpenAI
         const messages = [
