@@ -142,7 +142,7 @@ INSTRUÇÕES IMPORTANTES:
         // Voice settings
         const currentVoiceRate = voiceSettings.evaVoiceRate || 88;
         const currentVoiceGender = voiceSettings.evaVoiceMale ? 'M' : 'F';
-        const currentVoiceEnabled = userSettings?.evaVoiceEnabled !== 0;
+        const currentVoiceEnabled = voiceSettings?.evaVoiceEnabled !== 0;
 
         // Format SEMANTIC screen data (The Eyes - High Fidelity)
         let activeScreenDataText = '';
