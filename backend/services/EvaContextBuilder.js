@@ -48,16 +48,17 @@ class EvaContextBuilder {
      * @param {Object} currentScreen - Current screen detailed definition (not used in unified)
      * @param {string} dynamicProfile - Inferred business profile (deprecated - now cached in DB)
      * @param {Object} activeScreenData - Active screen data (not used in unified)
-     * @param {Object} db - Database connection (required for unified context)
+     * @param {Object} db - Database connection
+     * @param {string} screenDataContext - Formatted screen data for LLM (NEW)
      * @returns {Promise<string>} Complete system prompt for operations
      */
-    static async buildOperateContext(user, project, screenContext, voiceSettings = {}, availableScreens = [], currentScreen = null, dynamicProfile = '', activeScreenData = null, db = null) {
+    static async buildOperateContext(user, project, screenContext, voiceSettings = {}, availableScreens = [], currentScreen = null, dynamicProfile = '', activeScreenData = null, db = null, screenDataContext = '') {
         // For backward compatibility, delegate to unified builder
         if (!db) {
             // Fallback: try to get db, but this might fail
             db = require('../config/database');
         }
-        return await this.buildUnifiedContext(user, project, db, availableScreens, {});
+        return await this.buildUnifiedContext(user, project, db, availableScreens, { screenDataContext });
     }
 
     /**
@@ -176,6 +177,82 @@ class EvaContextBuilder {
             console.error('Error building business profile:', error);
             return "";
         }
+    }
+
+
+    /**
+     * Build screen data context for LLM
+     * Formats current screen data and cached screens for prompt
+     */
+    static buildScreenDataContext(screenData, cachedScreens = []) {
+        if (!screenData && (!cachedScreens || cachedScreens.length === 0)) {
+            return '';
+        }
+
+        let context = '\n\n========================================\n';
+        context += '📊 DADOS DA TELA ATUAL\n';
+        context += '========================================\n';
+
+        if (screenData) {
+            context += `\nTela: **${screenData.screenId}**\n`;
+            context += `Filtros aplicados: ${JSON.stringify(screenData.filters)}\n\n`;
+
+            // Summary
+            context += '**Resumo:**\n';
+            context += `- Total de registros: ${screenData.summary.totalRecords}\n`;
+            context += `- Valor total: R$ ${screenData.summary.totalValue?.toFixed(2)}\n`;
+
+            if (screenData.summary.avgValue) {
+                context += `- Valor médio: R$ ${screenData.summary.avgValue.toFixed(2)}\n`;
+            }
+            if (screenData.summary.maxValue) {
+                context += `- Maior valor: R$ ${screenData.summary.maxValue.toFixed(2)}\n`;
+            }
+            if (screenData.summary.minValue) {
+                context += `- Menor valor: R$ ${screenData.summary.minValue.toFixed(2)}\n`;
+            }
+
+            // By Type breakdown
+            if (screenData.byType && screenData.byType.length > 0) {
+                context += '\n**Por Tipo:**\n';
+                screenData.byType.forEach(type => {
+                    context += `- ${type.tipo}: ${type.count} registros, R$ ${parseFloat(type.total).toFixed(2)}\n`;
+                });
+            }
+
+            // Sample records (first 5)
+            if (screenData.records && screenData.records.length > 0) {
+                context += '\n**Registros (amostra):**\n';
+                const sample = screenData.records.slice(0, 5);
+                sample.forEach((record, i) => {
+                    context += `${i + 1}. ${record.descricao || record.tipo || 'N/A'} - R$ ${record.valor} (${record.data_prevista || record.data_real || 'Sem data'})\n`;
+                });
+
+                if (screenData.records.length > 5) {
+                    context += `... e mais ${screenData.records.length - 5} registros.\n`;
+                }
+            }
+        }
+
+        // Cached screens for cross-analysis
+        if (cachedScreens && cachedScreens.length > 0) {
+            context += '\n\n========================================\n';
+            context += '🔄 DADOS DE OUTRAS TELAS (Para comparação)\n';
+            context += '========================================\n';
+
+            cachedScreens.forEach(cached => {
+                context += `\n**${cached.screenId}:**\n`;
+                if (cached.data.summary) {
+                    context += `- Total: R$ ${cached.data.summary.totalValue?.toFixed(2)}\n`;
+                    context += `- Registros: ${cached.data.summary.totalRecords}\n`;
+                }
+            });
+
+            context += '\n💡 Use esses dados para fazer comparações e análises cross-screen.\n';
+        }
+
+        context += '\n========================================\n\n';
+        return context;
     }
 
     /**
@@ -368,7 +445,11 @@ EXEMPLOS DE NAVEGAÇÃO ADEQUADA:
         // FINAL ASSEMBLY
         // ========================================
 
-        return `${systemBase}${securityAndToneLayer}${layer2}${layer3}${menuSection}${navigationInstructions}
+        const screenDataSection = options.screenDataContext || '';
+
+        return `${systemBase}${securityAndToneLayer}${layer2}${layer3}${screenDataSection}${menuSection}${navigationInstructions}
+
+💡 **Use todos os dados disponíveis para responder de forma precisa e contextual.**
 
 AÇÕES DISPONÍVEIS:
 - REPLY: Responder perguntas simples

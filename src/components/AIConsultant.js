@@ -2,6 +2,7 @@ import { getApiBaseUrl } from '../utils/apiConfig.js';
 import { EvaActions } from '../eva/EvaActions.js';
 import { EvaKnowledge } from '../eva/EvaKnowledge.js';
 import { EvaService } from '../eva/EvaService.js';
+import ScreenContextExtractor from '../utils/screenContextExtractor.js';
 
 export const AIConsultant = () => {
     console.log('AIConsultant: Version 2.0 (evaSpeechRec fix applied)');
@@ -1135,6 +1136,13 @@ Digite 1, 2 ou 3.`;
                 currentScreenId: context.currentScreen?.id || 'none',
                 availableScreenCount: Object.keys(context.availableScreens || {}).length
             });
+
+            // Extract screen context (filters + visual summary)
+            const screenContext = ScreenContextExtractor.extract();
+            if (screenContext) {
+                console.log('[EVA] Screen Context:', screenContext);
+                context.screenContext = screenContext;
+            }
 
             // 2. Ask the Brain
             // Show thinking state if voice enabled or just to indicate processing

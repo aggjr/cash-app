@@ -2,6 +2,8 @@ const OpenAI = require('openai');
 const db = require('../config/database');
 const EvaContextBuilder = require('../services/EvaContextBuilder');
 const EvaIntentValidator = require('../utils/evaIntentValidator');
+const EvaDataFetcher = require('../services/EvaDataFetcher');
+const EvaScreenCache = require('../services/EvaScreenCache');
 
 const openai = new OpenAI({
     apiKey: process.env.OPENAI_API_KEY
@@ -228,8 +230,48 @@ const operate = async (req, res) => {
             department: userData?.department
         }));
 
+        // ========================================
+        // SCREEN CONTEXT: Fetch complete data based on filters
+        // ========================================
+        let screenData = null;
+        let cachedScreens = [];
+
+        if (context?.screenContext) {
+            console.log('[EVA Operate] Screen Context Received:', {
+                screenId: context.screenContext.screenId,
+                filters: context.screenContext.filters
+            });
+
+            try {
+                // Fetch complete data from DB with same filters
+                screenData = await EvaDataFetcher.fetchScreenData(
+                    db,
+                    context.screenContext.screenId,
+                    context.screenContext.filters,
+                    context.projectId
+                );
+
+                // Cache the data
+                if (screenData) {
+                    EvaScreenCache.set(user.id, context.projectId, screenData.screenId, screenData);
+                    console.log('[EVA Operate] Cached screen data:', screenData.screenId);
+                }
+
+                // Get most accessed screens for cross-analysis
+                cachedScreens = EvaScreenCache.getMostAccessed(user.id, context.projectId, 3);
+                console.log('[EVA Operate] Most accessed screens:', cachedScreens.map(s => s.screenId));
+
+            } catch (error) {
+                console.error('[EVA Operate] Error fetching screen data:', error);
+                // Continue without screen data
+            }
+        }
+
         // Build dynamic profile
         const dynamicProfile = await EvaContextBuilder.buildDynamicBusinessProfile(db, context?.projectId);
+
+        // Build screen data context
+        const screenDataContext = EvaContextBuilder.buildScreenDataContext(screenData, cachedScreens);
 
         // Build operate system prompt
         const systemPrompt = await EvaContextBuilder.buildOperateContext(
@@ -241,7 +283,8 @@ const operate = async (req, res) => {
             currentScreen || null,
             dynamicProfile,
             req.body.activeScreenContext || null,
-            db // Pass db connection for unified context
+            db, // Pass db connection for unified context
+            screenDataContext // NEW: Screen data formatted for LLM
         );
 
         const history = conversationHistory || [];
