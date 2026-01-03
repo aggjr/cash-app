@@ -25,7 +25,20 @@ export const EvaService = {
 
             // Get user settings from localStorage
             const user = JSON.parse(localStorage.getItem('user') || '{}');
-            const projectId = user?.default_project_id || localStorage.getItem('selectedProjectId');
+
+            // Try multiple sources for projectId
+            const projectId = user?.default_project_id ||
+                user?.defaultProjectId ||
+                localStorage.getItem('selectedProjectId') ||
+                localStorage.getItem('projectId');
+
+            console.log('[EvaService] ProjectId resolution:', {
+                fromUser_default_project_id: user?.default_project_id,
+                fromUser_defaultProjectId: user?.defaultProjectId,
+                fromLocalStorage_selectedProjectId: localStorage.getItem('selectedProjectId'),
+                fromLocalStorage_projectId: localStorage.getItem('projectId'),
+                finalProjectId: projectId
+            });
 
             // Build context object matching backend expectations
             const requestContext = {

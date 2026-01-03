@@ -152,7 +152,7 @@ export const ScreenContextExtractor = {
 
         // Build context object
         const context = {
-            screen,
+            screenId: screen,  // Changed from 'screen' to 'screenId' to match backend expectations
             pageTitle,
             hasTables: !!tables,
             hasForms: !!forms,
@@ -180,7 +180,7 @@ export const ScreenContextExtractor = {
      */
     formatContextForLLM(context) {
         let formatted = `CONTEXTO DA TELA ATUAL:\n`;
-        formatted += `Tela: ${context.screen}\n`;
+        formatted += `Tela: ${context.screenId}\n`;
 
         if (context.pageTitle) {
             formatted += `Título: ${context.pageTitle}\n`;
