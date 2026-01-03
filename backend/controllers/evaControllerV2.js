@@ -28,23 +28,53 @@ const chat = async (req, res, next) => {
             });
         }
 
+        // ========================================
+        // DEBUG: User Data Loading
+        // ========================================
+        console.log('[EVA Chat] Step 1 - req.user:', JSON.stringify({
+            id: user?.id,
+            name: user?.name,
+            email: user?.email,
+            preferred_name: user?.preferred_name
+        }));
+
         // Fetch hierarchical context from DB
-        // 1. User preferences (Level 3)
-        // 2. Project context (Level 2)
-        // 3. Dynamic Business Profile (Inferred)
         const [userResult, projectResult] = await Promise.all([
             db.query('SELECT * FROM users WHERE id = ?', [user.id]),
             context.projectId ? db.query('SELECT * FROM projects WHERE id = ?', [context.projectId]) : Promise.resolve([[]])
         ]);
 
+        console.log('[EVA Chat] Step 2 - DB Query Result:', JSON.stringify({
+            userResultLength: userResult?.length,
+            userResultFirstLength: userResult?.[0]?.length,
+            userData: userResult?.[0]?.[0] ? {
+                id: userResult[0][0].id,
+                name: userResult[0][0].name,
+                preferred_name: userResult[0][0].preferred_name,
+                job_title: userResult[0][0].job_title,
+                department: userResult[0][0].department
+            } : 'NO DATA'
+        }));
+
         const userData = userResult[0][0] || user;
         const projectData = projectResult[0][0] || {};
 
-        // Build dynamic profile purely from transaction data (NEW)
+        console.log('[EVA Chat] Step 3 - Final userData:', JSON.stringify({
+            id: userData?.id,
+            name: userData?.name,
+            preferred_name: userData?.preferred_name,
+            job_title: userData?.job_title,
+            department: userData?.department
+        }));
+
+        // Build dynamic profile
         const dynamicProfile = await EvaContextBuilder.buildDynamicBusinessProfile(db, context.projectId);
 
-        // Build system prompt using 3-level architecture + Dynamic Profile
+        // Build system prompt
         const systemPrompt = await EvaContextBuilder.buildChatContext(userData, projectData, dynamicProfile, { isIntroduction });
+
+        console.log('[EVA Chat] Step 4 - System Prompt Length:', systemPrompt?.length);
+        console.log('[EVA Chat] Step 4 - Prompt contains name?', systemPrompt?.includes(userData?.name || 'NOTFOUND'));
 
         // Prepare messages for OpenAI
         const messages = [
@@ -159,18 +189,46 @@ const operate = async (req, res) => {
         const hour = now.getHours();
         const timeOfDay = hour >= 5 && hour < 12 ? 'manhã' : hour >= 12 && hour < 19 ? 'tarde' : 'noite';
 
-        // Fetch User and Project Data from DB (same as chat endpoint)
+        // ========================================
+        // DEBUG: User Data Loading (Operate)
+        // ========================================
+        console.log('[EVA Operate] Step 1 - req.user:', JSON.stringify({
+            id: user?.id,
+            name: user?.name,
+            email: user?.email,
+            preferred_name: user?.preferred_name
+        }));
+
+        // Fetch User and Project Data from DB
         const [userResult, projectResult] = await Promise.all([
             db.query('SELECT * FROM users WHERE id = ?', [user.id]),
             context?.projectId ? db.query('SELECT * FROM projects WHERE id = ?', [context.projectId]) : Promise.resolve([[]])
         ]);
 
+        console.log('[EVA Operate] Step 2 - DB Query Result:', JSON.stringify({
+            userResultLength: userResult?.length,
+            userResultFirstLength: userResult?.[0]?.length,
+            userData: userResult?.[0]?.[0] ? {
+                id: userResult[0][0].id,
+                name: userResult[0][0].name,
+                preferred_name: userResult[0][0].preferred_name,
+                job_title: userResult[0][0].job_title,
+                department: userResult[0][0].department
+            } : 'NO DATA'
+        }));
+
         const userData = userResult[0][0] || user;
         const projectData = projectResult[0][0] || {};
 
-        console.log('[EVA Operate] Loaded userData:', userData.name, userData.preferred_name);
+        console.log('[EVA Operate] Step 3 - Final userData:', JSON.stringify({
+            id: userData?.id,
+            name: userData?.name,
+            preferred_name: userData?.preferred_name,
+            job_title: userData?.job_title,
+            department: userData?.department
+        }));
 
-        // Build dynamic profile for operate context
+        // Build dynamic profile
         const dynamicProfile = await EvaContextBuilder.buildDynamicBusinessProfile(db, context?.projectId);
 
         // Build operate system prompt
