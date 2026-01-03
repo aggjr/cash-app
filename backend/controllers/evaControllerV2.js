@@ -159,18 +159,16 @@ const operate = async (req, res) => {
         const hour = now.getHours();
         const timeOfDay = hour >= 5 && hour < 12 ? 'manhã' : hour >= 12 && hour < 19 ? 'tarde' : 'noite';
 
-        // Fetch User and Project Data for Context
-        // Similar to chat, we ideally need projectData. 
-        // For now, let's assume partial data is fine or fetch it if needed. 
-        // Given we need project name etc in generic context, let's fetch strictly if context.projectId exists.
+        // Fetch User and Project Data from DB (same as chat endpoint)
+        const [userResult, projectResult] = await Promise.all([
+            db.query('SELECT * FROM users WHERE id = ?', [user.id]),
+            context?.projectId ? db.query('SELECT * FROM projects WHERE id = ?', [context.projectId]) : Promise.resolve([[]])
+        ]);
 
-        let projectData = {};
-        let userData = user;
+        const userData = userResult[0][0] || user;
+        const projectData = projectResult[0][0] || {};
 
-        if (context?.projectId) {
-            const [rows] = await db.query('SELECT * FROM projects WHERE id = ?', [context.projectId]);
-            projectData = rows[0] || {};
-        }
+        console.log('[EVA Operate] Loaded userData:', userData.name, userData.preferred_name);
 
         // Build dynamic profile for operate context
         const dynamicProfile = await EvaContextBuilder.buildDynamicBusinessProfile(db, context?.projectId);
