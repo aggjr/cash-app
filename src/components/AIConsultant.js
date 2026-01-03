@@ -3,6 +3,8 @@ import { EvaActions } from '../eva/EvaActions.js';
 import { EvaKnowledge } from '../eva/EvaKnowledge.js';
 import { EvaService } from '../eva/EvaService.js';
 import ScreenContextExtractor from '../utils/screenContextExtractor.js';
+import EvaScreenActions from '../eva/EvaScreenActions.js';
+import EvaHighlighter from '../eva/EvaHighlighter.js';
 
 export const AIConsultant = () => {
     console.log('AIConsultant: Version 2.0 (evaSpeechRec fix applied)');
@@ -1141,6 +1143,13 @@ Digite 1, 2 ou 3.`;
             const screenContext = ScreenContextExtractor.extract();
             if (screenContext) {
                 console.log('[EVA] Screen Context:', screenContext);
+
+                // Add available actions for this screen
+                screenContext.availableActions = EvaScreenActions.getActionsForLLM(
+                    screenContext.screenId
+                );
+                console.log('[EVA] Available Actions:', screenContext.availableActions);
+
                 context.screenContext = screenContext;
             }
 
@@ -1259,7 +1268,107 @@ Digite 1, 2 ou 3.`;
                         const errorMsg = 'Desculpe, não consegui alterar o áudio.';
                         addMessage('ai', errorMsg);
                     }
-                } else if (['NAVIGATE', 'FILL_FORM', 'CLICK_ACTION'].includes(decision.action)) {
+                }
+                else if (decision.action === 'INTERACT') {
+                    // UI Interaction: Execute filter/action on current screen
+                    const { interaction, followUpQuery, message } = decision;
+
+                    console.log('[EVA INTERACT]', interaction);
+
+                    // Show message
+                    addMessage('ai', message);
+                    speak(message);
+
+                    // Execute the interaction
+                    const result = await EvaScreenActions.executeAction(
+                        screenContext?.screenId,
+                        interaction.actionId,
+                        interaction.params
+                    );
+
+                    if (!result.success) {
+                        const errorMsg = `Desculpe, não consegui executar essa ação: ${result.error}`;
+                        addMessage('ai', errorMsg);
+                        speak(errorMsg);
+                        return;
+                    }
+
+                    // Wait for UI to update
+                    await new Promise(r => setTimeout(r, 1000));
+
+                    // Extract updated screen data
+                    const updatedScreenContext = ScreenContextExtractor.extract();
+
+                    // Send follow-up query to analyze updated data
+                    if (followUpQuery) {
+                        const analysisMsg = document.createElement('div');
+                        analysisMsg.className = 'thinking-bubble';
+                        analysisMsg.innerText = 'Analisando dados atualizados...';
+                        messagesContainer.appendChild(analysisMsg);
+                        messagesContainer.scrollTop = messagesContainer.scrollHeight;
+
+                        try {
+                            const analysisResponse = await fetch(`${API_BASE_URL}/api/eva/operate`, {
+                                method: 'POST',
+                                headers: getHeaders(),
+                                body: JSON.stringify({
+                                    message: `ANÁLISE: ${followUpQuery}`,
+                                    context: {
+                                        ...context,
+                                        screenContext: updatedScreenContext
+                                    }
+                                })
+                            });
+
+                            const analysisDecision = await analysisResponse.json();
+
+                            if (analysisMsg.parentNode) analysisMsg.parentNode.removeChild(analysisMsg);
+
+                            if (analysisDecision.action === 'REPLY') {
+                                addMessage('ai', analysisDecision.message);
+                                speak(analysisDecision.message);
+                            }
+                        } catch (error) {
+                            console.error('[EVA INTERACT] Analysis error:', error);
+                            if (analysisMsg.parentNode) analysisMsg.parentNode.removeChild(analysisMsg);
+                        }
+                    }
+                }
+                else if (decision.action === 'GUIDE') {
+                    // Visual Guide: Navigate + Highlight elements + Explain
+                    const { navigation, highlights, explanation, tips } = decision;
+
+                    console.log('[EVA GUIDE]', decision);
+
+                    // Show explanation
+                    addMessage('ai', explanation);
+                    speak(explanation);
+
+                    // Navigate if needed
+                    if (navigation && navigation.target) {
+                        await EvaActions.navigate(navigation.target);
+                        await new Promise(r => setTimeout(r, 1000)); // Wait for screen to load
+                    }
+
+                    // Highlight elements
+                    if (highlights && highlights.length > 0) {
+                        EvaHighlighter.highlightElements(highlights);
+
+                        // Show tips if available
+                        if (tips && tips.length > 0) {
+                            const tipsMessage = '\n\n' + tips.join('\n');
+                            addMessage('ai', tipsMessage);
+                        }
+
+                        // Auto-clear highlights on next user interaction
+                        const clearHandler = () => {
+                            EvaHighlighter.clearAll();
+                            document.removeEventListener('click', clearHandler);
+                        };
+                        document.addEventListener('click', clearHandler);
+                    }
+                }
+                else if (['NAVIGATE', 'FILL_FORM', 'CLICK_ACTION'].includes(decision.action)) {
                     const result = await EvaActions.handle(decision.action, decision);
 
 
