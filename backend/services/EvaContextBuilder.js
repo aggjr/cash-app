@@ -226,21 +226,44 @@ Resposta: {"action": "REPLY", "message": "Sim, consigo te ouvir perfeitamente!"}
     }
 
     /**
-     * Format menu tree for LLM understanding
+     * Format menu tree for LLM understanding (RECURSIVE - supports infinite nesting)
+     * Includes ALL metadata: id, label, description, route, keywords, submenus
      */
-    static formatMenuTree(screens) {
+    static formatMenuTree(screens, depth = 0) {
         if (!screens || !Array.isArray(screens)) return 'Nenhum menu disponível';
 
-        return screens.map(screen => {
-            const keywords = screen.keywords ? ` [Keywords: ${screen.keywords.join(', ')}]` : '';
-            const submenu = screen.submenu && screen.submenu.length > 0
-                ? '\n  Submenus:\n' + screen.submenu.map(sub =>
-                    `    - ${sub.label} (id: "${sub.id}")${sub.keywords ? ` [${sub.keywords.join(', ')}]` : ''}`
-                ).join('\n')
-                : '';
+        const indent = '  '.repeat(depth); // 2 spaces per level
 
-            return `- ${screen.label} (id: "${screen.id}")${keywords}${submenu}`;
-        }).join('\n');
+        return screens.map(screen => {
+            // Build metadata string with ALL available information
+            const parts = [];
+
+            // Always include ID and label
+            parts.push(`${indent}- **${screen.label}** (id: "${screen.id}")`);
+
+            // Add description if available
+            if (screen.description) {
+                parts.push(`${indent}  Descrição: ${screen.description}`);
+            }
+
+            // Add route if available
+            if (screen.route) {
+                parts.push(`${indent}  Rota: ${screen.route}`);
+            }
+
+            // Add keywords if available
+            if (screen.keywords && screen.keywords.length > 0) {
+                parts.push(`${indent}  Keywords: ${screen.keywords.join(', ')}`);
+            }
+
+            // Recursively process submenus (INFINITE DEPTH)
+            if (screen.submenu && Array.isArray(screen.submenu) && screen.submenu.length > 0) {
+                parts.push(`${indent}  Submenus:`);
+                parts.push(this.formatMenuTree(screen.submenu, depth + 2)); // Recursive call
+            }
+
+            return parts.join('\n');
+        }).join('\n\n'); // Double newline between root-level items for clarity
     }
 
     /**
