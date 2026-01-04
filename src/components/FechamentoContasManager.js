@@ -520,67 +520,169 @@ export const FechamentoContasManager = (project) => {
                         return;
                     }
 
+                    // Dynamic import of ExcelJS
+                    const ExcelJS = await import('https://cdn.jsdelivr.net/npm/exceljs@4.3.0/dist/exceljs.min.js');
+                    const workbook = new ExcelJS.Workbook();
+                    const worksheet = workbook.addWorksheet('Fechamento de Contas');
+
                     const months = getMonthList();
-                    const exportData = [];
 
-                    // Prepare data rows
+                    // Group accounts by company
+                    const companyGroups = {};
                     accounts.forEach(acc => {
-                        const row = { 'Conta Bancária': acc.name };
-                        let currentBalance = initialBalances[acc.id] || 0;
-
-                        months.forEach(m => {
-                            const monthKey = `${m.getFullYear()}-${(m.getMonth() + 1).toString().padStart(2, '0')}`;
-                            const monthDelta = (movementsData[acc.id] && movementsData[acc.id][monthKey])
-                                ? movementsData[acc.id][monthKey]
-                                : 0;
-                            currentBalance += monthDelta;
-                            row[formatDateMonth(m)] = currentBalance;
-                        });
-
-                        exportData.push(row);
+                        if (!companyGroups[acc.company_id]) {
+                            companyGroups[acc.company_id] = {
+                                company_name: acc.company_name,
+                                accounts: []
+                            };
+                        }
+                        companyGroups[acc.company_id].accounts.push(acc);
                     });
 
-                    // Add totals row
-                    const totalsRow = { 'Conta Bancária': 'TOTAL' };
-                    const monthTotals = new Array(months.length).fill(0);
-
-                    accounts.forEach(acc => {
-                        let currentBalance = initialBalances[acc.id] || 0;
-                        months.forEach((m, mIndex) => {
-                            const monthKey = `${m.getFullYear()}-${(m.getMonth() + 1).toString().padStart(2, '0')}`;
-                            const monthDelta = (movementsData[acc.id] && movementsData[acc.id][monthKey])
-                                ? movementsData[acc.id][monthKey]
-                                : 0;
-                            currentBalance += monthDelta;
-                            monthTotals[mIndex] += currentBalance;
-                        });
-                    });
-
-                    months.forEach((m, idx) => {
-                        totalsRow[formatDateMonth(m)] = monthTotals[idx];
-                    });
-                    exportData.push(totalsRow);
-
-                    // Define columns (Account + Month columns)
-                    const columns = [
-                        { header: 'Conta Bancária', key: 'Conta Bancária', width: 30, type: 'text' }
+                    // Define columns
+                    worksheet.columns = [
+                        { header: 'Empresa', key: 'empresa', width: 20 },
+                        { header: 'Conta Bancária', key: 'conta', width: 25 },
+                        ...months.map(m => ({
+                            header: formatDateMonth(m),
+                            key: `month_${m.getTime()}`,
+                            width: 15
+                        }))
                     ];
 
-                    months.forEach(m => {
-                        columns.push({
-                            header: formatDateMonth(m),
-                            key: formatDateMonth(m),
-                            width: 15,
-                            type: 'currency'
+                    // Style header row
+                    const headerRow = worksheet.getRow(1);
+                    headerRow.font = { bold: true, color: { argb: 'FFFFFFFF' } };
+                    headerRow.fill = {
+                        type: 'pattern',
+                        pattern: 'solid',
+                        fgColor: { argb: 'FF00425F' }
+                    };
+                    headerRow.alignment = { vertical: 'middle', horizontal: 'center' };
+                    headerRow.height = 25;
+
+                    let currentRow = 2;
+                    const monthTotals = new Array(months.length).fill(0);
+
+                    // Add data rows grouped by company
+                    Object.values(companyGroups).forEach((group, groupIndex) => {
+                        const startRow = currentRow;
+                        const isEvenGroup = groupIndex % 2 === 0;
+
+                        group.accounts.forEach((acc, accIndex) => {
+                            const row = worksheet.getRow(currentRow);
+                            const rowData = { empresa: group.company_name, conta: acc.name };
+
+                            let currentBalance = initialBalances[acc.id] || 0;
+
+                            months.forEach((m, mIndex) => {
+                                const monthKey = `${m.getFullYear()}-${(m.getMonth() + 1).toString().padStart(2, '0')}`;
+                                const monthDelta = (movementsData[acc.id] && movementsData[acc.id][monthKey])
+                                    ? movementsData[acc.id][monthKey]
+                                    : 0;
+                                currentBalance += monthDelta;
+                                monthTotals[mIndex] += currentBalance;
+                                rowData[`month_${m.getTime()}`] = currentBalance;
+                            });
+
+                            row.values = rowData;
+
+                            // Alternating row colors (white and light gray)
+                            const bgColor = isEvenGroup ? 'FFFFFFFF' : 'FFF8FAFC';
+                            row.eachCell({ includeEmpty: true }, (cell, colNumber) => {
+                                cell.fill = {
+                                    type: 'pattern',
+                                    pattern: 'solid',
+                                    fgColor: { argb: bgColor }
+                                };
+
+                                // Company and Account columns: dark blue background, white text
+                                if (colNumber <= 2) {
+                                    cell.fill = {
+                                        type: 'pattern',
+                                        pattern: 'solid',
+                                        fgColor: { argb: 'FF00425F' }
+                                    };
+                                    cell.font = { color: { argb: 'FFFFFFFF' }, bold: colNumber === 1 };
+                                    cell.border = {
+                                        bottom: { style: 'thin', color: { argb: 'FFFFFFFF' } },
+                                        right: { style: 'thin', color: { argb: 'FFFFFFFF' } }
+                                    };
+                                } else {
+                                    // Month columns: currency formatting and color based on value
+                                    cell.numFmt = 'R$ #,##0.00;[Red]-R$ #,##0.00';
+                                    const value = cell.value;
+                                    if (value > 0) {
+                                        cell.font = { color: { argb: 'FF10B981' } };
+                                    } else if (value < 0) {
+                                        cell.font = { color: { argb: 'FFEF4444' } };
+                                    }
+                                }
+
+                                cell.alignment = { vertical: 'middle', horizontal: colNumber <= 2 ? 'left' : 'right' };
+                            });
+
+                            currentRow++;
                         });
+
+                        // Merge company cells
+                        if (group.accounts.length > 1) {
+                            worksheet.mergeCells(`A${startRow}:A${currentRow - 1}`);
+                            const mergedCell = worksheet.getCell(`A${startRow}`);
+                            mergedCell.alignment = { vertical: 'middle', horizontal: 'left' };
+                        }
                     });
 
-                    await ExcelExporter.exportTable(
-                        exportData,
-                        columns,
-                        'Relatório de Fechamento de Contas',
-                        'fechamento_contas'
-                    );
+                    // Add TOTAL row
+                    const totalRow = worksheet.getRow(currentRow);
+                    const totalData = { empresa: 'TOTAL', conta: '' };
+                    months.forEach((m, idx) => {
+                        totalData[`month_${m.getTime()}`] = monthTotals[idx];
+                    });
+                    totalRow.values = totalData;
+
+                    // Merge TOTAL cells for empresa and conta
+                    worksheet.mergeCells(`A${currentRow}:B${currentRow}`);
+                    const totalMergedCell = worksheet.getCell(`A${currentRow}`);
+                    totalMergedCell.value = 'TOTAL';
+                    totalMergedCell.alignment = { vertical: 'middle', horizontal: 'center' };
+
+                    // Style TOTAL row
+                    totalRow.font = { bold: true };
+                    totalRow.fill = {
+                        type: 'pattern',
+                        pattern: 'solid',
+                        fgColor: { argb: 'FFE0F2FE' }
+                    };
+                    totalRow.eachCell({ includeEmpty: true }, (cell, colNumber) => {
+                        if (colNumber > 2) {
+                            cell.numFmt = 'R$ #,##0.00;[Red]-R$ #,##0.00';
+                            const value = cell.value;
+                            if (value > 0) {
+                                cell.font = { color: { argb: 'FF10B981' }, bold: true };
+                            } else if (value < 0) {
+                                cell.font = { color: { argb: 'FFEF4444' }, bold: true };
+                            }
+                        }
+                        cell.alignment = { vertical: 'middle', horizontal: colNumber <= 2 ? 'center' : 'right' };
+                    });
+
+                    // Freeze first row and first two columns
+                    worksheet.views = [
+                        { state: 'frozen', xSplit: 2, ySplit: 1 }
+                    ];
+
+                    // Generate and download file
+                    const buffer = await workbook.xlsx.writeBuffer();
+                    const blob = new Blob([buffer], { type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' });
+                    const url = window.URL.createObjectURL(blob);
+                    const a = document.createElement('a');
+                    a.href = url;
+                    a.download = 'fechamento_contas.xlsx';
+                    a.click();
+                    window.URL.revokeObjectURL(url);
+
+                    showToast('Excel exportado com sucesso!', 'success');
                 } catch (error) {
                     console.error('Error during Excel export:', error);
                     showToast(`Erro ao exportar: ${error.message}`, 'error');
