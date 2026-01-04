@@ -340,9 +340,10 @@ export const IncomeManager = (project) => {
     const handleBulkDelete = async () => {
         if (selectedItems.size === 0) return;
 
-        const confirm = await showCustomConfirm(
-            `Tem certeza que deseja excluir ${selectedItems.size} itens selecionados?`,
-            'Sim, Excluir Tudo'
+        const confirm = await showDangerConfirm(
+            `⚠️ ATENÇÃO: Esta ação é IRREVERSÍVEL!`,
+            `Você está prestes a excluir permanentemente ${selectedItems.size} ${selectedItems.size === 1 ? 'item' : 'itens'}. Todos os dados serão perdidos.`,
+            'Sim, Excluir Permanentemente'
         );
 
         if (confirm) {
@@ -634,6 +635,64 @@ export const IncomeManager = (project) => {
 
             box.querySelector('#confirm-no').onclick = () => closeConfirm(false);
             box.querySelector('#confirm-yes').onclick = () => closeConfirm(true);
+        });
+    };
+
+    // Danger confirmation dialog for destructive actions
+    const showDangerConfirm = (title, message, confirmText = 'Confirmar') => {
+        return new Promise((resolve) => {
+            const overlay = document.createElement('div');
+            overlay.className = 'dialog-overlay';
+            overlay.style.zIndex = '100000';
+            overlay.style.backgroundColor = 'rgba(0,0,0,0.5)';
+
+            const box = document.createElement('div');
+            box.style.background = 'white';
+            box.style.padding = '24px';
+            box.style.borderRadius = '12px';
+            box.style.maxWidth = '450px';
+            box.style.width = '90%';
+            box.style.boxShadow = '0 10px 25px rgba(0,0,0,0.3)';
+            box.style.textAlign = 'center';
+            box.style.border = '3px solid #DC2626';
+
+            box.innerHTML = `
+                <div style="background: #FEE2E2; padding: 12px; border-radius: 8px; margin-bottom: 16px;">
+                    <h3 style="margin: 0; color: #DC2626; font-size: 1.3rem; font-weight: 700;">${title}</h3>
+                </div>
+                <p style="margin: 0 0 24px 0; color: #374151; line-height: 1.6; font-size: 1rem;">${message}</p>
+                <div style="display: flex; gap: 12px; justify-content: center;">
+                    <button id="confirm-no" style="
+                        background: #F3F4F6; border: 1px solid #D1D5DB; padding: 10px 20px; 
+                        border-radius: 6px; cursor: pointer; color: #374151; font-weight: 600; font-size: 1rem;">
+                        Cancelar
+                    </button>
+                    <button id="confirm-yes" style="
+                        background: #DC2626; border: none; padding: 10px 20px; 
+                        border-radius: 6px; cursor: pointer; color: white; font-weight: 700; font-size: 1rem;
+                        box-shadow: 0 4px 6px rgba(220, 38, 38, 0.3);">
+                        ${confirmText}
+                    </button>
+                </div>
+            `;
+
+            overlay.appendChild(box);
+            document.body.appendChild(overlay);
+
+            const closeConfirm = (val) => {
+                if (document.body.contains(overlay)) {
+                    document.body.removeChild(overlay);
+                }
+                resolve(val);
+            };
+
+            box.querySelector('#confirm-no').onclick = () => closeConfirm(false);
+            box.querySelector('#confirm-yes').onclick = () => closeConfirm(true);
+
+            // Add hover effect to danger button
+            const yesBtn = box.querySelector('#confirm-yes');
+            yesBtn.onmouseenter = () => yesBtn.style.background = '#B91C1C';
+            yesBtn.onmouseleave = () => yesBtn.style.background = '#DC2626';
         });
     };
 
