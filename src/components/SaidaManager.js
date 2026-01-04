@@ -49,8 +49,37 @@ export const SaidaManager = (project) => {
         { key: 'account_name', label: 'Conta', width: 'var(--col-small)', align: 'center', type: 'text' },
         { key: 'valor', label: 'Valor', width: 'var(--col-value)', align: 'right', type: 'currency', colorLogic: 'outflow' },
         {
-            key: 'link',
-            label: 'Link',
+            key: 'boleto',
+            label: 'Boleto/Nota',
+            width: 'var(--col-link)',
+            align: 'center',
+            type: 'link',
+            noTextSearch: true,
+            render: (item) => {
+                const btn = document.createElement('button');
+                btn.innerHTML = '📄';
+                btn.style.background = 'none';
+                btn.style.border = 'none';
+                btn.style.fontSize = '1.2rem';
+                btn.style.padding = '0';
+                if (item.boleto_url) {
+                    btn.style.cursor = 'pointer';
+                    btn.title = 'Ver boleto/nota';
+                    btn.onclick = (e) => {
+                        e.stopPropagation();
+                        window.open(`${API_BASE_URL}${item.boleto_url}`, '_blank');
+                    };
+                } else {
+                    btn.style.cursor = 'default';
+                    btn.style.opacity = '0.3';
+                    btn.title = 'Sem boleto/nota';
+                }
+                return btn;
+            }
+        },
+        {
+            key: 'comprovante',
+            label: 'Comprovante',
             width: 'var(--col-link)',
             align: 'center',
             type: 'link',
@@ -64,7 +93,7 @@ export const SaidaManager = (project) => {
                 btn.style.padding = '0';
                 if (item.comprovante_url) {
                     btn.style.cursor = 'pointer';
-                    btn.title = 'Ver anexo';
+                    btn.title = 'Ver comprovante';
                     btn.onclick = (e) => {
                         e.stopPropagation();
                         window.open(`${API_BASE_URL}${item.comprovante_url}`, '_blank');
@@ -72,7 +101,7 @@ export const SaidaManager = (project) => {
                 } else {
                     btn.style.cursor = 'default';
                     btn.style.opacity = '0.3';
-                    btn.title = 'Sem anexo';
+                    btn.title = 'Sem comprovante';
                 }
                 return btn;
             }
