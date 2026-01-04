@@ -77,7 +77,7 @@ const renderApp = () => {
     </div>
   `;
 
-  // Append EVA Consultant
+  // Append IVA Consultant
   app.appendChild(AIConsultant());
 
   initAppLogic();
@@ -142,14 +142,14 @@ function initAppLogic() {
     });
   }
 
-  // EVA Agent Toggle
-  const evaWrapper = document.getElementById('ai-consultant-wrapper');
-  const toggleEvaBtn = document.getElementById('toggle-eva-btn');
+  // IVA Agent Toggle
+  const ivaWrapper = document.getElementById('ai-consultant-wrapper');
+  const toggleEvaBtn = document.getElementById('toggle-IVA-btn');
 
-  if (evaWrapper) {
+  if (ivaWrapper) {
     // Load saved state (default visible)
-    const isEvaVisible = localStorage.getItem('eva_visible') !== 'false';
-    evaWrapper.style.display = isEvaVisible ? 'block' : 'none';
+    const isEvaVisible = localStorage.getItem('iva_visible') !== 'false';
+    ivaWrapper.style.display = isEvaVisible ? 'block' : 'none';
     if (toggleEvaBtn) {
       toggleEvaBtn.style.opacity = isEvaVisible ? '1' : '0.5';
     }
@@ -157,10 +157,10 @@ function initAppLogic() {
     if (toggleEvaBtn) {
       toggleEvaBtn.addEventListener('click', (e) => {
         e.preventDefault();
-        const isHidden = evaWrapper.style.display === 'none';
-        evaWrapper.style.display = isHidden ? 'block' : 'none';
+        const isHidden = ivaWrapper.style.display === 'none';
+        ivaWrapper.style.display = isHidden ? 'block' : 'none';
         toggleEvaBtn.style.opacity = isHidden ? '1' : '0.5';
-        localStorage.setItem('eva_visible', isHidden);
+        localStorage.setItem('iva_visible', isHidden);
       });
     }
   }
@@ -210,7 +210,7 @@ function initAppLogic() {
     'tipo-producao-revenda': { tableName: 'tipo_producao_revenda', title: 'Compras<br/><span style="font-size: 0.85em;">(Produção/Revenda)</span>', term: 'Produção/Revenda' }
   };
 
-  // Global Navigation Function (Accessble by EVA)
+  // Global Navigation Function (Accessble by IVA)
   window.cashApp = window.cashApp || {};
   window.cashApp.navigate = (itemId) => {
     console.log(`[Navigate] Switching to screen: ${itemId}`);
@@ -407,3 +407,4 @@ function initAppLogic() {
     });
   });
 }
+

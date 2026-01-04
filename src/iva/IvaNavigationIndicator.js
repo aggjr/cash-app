@@ -1,12 +1,12 @@
 /**
- * EvaNavigationIndicator - Persistent Visual Navigation Guide
- * Shows golden arrows and highlights for EVA-guided navigation
- * Stays visible until user navigates manually or closes EVA
+ * ivaNavigationIndicator - Persistent Visual Navigation Guide
+ * Shows golden arrows and highlights for IVA-guided navigation
+ * Stays visible until user navigates manually or closes IVA
  */
 
 const INDICATOR_COLOR = '#DAB177'; // System golden color
 
-export const EvaNavigationIndicator = {
+export const ivaNavigationIndicator = {
     activeIndicators: [],
     isEvaNavigating: false,
 
@@ -21,17 +21,17 @@ export const EvaNavigationIndicator = {
         const target = element.classList.contains('menu-label') ? element : (element.querySelector('.menu-label') || element);
 
         // Check if already has indicator
-        const existing = target.querySelector('.eva-nav-arrow');
+        const existing = target.querySelector('.IVA-nav-arrow');
         if (existing) return existing;
 
         const arrow = document.createElement('span');
-        arrow.className = 'eva-nav-arrow';
+        arrow.className = 'IVA-nav-arrow';
         arrow.innerHTML = '⬅'; // Left arrow pointing to text
         arrow.style.cssText = `
             color: ${INDICATOR_COLOR};
             font-size: 1.2rem;
             margin-left: 3px;
-            animation: eva-arrow-pulse-left 1.5s ease-in-out infinite;
+            animation: IVA-arrow-pulse-left 1.5s ease-in-out infinite;
             display: inline-block;
             vertical-align: middle;
             font-weight: bold;
@@ -58,13 +58,13 @@ export const EvaNavigationIndicator = {
             zIndex: element.style.zIndex
         };
 
-        element.dataset.evaOriginalBorder = JSON.stringify(original);
+        element.dataset.ivaOriginalBorder = JSON.stringify(original);
 
         element.style.position = element.style.position || 'relative';
         element.style.zIndex = '999';
         element.style.border = `3px solid ${INDICATOR_COLOR}`;
         element.style.boxShadow = `0 0 20px ${INDICATOR_COLOR}80, inset 0 0 10px ${INDICATOR_COLOR}40`;
-        element.style.animation = 'eva-border-glow 2s ease-in-out infinite';
+        element.style.animation = 'IVA-border-glow 2s ease-in-out infinite';
 
         this.activeIndicators.push({ element, type: 'border' });
     },
@@ -73,7 +73,7 @@ export const EvaNavigationIndicator = {
      * Mark full navigation path (menu > submenu > screen)
      */
     markNavigationPath(screenId) {
-        console.log('[EVA Nav] Marking navigation path for:', screenId);
+        console.log('[IVA Nav] Marking navigation path for:', screenId);
         this.isEvaNavigating = true;
 
         // Clear previous indicators first
@@ -86,21 +86,21 @@ export const EvaNavigationIndicator = {
 
                 // Strategy 2: If not found, search by text content
                 if (!activeItem) {
-                    console.log('[EVA Nav] Searching menu by screen name...');
+                    console.log('[IVA Nav] Searching menu by screen name...');
                     const labels = document.querySelectorAll('.menu-label');
                     for (const label of labels) {
                         const text = label.textContent.trim().toLowerCase();
                         const searchId = screenId.toLowerCase().replace(/-/g, ' ');
                         if (text.includes(searchId) || searchId.includes(text)) {
                             activeItem = label.closest('.menu-item');
-                            console.log('[EVA Nav] Found menu item by text:', text);
+                            console.log('[IVA Nav] Found menu item by text:', text);
                             break;
                         }
                     }
                 }
 
                 if (activeItem) {
-                    console.log('[EVA Nav] Menu item found!', activeItem);
+                    console.log('[IVA Nav] Menu item found!', activeItem);
 
                     // Scroll into view if needed
                     activeItem.scrollIntoView({ behavior: 'smooth', block: 'center' });
@@ -109,7 +109,7 @@ export const EvaNavigationIndicator = {
                     this.addArrowIndicator(activeItem);
 
                     // Highlight menu item ROW - store original background
-                    activeItem.dataset.evaOriginalBg = activeItem.style.backgroundColor || '';
+                    activeItem.dataset.ivaOriginalBg = activeItem.style.backgroundColor || '';
                     activeItem.style.backgroundColor = `${INDICATOR_COLOR}20`;
                     this.activeIndicators.push({ element: activeItem, type: 'background' });
 
@@ -124,9 +124,9 @@ export const EvaNavigationIndicator = {
                         const parentItem = parentWrapper ? parentWrapper.querySelector('.menu-item') : null;
 
                         if (parentItem && parentItem !== activeItem) {
-                            console.log('[EVA Nav] Found parent menu item:', parentItem.querySelector('.menu-label')?.textContent);
+                            console.log('[IVA Nav] Found parent menu item:', parentItem.querySelector('.menu-label')?.textContent);
                             this.addArrowIndicator(parentItem);
-                            parentItem.dataset.evaOriginalBg = parentItem.style.backgroundColor || '';
+                            parentItem.dataset.ivaOriginalBg = parentItem.style.backgroundColor || '';
                             parentItem.style.backgroundColor = `${INDICATOR_COLOR}15`;
                             this.activeIndicators.push({ element: parentItem, type: 'background' });
                             // Expand submenu if needed? usually handled by click but we just highlight
@@ -136,7 +136,7 @@ export const EvaNavigationIndicator = {
                         parentSubmenu = parentWrapper ? parentWrapper.parentElement.closest('.submenu') : null;
                     }
                 } else {
-                    console.warn('[EVA Nav] Menu item not found for:', screenId);
+                    console.warn('[IVA Nav] Menu item not found for:', screenId);
                 }
 
                 // Highlight modal or main content area (EXCLUDING FOOTER)
@@ -157,14 +157,14 @@ export const EvaNavigationIndicator = {
                 }
 
                 if (targetContainer) {
-                    console.log('[EVA Nav] Highlighting container:', targetContainer.className || targetContainer.id);
+                    console.log('[IVA Nav] Highlighting container:', targetContainer.className || targetContainer.id);
                     this.addBorderHighlight(targetContainer);
                 } else {
-                    console.warn('[EVA Nav] No container found to highlight');
+                    console.warn('[IVA Nav] No container found to highlight');
                 }
 
             } catch (error) {
-                console.error('[EVA Nav] Error marking path:', error);
+                console.error('[IVA Nav] Error marking path:', error);
             }
         }, 800); // Increased wait time for modals to render
     },
@@ -173,7 +173,7 @@ export const EvaNavigationIndicator = {
      * Clear all navigation indicators
      */
     clearAll() {
-        console.log('[EVA Nav] Clearing all indicators');
+        console.log('[IVA Nav] Clearing all indicators');
 
         this.activeIndicators.forEach(({ element, arrow, type }) => {
             try {
@@ -183,20 +183,20 @@ export const EvaNavigationIndicator = {
                 }
 
                 // Restore border highlights
-                if (type === 'border' && element.dataset.evaOriginalBorder) {
-                    const original = JSON.parse(element.dataset.evaOriginalBorder);
+                if (type === 'border' && element.dataset.ivaOriginalBorder) {
+                    const original = JSON.parse(element.dataset.ivaOriginalBorder);
                     element.style.border = original.border;
                     element.style.boxShadow = original.boxShadow;
                     element.style.position = original.position;
                     element.style.zIndex = original.zIndex;
                     element.style.animation = '';
-                    delete element.dataset.evaOriginalBorder;
+                    delete element.dataset.ivaOriginalBorder;
                 }
 
                 // Restore background colors
-                if (type === 'background' && element.dataset.evaOriginalBg !== undefined) {
-                    element.style.backgroundColor = element.dataset.evaOriginalBg;
-                    delete element.dataset.evaOriginalBg;
+                if (type === 'background' && element.dataset.ivaOriginalBg !== undefined) {
+                    element.style.backgroundColor = element.dataset.ivaOriginalBg;
+                    delete element.dataset.ivaOriginalBg;
                 }
 
                 // Legacy cleanup for any remaining colored backgrounds
@@ -204,7 +204,7 @@ export const EvaNavigationIndicator = {
                     element.style.backgroundColor = '';
                 }
             } catch (error) {
-                console.error('[EVA Nav] Error removing indicator:', error);
+                console.error('[IVA Nav] Error removing indicator:', error);
             }
         });
 
@@ -213,16 +213,16 @@ export const EvaNavigationIndicator = {
     },
 
     /**
-     * Auto-clear when user navigates manually (not via EVA)
+     * Auto-clear when user navigates manually (not via IVA)
      */
     setupManualNavigationDetector() {
         // Clear on manual menu clicks
         document.addEventListener('click', (e) => {
             const isMenuClick = e.target.closest('.menu-item');
-            const isEvaClick = e.target.closest('.eva-chat, #eva-icon');
+            const isEvaClick = e.target.closest('.IVA-chat, #IVA-icon');
 
             if (isMenuClick && !isEvaClick && this.isEvaNavigating) {
-                console.log('[EVA Nav] Manual navigation detected, clearing indicators');
+                console.log('[IVA Nav] Manual navigation detected, clearing indicators');
                 this.clearAll();
             }
         });
@@ -233,14 +233,14 @@ export const EvaNavigationIndicator = {
      */
     init() {
         this.setupManualNavigationDetector();
-        console.log('[EVA Nav] Indicator system initialized');
+        console.log('[IVA Nav] Indicator system initialized');
     }
 };
 
 // Add CSS animations
 const style = document.createElement('style');
 style.textContent = `
-    @keyframes eva-arrow-pulse-left {
+    @keyframes IVA-arrow-pulse-left {
         0%, 100% {
             transform: translateX(0);
             opacity: 0.8;
@@ -251,7 +251,7 @@ style.textContent = `
         }
     }
 
-    @keyframes eva-border-glow {
+    @keyframes IVA-border-glow {
         0%, 100% {
             box-shadow: 0 0 20px ${INDICATOR_COLOR}80, inset 0 0 10px ${INDICATOR_COLOR}40;
         }
@@ -260,7 +260,7 @@ style.textContent = `
         }
     }
 
-    .eva-nav-arrow {
+    .IVA-nav-arrow {
         pointer-events: none;
         user-select: none;
     }
@@ -268,4 +268,5 @@ style.textContent = `
 document.head.appendChild(style);
 
 // Auto-initialize when module loads
-EvaNavigationIndicator.init();
+ivaNavigationIndicator.init();
+

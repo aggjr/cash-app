@@ -121,9 +121,9 @@ export const Sidebar = () => {
         ${menuItems.map(item => renderMenuItem(item)).join('')}
       </nav>
       <div class="sidebar-footer">
-        <a href="#" class="menu-item" id="toggle-eva-btn" title="Habilitar/Desabilitar EVA">
+        <a href="#" class="menu-item" id="toggle-IVA-btn" title="Habilitar/Desabilitar IVA">
           <span class="menu-icon"><img src="/robot_icon.png" style="width: 24px; height: 24px; border-radius: 50%; object-fit: cover;"></span>
-          <span class="menu-text">EVA</span>
+          <span class="menu-text">IVA</span>
         </a>
         <a href="#" class="menu-item" id="logout-btn">
           <span class="menu-icon">🚪</span>
@@ -133,3 +133,4 @@ export const Sidebar = () => {
     </aside>
   `;
 };
+

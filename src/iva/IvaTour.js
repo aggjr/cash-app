@@ -1,12 +1,12 @@
 /**
- * EVA Guided Tour System
+ * IVA Guided Tour System
  * Automatically navigates through system screens with narration and highlights
  */
 
-import { EvaNavigationIndicator } from './EvaNavigationIndicator.js';
-import { EvaActions } from './EvaActions.js';
+import { ivaNavigationIndicator } from './ivaNavigationIndicator.js';
+import { ivaActions } from './ivaActions.js';
 
-export const EvaTour = {
+export const ivaTour = {
     currentStep: 0,
     isActive: false,
     steps: [],
@@ -18,7 +18,7 @@ export const EvaTour = {
      * @param {string} mode - 'overview' for quick 2min tour, 'full' for complete 10-15min tour
      */
     async start(mode = 'full') {
-        console.log('[EVA Tour] Starting tour:', mode);
+        console.log('[IVA Tour] Starting tour:', mode);
         this.isActive = true;
         this.currentStep = 0;
         this.isPaused = false;
@@ -36,10 +36,10 @@ export const EvaTour = {
         // Show tour controls
         this.showControls();
 
-        // Ensure EVA Chat is valid and open for narration text
-        if (window.EVAConsultant) {
-            if (window.EVAConsultant.isOpen && !window.EVAConsultant.isOpen()) {
-                window.EVAConsultant.toggleChat();
+        // Ensure IVA Chat is valid and open for narration text
+        if (window.ivaConsultant) {
+            if (window.ivaConsultant.isOpen && !window.ivaConsultant.isOpen()) {
+                window.ivaConsultant.toggleChat();
             }
         }
 
@@ -61,7 +61,7 @@ export const EvaTour = {
 
         // Skip SharedTable intro if already presented
         if (step.isSharedTableIntro && this.sharedTablePresented) {
-            console.log('[EVA Tour] SharedTable already presented, skipping...');
+            console.log('[IVA Tour] SharedTable already presented, skipping...');
             this.currentStep = index + 1;
             await this.executeStep(this.currentStep);
             return;
@@ -72,15 +72,15 @@ export const EvaTour = {
             this.sharedTablePresented = true;
         }
 
-        console.log(`[EVA Tour] Step ${index + 1}/${this.steps.length}:`, step.title);
+        console.log(`[IVA Tour] Step ${index + 1}/${this.steps.length}:`, step.title);
 
         try {
             // 1. Clear previous highlights
-            EvaNavigationIndicator.clearAll();
+            ivaNavigationIndicator.clearAll();
 
             // 2. Navigate to screen
             if (step.screenId) {
-                EvaActions.handle('NAVIGATE', { target: step.screenId });
+                ivaActions.handle('NAVIGATE', { target: step.screenId });
             }
 
             // 3. Wait for navigation to complete
@@ -88,7 +88,7 @@ export const EvaTour = {
 
             // 4. Add navigation indicators (arrows + highlights)
             if (step.screenId) {
-                EvaNavigationIndicator.markNavigationPath(step.screenId);
+                ivaNavigationIndicator.markNavigationPath(step.screenId);
             }
 
             // 5. Highlight specific elements
@@ -97,13 +97,13 @@ export const EvaTour = {
                 step.highlights.forEach(h => {
                     const el = document.querySelector(h.selector);
                     if (el) {
-                        EvaNavigationIndicator.addBorderHighlight(el);
+                        ivaNavigationIndicator.addBorderHighlight(el);
                         if (h.addArrow) {
-                            EvaNavigationIndicator.addArrowIndicator(el);
+                            ivaNavigationIndicator.addArrowIndicator(el);
                         }
-                        console.log('[EVA Tour] Highlighted:', h.selector);
+                        console.log('[IVA Tour] Highlighted:', h.selector);
                     } else {
-                        console.warn('[EVA Tour] Element not found:', h.selector);
+                        console.warn('[IVA Tour] Element not found:', h.selector);
                     }
                 });
             }
@@ -116,7 +116,7 @@ export const EvaTour = {
                     if (action.type === 'click') {
                         const el = document.querySelector(action.selector);
                         if (el) {
-                            console.log('[EVA Tour] Clicking:', action.selector);
+                            console.log('[IVA Tour] Clicking:', action.selector);
                             el.click();
 
                             // Wait for modal/dropdown to appear
@@ -124,13 +124,13 @@ export const EvaTour = {
                                 await this.wait(action.waitAfter);
                             }
                         } else {
-                            console.warn('[EVA Tour] Action element not found:', action.selector);
+                            console.warn('[IVA Tour] Action element not found:', action.selector);
                         }
                     } else if (action.type === 'close') {
                         // Close any open modals/overlays
                         const closeBtn = document.querySelector(action.selector);
                         if (closeBtn) {
-                            console.log('[EVA Tour] Closing:', action.selector);
+                            console.log('[IVA Tour] Closing:', action.selector);
                             closeBtn.click();
                         } else {
                             // Try ESC key
@@ -144,9 +144,9 @@ export const EvaTour = {
                 }
             }
 
-            // 6. EVA narration WITH SYNCHRONIZATION
-            if (window.EVAConsultant) {
-                window.EVAConsultant.addMessage?.('ai', step.narration);
+            // 6. IVA narration WITH SYNCHRONIZATION
+            if (window.ivaConsultant) {
+                window.ivaConsultant.addMessage?.('ai', step.narration);
 
                 // Wait for speech to complete
                 await this.speakAndWait(step.narration);
@@ -166,7 +166,7 @@ export const EvaTour = {
             }
 
         } catch (error) {
-            console.error('[EVA Tour] Error in step:', error);
+            console.error('[IVA Tour] Error in step:', error);
             // Continue to next step despite error
             setTimeout(() => this.executeStep(index + 1), 2000);
         }
@@ -180,7 +180,7 @@ export const EvaTour = {
         if (window.speechSynthesis) {
             window.speechSynthesis.pause();
         }
-        console.log('[EVA Tour] Paused');
+        console.log('[IVA Tour] Paused');
     },
 
     /**
@@ -191,7 +191,7 @@ export const EvaTour = {
         if (window.speechSynthesis) {
             window.speechSynthesis.resume();
         }
-        console.log('[EVA Tour] Resumed');
+        console.log('[IVA Tour] Resumed');
         this.executeStep(this.currentStep);
     },
 
@@ -209,23 +209,23 @@ export const EvaTour = {
      * Finish tour
      */
     async finish() {
-        console.log('[EVA Tour] Finishing tour');
+        console.log('[IVA Tour] Finishing tour');
         this.isActive = false;
         this.isPaused = false;
 
         // Clear all highlights
-        EvaNavigationIndicator.clearAll();
+        ivaNavigationIndicator.clearAll();
 
         // Safety clear after 1.5s to catch any racing navigation indicators
         setTimeout(() => {
-            EvaNavigationIndicator.clearAll();
+            ivaNavigationIndicator.clearAll();
         }, 1500);
 
         // Hide controls
         this.hideControls();
 
         // Mark user as introduced
-        if (window.EVAConsultant) {
+        if (window.ivaConsultant) {
             try {
                 const token = localStorage.getItem('token');
                 await fetch(`${window.API_BASE_URL}/auth/update-preference`, {
@@ -234,25 +234,25 @@ export const EvaTour = {
                         'Content-Type': 'application/json',
                         'Authorization': `Bearer ${token}`
                     },
-                    body: JSON.stringify({ evaIntroduced: 1 })
+                    body: JSON.stringify({ ivaIntroduced: 1 })
                 });
 
                 const user = JSON.parse(localStorage.getItem('user') || '{}');
-                user.eva_introduced = 1;
+                user.iva_introduced = 1;
                 localStorage.setItem('user', JSON.stringify(user));
 
             } catch (error) {
-                console.error('[EVA Tour] Error marking introduced:', error);
+                console.error('[IVA Tour] Error marking introduced:', error);
             }
         }
 
         // Final message
         const msg = '🎉 Tour concluído! Agora você conhece todas as funcionalidades do CASH. Estarei sempre aqui para ajudar!';
-        if (window.EVAConsultant) {
-            window.EVAConsultant.addMessage?.('ai', msg);
+        if (window.ivaConsultant) {
+            window.ivaConsultant.addMessage?.('ai', msg);
             // Remove emojis for speech
             const msgForSpeech = msg.replace(/[\u{1F300}-\u{1F9FF}]/gu, '').trim();
-            window.EVAConsultant.speak?.(msgForSpeech);
+            window.ivaConsultant.speak?.(msgForSpeech);
         }
     },
 
@@ -260,20 +260,20 @@ export const EvaTour = {
      * Show tour controls UI
      */
     showControls() {
-        let controls = document.getElementById('eva-tour-controls');
+        let controls = document.getElementById('IVA-tour-controls');
         if (!controls) {
             controls = document.createElement('div');
-            controls.id = 'eva-tour-controls';
+            controls.id = 'IVA-tour-controls';
             controls.innerHTML = `
-                <div class="eva-tour-progress">
+                <div class="IVA-tour-progress">
                     <div class="progress-bar"></div>
                     <span class="progress-text">Etapa 0 de 0</span>
                 </div>
                 <div class="tour-buttons">
-                    <button onclick="window.EvaTour.pause()" class="btn-pause">⏸️ Pausar</button>
-                    <button onclick="window.EvaTour.resume()" class="btn-resume" style="display:none;">▶️ Continuar</button>
-                    <button onclick="window.EvaTour.skip()" class="btn-skip">⏭️ Pular</button>
-                    <button onclick="window.EvaTour.finish()" class="btn-exit">❌ Sair</button>
+                    <button onclick="window.ivaTour.pause()" class="btn-pause">⏸️ Pausar</button>
+                    <button onclick="window.ivaTour.resume()" class="btn-resume" style="display:none;">▶️ Continuar</button>
+                    <button onclick="window.ivaTour.skip()" class="btn-skip">⏭️ Pular</button>
+                    <button onclick="window.ivaTour.finish()" class="btn-exit">❌ Sair</button>
                 </div>
             `;
             controls.style.cssText = `
@@ -290,21 +290,21 @@ export const EvaTour = {
             document.body.appendChild(controls);
 
             // Add CSS for controls
-            if (!document.getElementById('eva-tour-styles')) {
+            if (!document.getElementById('IVA-tour-styles')) {
                 const style = document.createElement('style');
-                style.id = 'eva-tour-styles';
+                style.id = 'IVA-tour-styles';
                 style.textContent = `
-                    .eva-tour-progress {
+                    .IVA-tour-progress {
                         margin-bottom: 1rem;
                     }
-                    .eva-tour-progress .progress-bar {
+                    .IVA-tour-progress .progress-bar {
                         height: 8px;
                         background: #e5e7eb;
                         border-radius: 4px;
                         overflow: hidden;
                         margin-bottom: 0.5rem;
                     }
-                    .eva-tour-progress .progress-bar::after {
+                    .IVA-tour-progress .progress-bar::after {
                         content: '';
                         display: block;
                         height: 100%;
@@ -360,14 +360,14 @@ export const EvaTour = {
         }
 
         // Expose to window for onclick handlers
-        window.EvaTour = this;
+        window.ivaTour = this;
     },
 
     /**
      * Hide tour controls
      */
     hideControls() {
-        const controls = document.getElementById('eva-tour-controls');
+        const controls = document.getElementById('IVA-tour-controls');
         if (controls) {
             controls.remove();
         }
@@ -377,7 +377,7 @@ export const EvaTour = {
      * Update progress bar
      */
     updateProgress(current, total) {
-        const controls = document.getElementById('eva-tour-controls');
+        const controls = document.getElementById('IVA-tour-controls');
         if (controls) {
             const progressBar = controls.querySelector('.progress-bar');
             const progressText = controls.querySelector('.progress-text');
@@ -405,21 +405,21 @@ export const EvaTour = {
             const user = JSON.parse(localStorage.getItem('user') || '{}');
 
             // If voice is disabled, resolve immediately
-            if (!user?.eva_voice_enabled) {
-                console.log('[EVA Tour] Voice disabled, skipping speech');
+            if (!user?.iva_voice_enabled) {
+                console.log('[IVA Tour] Voice disabled, skipping speech');
                 resolve();
                 return;
             }
 
             // Call speak function
-            if (window.EVAConsultant?.speak) {
-                window.EVAConsultant.speak(text);
+            if (window.ivaConsultant?.speak) {
+                window.ivaConsultant.speak(text);
             }
 
             // Calculate estimated speech duration
             // Average speaking rate: ~150 words per minute (2.5 words/second)
             // Adjust for voice rate setting (0.5x to 1.5x speed)
-            const voiceRate = user?.eva_voice_rate !== undefined ? user.eva_voice_rate : 75;
+            const voiceRate = user?.iva_voice_rate !== undefined ? user.iva_voice_rate : 75;
             const actualRate = 0.5 + (voiceRate / 100); // 0.5 to 1.5
 
             const wordCount = text.split(/\s+/).length;
@@ -429,7 +429,7 @@ export const EvaTour = {
             // Add buffer for TTS initialization and safety margin
             const totalWaitMs = adjustedTimeMs + 1500;
 
-            console.log(`[EVA Tour] Speech duration estimate: ${Math.round(totalWaitMs)}ms (${wordCount} words, rate: ${actualRate.toFixed(2)}x)`);
+            console.log(`[IVA Tour] Speech duration estimate: ${Math.round(totalWaitMs)}ms (${wordCount} words, rate: ${actualRate.toFixed(2)}x)`);
 
             setTimeout(resolve, totalWaitMs);
         });
@@ -444,4 +444,5 @@ export const EvaTour = {
 };
 
 // Auto-expose to window
-window.EvaTour = EvaTour;
+window.ivaTour = ivaTour;
+

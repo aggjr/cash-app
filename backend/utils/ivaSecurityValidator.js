@@ -1,6 +1,6 @@
 /**
- * EVA Security Validator
- * Validates and sanitizes EVA context and preferences to prevent injection attacks
+ * IVA Security Validator
+ * Validates and sanitizes IVA context and preferences to prevent injection attacks
  */
 
 const CONTEXT_VERSION = '1.0';
@@ -20,9 +20,9 @@ const MAX_LENGTHS = {
     inferred_profile: 2000
 };
 
-class EvaSecurityValidator {
+class ivaSecurityValidator {
     /**
-     * Validate and sanitize eva_context (project level)
+     * Validate and sanitize iva_context (project level)
      * @param {Object} context - Raw context from user input or DB
      * @returns {Object} Sanitized and validated context
      */
@@ -64,7 +64,7 @@ class EvaSecurityValidator {
     }
 
     /**
-     * Validate and sanitize eva_preferences (user level)
+     * Validate and sanitize iva_preferences (user level)
      * @param {Object} prefs - Raw preferences from user input or DB
      * @returns {Object} Sanitized and validated preferences
      */
@@ -143,7 +143,7 @@ class EvaSecurityValidator {
     }
 
     /**
-     * Get default eva_context structure
+     * Get default iva_context structure
      * @returns {Object} Default context
      */
     static getDefaultEvaContext() {
@@ -158,7 +158,7 @@ class EvaSecurityValidator {
     }
 
     /**
-     * Get default eva_preferences structure
+     * Get default iva_preferences structure
      * @returns {Object} Default preferences
      */
     static getDefaultEvaPreferences() {
@@ -171,7 +171,7 @@ class EvaSecurityValidator {
     }
 
     /**
-     * Check if eva_context needs version migration
+     * Check if iva_context needs version migration
      * @param {Object} context - Context to check
      * @returns {boolean} True if migration needed
      */
@@ -181,4 +181,5 @@ class EvaSecurityValidator {
     }
 }
 
-module.exports = EvaSecurityValidator;
+module.exports = ivaSecurityValidator;
+

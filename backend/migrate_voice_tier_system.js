@@ -12,11 +12,11 @@ async function migrateVoiceTierSystem() {
             FROM INFORMATION_SCHEMA.COLUMNS 
             WHERE TABLE_SCHEMA = DATABASE() 
             AND TABLE_NAME = 'system_settings' 
-            AND COLUMN_NAME = 'eva_voice_premium'
+            AND COLUMN_NAME = 'iva_voice_premium'
         `);
 
         if (columns.length === 0) {
-            console.log('⚠️ Column eva_voice_premium does not exist. Skipping migration.');
+            console.log('⚠️ Column iva_voice_premium does not exist. Skipping migration.');
             return;
         }
 
@@ -32,14 +32,14 @@ async function migrateVoiceTierSystem() {
         // Modify column to support 0/1/2 with Premium as default
         await connection.query(`
             ALTER TABLE system_settings 
-            MODIFY COLUMN eva_voice_premium TINYINT(1) DEFAULT 2 
+            MODIFY COLUMN iva_voice_premium TINYINT(1) DEFAULT 2 
             COMMENT '0=Free (browser), 1=Standard (Google), 2=Premium (Neural2) - Default: Premium'
         `);
 
-        console.log('✅ Column eva_voice_premium updated to support 3 tiers (0/1/2)');
+        console.log('✅ Column iva_voice_premium updated to support 3 tiers (0/1/2)');
 
         // Log current values
-        const [settings] = await connection.query('SELECT eva_voice_premium FROM system_settings');
+        const [settings] = await connection.query('SELECT iva_voice_premium FROM system_settings');
         console.log('Current values:', settings);
 
     } catch (error) {
@@ -51,3 +51,4 @@ async function migrateVoiceTierSystem() {
 }
 
 module.exports = migrateVoiceTierSystem;
+

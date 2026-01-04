@@ -1,15 +1,15 @@
 const OpenAI = require('openai');
 const db = require('../config/database');
-const EvaContextBuilder = require('../services/EvaContextBuilder');
-const EvaIntentValidator = require('../utils/evaIntentValidator');
-const EvaDataFetcher = require('../services/EvaDataFetcher');
-const EvaScreenCache = require('../services/EvaScreenCache');
+const ivaContextBuilder = require('../services/ivaContextBuilder');
+const ivaIntentValidator = require('../utils/ivaIntentValidator');
+const ivaDataFetcher = require('../services/ivaDataFetcher');
+const ivaScreenCache = require('../services/ivaScreenCache');
 
 const openai = new OpenAI({
     apiKey: process.env.OPENAI_API_KEY
 });
 
-console.log('✅ EVA Controller loaded successfully');
+console.log('✅ IVA Controller loaded successfully');
 
 const chat = async (req, res, next) => {
     try {
@@ -21,9 +21,9 @@ const chat = async (req, res, next) => {
         }
 
         // Validate intent before calling LLM (security layer)
-        const validation = EvaIntentValidator.validate(message);
+        const validation = ivaIntentValidator.validate(message);
         if (!validation.valid) {
-            console.log(`[EVA Security] Blocked ${validation.reason}:`, message.substring(0, 50));
+            console.log(`[IVA Security] Blocked ${validation.reason}:`, message.substring(0, 50));
             return res.json({
                 reply: validation.response,
                 validationError: validation.reason
@@ -33,7 +33,7 @@ const chat = async (req, res, next) => {
         // ========================================
         // DEBUG: User Data Loading
         // ========================================
-        console.log('[EVA Chat] Step 1 - req.user:', JSON.stringify({
+        console.log('[IVA Chat] Step 1 - req.user:', JSON.stringify({
             id: user?.id,
             name: user?.name,
             email: user?.email,
@@ -46,7 +46,7 @@ const chat = async (req, res, next) => {
             context.projectId ? db.query('SELECT * FROM projects WHERE id = ?', [context.projectId]) : Promise.resolve([[]])
         ]);
 
-        console.log('[EVA Chat] Step 2 - DB Query Result:', JSON.stringify({
+        console.log('[IVA Chat] Step 2 - DB Query Result:', JSON.stringify({
             userResultLength: userResult?.length,
             userResultFirstLength: userResult?.[0]?.length,
             userData: userResult?.[0]?.[0] ? {
@@ -61,7 +61,7 @@ const chat = async (req, res, next) => {
         const userData = userResult[0][0] || user;
         const projectData = projectResult[0][0] || {};
 
-        console.log('[EVA Chat] Step 3 - Final userData:', JSON.stringify({
+        console.log('[IVA Chat] Step 3 - Final userData:', JSON.stringify({
             id: userData?.id,
             name: userData?.name,
             preferred_name: userData?.preferred_name,
@@ -70,13 +70,13 @@ const chat = async (req, res, next) => {
         }));
 
         // Build dynamic profile
-        const dynamicProfile = await EvaContextBuilder.buildDynamicBusinessProfile(db, context.projectId);
+        const dynamicProfile = await ivaContextBuilder.buildDynamicBusinessProfile(db, context.projectId);
 
         // Build system prompt
-        const systemPrompt = await EvaContextBuilder.buildChatContext(userData, projectData, dynamicProfile, { isIntroduction });
+        const systemPrompt = await ivaContextBuilder.buildChatContext(userData, projectData, dynamicProfile, { isIntroduction });
 
-        console.log('[EVA Chat] Step 4 - System Prompt Length:', systemPrompt?.length);
-        console.log('[EVA Chat] Step 4 - Prompt contains name?', systemPrompt?.includes(userData?.name || 'NOTFOUND'));
+        console.log('[IVA Chat] Step 4 - System Prompt Length:', systemPrompt?.length);
+        console.log('[IVA Chat] Step 4 - Prompt contains name?', systemPrompt?.includes(userData?.name || 'NOTFOUND'));
 
         // Prepare messages for OpenAI
         const messages = [
@@ -141,7 +141,7 @@ const chat = async (req, res, next) => {
         });
 
     } catch (error) {
-        console.error('EVA Chat Error:', error);
+        console.error('IVA Chat Error:', error);
 
         if (error.code === 'insufficient_quota') {
             return res.status(429).json({ error: 'Limite de uso da API OpenAI atingido' });
@@ -161,29 +161,29 @@ const operate = async (req, res) => {
         const user = req.user;
 
         // EXTENSIVE DEBUG LOGGING
-        console.log('[EVA Operate] ========== REQUEST DEBUG ==========');
-        console.log('[EVA Operate] Processing:', message);
-        console.log('[EVA Operate] req.body keys:', Object.keys(req.body));
-        console.log('[EVA Operate] context:', JSON.stringify(context, null, 2));
-        console.log('[EVA Operate] screenContext (root):', screenContext?.screenId);
-        console.log('[EVA Operate] context.screenContext:', context?.screenContext?.screenId);
-        console.log('[EVA Operate] currentScreen:', currentScreen?.id);
-        console.log('[EVA Operate] req.user:', JSON.stringify({
+        console.log('[IVA Operate] ========== REQUEST DEBUG ==========');
+        console.log('[IVA Operate] Processing:', message);
+        console.log('[IVA Operate] req.body keys:', Object.keys(req.body));
+        console.log('[IVA Operate] context:', JSON.stringify(context, null, 2));
+        console.log('[IVA Operate] screenContext (root):', screenContext?.screenId);
+        console.log('[IVA Operate] context.screenContext:', context?.screenContext?.screenId);
+        console.log('[IVA Operate] currentScreen:', currentScreen?.id);
+        console.log('[IVA Operate] req.user:', JSON.stringify({
             id: user?.id,
             name: user?.name,
             preferred_name: user?.preferred_name
         }));
-        console.log('[EVA Operate] Has activeScreenContext:', !!req.body.activeScreenContext);
-        console.log('[EVA Operate] ====================================');
+        console.log('[IVA Operate] Has activeScreenContext:', !!req.body.activeScreenContext);
+        console.log('[IVA Operate] ====================================');
 
         if (!message || !message.trim()) {
             return res.status(400).json({ error: 'Mensagem é obrigatória' });
         }
 
         // Validate intent before calling LLM (security layer)
-        const validation = EvaIntentValidator.validate(message);
+        const validation = ivaIntentValidator.validate(message);
         if (!validation.valid) {
-            console.log(`[EVA Security] Blocked ${validation.reason}:`, message.substring(0, 50));
+            console.log(`[IVA Security] Blocked ${validation.reason}:`, message.substring(0, 50));
             return res.json({
                 action: { action: 'REPLY' },
                 message: validation.response,
@@ -192,12 +192,12 @@ const operate = async (req, res) => {
         }
 
         // Extract user voice settings
-        const currentVoiceRate = userSettings?.evaVoiceRate || 88;
-        const currentVoiceGender = userSettings?.evaVoiceMale ? 'M' : 'F';
-        const currentVoiceEnabled = userSettings?.evaVoiceEnabled !== 0;
+        const currentVoiceRate = userSettings?.ivaVoiceRate || 88;
+        const currentVoiceGender = userSettings?.ivaVoiceMale ? 'M' : 'F';
+        const currentVoiceEnabled = userSettings?.ivaVoiceEnabled !== 0;
 
         // Get state and time context
-        const evaIntroduced = user?.eva_introduced || false;
+        const ivaIntroduced = user?.iva_introduced || false;
         const now = new Date();
         const hour = now.getHours();
         const timeOfDay = hour >= 5 && hour < 12 ? 'manhã' : hour >= 12 && hour < 19 ? 'tarde' : 'noite';
@@ -205,7 +205,7 @@ const operate = async (req, res) => {
         // ========================================
         // DEBUG: User Data Loading (Operate)
         // ========================================
-        console.log('[EVA Operate] Step 1 - req.user:', JSON.stringify({
+        console.log('[IVA Operate] Step 1 - req.user:', JSON.stringify({
             id: user?.id,
             name: user?.name,
             email: user?.email,
@@ -218,7 +218,7 @@ const operate = async (req, res) => {
             context?.projectId ? db.query('SELECT * FROM projects WHERE id = ?', [context.projectId]) : Promise.resolve([[]])
         ]);
 
-        console.log('[EVA Operate] Step 2 - DB Query Result:', JSON.stringify({
+        console.log('[IVA Operate] Step 2 - DB Query Result:', JSON.stringify({
             userResultLength: userResult?.length,
             userResultFirstLength: userResult?.[0]?.length,
             userData: userResult?.[0]?.[0] ? {
@@ -233,7 +233,7 @@ const operate = async (req, res) => {
         const userData = userResult[0][0] || user;
         const projectData = projectResult[0][0] || {};
 
-        console.log('[EVA Operate] Step 3 - Final userData:', JSON.stringify({
+        console.log('[IVA Operate] Step 3 - Final userData:', JSON.stringify({
             id: userData?.id,
             name: userData?.name,
             preferred_name: userData?.preferred_name,
@@ -248,14 +248,14 @@ const operate = async (req, res) => {
         let cachedScreens = [];
 
         if (context?.screenContext) {
-            console.log('[EVA Operate] Screen Context Received:', {
+            console.log('[IVA Operate] Screen Context Received:', {
                 screenId: context.screenContext.screenId,
                 filters: context.screenContext.filters
             });
 
             try {
                 // Fetch complete data from DB with same filters
-                screenData = await EvaDataFetcher.fetchScreenData(
+                screenData = await ivaDataFetcher.fetchScreenData(
                     db,
                     context.screenContext.screenId,
                     context.screenContext.filters,
@@ -264,28 +264,28 @@ const operate = async (req, res) => {
 
                 // Cache the data
                 if (screenData) {
-                    EvaScreenCache.set(user.id, context.projectId, screenData.screenId, screenData);
-                    console.log('[EVA Operate] Cached screen data:', screenData.screenId);
+                    ivaScreenCache.set(user.id, context.projectId, screenData.screenId, screenData);
+                    console.log('[IVA Operate] Cached screen data:', screenData.screenId);
                 }
 
                 // Get most accessed screens for cross-analysis
-                cachedScreens = EvaScreenCache.getMostAccessed(user.id, context.projectId, 3);
-                console.log('[EVA Operate] Most accessed screens:', cachedScreens.map(s => s.screenId));
+                cachedScreens = ivaScreenCache.getMostAccessed(user.id, context.projectId, 3);
+                console.log('[IVA Operate] Most accessed screens:', cachedScreens.map(s => s.screenId));
 
             } catch (error) {
-                console.error('[EVA Operate] Error fetching screen data:', error);
+                console.error('[IVA Operate] Error fetching screen data:', error);
                 // Continue without screen data
             }
         }
 
         // Build dynamic profile
-        const dynamicProfile = await EvaContextBuilder.buildDynamicBusinessProfile(db, context?.projectId);
+        const dynamicProfile = await ivaContextBuilder.buildDynamicBusinessProfile(db, context?.projectId);
 
         // Build screen data context
-        const screenDataContext = EvaContextBuilder.buildScreenDataContext(screenData, cachedScreens);
+        const screenDataContext = ivaContextBuilder.buildScreenDataContext(screenData, cachedScreens);
 
         // Build operate system prompt
-        const systemPrompt = await EvaContextBuilder.buildOperateContext(
+        const systemPrompt = await ivaContextBuilder.buildOperateContext(
             userData,
             projectData,
             screenContext,
@@ -322,7 +322,7 @@ const operate = async (req, res) => {
         ]);
 
         const responseContent = completion.choices[0].message.content;
-        console.log('EVA Operate Response:', responseContent);
+        console.log('IVA Operate Response:', responseContent);
 
         if (!responseContent) {
             throw new Error('OpenAI returned empty response');
@@ -347,7 +347,7 @@ const operate = async (req, res) => {
 
             res.json(action);
         } catch (e) {
-            console.error('Failed to parse EVA operate JSON:', e);
+            console.error('Failed to parse IVA operate JSON:', e);
             res.status(500).json({
                 error: 'Falha ao processar comando',
                 raw: responseContent
@@ -355,7 +355,7 @@ const operate = async (req, res) => {
         }
 
     } catch (error) {
-        console.error('EVA Operate Error:', error);
+        console.error('IVA Operate Error:', error);
         console.error('Request Body Slice:', JSON.stringify(req.body).slice(0, 500)); // Log safe amount
         res.status(500).json({ error: 'Erro interno ao processar comando' });
     }
@@ -366,3 +366,4 @@ module.exports = {
     chat,
     operate
 };
+

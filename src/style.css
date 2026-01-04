@@ -1546,7 +1546,7 @@ body.dark-mode tr:nth-child(odd) {
   background-color: rgba(255, 255, 255, 0.01);
 }
 
-/* EVA Microphone Recording Animation */
+/* IVA Microphone Recording Animation */
 @keyframes mic-pulse {
 
   0%,

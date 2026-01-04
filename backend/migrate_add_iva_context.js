@@ -1,46 +1,46 @@
 const db = require('./config/database');
 
 /**
- * Migration: Add EVA context columns
+ * Migration: Add IVA context columns
  * Adds JSONB columns for hierarchical context:
- * - projects.eva_context: Project-level business context
- * - users.eva_preferences: User-level personal preferences
+ * - projects.iva_context: Project-level business context
+ * - users.iva_preferences: User-level personal preferences
  */
 
 async function migrate() {
-    console.log('🔄 Starting EVA context migration...');
+    console.log('🔄 Starting IVA context migration...');
 
     try {
-        // Add eva_context to projects table
-        console.log('Checking projects table for eva_context column...');
+        // Add iva_context to projects table
+        console.log('Checking projects table for iva_context column...');
         const [projColumns] = await db.query(`
             SELECT COLUMN_NAME 
             FROM INFORMATION_SCHEMA.COLUMNS 
-            WHERE TABLE_SCHEMA = ? AND TABLE_NAME = 'projects' AND COLUMN_NAME = 'eva_context'
+            WHERE TABLE_SCHEMA = ? AND TABLE_NAME = 'projects' AND COLUMN_NAME = 'iva_context'
         `, [process.env.DB_NAME]);
 
         if (projColumns.length === 0) {
-            console.log('Adding eva_context column to projects...');
-            await db.query(`ALTER TABLE projects ADD COLUMN eva_context JSON`);
-            console.log('✅ projects.eva_context added');
+            console.log('Adding iva_context column to projects...');
+            await db.query(`ALTER TABLE projects ADD COLUMN iva_context JSON`);
+            console.log('✅ projects.iva_context added');
         } else {
-            console.log('ℹ️ projects.eva_context already exists');
+            console.log('ℹ️ projects.iva_context already exists');
         }
 
-        // Add eva_preferences to users table
-        console.log('Checking users table for eva_preferences column...');
+        // Add iva_preferences to users table
+        console.log('Checking users table for iva_preferences column...');
         const [userColumns] = await db.query(`
             SELECT COLUMN_NAME 
             FROM INFORMATION_SCHEMA.COLUMNS 
-            WHERE TABLE_SCHEMA = ? AND TABLE_NAME = 'users' AND COLUMN_NAME = 'eva_preferences'
+            WHERE TABLE_SCHEMA = ? AND TABLE_NAME = 'users' AND COLUMN_NAME = 'iva_preferences'
         `, [process.env.DB_NAME]);
 
         if (userColumns.length === 0) {
-            console.log('Adding eva_preferences column to users...');
-            await db.query(`ALTER TABLE users ADD COLUMN eva_preferences JSON`);
-            console.log('✅ users.eva_preferences added');
+            console.log('Adding iva_preferences column to users...');
+            await db.query(`ALTER TABLE users ADD COLUMN iva_preferences JSON`);
+            console.log('✅ users.iva_preferences added');
         } else {
-            console.log('ℹ️ users.eva_preferences already exists');
+            console.log('ℹ️ users.iva_preferences already exists');
         }
 
         // Set default context for existing projects (MySQL compatible JSON update)
@@ -50,17 +50,17 @@ async function migrate() {
         // We handle null/empty check safely
         await db.query(`
             UPDATE projects 
-            SET eva_context = JSON_OBJECT(
+            SET iva_context = JSON_OBJECT(
                 'business_type', 'general',
                 'tone', 'formal',
                 'custom_instructions', ''
             )
-            WHERE eva_context IS NULL 
+            WHERE iva_context IS NULL 
         `);
 
         console.log('✅ Default context set for existing projects');
 
-        console.log('✅ EVA context migration completed successfully!');
+        console.log('✅ IVA context migration completed successfully!');
         return true;
 
     } catch (error) {
@@ -83,3 +83,4 @@ if (require.main === module) {
 }
 
 module.exports = migrate;
+

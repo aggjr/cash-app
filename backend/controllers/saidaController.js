@@ -1146,3 +1146,4 @@ exports.bulkDeleteSaidas = async (req, res, next) => {
         if (connection) connection.release();
     }
 };
+

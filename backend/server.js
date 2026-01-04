@@ -64,7 +64,7 @@ apiRouter.use('/debug', debugRoutes);
 apiRouter.use('/settings', settingsRoutes);
 apiRouter.use('/audit-logs', auditRoutes);
 apiRouter.use('/loans', require('./routes/loans'));
-apiRouter.use('/eva', require('./routes/eva'));
+apiRouter.use('/IVA', require('./routes/IVA'));
 apiRouter.use('/tts', ttsRoutes); // Google Cloud TTS
 
 // Static Uploads Serving
@@ -139,7 +139,7 @@ const migrateLoans = require('./migrate_loans');
 const migratePreferredName = require('./migrate_add_preferred_name');
 const migrateAddEvaContext = require('./migrate_add_eva_context');
 const migrateAddUserRoles = require('./migrate_add_user_roles');
-const migrateEvaPreferences = require('./migrate-eva-user-preferences');
+const migrateEvaPreferences = require('./migrate-IVA-user-preferences');
 const migrateEvaVoiceRate = require('./migrate_add_eva_voice_rate');
 const migrateAddGenderColumn = require('./migrate_add_gender_column');
 const migrateAddScreenFamiliarity = require('./migrate_add_screen_familiarity');
@@ -217,3 +217,4 @@ function startServer() {
 }
 
 module.exports = app;
+

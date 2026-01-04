@@ -1,13 +1,13 @@
 /**
- * EvaHighlight - Visual Guidance System
- * Highlights UI elements when EVA is guiding the user
+ * ivaHighlight - Visual Guidance System
+ * Highlights UI elements when IVA is guiding the user
  */
 
 const HIGHLIGHT_COLOR = '#DAB177'; // System golden color
 const HIGHLIGHT_DURATION = 3000; // 3 seconds
-const PULSE_ANIMATION = 'eva-pulse 1.5s ease-in-out infinite';
+const PULSE_ANIMATION = 'IVA-pulse 1.5s ease-in-out infinite';
 
-export const EvaHighlight = {
+export const ivaHighlight = {
     // Currently highlighted elements
     currentHighlights: [],
 
@@ -98,7 +98,7 @@ export const EvaHighlight = {
         if (element) {
             return this.highlight(element, options);
         }
-        console.warn('[EvaHighlight] Element not found:', selector);
+        console.warn('[ivaHighlight] Element not found:', selector);
         return null;
     },
 
@@ -116,7 +116,7 @@ export const EvaHighlight = {
 // Add CSS animation to document
 const styleElement = document.createElement('style');
 styleElement.textContent = `
-    @keyframes eva-pulse {
+    @keyframes IVA-pulse {
         0%, 100% {
             box-shadow: 0 0 20px ${HIGHLIGHT_COLOR}80, inset 0 0 10px ${HIGHLIGHT_COLOR}40;
         }
@@ -126,3 +126,4 @@ styleElement.textContent = `
     }
 `;
 document.head.appendChild(styleElement);
+

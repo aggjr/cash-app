@@ -1,11 +1,11 @@
 /**
- * EVA Intent Validator
+ * IVA Intent Validator
  * Validates user messages to ensure they are within scope and not malicious
  * Security layer before reaching LLM
  */
 
-class EvaIntentValidator {
-    // Topics that are out of scope for EVA
+class ivaIntentValidator {
+    // Topics that are out of scope for IVA
     static OFF_TOPIC_KEYWORDS = [
         'política', 'eleição', 'partido', 'governo',
         'religião', 'igreja', 'deus', 'fé',
@@ -68,7 +68,7 @@ class EvaIntentValidator {
         // Check for jailbreak attempts first (higher priority)
         for (const pattern of this.JAILBREAK_PATTERNS) {
             if (msgLower.includes(pattern)) {
-                console.warn('[EVA Security] Jailbreak attempt detected:', pattern);
+                console.warn('[IVA Security] Jailbreak attempt detected:', pattern);
                 return {
                     valid: false,
                     reason: 'jailbreak_attempt',
@@ -80,7 +80,7 @@ class EvaIntentValidator {
         // Check for off-topic keywords
         for (const keyword of this.OFF_TOPIC_KEYWORDS) {
             if (msgLower.includes(keyword)) {
-                console.warn('[EVA Security] Off-topic detected:', keyword);
+                console.warn('[IVA Security] Off-topic detected:', keyword);
                 return {
                     valid: false,
                     reason: 'off_topic',
@@ -94,4 +94,5 @@ class EvaIntentValidator {
     }
 }
 
-module.exports = EvaIntentValidator;
+module.exports = ivaIntentValidator;
+

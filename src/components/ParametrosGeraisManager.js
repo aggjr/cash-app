@@ -74,18 +74,18 @@ export const ParametrosGeraisManager = (project) => {
             originalSettings = {
                 numero_dias: settings.numero_dias,
                 tempo_minutos_liberacao: settings.tempo_minutos_liberacao,
-                eva_timeout: settings.eva_timeout || 3, // Default 3s
-                eva_voice_rate: settings.eva_voice_rate || 50, // Default 50 = Normal (1.0x)
-                eva_voice_premium: settings.eva_voice_premium || 0, // Default 0 = free
-                eva_voice_male: settings.eva_voice_male || 0 // Default 0 = female
+                iva_timeout: settings.iva_timeout || 3, // Default 3s
+                iva_voice_rate: settings.iva_voice_rate || 50, // Default 50 = Normal (1.0x)
+                iva_voice_premium: settings.iva_voice_premium || 0, // Default 0 = free
+                iva_voice_male: settings.iva_voice_male || 0 // Default 0 = female
             };
             currentSettings = { ...originalSettings };
 
             console.log('[ParametrosGerais] Settings loaded:', {
-                eva_timeout: currentSettings.eva_timeout,
-                eva_voice_rate: currentSettings.eva_voice_rate,
-                eva_voice_premium: currentSettings.eva_voice_premium,
-                eva_voice_male: currentSettings.eva_voice_male
+                iva_timeout: currentSettings.iva_timeout,
+                iva_voice_rate: currentSettings.iva_voice_rate,
+                iva_voice_premium: currentSettings.iva_voice_premium,
+                iva_voice_male: currentSettings.iva_voice_male
             });
 
             console.log('Original settings:', originalSettings);
@@ -401,7 +401,7 @@ export const ParametrosGeraisManager = (project) => {
                     ⚙️ Geral
                 </button>
                 <button 
-                    id="tab-eva" 
+                    id="tab-IVA" 
                     class="settings-tab"
                     style="
                         flex: 1;
@@ -416,7 +416,7 @@ export const ParametrosGeraisManager = (project) => {
                         transition: all 0.2s;
                     "
                 >
-                    🤖 IA EVA
+                    🤖 IA IVA
                 </button>
             </div>
 
@@ -544,12 +544,12 @@ export const ParametrosGeraisManager = (project) => {
                 </div>
             </div>
 
-            <!-- Tab Content: EVA -->
-            <div id="content-eva" class="tab-content" style="display: none;">
-                <h2 style="margin-bottom: 1.5rem;">🤖 Configurações da IA EVA</h2>
+            <!-- Tab Content: IVA -->
+            <div id="content-IVA" class="tab-content" style="display: none;">
+                <h2 style="margin-bottom: 1.5rem;">🤖 Configurações da IA IVA</h2>
                 <div style="background: var(--color-surface); padding: 2rem; border-radius: 12px; border: 1px solid var(--color-border-light);">
 
-                <!-- Tempo Resposta EVA - SLIDER -->
+                <!-- Tempo Resposta IVA - SLIDER -->
                 <div style="margin-bottom: 2rem;">
                     <label style="display: block; font-weight: 500; margin-bottom: 0.5rem; color: var(--color-text);">
                         ⏳ Tempo de Espera (segundos)
@@ -559,10 +559,10 @@ export const ParametrosGeraisManager = (project) => {
                         <div style="flex: 1; position: relative;">
                             <input 
                                 type="range" 
-                                id="slider-eva_timeout" 
+                                id="slider-iva_timeout" 
                                 min="1" 
                                 max="10" 
-                                value="${currentSettings.eva_timeout || 2}"
+                                value="${currentSettings.iva_timeout || 2}"
                                 step="1"
                                 style="
                                     width: 100%;
@@ -594,24 +594,24 @@ export const ParametrosGeraisManager = (project) => {
                         <span style="min-width: 30px; color: var(--color-text-muted); font-size: 0.875rem;">10s</span>
                     </div>
                     <small style="display: block; margin-top: 0.5rem; color: var(--color-text-muted);">
-                        Tempo de silêncio para a EVA considerar que você terminou de falar
+                        Tempo de silêncio para a IVA considerar que você terminou de falar
                     </small>
                 </div>
 
                 <!-- Voice Speed Slider -->
                 <div style="margin-bottom: 2rem;">
                     <label style="display: block; font-weight: 500; margin-bottom: 0.5rem; color: var(--color-text);">
-                        🎤 Velocidade da Voz da EVA
+                        🎤 Velocidade da Voz da IVA
                     </label>
                     <div style="display: flex; align-items: center; gap: 1rem;">
                         <span style="min-width: 40px; text-align: right; color: var(--color-text-muted); font-size: 0.875rem;">0x</span>
                         <div style="flex: 1; position: relative;">
                             <input 
                                 type="range" 
-                                id="slider-eva_voice_rate" 
+                                id="slider-iva_voice_rate" 
                                 min="-100" 
                                 max="100" 
-                                value="${currentSettings.eva_voice_rate || 0}"
+                                value="${currentSettings.iva_voice_rate || 0}"
                                 step="5"
                                 style="
                                     width: 100%;
@@ -664,19 +664,19 @@ export const ParametrosGeraisManager = (project) => {
                         >🔊</button>
                     </div>
                     <small style="display: block; margin-top: 0.5rem; color: var(--color-text-muted);">
-                        Ajuste a velocidade de fala da EVA (-100% a +100% da velocidade padrão de 1.30x)
+                        Ajuste a velocidade de fala da IVA (-100% a +100% da velocidade padrão de 1.30x)
                     </small>
                 </div>
 
                 <!-- Tipo de Voz -->
                 <div style="margin-bottom: 2rem;">
                     <label style="display: block; font-weight: 500; margin-bottom: 1rem; color: var(--color-text); font-size: 1.1rem;">
-                        🎙️ Qualidade da Voz da EVA
+                        🎙️ Qualidade da Voz da IVA
                     </label>
                     
                     <!-- Free - Row 1 -->
                     <label class="voice-type-option" style="display: flex; align-items: center; padding: 1rem; background: white; border: 2px solid #e5e7eb; border-radius: 8px; margin-bottom: 0.75rem; cursor: pointer; transition: all 0.3s;">
-                        <input type="radio" name="eva_voice_premium" value="0" style="margin-right: 1rem; width: 20px; height: 20px; cursor: pointer;">
+                        <input type="radio" name="iva_voice_premium" value="0" style="margin-right: 1rem; width: 20px; height: 20px; cursor: pointer;">
                         <div style="flex: 1;">
                             <div style="font-weight: 600; color: #333; margin-bottom: 4px;">🆓 Voz Gratuita</div>
                             <small style="color: #666;">Sintetizador do navegador (grátis)</small>
@@ -685,7 +685,7 @@ export const ParametrosGeraisManager = (project) => {
                     
                     <!-- Standard - Row 2 -->
                     <label class="voice-type-option" style="display: flex; align-items: center; padding: 1rem; background: white; border: 2px solid #e5e7eb; border-radius: 8px; margin-bottom: 0.75rem; cursor: pointer; transition: all 0.3s;">
-                        <input type="radio" name="eva_voice_premium" value="1" style="margin-right: 1rem; width: 20px; height: 20px; cursor: pointer;">
+                        <input type="radio" name="iva_voice_premium" value="1" style="margin-right: 1rem; width: 20px; height: 20px; cursor: pointer;">
                         <div style="flex: 1;">
                             <div style="font-weight: 600; color: #333; margin-bottom: 4px;">📢 Voz Standard</div>
                             <small style="color: #666;">Google TTS Standard (sempre grátis - 4M chars/mês)</small>
@@ -694,7 +694,7 @@ export const ParametrosGeraisManager = (project) => {
                     
                     <!-- Premium - Row 3 -->
                     <label class="voice-type-option" style="display: flex; align-items: center; padding: 1rem; background: white; border: 2px solid #e5e7eb; border-radius: 8px; margin-bottom: 1rem; cursor: pointer; transition: all 0.3s;">
-                        <input type="radio" name="eva_voice_premium" value="2" style="margin-right: 1rem; width: 20px; height: 20px; cursor: pointer;">
+                        <input type="radio" name="iva_voice_premium" value="2" style="margin-right: 1rem; width: 20px; height: 20px; cursor: pointer;">
                         <div style="flex: 1;">
                             <div style="font-weight: 600; color: #333; margin-bottom: 4px;">🎤 Voz Premium</div>
                             <small style="color: #666;">Google TTS Neural2 (qualidade máxima - grátis 1º ano)</small>
@@ -710,7 +710,7 @@ export const ParametrosGeraisManager = (project) => {
                             <label style="display: flex; align-items: center; gap: 0.5rem; cursor: pointer; padding: 0.5rem 1rem; border: 2px solid #e5e7eb; border-radius: 6px; transition: all 0.2s; flex: 1; justify-content: center;" class="voice-gender-option">
                                 <input 
                                     type="radio" 
-                                    name="eva_voice_male" 
+                                    name="iva_voice_male" 
                                     value="0"
                                     checked
                                     style="cursor: pointer;"
@@ -720,7 +720,7 @@ export const ParametrosGeraisManager = (project) => {
                             <label style="display: flex; align-items: center; gap: 0.5rem; cursor: pointer; padding: 0.5rem 1rem; border: 2px solid #e5e7eb; border-radius: 6px; transition: all 0.2s; flex: 1; justify-content: center;" class="voice-gender-option">
                                 <input 
                                     type="radio" 
-                                    name="eva_voice_male" 
+                                    name="iva_voice_male" 
                                     value="1"
                                     style="cursor: pointer;"
                                 />
@@ -813,7 +813,7 @@ export const ParametrosGeraisManager = (project) => {
             </div>
         `;
 
-        // Event listeners para inputs (exceto eva_timeout que agora é slider)
+        // Event listeners para inputs (exceto iva_timeout que agora é slider)
         const fields = ['numero_dias', 'tempo_minutos_liberacao'];
         fields.forEach(field => {
             const input = container.querySelector(`#input-${field}`);
@@ -827,7 +827,7 @@ export const ParametrosGeraisManager = (project) => {
         });
 
         // Event listener para timeout slider (AUTO-SAVE)
-        const timeoutSlider = container.querySelector('#slider-eva_timeout');
+        const timeoutSlider = container.querySelector('#slider-iva_timeout');
         const timeoutDisplay = container.querySelector('#timeout-display');
         let timeoutSaveTimer = null;
 
@@ -841,7 +841,7 @@ export const ParametrosGeraisManager = (project) => {
 
         timeoutSlider.addEventListener('input', (e) => {
             const value = parseInt(e.target.value);
-            currentSettings.eva_timeout = value;
+            currentSettings.iva_timeout = value;
             updateTimeoutDisplay(value);
 
             // Clear previous timer
@@ -852,17 +852,17 @@ export const ParametrosGeraisManager = (project) => {
             // Auto-save after 800ms of inactivity
             timeoutSaveTimer = setTimeout(async () => {
                 try {
-                    const response = await fetch(`${API_BASE_URL}/settings/eva_timeout`, {
+                    const response = await fetch(`${API_BASE_URL}/settings/iva_timeout`, {
                         method: 'PUT',
                         headers: getHeaders(),
                         body: JSON.stringify({ value })
                     });
 
                     if (response.ok) {
-                        originalSettings.eva_timeout = value;
+                        originalSettings.iva_timeout = value;
                         // Update global timeout immediately
-                        if (window.AIConsultant && window.AIConsultant.evaTimeout !== undefined) {
-                            window.AIConsultant.evaTimeout = value * 1000;
+                        if (window.AIConsultant && window.AIConsultant.ivaTimeout !== undefined) {
+                            window.AIConsultant.ivaTimeout = value * 1000;
                         }
                         console.log('[Settings] Auto-saved timeout to:', value + 's');
                         showToast('✓ Tempo de espera atualizado', 'success');
@@ -878,10 +878,10 @@ export const ParametrosGeraisManager = (project) => {
         });
 
         // Initialize timeout display
-        updateTimeoutDisplay(currentSettings.eva_timeout || 2);
+        updateTimeoutDisplay(currentSettings.iva_timeout || 2);
 
         // Event listener para voice rate slider (AUTO-SAVE)
-        const voiceSlider = container.querySelector('#slider-eva_voice_rate');
+        const voiceSlider = container.querySelector('#slider-iva_voice_rate');
         const voiceDisplay = container.querySelector('#voice-rate-display');
         let voiceSaveTimer = null;
 
@@ -897,7 +897,7 @@ export const ParametrosGeraisManager = (project) => {
 
         voiceSlider.addEventListener('input', (e) => {
             const value = parseInt(e.target.value);
-            currentSettings.eva_voice_rate = value;
+            currentSettings.iva_voice_rate = value;
             updateVoiceDisplay(value);
 
             // Clear previous timer
@@ -908,16 +908,16 @@ export const ParametrosGeraisManager = (project) => {
             // Auto-save after 800ms of inactivity
             voiceSaveTimer = setTimeout(async () => {
                 try {
-                    const response = await fetch(`${API_BASE_URL}/settings/eva_voice_rate`, {
+                    const response = await fetch(`${API_BASE_URL}/settings/iva_voice_rate`, {
                         method: 'PUT',
                         headers: getHeaders(),
                         body: JSON.stringify({ value })
                     });
 
                     if (response.ok) {
-                        originalSettings.eva_voice_rate = value;
+                        originalSettings.iva_voice_rate = value;
                         // Update global voice rate immediately
-                        window.evaVoiceRateAdjustment = value;
+                        window.ivaVoiceRateAdjustment = value;
                         console.log('[Settings] Auto-saved voice rate to:', value);
                         showToast('✓ Velocidade da voz atualizada', 'success');
                     } else {
@@ -932,17 +932,17 @@ export const ParametrosGeraisManager = (project) => {
         });
 
         // Initialize voice display
-        updateVoiceDisplay(currentSettings.eva_voice_rate || 0);
+        updateVoiceDisplay(currentSettings.iva_voice_rate || 0);
 
         // Voice type selection
-        const voiceTypeRadios = container.querySelectorAll('input[name="eva_voice_premium"]');
-        const voiceGenderRadios = container.querySelectorAll('input[name="eva_voice_male"]');
+        const voiceTypeRadios = container.querySelectorAll('input[name="iva_voice_premium"]');
+        const voiceGenderRadios = container.querySelectorAll('input[name="iva_voice_male"]');
 
         // Set initial values
-        const voiceTypeChecked = container.querySelector(`input[name="eva_voice_premium"][value="${currentSettings.eva_voice_premium}"]`);
+        const voiceTypeChecked = container.querySelector(`input[name="iva_voice_premium"][value="${currentSettings.iva_voice_premium}"]`);
         if (voiceTypeChecked) voiceTypeChecked.checked = true;
 
-        const voiceGenderChecked = container.querySelector(`input[name="eva_voice_male"][value="${currentSettings.eva_voice_male}"]`);
+        const voiceGenderChecked = container.querySelector(`input[name="iva_voice_male"][value="${currentSettings.iva_voice_male}"]`);
         if (voiceGenderChecked) voiceGenderChecked.checked = true;
 
         // Function to update voice type borders
@@ -986,11 +986,11 @@ export const ParametrosGeraisManager = (project) => {
                 const data = await response.json();
 
                 if (!data.available) {
-                    console.warn('[EVA Settings] Google Cloud TTS not available:', data.message);
+                    console.warn('[IVA Settings] Google Cloud TTS not available:', data.message);
 
                     // Disable Standard and Premium options
-                    const standardRadio = container.querySelector('input[name="eva_voice_premium"][value="1"]');
-                    const premiumRadio = container.querySelector('input[name="eva_voice_premium"][value="2"]');
+                    const standardRadio = container.querySelector('input[name="iva_voice_premium"][value="1"]');
+                    const premiumRadio = container.querySelector('input[name="iva_voice_premium"][value="2"]');
                     const standardLabel = standardRadio?.closest('.voice-type-option');
                     const premiumLabel = premiumRadio?.closest('.voice-type-option');
 
@@ -1013,11 +1013,11 @@ export const ParametrosGeraisManager = (project) => {
                     }
 
                     // If user had tier 1 or 2 selected, force fallback to tier 0 (Free)
-                    if (currentSettings.eva_voice_premium >= 1) {
-                        console.log('[EVA Settings] Forcing fallback to Free tier (browser voice)');
-                        currentSettings.eva_voice_premium = 0;
+                    if (currentSettings.iva_voice_premium >= 1) {
+                        console.log('[IVA Settings] Forcing fallback to Free tier (browser voice)');
+                        currentSettings.iva_voice_premium = 0;
 
-                        const freeRadio = container.querySelector('input[name="eva_voice_premium"][value="0"]');
+                        const freeRadio = container.querySelector('input[name="iva_voice_premium"][value="0"]');
                         if (freeRadio) {
                             freeRadio.checked = true;
                             updateVoiceTypeBorders();
@@ -1029,20 +1029,20 @@ export const ParametrosGeraisManager = (project) => {
                                 method: 'PATCH',
                                 headers: getHeaders(),
                                 body: JSON.stringify({
-                                    setting: 'eva_voice_premium',
+                                    setting: 'iva_voice_premium',
                                     value: 0
                                 })
                             });
                             showToast('⚠️ Voz alterada para Gratuita (TTS não disponível)', 'warning');
                         } catch (error) {
-                            console.error('[EVA Settings] Failed to save fallback:', error);
+                            console.error('[IVA Settings] Failed to save fallback:', error);
                         }
                     }
                 } else {
-                    console.log('[EVA Settings] Google Cloud TTS is available');
+                    console.log('[IVA Settings] Google Cloud TTS is available');
                 }
             } catch (error) {
-                console.error('[EVA Settings] Failed to check TTS status:', error);
+                console.error('[IVA Settings] Failed to check TTS status:', error);
             }
         })();
 
@@ -1051,7 +1051,7 @@ export const ParametrosGeraisManager = (project) => {
         voiceTypeRadios.forEach(radio => {
             radio.addEventListener('change', () => {
                 const value = parseInt(radio.value); // Convert to integer
-                currentSettings.eva_voice_premium = value;
+                currentSettings.iva_voice_premium = value;
 
                 // Update visual feedback
                 updateVoiceTypeBorders();
@@ -1062,17 +1062,17 @@ export const ParametrosGeraisManager = (project) => {
                 // Auto-save after 500ms
                 voiceTypeSaveTimer = setTimeout(async () => {
                     try {
-                        const response = await fetch(`${API_BASE_URL}/settings/eva_voice_premium`, {
+                        const response = await fetch(`${API_BASE_URL}/settings/iva_voice_premium`, {
                             method: 'PUT',
                             headers: getHeaders(),
                             body: JSON.stringify({ value })
                         });
 
                         if (response.ok) {
-                            originalSettings.eva_voice_premium = value;
+                            originalSettings.iva_voice_premium = value;
 
                             // Update global variable immediately (no need to reload page!)
-                            window.evaVoicePremium = value;
+                            window.ivaVoicePremium = value;
                             console.log('[Settings] Auto-saved voice premium to:', value);
 
                             const tierNames = ['Gratuita', 'Standard', 'Premium'];
@@ -1094,7 +1094,7 @@ export const ParametrosGeraisManager = (project) => {
         voiceGenderRadios.forEach(radio => {
             radio.addEventListener('change', () => {
                 const value = parseInt(radio.value); // Convert to integer
-                currentSettings.eva_voice_male = value;
+                currentSettings.iva_voice_male = value;
 
                 // Update visual feedback
                 updateGenderBorders();
@@ -1105,17 +1105,17 @@ export const ParametrosGeraisManager = (project) => {
                 // Auto-save after 500ms
                 voiceGenderSaveTimer = setTimeout(async () => {
                     try {
-                        const response = await fetch(`${API_BASE_URL}/settings/eva_voice_male`, {
+                        const response = await fetch(`${API_BASE_URL}/settings/iva_voice_male`, {
                             method: 'PUT',
                             headers: getHeaders(),
                             body: JSON.stringify({ value })
                         });
 
                         if (response.ok) {
-                            originalSettings.eva_voice_male = value;
+                            originalSettings.iva_voice_male = value;
 
                             // Update global variable immediately
-                            window.evaVoiceMale = value;
+                            window.ivaVoiceMale = value;
                             console.log('[Settings] Auto-saved voice male to:', value);
                             showToast(`✓ Gênero da voz: ${value === 1 ? 'Masculina' : 'Feminina'}`, 'success');
                         } else {
@@ -1144,8 +1144,8 @@ export const ParametrosGeraisManager = (project) => {
                 window.speechSynthesis.cancel();
 
                 // Get current settings
-                const rate = calculateSpeechRate(currentSettings.eva_voice_rate || 70);
-                const isMale = currentSettings.eva_voice_male === 1;
+                const rate = calculateSpeechRate(currentSettings.iva_voice_rate || 70);
+                const isMale = currentSettings.iva_voice_male === 1;
 
                 console.log('[Test Voice] Speaking at rate:', rate.toFixed(2), 'Gender:', isMale ? 'Male' : 'Female');
 
@@ -1218,29 +1218,30 @@ export const ParametrosGeraisManager = (project) => {
 
     loadSettings();
 
-    // Create EVA tab content (placeholder for now)
-    const evaTabContent = () => {
-        const evaContainer = document.createElement('div');
-        evaContainer.innerHTML = `
+    // Create IVA tab content (placeholder for now)
+    const ivaTabContent = () => {
+        const ivaContainer = document.createElement('div');
+        ivaContainer.innerHTML = `
             <h2 style="margin-bottom: 1.5rem; color: var(--color-text-dark); font-size: 1.5rem;">
-                🤖 Configurações da IA EVA
+                🤖 Configurações da IA IVA
             </h2>
             <p style="color: #6b7280; margin-bottom: 2rem;">
-                Personalize o comportamento e as preferências da assistente virtual EVA.
+                Personalize o comportamento e as preferências da assistente virtual IVA.
             </p>
             <div style="background: #f9fafb; padding: 2rem; border-radius: 8px; text-align: center;">
                 <p style="color: #9ca3af; font-size: 0.95rem;">
-                    ⚙️ Configurações avançadas da EVA em desenvolvimento...
+                    ⚙️ Configurações avançadas da IVA em desenvolvimento...
                 </p>
             </div>
         `;
-        return evaContainer;
+        return ivaContainer;
     };
 
     // Create TabPanel - REMOVED TO FIX DOUBLE TABS
-    // The container already implements its own tabs (Geral / IA EVA) via renderSettings
+    // The container already implements its own tabs (Geral / IA IVA) via renderSettings
     // Wrapping it in TabPanel caused duplication and layout issues
 
     wrapper.appendChild(container);
     return wrapper;
 };
+

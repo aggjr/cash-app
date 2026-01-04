@@ -1,6 +1,6 @@
 import { getApiBaseUrl } from '../utils/apiConfig.js';
 
-export const EvaService = {
+export const ivaService = {
     decideOperation: async (text, context) => {
         try {
             const token = localStorage.getItem('token');
@@ -11,12 +11,12 @@ export const EvaService = {
             try {
                 const { ScreenContextExtractor } = await import('./ScreenContextExtractor.js');
                 screenContext = ScreenContextExtractor.extractFullContext();
-                console.log('[EvaService] Screen context extracted:', screenContext);
+                console.log('[ivaService] Screen context extracted:', screenContext);
             } catch (err) {
-                console.warn('[EvaService] Could not extract screen context:', err);
+                console.warn('[ivaService] Could not extract screen context:', err);
             }
 
-            console.log('[EvaService] Sending request to /eva/operate:', {
+            console.log('[ivaService] Sending request to /IVA/operate:', {
                 message: text,
                 currentScreen: context.currentScreen?.id || 'none',
                 screensCount: (context.availableScreens ? Object.values(context.availableScreens) : []).length,
@@ -32,7 +32,7 @@ export const EvaService = {
                 localStorage.getItem('selectedProjectId') ||
                 localStorage.getItem('projectId');
 
-            console.log('[EvaService] ProjectId resolution:', {
+            console.log('[ivaService] ProjectId resolution:', {
                 fromUser_default_project_id: user?.default_project_id,
                 fromUser_defaultProjectId: user?.defaultProjectId,
                 fromLocalStorage_selectedProjectId: localStorage.getItem('selectedProjectId'),
@@ -47,14 +47,14 @@ export const EvaService = {
                 currentScreenData: context.currentScreenData
             };
 
-            console.log('[EvaService] Sending request with context:', {
+            console.log('[ivaService] Sending request with context:', {
                 hasProjectId: !!requestContext.projectId,
                 hasScreenContext: !!requestContext.screenContext,
                 screenId: requestContext.screenContext?.screenId || 'none',
                 currentScreenId: context.currentScreen?.id || 'none'
             });
 
-            const response = await fetch(`${API_BASE_URL}/eva/operate`, {
+            const response = await fetch(`${API_BASE_URL}/IVA/operate`, {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json',
@@ -70,29 +70,30 @@ export const EvaService = {
                     userName: user?.name || '', // Full registered name for gender inference
                     preferredName: user?.preferred_name || '', // User's preferred form of address
                     userSettings: { // Voice configuration
-                        evaVoiceRate: user?.eva_voice_rate || 70,
-                        evaVoiceMale: user?.eva_voice_male || 0,
-                        evaVoiceEnabled: user?.eva_voice_enabled !== 0
+                        ivaVoiceRate: user?.iva_voice_rate || 70,
+                        ivaVoiceMale: user?.iva_voice_male || 0,
+                        ivaVoiceEnabled: user?.iva_voice_enabled !== 0
                     }
                 })
             });
 
-            console.log('[EvaService] Response status:', response.status);
+            console.log('[ivaService] Response status:', response.status);
 
             if (!response.ok) {
                 const errorText = await response.text();
-                console.error('[EvaService] Error response:', errorText);
+                console.error('[ivaService] Error response:', errorText);
                 // Fallback action
                 return { action: 'REPLY', message: 'Desculpe, tive um problema de conexão com meu cérebro.' };
             }
 
             const decision = await response.json();
-            console.log('[EvaService] Decision received:', decision);
+            console.log('[ivaService] Decision received:', decision);
             return decision;
 
         } catch (error) {
-            console.error('EvaService Exception:', error);
+            console.error('ivaService Exception:', error);
             return { action: 'REPLY', message: 'Erro ao processar sua solicitação.' };
         }
     }
 };
+

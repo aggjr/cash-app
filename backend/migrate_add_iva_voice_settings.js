@@ -17,31 +17,31 @@ async function migrateAddEvaVoiceSettings() {
             FROM INFORMATION_SCHEMA.COLUMNS 
             WHERE TABLE_SCHEMA = DATABASE() 
             AND TABLE_NAME = 'system_settings' 
-            AND COLUMN_NAME IN ('eva_voice_type', 'eva_voice_gender')
+            AND COLUMN_NAME IN ('iva_voice_type', 'iva_voice_gender')
         `);
 
         const existingColumns = columns.map(row => row.COLUMN_NAME);
 
-        // Add eva_voice_type if not exists
-        if (!existingColumns.includes('eva_voice_type')) {
+        // Add iva_voice_type if not exists
+        if (!existingColumns.includes('iva_voice_type')) {
             await connection.query(`
                 ALTER TABLE system_settings 
-                ADD COLUMN eva_voice_type VARCHAR(20) DEFAULT 'free'
+                ADD COLUMN iva_voice_type VARCHAR(20) DEFAULT 'free'
             `);
-            console.log('✓ Added column: eva_voice_type');
+            console.log('✓ Added column: iva_voice_type');
         } else {
-            console.log('⊘ Column eva_voice_type already exists');
+            console.log('⊘ Column iva_voice_type already exists');
         }
 
-        // Add eva_voice_gender if not exists
-        if (!existingColumns.includes('eva_voice_gender')) {
+        // Add iva_voice_gender if not exists
+        if (!existingColumns.includes('iva_voice_gender')) {
             await connection.query(`
                 ALTER TABLE system_settings 
-                ADD COLUMN eva_voice_gender VARCHAR(10) DEFAULT 'female'
+                ADD COLUMN iva_voice_gender VARCHAR(10) DEFAULT 'female'
             `);
-            console.log('✓ Added column: eva_voice_gender');
+            console.log('✓ Added column: iva_voice_gender');
         } else {
-            console.log('⊘ Column eva_voice_gender already exists');
+            console.log('⊘ Column iva_voice_gender already exists');
         }
 
         console.log('✓ Migration completed successfully');
@@ -54,3 +54,4 @@ async function migrateAddEvaVoiceSettings() {
 }
 
 module.exports = migrateAddEvaVoiceSettings;
+

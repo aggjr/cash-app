@@ -5,16 +5,16 @@ const API_URL = 'http://127.0.0.1:3001/api';
 async function testPreferenceFlow() {
     try {
         console.log('1. Logging in...');
-        let email = 'test.eva@example.com';
+        let email = 'test.IVA@example.com';
         let password = 'password123';
-        let projectName = 'EVA Test Project';
+        let projectName = 'IVA Test Project';
 
         // Register first to be sure
         console.log('   Registering/Ensuring user exists...');
         await fetch(`${API_URL}/auth/register`, {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ name: 'Eva Test User', email, password, projectName })
+            body: JSON.stringify({ name: 'IVA Test User', email, password, projectName })
         });
 
         // Get projects
@@ -78,3 +78,4 @@ async function testPreferenceFlow() {
 }
 
 testPreferenceFlow();
+

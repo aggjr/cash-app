@@ -70,15 +70,15 @@ export const ConsolidadasManager = (project) => {
 
             renderAllTables();
 
-            // --- EVA Context Broadcast (The Eyes) ---
-            if (window.EVA && window.EVA.updateScreenContext) {
-                // Calculate high-level summaries for EVA
+            // --- IVA Context Broadcast (The Eyes) ---
+            if (window.IVA && window.IVA.updateScreenContext) {
+                // Calculate high-level summaries for IVA
                 const summarizeRoot = (data, rootId) => {
                     const node = data.find(n => n.id === rootId);
                     return node ? { total: node.total, name: node.name } : null;
                 };
 
-                window.EVA.updateScreenContext({
+                window.IVA.updateScreenContext({
                     screenId: 'consolidadas_dre',
                     title: 'Consolidadas (DRE / Fluxo)',
                     viewType: viewType, // Caixa or Competencia
@@ -526,3 +526,4 @@ export const ConsolidadasManager = (project) => {
     return container;
 
 };
+

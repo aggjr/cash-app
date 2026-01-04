@@ -1,15 +1,15 @@
-const systemPrompts = require('../config/eva-system-prompts');
-const financialKnowledge = require('../config/eva-financial-knowledge');
-const systemMap = require('../config/eva-system-map');
-const EvaSecurityValidator = require('../utils/evaSecurityValidator');
+const systemPrompts = require('../config/IVA-system-prompts');
+const financialKnowledge = require('../config/IVA-financial-knowledge');
+const systemMap = require('../config/IVA-system-map');
+const ivaSecurityValidator = require('../utils/ivaSecurityValidator');
 
 /**
- * EVA Context Builder Service - Version 2.0
+ * IVA Context Builder Service - Version 2.0
  * Unified 3-layer architecture with security, caching, and preference hierarchy:
  * 
  * Layer 1: System (global personality and capabilities)
- * Layer 2: Project/Business (eva_context + inferred profile from transactions)
- * Layer 3: User (eva_preferences + job_title/department)
+ * Layer 2: Project/Business (iva_context + inferred profile from transactions)
+ * Layer 3: User (iva_preferences + job_title/department)
  * 
  * Improvements:
  * - Versioned JSON schemas
@@ -19,12 +19,12 @@ const EvaSecurityValidator = require('../utils/evaSecurityValidator');
  * - Prompt injection protection
  */
 
-class EvaContextBuilder {
+class ivaContextBuilder {
     /**
      * Build complete chat context
      * @deprecated Use buildUnifiedContext instead - kept for backward compatibility
-     * @param {Object} user - User object with eva_preferences
-     * @param {Object} project - Project object with eva_context
+     * @param {Object} user - User object with iva_preferences
+     * @param {Object} project - Project object with iva_context
      * @param {string} dynamicProfile - Infered business profile from DB (deprecated - now in unified)
      * @param {Object} options - Additional options (isIntroduction, etc)
      * @returns {Promise<string>} Complete system prompt
@@ -256,7 +256,7 @@ class EvaContextBuilder {
     }
 
     /**
-     * Build unified context for EVA (all 3 layers with security)
+     * Build unified context for IVA (all 3 layers with security)
      * This is the main function that combines everything
      * @param {Object} user - User object
      * @param {Object} project - Project object
@@ -280,7 +280,7 @@ class EvaContextBuilder {
         const securityAndToneLayer = `
 
 🔒 SEGURANÇA E ESCOPO (NUNCA VIOLE):
-- Você é EVA, assistente virtual do sistema CASH (gestão financeira empresarial)
+- Você é IVA, assistente virtual do sistema CASH (gestão financeira empresarial)
 - RESPONDA APENAS sobre: finanças, fluxo de caixa, transações, relatórios, gestão do negócio
 - NÃO responda sobre: política, religião, assuntos pessoais não relacionados ao trabalho
 - Se perguntarem algo fora do escopo: redirecione educadamente sem punir
@@ -347,12 +347,12 @@ EXEMPLOS DE NAVEGAÇÃO ADEQUADA:
         // ========================================
 
         // Validate and sanitize project context
-        const rawProjectContext = project?.eva_context || {};
-        const projectContext = EvaSecurityValidator.validateEvaContext(rawProjectContext);
+        const rawProjectContext = project?.iva_context || {};
+        const projectContext = ivaSecurityValidator.validateEvaContext(rawProjectContext);
 
         // Check if we need to refresh cached profile
         const needsRefresh = !projectContext.inferred_profile ||
-            EvaSecurityValidator.needsMigration(projectContext);
+            ivaSecurityValidator.needsMigration(projectContext);
 
         let businessContext = '';
 
@@ -395,8 +395,8 @@ EXEMPLOS DE NAVEGAÇÃO ADEQUADA:
         // ========================================
 
         // Validate and sanitize user preferences
-        const rawUserPrefs = user?.eva_preferences || {};
-        const userPrefs = EvaSecurityValidator.validateEvaPreferences(rawUserPrefs);
+        const rawUserPrefs = user?.iva_preferences || {};
+        const userPrefs = ivaSecurityValidator.validateEvaPreferences(rawUserPrefs);
 
         // Clear preference hierarchy implementation
         const communicationStyle = this.getCommunicationStyle(user, userPrefs);
@@ -449,10 +449,10 @@ EXEMPLOS DE NAVEGAÇÃO ADEQUADA:
 
         // Screen familiarity for adaptive verbosity
         let familiaritySection = '';
-        if (user.eva_screen_familiarity) {
-            const familiarity = typeof user.eva_screen_familiarity === 'string'
-                ? JSON.parse(user.eva_screen_familiarity)
-                : user.eva_screen_familiarity;
+        if (user.iva_screen_familiarity) {
+            const familiarity = typeof user.iva_screen_familiarity === 'string'
+                ? JSON.parse(user.iva_screen_familiarity)
+                : user.iva_screen_familiarity;
 
             familiaritySection = '\n\n📈 FAMILIARIDADE DO USUÁRIO COM TELAS:\n';
             familiaritySection += JSON.stringify(familiarity, null, 2) + '\n';
@@ -583,12 +583,12 @@ User (Previsão, 10 dias): "Menor fluxo 60 dias?"
 → {"action": "INTERACT", "interaction": {"actionId": "setDaysAhead", "params": [60]}, "followUpQuery": "menor fluxo", "message": "Ajustando para 60 dias..."}
 
 User: "Lança despesa R$ 500 internet"
-→ {"action": "GUIDE", "navigation": {"target": "saidas"}, "highlights": [{"selector": "[data-eva-new-btn]", "label": "1. Novo", "description": "Abre formulário"}], "explanation": "Vou te mostrar!", "tips": ["💡 Marque recorrente"]}
+→ {"action": "GUIDE", "navigation": {"target": "saidas"}, "highlights": [{"selector": "[data-IVA-new-btn]", "label": "1. Novo", "description": "Abre formulário"}], "explanation": "Vou te mostrar!", "tips": ["💡 Marque recorrente"]}
 
 User: "Mostre previsão"
 → {"action": "NAVIGATE", "target": "previsao", "message": "Abrindo previsão"}
 
-User: "Olá EVA"
+User: "Olá IVA"
 → {"action": "REPLY", "message": "Olá! Como posso ajudar?"}
 `;
     }
@@ -667,4 +667,5 @@ User: "Olá EVA"
     }
 }
 
-module.exports = EvaContextBuilder;
+module.exports = ivaContextBuilder;
+

@@ -15,7 +15,7 @@ const getSettings = async (req, res) => {
         if (settings.length === 0) {
             // Initialize default settings if not exists
             await connection.query(
-                'INSERT INTO system_settings (project_id, numero_dias, tempo_minutos_liberacao, eva_timeout, eva_voice_premium, eva_voice_male) VALUES (?, 3, 5, 2, 2, 0)',
+                'INSERT INTO system_settings (project_id, numero_dias, tempo_minutos_liberacao, iva_timeout, iva_voice_premium, iva_voice_male) VALUES (?, 3, 5, 2, 2, 0)',
                 [projectId]
             );
 
@@ -24,9 +24,9 @@ const getSettings = async (req, res) => {
                 project_id: projectId,
                 numero_dias: 3,
                 tempo_minutos_liberacao: 5,
-                eva_timeout: 2,
-                eva_voice_premium: 2,  // Premium as default
-                eva_voice_male: 0,      // Female as default
+                iva_timeout: 2,
+                iva_voice_premium: 2,  // Premium as default
+                iva_voice_male: 0,      // Female as default
                 unlock_expires_at: null
             });
         }
@@ -49,48 +49,48 @@ const updateSetting = async (req, res) => {
         const { value } = req.body;
 
         // Check if field is allowed
-        const allowedFields = ['numero_dias', 'tempo_minutos_liberacao', 'eva_timeout', 'eva_voice_rate', 'eva_voice_premium', 'eva_voice_male'];
+        const allowedFields = ['numero_dias', 'tempo_minutos_liberacao', 'iva_timeout', 'iva_voice_rate', 'iva_voice_premium', 'iva_voice_male'];
         if (!allowedFields.includes(field)) {
             return res.status(400).json({ error: 'Campo não permitido' });
         }
 
         let numValue = value;
-        if (field !== 'eva_voice_premium' && field !== 'eva_voice_male') {
+        if (field !== 'iva_voice_premium' && field !== 'iva_voice_male') {
             numValue = parseInt(value);
             if (isNaN(numValue)) {
                 return res.status(400).json({ error: 'Valor deve ser um número' });
             }
         }
 
-        // Validate eva_timeout (1-10 seconds)
-        if (field === 'eva_timeout') {
+        // Validate iva_timeout (1-10 seconds)
+        if (field === 'iva_timeout') {
             const timeoutValue = parseInt(value);
             if (isNaN(timeoutValue) || timeoutValue < 1 || timeoutValue > 10) {
-                return res.status(400).json({ error: 'eva_timeout deve estar entre 1 e 10 segundos' });
+                return res.status(400).json({ error: 'iva_timeout deve estar entre 1 e 10 segundos' });
             }
         }
 
-        // Validate eva_voice_premium (0, 1, or 2)
-        if (field === 'eva_voice_premium') {
+        // Validate iva_voice_premium (0, 1, or 2)
+        if (field === 'iva_voice_premium') {
             if (![0, 1, 2].includes(numValue)) {
-                return res.status(400).json({ error: 'eva_voice_premium deve ser 0 (gratuita), 1 (standard) ou 2 (premium)' });
+                return res.status(400).json({ error: 'iva_voice_premium deve ser 0 (gratuita), 1 (standard) ou 2 (premium)' });
             }
         }
 
-        // Validate eva_voice_male (0 or 1)
-        if (field === 'eva_voice_male') {
+        // Validate iva_voice_male (0 or 1)
+        if (field === 'iva_voice_male') {
             if (![0, 1].includes(numValue)) {
-                return res.status(400).json({ error: 'eva_voice_male deve ser 0 (feminina) ou 1 (masculina)' });
+                return res.status(400).json({ error: 'iva_voice_male deve ser 0 (feminina) ou 1 (masculina)' });
             }
         }
 
-        // Special validation for eva_voice_rate (-100 to +100)
-        if (field === 'eva_voice_rate') {
+        // Special validation for iva_voice_rate (-100 to +100)
+        if (field === 'iva_voice_rate') {
             if (numValue < -100 || numValue > 100) {
                 return res.status(400).json({ error: 'Velocidade da voz deve estar entre -100% e +100%' });
             }
         }
-        else if (field !== 'eva_voice_premium' && field !== 'eva_voice_male') { // Only apply positive check to numeric fields that are not voice settings
+        else if (field !== 'iva_voice_premium' && field !== 'iva_voice_male') { // Only apply positive check to numeric fields that are not voice settings
             // Other fields must be positive
             if (numValue <= 0) {
                 return res.status(400).json({ error: 'Valor deve ser um número positivo' });
@@ -98,7 +98,7 @@ const updateSetting = async (req, res) => {
         }
 
         // Update the specific field
-        const valueToSave = (field === 'eva_voice_type' || field === 'eva_voice_gender') ? value : numValue;
+        const valueToSave = (field === 'iva_voice_type' || field === 'iva_voice_gender') ? value : numValue;
 
         await connection.query(
             `UPDATE system_settings SET ${field} = ? WHERE project_id = ?`,
@@ -234,3 +234,4 @@ module.exports = {
     cancelTemporaryUnlock,
     checkUnlockStatus
 };
+

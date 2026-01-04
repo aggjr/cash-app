@@ -2,7 +2,7 @@ import { IncomeModal } from './IncomeModal.js';
 import { SharedTable } from './SharedTable.js';
 import { showToast } from '../utils/toast.js';
 import { getApiBaseUrl } from '../utils/apiConfig.js';
-import { EvaKnowledge } from '../eva/EvaKnowledge.js';
+import { IvaKnowledge } from '../iva/IvaKnowledge.js';
 import { ExcelExporter } from '../utils/ExcelExporter.js';
 import { BatchOperationDialog } from './BatchOperationDialog.js';
 import { PrintHelper } from '../utils/printHelper.js';

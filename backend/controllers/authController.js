@@ -147,8 +147,8 @@ exports.login = async (req, res, next) => {
                 u.is_active,
                 u.preferred_name,
                 u.gender,
-                u.eva_introduced,
-                u.eva_voice_enabled,
+                u.iva_introduced,
+                u.iva_voice_enabled,
                 pu.password,
                 pu.password_reset_required,
                 pu.role,
@@ -197,8 +197,8 @@ exports.login = async (req, res, next) => {
                 name: user.name,
                 preferred_name: user.preferred_name,
                 gender: user.gender,
-                eva_introduced: user.eva_introduced,
-                eva_voice_enabled: user.eva_voice_enabled,
+                iva_introduced: user.iva_introduced,
+                iva_voice_enabled: user.iva_voice_enabled,
                 email: user.email,
                 password_reset_required: user.password_reset_required
             },
@@ -263,7 +263,7 @@ exports.changePassword = async (req, res, next) => {
 
 exports.updatePreference = async (req, res, next) => {
     try {
-        const { preferredName, evaIntroduced, evaVoiceEnabled, gender, evaVoiceRate } = req.body;
+        const { preferredName, ivaIntroduced, ivaVoiceEnabled, gender, ivaVoiceRate } = req.body;
         const userId = req.user.id;
 
         // Build dynamic update query based on provided fields
@@ -275,14 +275,14 @@ exports.updatePreference = async (req, res, next) => {
             values.push(preferredName);
         }
 
-        if (evaIntroduced !== undefined) {
-            updates.push('eva_introduced = ?');
-            values.push(evaIntroduced);
+        if (ivaIntroduced !== undefined) {
+            updates.push('iva_introduced = ?');
+            values.push(ivaIntroduced);
         }
 
-        if (evaVoiceEnabled !== undefined) {
-            updates.push('eva_voice_enabled = ?');
-            values.push(evaVoiceEnabled);
+        if (ivaVoiceEnabled !== undefined) {
+            updates.push('iva_voice_enabled = ?');
+            values.push(ivaVoiceEnabled);
         }
 
         if (gender !== undefined) {
@@ -290,9 +290,9 @@ exports.updatePreference = async (req, res, next) => {
             values.push(gender);
         }
 
-        if (evaVoiceRate !== undefined) {
-            updates.push('eva_voice_rate = ?');
-            values.push(evaVoiceRate);
+        if (ivaVoiceRate !== undefined) {
+            updates.push('iva_voice_rate = ?');
+            values.push(ivaVoiceRate);
         }
 
         if (updates.length === 0) {
@@ -308,7 +308,7 @@ exports.updatePreference = async (req, res, next) => {
 
         // Fetch updated user data to return
         const [updatedUser] = await db.query(
-            'SELECT preferred_name, eva_introduced, eva_voice_enabled, gender FROM users WHERE id = ?',
+            'SELECT preferred_name, iva_introduced, iva_voice_enabled, gender FROM users WHERE id = ?',
             [userId]
         );
 
@@ -341,3 +341,4 @@ exports.detectGender = async (req, res, next) => {
         next(error);
     }
 };
+

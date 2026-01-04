@@ -1,10 +1,10 @@
 /**
- * EVA Highlighter
+ * IVA Highlighter
  * Visual guidance system - highlights UI elements with step numbers and tooltips
  * Used for GUIDE action to teach users how to perform tasks
  */
 
-class EvaHighlighter {
+class ivaHighlighter {
     static activeHighlights = [];
     static stylesInitialized = false;
 
@@ -15,10 +15,10 @@ class EvaHighlighter {
         if (this.stylesInitialized) return;
 
         const style = document.createElement('style');
-        style.id = 'eva-highlighter-styles';
+        style.id = 'IVA-highlighter-styles';
         style.textContent = `
             /* Pulse animation */
-            @keyframes eva-pulse {
+            @keyframes IVA-pulse {
                 0%, 100% { 
                     box-shadow: 0 0 0 0 rgba(76, 175, 80, 0.7); 
                 }
@@ -28,38 +28,38 @@ class EvaHighlighter {
             }
 
             /* Fade in animation */
-            @keyframes eva-fade-in {
+            @keyframes IVA-fade-in {
                 from { opacity: 0; transform: scale(0.9); }
                 to { opacity: 1; transform: scale(1); }
             }
 
             /* Highlight overlay */
-            .eva-highlight-overlay {
-                animation: eva-fade-in 0.3s ease-out, eva-pulse 2s infinite;
+            .IVA-highlight-overlay {
+                animation: IVA-fade-in 0.3s ease-out, IVA-pulse 2s infinite;
                 transition: all 0.3s ease;
             }
 
             /* Step badge */
-            .eva-step-badge {
+            .IVA-step-badge {
                 font-family: var(--font-main, sans-serif);
-                animation: eva-fade-in 0.5s ease-out;
+                animation: IVA-fade-in 0.5s ease-out;
             }
 
             /* Tooltip */
-            .eva-tooltip {
+            .IVA-tooltip {
                 font-family: var(--font-main, sans-serif);
                 line-height: 1.5;
-                animation: eva-fade-in 0.4s ease-out 0.2s both;
+                animation: IVA-fade-in 0.4s ease-out 0.2s both;
             }
 
-            .eva-tooltip strong {
+            .IVA-tooltip strong {
                 display: block;
                 margin-bottom: 4px;
                 font-size: 15px;
             }
 
             /* Arrow for tooltip */
-            .eva-tooltip::before {
+            .IVA-tooltip::before {
                 content: '';
                 position: absolute;
                 top: -8px;
@@ -87,17 +87,17 @@ class EvaHighlighter {
         this.clearAll();
 
         if (!highlights || highlights.length === 0) {
-            console.warn('[EvaHighlighter] No highlights provided');
+            console.warn('[ivaHighlighter] No highlights provided');
             return;
         }
 
-        console.log('[EvaHighlighter] Highlighting', highlights.length, 'elements');
+        console.log('[ivaHighlighter] Highlighting', highlights.length, 'elements');
 
         highlights.forEach((highlight, index) => {
             const element = document.querySelector(highlight.selector);
 
             if (!element) {
-                console.warn('[EvaHighlighter] Element not found:', highlight.selector);
+                console.warn('[ivaHighlighter] Element not found:', highlight.selector);
                 return;
             }
 
@@ -131,7 +131,7 @@ class EvaHighlighter {
 
         // Main overlay container
         const overlay = document.createElement('div');
-        overlay.className = 'eva-highlight-overlay';
+        overlay.className = 'IVA-highlight-overlay';
         overlay.style.cssText = `
             position: absolute;
             top: ${rect.top + window.scrollY - 10}px;
@@ -147,7 +147,7 @@ class EvaHighlighter {
 
         // Step number badge
         const badge = document.createElement('div');
-        badge.className = 'eva-step-badge';
+        badge.className = 'IVA-step-badge';
         badge.textContent = stepNumber;
         badge.style.cssText = `
             position: absolute;
@@ -170,7 +170,7 @@ class EvaHighlighter {
 
         // Tooltip
         const tooltip = document.createElement('div');
-        tooltip.className = 'eva-tooltip';
+        tooltip.className = 'IVA-tooltip';
         tooltip.innerHTML = `
             <strong>${highlight.label}</strong>
             ${highlight.description}
@@ -225,7 +225,7 @@ class EvaHighlighter {
      * Clear all active highlights
      */
     static clearAll() {
-        console.log('[EvaHighlighter] Clearing', this.activeHighlights.length, 'highlights');
+        console.log('[ivaHighlighter] Clearing', this.activeHighlights.length, 'highlights');
 
         this.activeHighlights.forEach(overlay => {
             if (overlay && overlay.parentNode) {
@@ -248,4 +248,5 @@ class EvaHighlighter {
     }
 }
 
-export default EvaHighlighter;
+export default ivaHighlighter;
+

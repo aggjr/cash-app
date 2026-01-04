@@ -1,6 +1,6 @@
 /**
- * EVA Tracking Routes
- * Endpoints for tracking user interactions with EVA and screens
+ * IVA Tracking Routes
+ * Endpoints for tracking user interactions with IVA and screens
  */
 
 const express = require('express');
@@ -9,7 +9,7 @@ const db = require('../config/database');
 const auth = require('../middleware/auth');
 
 /**
- * POST /api/eva/track-navigation
+ * POST /api/IVA/track-navigation
  * Track when user navigates to a screen
  * Increments familiarity counter
  */
@@ -22,11 +22,11 @@ router.post('/track-navigation', auth, async (req, res) => {
             return res.status(400).json({ error: 'Screen ID required' });
         }
 
-        console.log(`[EVA Tracking] User ${userId} navigated to ${screen}`);
+        console.log(`[IVA Tracking] User ${userId} navigated to ${screen}`);
 
         // Get current familiarity
         const [users] = await db.query(
-            'SELECT eva_screen_familiarity FROM users WHERE id = ?',
+            'SELECT iva_screen_familiarity FROM users WHERE id = ?',
             [userId]
         );
 
@@ -34,18 +34,18 @@ router.post('/track-navigation', auth, async (req, res) => {
             return res.status(404).json({ error: 'User not found' });
         }
 
-        let familiarity = users[0].eva_screen_familiarity || {};
+        let familiarity = users[0].iva_screen_familiarity || {};
 
         // Increment counter for this screen
         familiarity[screen] = (familiarity[screen] || 0) + 1;
 
         // Update in DB
         await db.query(
-            'UPDATE users SET eva_screen_familiarity = ? WHERE id = ?',
+            'UPDATE users SET iva_screen_familiarity = ? WHERE id = ?',
             [JSON.stringify(familiarity), userId]
         );
 
-        console.log(`[EVA Tracking] Updated familiarity: ${screen} = ${familiarity[screen]}`);
+        console.log(`[IVA Tracking] Updated familiarity: ${screen} = ${familiarity[screen]}`);
 
         res.json({
             success: true,
@@ -53,9 +53,10 @@ router.post('/track-navigation', auth, async (req, res) => {
         });
 
     } catch (error) {
-        console.error('[EVA Tracking] Error:', error);
+        console.error('[IVA Tracking] Error:', error);
         res.status(500).json({ error: 'Failed to track navigation' });
     }
 });
 
 module.exports = router;
+

@@ -1,19 +1,20 @@
 import { getApiBaseUrl } from '../utils/apiConfig.js';
-import { EvaActions } from '../eva/EvaActions.js';
-import { EvaKnowledge } from '../eva/EvaKnowledge.js';
-import { EvaService } from '../eva/EvaService.js';
+import { IvaActions } from '../iva/IvaActions.js';
+import { IvaKnowledge } from '../iva/IvaKnowledge.js';
+import { IvaService } from '../iva/IvaService.js';
+import { showToast } from '../utils/toast.js';
 import ScreenContextExtractor from '../utils/screenContextExtractor.js';
-import EvaScreenActions from '../eva/EvaScreenActions.js';
-import EvaHighlighter from '../eva/EvaHighlighter.js';
+import IvaScreenActions from '../iva/IvaScreenActions.js';
+import IvaHighlighter from '../iva/IvaHighlighter.js';
 
 export const AIConsultant = () => {
-    console.log('AIConsultant: Version 2.1 (Eva UI Interactions fixed)');
+    console.log('AIConsultant: Version 2.1 (Iva UI Interactions fixed)');
     const API_BASE_URL = getApiBaseUrl();
     const getHeaders = () => {
         const token = localStorage.getItem('token');
         return {
             'Content-Type': 'application/json',
-            'Authorization': `Bearer ${token}`
+            'Authorization': `Bearer ${token} `
         };
     };
 
@@ -35,10 +36,10 @@ export const AIConsultant = () => {
 
     // Voice Recording State
     var isRecording = false;
-    var evaSpeechRec = null;
+    var IVASpeechRec = null;
     var silenceTimer = null;
     var accumulatedTranscript = '';
-    var evaTimeout = 2000; // Default 2s
+    var IVATimeout = 2000; // Default 2s
     var shouldRestart = false; // Flag for auto-restart
 
     // --- State Helpers ---
@@ -62,14 +63,14 @@ export const AIConsultant = () => {
     (() => {
         const u = getUser();
         // If no rate set, OR rate is the old default (50), update to 75
-        if (u && (!u.eva_voice_rate || u.eva_voice_rate === 50)) {
+        if (u && (!u.IVA_voice_rate || u.IVA_voice_rate === 50)) {
             console.log('[AIConsultant] Migrating legacy voice rate (50/undefined) -> 75 (FAST)');
-            u.eva_voice_rate = 75;
+            u.IVA_voice_rate = 75;
             updateLocalUser(u);
-            fetch(`${API_BASE_URL}/auth/update-preference`, {
+            fetch(`${API_BASE_URL} /auth/update - preference`, {
                 method: 'PUT',
                 headers: getHeaders(),
-                body: JSON.stringify({ evaVoiceRate: 75 })
+                body: JSON.stringify({ IVAVoiceRate: 75 })
             }).catch(e => console.error('Migration sync failed:', e));
         }
     })();
@@ -81,28 +82,28 @@ export const AIConsultant = () => {
 
         // Check if voice is enabled and load rate adjustment
         const user = getUser();
-        if (!user?.eva_voice_enabled) return;
+        if (!user?.IVA_voice_enabled) return;
 
         window.speechSynthesis.cancel();
 
         const utterance = new SpeechSynthesisUtterance(text);
         utterance.lang = 'pt-BR';
 
-        // Load voice rate from user settings (eva_voice_rate field in DB)
-        // Load voice rate from user settings (eva_voice_rate field in DB)
-        const rateAdjustment = user?.eva_voice_rate !== undefined ? user.eva_voice_rate : 75;
-        window.evaVoiceRateAdjustment = rateAdjustment; // Update global
+        // Load voice rate from user settings (IVA_voice_rate field in DB)
+        // Load voice rate from user settings (IVA_voice_rate field in DB)
+        const rateAdjustment = user?.IVA_voice_rate !== undefined ? user.IVA_voice_rate : 75;
+        window.IVAVoiceRateAdjustment = rateAdjustment; // Update global
 
         // Apply voice rate: Linear scale from 0.5 to 1.5 (Centering at 50 = 1.0)
         // 0 -> 0.5x, 50 -> 1.0x, 100 -> 1.5x
         utterance.rate = 0.5 + (rateAdjustment / 100);
-        console.log('[EVA Voice] Rate adjustment from DB:', rateAdjustment, '-> Final rate:', utterance.rate);
+        console.log('[IVA Voice] Rate adjustment from DB:', rateAdjustment, '-> Final rate:', utterance.rate);
 
         const voices = window.speechSynthesis.getVoices();
 
         // Get voice tier preference from settings (0=Free, 1=Standard, 2=Premium)
-        const voiceTier = window.evaVoicePremium !== undefined ? window.evaVoicePremium : 0;
-        const isMale = (window.evaVoiceMale === 1);
+        const voiceTier = window.IVAVoicePremium !== undefined ? window.IVAVoicePremium : 0;
+        const isMale = (window.IVAVoiceMale === 1);
 
         // Use Google Cloud TTS for Standard (1) and Premium (2)
         if (voiceTier >= 1) {
@@ -110,9 +111,9 @@ export const AIConsultant = () => {
                 // Use rate adjustment already calculated above
                 const rate = utterance.rate;
 
-                console.log(`[EVA Voice] Requesting Google TTS (Tier ${voiceTier}, ${isMale ? 'Male' : 'Female'}, Rate: ${rate.toFixed(2)})`);
+                console.log(`[IVA Voice] Requesting Google TTS(Tier ${voiceTier}, ${isMale ? 'Male' : 'Female'}, Rate: ${rate.toFixed(2)})`);
 
-                const response = await fetch(`${API_BASE_URL}/tts/synthesize`, {
+                const response = await fetch(`${API_BASE_URL} /tts/synthesize`, {
                     method: 'POST',
                     headers: getHeaders(),
                     body: JSON.stringify({
@@ -127,7 +128,7 @@ export const AIConsultant = () => {
                     const { audioContent, voiceName, tier: tierName } = await response.json();
 
                     // Play audio with dynamic delay to prevent first syllable cut
-                    const audio = new Audio(`data:audio/mp3;base64,${audioContent}`);
+                    const audio = new Audio(`data: audio / mp3; base64, ${audioContent} `);
 
                     // Calculate delay based on speech rate (faster = much longer delay needed)
                     // Base delay: 300ms minimum, scales with rate to prevent syllable cutting
@@ -138,7 +139,7 @@ export const AIConsultant = () => {
                         // Delay proportional to speech rate
                         setTimeout(() => {
                             audio.play().catch(err => {
-                                console.error('[EVA Voice] Play failed:', err);
+                                console.error('[IVA Voice] Play failed:', err);
                             });
                         }, delayMs);
                     }, { once: true });
@@ -146,21 +147,21 @@ export const AIConsultant = () => {
                     // Start loading audio
                     audio.load();
 
-                    console.log(`[EVA Voice] Using ${voiceName} (${tierName}), delay: ${delayMs}ms`);
+                    console.log(`[IVA Voice] Using ${voiceName} (${tierName}), delay: ${delayMs} ms`);
                     return;
                 } else {
                     const error = await response.json();
-                    console.error('[EVA Voice] Google TTS failed:', error.error);
-                    console.warn('[EVA Voice] Falling back to browser voice');
+                    console.error('[IVA Voice] Google TTS failed:', error.error);
+                    console.warn('[IVA Voice] Falling back to browser voice');
                 }
             } catch (error) {
-                console.error('[EVA Voice] Google TTS request failed:', error);
-                console.warn('[EVA Voice] Falling back to browser voice');
+                console.error('[IVA Voice] Google TTS request failed:', error);
+                console.warn('[IVA Voice] Falling back to browser voice');
             }
         }
 
         // Tier 0 or fallback: Use browser Web Speech API
-        console.log('[EVA Voice] Using browser voice (Free tier or fallback)');
+        console.log('[IVA Voice] Using browser voice (Free tier or fallback)');
 
         const isMaleVoice = isMale;
 
@@ -229,9 +230,9 @@ export const AIConsultant = () => {
 
         if (ptVoice) {
             utterance.voice = ptVoice;
-            console.log('[EVA Voice] Using voice:', ptVoice.name);
+            console.log('[IVA Voice] Using voice:', ptVoice.name);
         } else {
-            console.warn('[EVA Voice] No pt-BR voice found, using default');
+            console.warn('[IVA Voice] No pt-BR voice found, using default');
         }
 
         window.speechSynthesis.speak(utterance);
@@ -243,40 +244,40 @@ export const AIConsultant = () => {
 
     const messages = []; // Start empty, populate on init
 
-    // Load EVA Settings
-    const loadEvaSettings = async () => {
+    // Load IVA Settings
+    const loadIVASettings = async () => {
         try {
             const res = await fetch(`${API_BASE_URL}/settings`, { headers: getHeaders() });
             if (res.ok) {
                 const settings = await res.json();
-                if (settings.eva_timeout) {
-                    evaTimeout = settings.eva_timeout * 1000;
-                    console.log('EVA Timeout loaded:', evaTimeout);
+                if (settings.IVA_timeout) {
+                    IVATimeout = settings.IVA_timeout * 1000;
+                    console.log('IVA Timeout loaded:', IVATimeout);
                 }
-                if (settings.eva_voice_rate !== undefined) {
+                if (settings.IVA_voice_rate !== undefined) {
                     // Store the rate adjustment value (-100 to +100)
-                    window.evaVoiceRateAdjustment = settings.eva_voice_rate;
-                    console.log('EVA Voice Rate Adjustment loaded:', settings.eva_voice_rate);
+                    window.IVAVoiceRateAdjustment = settings.IVA_voice_rate;
+                    console.log('IVA Voice Rate Adjustment loaded:', settings.IVA_voice_rate);
                 }
 
                 // Load voice gender and premium settings
-                if (settings.eva_voice_male !== undefined) {
-                    window.evaVoiceMale = settings.eva_voice_male;
-                    console.log('EVA Voice Gender loaded:', settings.eva_voice_male === 1 ? 'Male' : 'Female');
+                if (settings.IVA_voice_male !== undefined) {
+                    window.IVAVoiceMale = settings.IVA_voice_male;
+                    console.log('IVA Voice Gender loaded:', settings.IVA_voice_male === 1 ? 'Male' : 'Female');
                 }
 
-                if (settings.eva_voice_premium !== undefined) {
-                    window.evaVoicePremium = settings.eva_voice_premium;
-                    console.log('EVA Voice Type loaded:', settings.eva_voice_premium === 1 ? 'Premium' : 'Free');
+                if (settings.IVA_voice_premium !== undefined) {
+                    window.IVAVoicePremium = settings.IVA_voice_premium;
+                    console.log('IVA Voice Type loaded:', settings.IVA_voice_premium === 1 ? 'Premium' : 'Free');
                 }
             }
         } catch (error) {
-            console.error('Failed to load EVA settings:', error);
+            console.error('Failed to load IVA settings:', error);
         }
     };
 
     // Initial load
-    loadEvaSettings();
+    loadIVASettings();
 
     // --- Components ---
 
@@ -340,7 +341,7 @@ export const AIConsultant = () => {
     headerTitle.style.gap = '0.5rem';
     headerTitle.innerHTML = `
         <div style="width: 8px; height: 8px; background-color: #10B981; border-radius: 50%;"></div>
-        <span style="font-weight: 600; font-size: 1rem;">EVA - Assistente Virtual</span>
+        <span style="font-weight: 600; font-size: 1rem;">IVA - Assistente Virtual</span>
     `;
 
     const closeBtn = document.createElement('button');
@@ -394,30 +395,30 @@ export const AIConsultant = () => {
     const Recognition = window.SpeechRecognition || window.webkitSpeechRecognition;
 
     if (Recognition) {
-        console.log('AIConsultant: Initializing evaSpeechRec...');
+        console.log('AIConsultant: Initializing IVASpeechRec...');
         try {
-            evaSpeechRec = new Recognition();
-            evaSpeechRec.lang = 'pt-BR';
-            evaSpeechRec.continuous = true;  // Continuous mode!
-            evaSpeechRec.interimResults = true;  // Get interim results
-            evaSpeechRec.maxAlternatives = 1;
+            IVASpeechRec = new Recognition();
+            IVASpeechRec.lang = 'pt-BR';
+            IVASpeechRec.continuous = true;  // Continuous mode!
+            IVASpeechRec.interimResults = true;  // Get interim results
+            IVASpeechRec.maxAlternatives = 1;
 
             console.log('[AIConsultant] Speech recognition configured:', {
-                lang: evaSpeechRec.lang,
-                continuous: evaSpeechRec.continuous,
-                interimResults: evaSpeechRec.interimResults
+                lang: IVASpeechRec.lang,
+                continuous: IVASpeechRec.continuous,
+                interimResults: IVASpeechRec.interimResults
             });
 
-            evaSpeechRec.onstart = () => {
+            IVASpeechRec.onstart = () => {
                 console.log('[SPEECH REC] onstart fired');
 
                 // First beep: Engine is starting
                 playBeep();
 
-                // Cancel EVA's speech immediately when user starts talking
+                // Cancel IVA's speech immediately when user starts talking
                 if (window.speechSynthesis.speaking) {
                     window.speechSynthesis.cancel();
-                    console.log('[EVA] Speech interrupted by user');
+                    console.log('[IVA] Speech interrupted by user');
                 }
 
                 // Show "warming up" state
@@ -437,13 +438,13 @@ export const AIConsultant = () => {
                     micBtn.style.backgroundColor = '#ffebe9';
                     micBtn.style.borderColor = '#ef4444';
                     micBtn.style.boxShadow = '0 0 0 4px rgba(239, 68, 68, 0.1)';
-                    input.placeholder = `Gravando... (${evaTimeout / 1000}s silêncio para enviar)`;
+                    input.placeholder = `Gravando... (${IVATimeout / 1000}s silêncio para enviar)`;
 
                     console.log('[SPEECH REC] Mic fully warmed up and ready');
                 }, 400); // 400ms warmup delay
             };
 
-            evaSpeechRec.onend = () => {
+            IVASpeechRec.onend = () => {
                 console.log('[SPEECH REC] onend fired! isRecording:', isRecording, 'accumulatedTranscript:', accumulatedTranscript, 'shouldRestart:', shouldRestart);
 
                 // Auto-restart if needed (e.g. after no-speech error)
@@ -451,7 +452,7 @@ export const AIConsultant = () => {
                     console.log('[SPEECH REC] Restarting recognition due to no-speech...');
                     shouldRestart = false;
                     try {
-                        evaSpeechRec.start();
+                        IVASpeechRec.start();
                         return; // Keep UI active
                     } catch (e) {
                         console.error('[SPEECH REC] Failed to restart:', e);
@@ -486,7 +487,7 @@ export const AIConsultant = () => {
                 console.log('[SPEECH REC] onend completed, recording stopped');
             };
 
-            evaSpeechRec.onresult = (event) => {
+            IVASpeechRec.onresult = (event) => {
                 // Clear previous silence timer
                 if (silenceTimer) {
                     clearTimeout(silenceTimer);
@@ -520,12 +521,12 @@ export const AIConsultant = () => {
                 // Set 10-second silence timer
                 silenceTimer = setTimeout(() => {
                     console.log('10s silence detected, stopping...');
-                    if (evaSpeechRec) evaSpeechRec.stop();
+                    if (IVASpeechRec) IVASpeechRec.stop();
                     // Cleanup handled by onend
-                }, evaTimeout);  // Configurable timeout
+                }, IVATimeout);  // Configurable timeout
             };
 
-            evaSpeechRec.onerror = (event) => {
+            IVASpeechRec.onerror = (event) => {
                 console.error('[SPEECH REC] Error event:', event.error, 'Message:', event.message);
 
                 // Don't stop recording for no-speech errors (normal during silence)
@@ -533,7 +534,7 @@ export const AIConsultant = () => {
                     console.log('[SPEECH REC] no-speech error - flagging for restart...');
                     shouldRestart = true;
                     // stop() -> triggers onend -> checks shouldRestart -> start()
-                    evaSpeechRec.stop();
+                    IVASpeechRec.stop();
                     return;
                 }
 
@@ -568,12 +569,12 @@ export const AIConsultant = () => {
 
             // Toggle recording on click
             micBtn.onclick = () => {
-                console.log('[MIC BTN] Clicked! Current state:', { isRecording, evaSpeechRec: !!evaSpeechRec });
+                console.log('[MIC BTN] Clicked! Current state:', { isRecording, IVASpeechRec: !!IVASpeechRec });
 
                 if (isRecording) {
                     console.log('[MIC BTN] Stopping recording...');
                     // Stop recording, onend will handle sending
-                    if (evaSpeechRec) evaSpeechRec.stop();
+                    if (IVASpeechRec) IVASpeechRec.stop();
                 } else {
                     // Start recording
                     console.log('[MIC BTN] Starting recording...');
@@ -585,11 +586,11 @@ export const AIConsultant = () => {
                     input.placeholder = 'Iniciando microfone...';
 
                     try {
-                        if (evaSpeechRec) {
-                            evaSpeechRec.start();
+                        if (IVASpeechRec) {
+                            IVASpeechRec.start();
                             console.log('[MIC BTN] Speech recognition started successfully');
                         } else {
-                            console.error('[MIC BTN] evaSpeechRec is null!');
+                            console.error('[MIC BTN] IVASpeechRec is null!');
                         }
                     } catch (e) {
                         console.error('[MIC BTN] Error starting recognition:', e);
@@ -601,7 +602,7 @@ export const AIConsultant = () => {
                 }
             };
         } catch (e) {
-            console.error('AIConsultant: Failed to initialize evaSpeechRec:', e);
+            console.error('AIConsultant: Failed to initialize IVASpeechRec:', e);
         }
     } else {
         micBtn.style.display = 'none';
@@ -742,7 +743,7 @@ export const AIConsultant = () => {
 
         // Use LLM for introduction
         pendingAction = 'intro_llm';
-        const msg = `Olá "${suggestedName}". Seja ${welcomeGender}. Eu sou a EVA, sua assistente virtual.\n\nPara que nossa interação seja mais adequada, como ${pronoun} gostaria de ser ${called}?`
+        const msg = `Olá "${suggestedName}". Seja ${welcomeGender}. Eu sou a IVA, sua assistente virtual.\n\nPara que nossa interação seja mais adequada, como ${pronoun} gostaria de ser ${called}?`
 
         addMessage('ai', msg);
         speak(msg);
@@ -791,14 +792,14 @@ export const AIConsultant = () => {
 
             // Save Voice Preference & Mark Introduced
             await savePreferences({
-                evaVoiceEnabled: enableVoice,
-                evaIntroduced: true
+                IVAVoiceEnabled: enableVoice,
+                IVAIntroduced: true
             });
 
             pendingAction = null;
             const msg = enableVoice
-                ? `Perfeito. Responderei por áudio sempre que possível. \n\nAh, meu tempo de espera padrão é de **${evaTimeout / 1000} segundos**, mas o senhor pode me pedir para alterar quando quiser.`
-                : `Combinado. Manterei nossa comunicação apenas por texto. \n\nAh, meu tempo de espera padrão é de **${evaTimeout / 1000} segundos**, mas o senhor pode me pedir para alterar quando quiser.`;
+                ? `Perfeito. Responderei por áudio sempre que possível. \n\nAh, meu tempo de espera padrão é de **${IVATimeout / 1000} segundos**, mas o senhor pode me pedir para alterar quando quiser.`
+                : `Combinado. Manterei nossa comunicação apenas por texto. \n\nAh, meu tempo de espera padrão é de **${IVATimeout / 1000} segundos**, mas o senhor pode me pedir para alterar quando quiser.`;
 
             addMessage('ai', msg);
             if (enableVoice) speak(msg);
@@ -880,15 +881,15 @@ export const AIConsultant = () => {
                             detectedGender = gender;
                             // Store for confirmation - DON'T auto-save yet
                             window._tempDetectedGender = detectedGender;
-                            console.log('[EVA] Gender detected (awaiting user confirmation):', gender);
+                            console.log('[IVA] Gender detected (awaiting user confirmation):', gender);
                         }
                     }
                 } catch (error) {
-                    console.error('[EVA] Gender detection failed, using default:', error);
+                    console.error('[IVA] Gender detection failed, using default:', error);
                 }
             }
 
-            const response = await fetch(`${API_BASE_URL}/eva/chat`, {
+            const response = await fetch(`${API_BASE_URL}/IVA/chat`, {
                 method: 'POST',
                 headers: getHeaders(),
                 body: JSON.stringify({
@@ -947,7 +948,7 @@ export const AIConsultant = () => {
                     localStorage.setItem('user', JSON.stringify(user));
                 }
 
-                console.log('[EVA] Gender confirmed and saved:', finalGender);
+                console.log('[IVA] Gender confirmed and saved:', finalGender);
                 delete window._tempDetectedGender;
             }
 
@@ -958,7 +959,7 @@ export const AIConsultant = () => {
             if (extracted && extracted.voicePreference) {
                 const voiceEnabled = extracted.voicePreference === 'audio' || extracted.voicePreference === 'both';
                 await savePreferences({
-                    evaVoiceEnabled: voiceEnabled ? 1 : 0
+                    IVAVoiceEnabled: voiceEnabled ? 1 : 0
                     // Don't mark introduced yet - waiting for tour decision
                 });
 
@@ -1005,24 +1006,24 @@ Digite 1, 2 ou 3.`;
         if (isOpen) {
             const user = getUser();
 
-            console.log('[EVA] Chat opened. Messages count:', messages.length, 'User introduced:', user?.eva_introduced);
+            console.log('[IVA] Chat opened. Messages count:', messages.length, 'User introduced:', user?.IVA_introduced);
 
             // Auto-greeting logic
-            const hasGreetedKey = 'eva_has_greeted_session_' + (user?.id || 'anon');
-            const lastLoginKey = 'eva_last_login_' + (user?.id || 'anon');
+            const hasGreetedKey = 'IVA_has_greeted_session_' + (user?.id || 'anon');
+            const lastLoginKey = 'IVA_last_login_' + (user?.id || 'anon');
             const hasGreeted = sessionStorage.getItem(hasGreetedKey);
 
             // Always greet when opening chat, but style differs
             const isFirstSessionInteraction = !hasGreeted && messages.length === 0;
 
             if (messages.length === 0) {
-                console.log('[EVA] Chat opened - generating greeting');
+                console.log('[IVA] Chat opened - generating greeting');
 
                 if (isFirstSessionInteraction) {
-                    console.log('[EVA] First open in session - full welcome');
+                    console.log('[IVA] First open in session - full welcome');
                     sessionStorage.setItem(hasGreetedKey, 'true');
                 } else {
-                    console.log('[EVA] Chat reopened - short greeting');
+                    console.log('[IVA] Chat reopened - short greeting');
                 }
 
                 // Calculate time since last visit (only for first session interaction)
@@ -1064,8 +1065,8 @@ Digite 1, 2 ou 3.`;
                 // Send greeting request to backend
                 setTimeout(async () => {
                     const context = {
-                        currentScreen: EvaKnowledge.activeScreen,
-                        availableScreens: EvaKnowledge.screens,
+                        currentScreen: IVAKnowledge.activeScreen,
+                        availableScreens: IVAKnowledge.screens,
                         // Different instructions based on interaction type
                         systemInstruction: isFirstSessionInteraction
                             ? `SYSTEM_TRIGGER: SESSÃO_INICIADA
@@ -1084,7 +1085,7 @@ Digite 1, 2 ou 3.`;
                     };
 
                     try {
-                        const decision = await EvaService.decideOperation('EVA_AUTO_GREETING', context);
+                        const decision = await IVAService.decideOperation('IVA_AUTO_GREETING', context);
 
                         if (thinkingMsg.parentNode) thinkingMsg.parentNode.removeChild(thinkingMsg);
 
@@ -1104,7 +1105,7 @@ Digite 1, 2 ou 3.`;
                 }, 500);
 
             } else {
-                console.log('[EVA] Messages exist, rendering history');
+                console.log('[IVA] Messages exist, rendering history');
                 renderMessages();
                 input.focus();
             }
@@ -1120,21 +1121,21 @@ Digite 1, 2 ou 3.`;
 
         // Check if we're in a pending flow (intro, loan, etc)
         if (pendingAction) {
-            console.log('[EVA] Pending action active, skipping operation logic:', pendingAction);
+            console.log('[IVA] Pending action active, skipping operation logic:', pendingAction);
             // Let the regular flow handle it (below in setTimeout)
             // Don't return here, let it fall through to the setTimeout logic
         } else {
             // --- PHASE 2: Operational Knowledge (LLM BASED) ---
-            console.log('[EVA] No pending action, proceeding to LLM operation...');
+            console.log('[IVA] No pending action, proceeding to LLM operation...');
 
             // 1. Gather Context
             const context = {
-                currentScreen: EvaKnowledge.activeScreen,
-                currentScreenData: EvaKnowledge.activeScreenData, // THE EYES: Send semantic data
-                availableScreens: EvaKnowledge.screens
+                currentScreen: IVAKnowledge.activeScreen,
+                currentScreenData: IVAKnowledge.activeScreenData, // THE EYES: Send semantic data
+                availableScreens: IVAKnowledge.screens
             };
 
-            console.log('[EVA] Context:', {
+            console.log('[IVA] Context:', {
                 currentScreenId: context.currentScreen?.id || 'none',
                 availableScreenCount: Object.keys(context.availableScreens || {}).length
             });
@@ -1142,13 +1143,13 @@ Digite 1, 2 ou 3.`;
             // Extract screen context (filters + visual summary)
             const screenContext = ScreenContextExtractor.extract();
             if (screenContext) {
-                console.log('[EVA] Screen Context:', screenContext);
+                console.log('[IVA] Screen Context:', screenContext);
 
                 // Add available actions for this screen
-                screenContext.availableActions = EvaScreenActions.getActionsForLLM(
+                screenContext.availableActions = IVAScreenActions.getActionsForLLM(
                     screenContext.screenId
                 );
-                console.log('[EVA] Available Actions:', screenContext.availableActions);
+                console.log('[IVA] Available Actions:', screenContext.availableActions);
 
                 context.screenContext = screenContext;
             }
@@ -1162,12 +1163,12 @@ Digite 1, 2 ou 3.`;
             messagesContainer.scrollTop = messagesContainer.scrollHeight;
 
             try {
-                const decision = await EvaService.decideOperation(text, context);
+                const decision = await IVAService.decideOperation(text, context);
 
                 // Remove thinking bubble
                 if (thinkingMsg.parentNode) thinkingMsg.parentNode.removeChild(thinkingMsg);
 
-                console.log('[EVA Decision]', decision);
+                console.log('[IVA Decision]', decision);
 
                 if (decision.action === 'REPLY') {
                     const msg = decision.message;
@@ -1189,23 +1190,23 @@ Digite 1, 2 ou 3.`;
                         await fetch(`${API_BASE_URL}/auth/update-preference`, {
                             method: 'PUT',
                             headers: getHeaders(),
-                            body: JSON.stringify({ evaVoiceRate: decision.value })
+                            body: JSON.stringify({ IVAVoiceRate: decision.value })
                         });
 
                         // Update local user
                         const user = getUser();
-                        user.eva_voice_rate = decision.value;
+                        user.IVA_voice_rate = decision.value;
                         updateLocalUser(user);
-                        window.evaVoiceRateAdjustment = decision.value;
+                        window.IVAVoiceRateAdjustment = decision.value;
 
-                        console.log('[EVA] Voice rate updated to:', decision.value);
+                        console.log('[IVA] Voice rate updated to:', decision.value);
 
                         // Show confirmation
                         const msg = decision.message || `Velocidade ajustada para ${decision.value}%.`;
                         addMessage('ai', msg);
                         speak(msg);
                     } catch (error) {
-                        console.error('[EVA] Error updating voice rate:', error);
+                        console.error('[IVA] Error updating voice rate:', error);
                         const errorMsg = 'Desculpe, não consegui ajustar a velocidade.';
                         addMessage('ai', errorMsg);
                         speak(errorMsg);
@@ -1217,23 +1218,23 @@ Digite 1, 2 ou 3.`;
                         await fetch(`${API_BASE_URL}/auth/update-preference`, {
                             method: 'PUT',
                             headers: getHeaders(),
-                            body: JSON.stringify({ evaVoiceMale: decision.isMale ? 1 : 0 })
+                            body: JSON.stringify({ IVAVoiceMale: decision.isMale ? 1 : 0 })
                         });
 
                         // Update local user
                         const user = getUser();
-                        user.eva_voice_male = decision.isMale ? 1 : 0;
+                        user.IVA_voice_male = decision.isMale ? 1 : 0;
                         updateLocalUser(user);
-                        window.evaVoiceMale = decision.isMale ? 1 : 0;
+                        window.IVAVoiceMale = decision.isMale ? 1 : 0;
 
-                        console.log('[EVA] Voice gender updated to:', decision.isMale ? 'Male' : 'Female');
+                        console.log('[IVA] Voice gender updated to:', decision.isMale ? 'Male' : 'Female');
 
                         // Show confirmation
                         const msg = decision.message || `Voz alterada para ${decision.isMale ? 'masculina' : 'feminina'}.`;
                         addMessage('ai', msg);
                         speak(msg);
                     } catch (error) {
-                        console.error('[EVA] Error updating voice gender:', error);
+                        console.error('[IVA] Error updating voice gender:', error);
                         const errorMsg = 'Desculpe, não consegui mudar a voz.';
                         addMessage('ai', errorMsg);
                         speak(errorMsg);
@@ -1245,15 +1246,15 @@ Digite 1, 2 ou 3.`;
                         await fetch(`${API_BASE_URL}/auth/update-preference`, {
                             method: 'PUT',
                             headers: getHeaders(),
-                            body: JSON.stringify({ evaVoiceEnabled: decision.enabled ? 1 : 0 })
+                            body: JSON.stringify({ IVAVoiceEnabled: decision.enabled ? 1 : 0 })
                         });
 
                         // Update local user
                         const user = getUser();
-                        user.eva_voice_enabled = decision.enabled ? 1 : 0;
+                        user.IVA_voice_enabled = decision.enabled ? 1 : 0;
                         updateLocalUser(user);
 
-                        console.log('[EVA] Voice enabled:', decision.enabled);
+                        console.log('[IVA] Voice enabled:', decision.enabled);
 
                         // Show confirmation
                         const msg = decision.message || `Áudio ${decision.enabled ? 'ativado' : 'desativado'}.`;
@@ -1264,7 +1265,7 @@ Digite 1, 2 ou 3.`;
                             speak(msg);
                         }
                     } catch (error) {
-                        console.error('[EVA] Error updating voice enabled:', error);
+                        console.error('[IVA] Error updating voice enabled:', error);
                         const errorMsg = 'Desculpe, não consegui alterar o áudio.';
                         addMessage('ai', errorMsg);
                     }
@@ -1273,14 +1274,14 @@ Digite 1, 2 ou 3.`;
                     // UI Interaction: Execute filter/action on current screen
                     const { interaction, followUpQuery, message } = decision;
 
-                    console.log('[EVA INTERACT]', interaction);
+                    console.log('[IVA INTERACT]', interaction);
 
                     // Show message
                     addMessage('ai', message);
                     speak(message);
 
                     // Execute the interaction
-                    const result = await EvaScreenActions.executeAction(
+                    const result = await IVAScreenActions.executeAction(
                         screenContext?.screenId,
                         interaction.actionId,
                         interaction.params
@@ -1308,7 +1309,7 @@ Digite 1, 2 ou 3.`;
                         messagesContainer.scrollTop = messagesContainer.scrollHeight;
 
                         try {
-                            const analysisResponse = await fetch(`${API_BASE_URL}/api/eva/operate`, {
+                            const analysisResponse = await fetch(`${API_BASE_URL}/api/IVA/operate`, {
                                 method: 'POST',
                                 headers: getHeaders(),
                                 body: JSON.stringify({
@@ -1329,7 +1330,7 @@ Digite 1, 2 ou 3.`;
                                 speak(analysisDecision.message);
                             }
                         } catch (error) {
-                            console.error('[EVA INTERACT] Analysis error:', error);
+                            console.error('[IVA INTERACT] Analysis error:', error);
                             if (analysisMsg.parentNode) analysisMsg.parentNode.removeChild(analysisMsg);
                         }
                     }
@@ -1338,7 +1339,7 @@ Digite 1, 2 ou 3.`;
                     // Visual Guide: Navigate + Highlight elements + Explain
                     const { navigation, highlights, explanation, tips } = decision;
 
-                    console.log('[EVA GUIDE]', decision);
+                    console.log('[IVA GUIDE]', decision);
 
                     // Show explanation
                     addMessage('ai', explanation);
@@ -1346,13 +1347,13 @@ Digite 1, 2 ou 3.`;
 
                     // Navigate if needed
                     if (navigation && navigation.target) {
-                        await EvaActions.navigate(navigation.target);
+                        await IVAActions.navigate(navigation.target);
                         await new Promise(r => setTimeout(r, 1000)); // Wait for screen to load
                     }
 
                     // Highlight elements
                     if (highlights && highlights.length > 0) {
-                        EvaHighlighter.highlightElements(highlights);
+                        IVAHighlighter.highlightElements(highlights);
 
                         // Show tips if available
                         if (tips && tips.length > 0) {
@@ -1362,14 +1363,14 @@ Digite 1, 2 ou 3.`;
 
                         // Auto-clear highlights on next user interaction
                         const clearHandler = () => {
-                            EvaHighlighter.clearAll();
+                            IVAHighlighter.clearAll();
                             document.removeEventListener('click', clearHandler);
                         };
                         document.addEventListener('click', clearHandler);
                     }
                 }
                 else if (['NAVIGATE', 'FILL_FORM', 'CLICK_ACTION'].includes(decision.action)) {
-                    const result = await EvaActions.handle(decision.action, decision);
+                    const result = await IVAActions.handle(decision.action, decision);
 
 
 
@@ -1382,14 +1383,14 @@ Digite 1, 2 ou 3.`;
 
                             // Track navigation for familiarity learning
                             try {
-                                await fetch(`${API_BASE_URL}/api/eva/track-navigation`, {
+                                await fetch(`${API_BASE_URL}/api/IVA/track-navigation`, {
                                     method: 'POST',
                                     headers: getHeaders(),
                                     body: JSON.stringify({ screen: decision.target })
                                 });
-                                console.log('[EVA] Navigation tracked:', decision.target);
+                                console.log('[IVA] Navigation tracked:', decision.target);
                             } catch (trackError) {
-                                console.error('[EVA] Tracking failed (non-critical):', trackError);
+                                console.error('[IVA] Tracking failed (non-critical):', trackError);
                             }
 
                             // CRITICAL: Wait for screen to load and re-extract screen context
@@ -1398,15 +1399,15 @@ Digite 1, 2 ou 3.`;
 
                             // Re-extract screen context for the newly loaded screen
                             const newScreenContext = ScreenContextExtractor.extract();
-                            console.log('[EVA] Screen context after navigation:', newScreenContext);
+                            console.log('[IVA] Screen context after navigation:', newScreenContext);
 
                             // Update screenContext in closure so next decision uses updated context
                             screenContext = newScreenContext;
 
                             // Also update availableActions for new screen
                             if (screenContext && screenContext.screenId) {
-                                screenContext.availableActions = EvaScreenActions.getAvailableActions(screenContext.screenId);
-                                console.log('[EVA] Available actions on new screen:', screenContext.availableActions);
+                                screenContext.availableActions = IVAScreenActions.getAvailableActions(screenContext.screenId);
+                                console.log('[IVA] Available actions on new screen:', screenContext.availableActions);
                             }
 
                             /* DISABLED FOR NOW - CAUSING RECURSION ISSUES
@@ -1414,7 +1415,7 @@ Digite 1, 2 ou 3.`;
                             const navigationMsg = 'Cheguei. Deixe-me analisar os dados desta tela...';
                             addMessage('ai', navigationMsg);
                             speak(navigationMsg);
-
+    
                             // Verify if it's main dashboard to avoid loop or generic analysis
                             if (decision.screen === 'dashboard') {
                                 const m = 'Estou no painel principal via visão geral.';
@@ -1422,11 +1423,11 @@ Digite 1, 2 ou 3.`;
                                 speak(m);
                                 return;
                             }
-
+    
                             // Wait for screen to load and context to update (2.5s)
                             setTimeout(async () => {
-                                console.log('[EVA Autonomy] Triggering post-navigation analysis...');
-
+                                console.log('[IVA Autonomy] Triggering post-navigation analysis...');
+    
                                 // Create a visual "Analyzing" indicator
                                 const analyzingDiv = document.createElement('div');
                                 analyzingDiv.innerHTML = '<i>🔍 Analisando dados da tela...</i>';
@@ -1434,28 +1435,28 @@ Digite 1, 2 ou 3.`;
                                 analyzingDiv.style.marginLeft = '10px';
                                 messagesContainer.appendChild(analyzingDiv);
                                 messagesContainer.scrollTop = messagesContainer.scrollHeight;
-
+    
                                 try {
                                     // Recursive call to LLM with updated context
                                     // specific "system instruction" style message
                                     const analysisRequest = `SYSTEM_EVENT: NAVIGATION_COMPLETE to ${decision.screen}. 
                                     ACTION: Analyze the 'activeScreenContext' data immediately based on the user's previous intention. 
                                     Ignore "how can I help", just give the answer/analysis.`;
-
+    
                                     // Re-uses sendMessage logic but bypassing UI input
                                     // We need to call the internal decision logic directly to avoid user bubble
-
+    
                                     // 1. Gather NEW Context (Post-Navigation)
                                     const newContext = {
-                                        currentScreen: EvaKnowledge.activeScreen,
-                                        currentScreenData: EvaKnowledge.activeScreenData,
-                                        availableScreens: EvaKnowledge.screens
+                                        currentScreen: IVAKnowledge.activeScreen,
+                                        currentScreenData: IVAKnowledge.activeScreenData,
+                                        availableScreens: IVAKnowledge.screens
                                     };
-
-                                    const nextDecision = await EvaService.decideOperation(analysisRequest, newContext);
-
+    
+                                    const nextDecision = await IVAService.decideOperation(analysisRequest, newContext);
+    
                                     if (analyzingDiv.parentNode) analyzingDiv.parentNode.removeChild(analyzingDiv);
-
+    
                                     if (nextDecision.action === 'REPLY') {
                                         addMessage('ai', nextDecision.message);
                                         speak(nextDecision.message);
@@ -1466,9 +1467,9 @@ Digite 1, 2 ou 3.`;
                                         addMessage('ai', m);
                                         speak(m);
                                     }
-
+    
                                 } catch (e) {
-                                    console.error('[EVA Autonomy] Error:', e);
+                                    console.error('[IVA Autonomy] Error:', e);
                                     if (analyzingDiv.parentNode) analyzingDiv.parentNode.removeChild(analyzingDiv);
                                     addMessage('ai', 'Não consegui ler os dados da tela automaticamente. Pode me perguntar novamente?');
                                 }
@@ -1495,7 +1496,7 @@ Digite 1, 2 ou 3.`;
                 }
 
             } catch (err) {
-                console.error('[EVA] Operation error:', err);
+                console.error('[IVA] Operation error:', err);
                 if (thinkingMsg.parentNode) thinkingMsg.parentNode.removeChild(thinkingMsg);
                 addMessage('ai', 'Erro ao processar comando.');
             }
@@ -1508,8 +1509,8 @@ Digite 1, 2 ou 3.`;
         if (text === '/reset') {
             const user = getUser();
             if (user) {
-                user.eva_introduced = false;
-                user.eva_voice_enabled = null; // Reset voice pref
+                user.IVA_introduced = false;
+                user.IVA_voice_enabled = null; // Reset voice pref
                 user.preferred_name = null; // Reset name pref
                 localStorage.setItem('user', JSON.stringify(user));
                 // Also update backend if possible, but for now local is enough to trigger flow locally next reload
@@ -1546,12 +1547,12 @@ Digite 1, 2 ou 3.`;
                     addMessage('ai', 'Ótimo! Vou mostrar uma visão geral rápida. Iniciando...');
 
                     // Mark as introduced before tour
-                    await savePreferences({ evaIntroduced: 1 });
+                    await savePreferences({ IVAIntroduced: 1 });
 
                     // Import and start tour
-                    const { EvaTour } = await import('../eva/EvaTour.js');
+                    const { IVATour } = await import('../IVA/IVATour.js');
                     setTimeout(() => {
-                        EvaTour.start('overview');
+                        IVATour.start('overview');
                     }, 2000);
 
                     pendingAction = null;
@@ -1562,12 +1563,12 @@ Digite 1, 2 ou 3.`;
                     addMessage('ai', 'Excelente escolha! Vou guiá-lo(a) por todo o sistema em detalhes. Vamos lá!');
 
                     // Mark as introduced before tour
-                    await savePreferences({ evaIntroduced: 1 });
+                    await savePreferences({ IVAIntroduced: 1 });
 
                     // Import and start tour
-                    const { EvaTour } = await import('../eva/EvaTour.js');
+                    const { IVATour } = await import('../IVA/IVATour.js');
                     setTimeout(() => {
-                        EvaTour.start('full');
+                        IVATour.start('full');
                     }, 2000);
 
                     pendingAction = null;
@@ -1578,7 +1579,7 @@ Digite 1, 2 ou 3.`;
                     addMessage('ai', 'Sem problemas! Fique à vontade para explorar. Estarei aqui caso precise de ajuda!');
 
                     // Mark as introduced
-                    await savePreferences({ evaIntroduced: 1 });
+                    await savePreferences({ IVAIntroduced: 1 });
 
                     pendingAction = null;
 
@@ -1614,13 +1615,13 @@ Digite 1, 2 ou 3.`;
                     const newSeconds = parseInt(match[0]);
                     if (newSeconds >= 3 && newSeconds <= 60) {
                         try {
-                            const res = await fetch(`${API_BASE_URL}/settings/eva_timeout`, {
+                            const res = await fetch(`${API_BASE_URL}/settings/IVA_timeout`, {
                                 method: 'PUT',
                                 headers: getHeaders(),
                                 body: JSON.stringify({ value: newSeconds })
                             });
                             if (res.ok) {
-                                evaTimeout = newSeconds * 1000;
+                                IVATimeout = newSeconds * 1000;
                                 const msg = `Entendido. Alterei meu tempo de espera para **${newSeconds} segundos**.`;
                                 addMessage('ai', msg);
                                 speak(msg);
@@ -1681,15 +1682,15 @@ Digite 1, 2 ou 3.`;
                 return;
             }
 
-            // Old fallback chat logic removed - now handled by EvaService above
+            // Old fallback chat logic removed - now handled by IVAService above
         }, 800);
     };
 
     // --- Semantic Screen Reading "The Eyes" ---
     const updateScreenContext = (contextData) => {
         // Store in global knowledge
-        EvaKnowledge.activeScreenData = contextData;
-        console.log('[EVA Vision] Screen Context Updated:', contextData);
+        IVAKnowledge.activeScreenData = contextData;
+        console.log('[IVA Vision] Screen Context Updated:', contextData);
     };
 
     // Public API
@@ -1698,7 +1699,7 @@ Digite 1, 2 ou 3.`;
             const user = getUser();
 
             // Check if user has completed introduction
-            if (!user?.eva_introduced) {
+            if (!user?.IVA_introduced) {
                 // Store the loan data and resolver for after introduction
                 loanResolver = resolve;
                 loanContext = data;
@@ -1742,12 +1743,12 @@ Digite 1, 2 ou 3.`;
         });
     };
 
-    window.EVA = {
+    window.IVA = {
         startLoanCategorization,
         updateScreenContext // Exposed for screens to broadcast data
     };
 
-    window.EVAConsultant = {
+    window.IVAConsultant = {
         addMessage,
         speak,
         toggleChat,
@@ -1755,7 +1756,8 @@ Digite 1, 2 ou 3.`;
     };
 
     // Alias for backward compatibility if needed, temporary
-    window.FOCCUS = window.EVA;
+    window.FOCCUS = window.IVA;
 
     return container;
 };
+

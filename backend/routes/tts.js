@@ -56,7 +56,7 @@ if (textToSpeech) {
 }
 
 /**
- * GET /api/eva/tts-status
+ * GET /api/IVA/tts-status
  * Check if Google Cloud TTS is available
  */
 router.get('/status', (req, res) => {
@@ -72,7 +72,7 @@ router.get('/status', (req, res) => {
 });
 
 /**
- * POST /api/eva/synthesize
+ * POST /api/IVA/synthesize
  * Synthesize speech using Google Cloud TTS
  * 
  * Request body:
@@ -165,3 +165,4 @@ router.post('/synthesize', async (req, res) => {
 });
 
 module.exports = router;
+

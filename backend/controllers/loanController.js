@@ -148,8 +148,8 @@ exports.createLoan = async (req, res, next) => {
             installments, // Number of installments
             firstDueDate,
             registerEntry, // Boolean: Creates the cash inflow record
-            feeCategoryId, // Explicit ID from EVA
-            interestCategoryId // Explicit ID from EVA
+            feeCategoryId, // Explicit ID from IVA
+            interestCategoryId // Explicit ID from IVA
         } = req.body;
 
         // Fallback for compatibility if frontend sends old keys (though we will fix frontend too)
@@ -202,7 +202,7 @@ exports.createLoan = async (req, res, next) => {
                 // Find category for fees
                 let tipoSaidaTaxasId;
                 if (feeCategoryId) {
-                    tipoSaidaTaxasId = feeCategoryId; // Use from EVA
+                    tipoSaidaTaxasId = feeCategoryId; // Use from IVA
                 } else {
                     tipoSaidaTaxasId = await findBestCategoryForFees(connection, projectId);
                 }
@@ -374,3 +374,4 @@ exports.suggestCategory = async (req, res, next) => {
         if (connection) connection.release();
     }
 };
+

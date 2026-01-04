@@ -1,10 +1,10 @@
 /**
- * EVA Screen Actions Registry
+ * IVA Screen Actions Registry
  * Manages available UI interactions per screen (READ-ONLY)
  * Security: NO database write operations allowed
  */
 
-class EvaScreenActions {
+class ivaScreenActions {
     static registry = {
         // ========================================
         // PREVISÃO DE FLUXO
@@ -17,13 +17,13 @@ class EvaScreenActions {
                     description: 'Filtrar X dias à frente na previsão de fluxo',
                     params: ['days'],
                     execute: async (days) => {
-                        const input = document.querySelector('[data-eva-days-filter]');
+                        const input = document.querySelector('[data-IVA-days-filter]');
                         if (input) {
                             input.value = days;
                             input.dispatchEvent(new Event('change', { bubbles: true }));
 
                             // Trigger update if there's a button
-                            const updateBtn = document.querySelector('[data-eva-filter-btn]');
+                            const updateBtn = document.querySelector('[data-IVA-filter-btn]');
                             if (updateBtn) {
                                 updateBtn.click();
                             }
@@ -40,14 +40,14 @@ class EvaScreenActions {
                     description: 'Filtrar por intervalo de datas específico',
                     params: ['dataInicio', 'dataFim'],
                     execute: async (dataInicio, dataFim) => {
-                        const startInput = document.querySelector('[data-eva-date-start]');
-                        const endInput = document.querySelector('[data-eva-date-end]');
+                        const startInput = document.querySelector('[data-IVA-date-start]');
+                        const endInput = document.querySelector('[data-IVA-date-end]');
 
                         if (startInput && endInput) {
                             startInput.value = dataInicio;
                             endInput.value = dataFim;
 
-                            const filterBtn = document.querySelector('[data-eva-filter-btn]');
+                            const filterBtn = document.querySelector('[data-IVA-filter-btn]');
                             if (filterBtn) {
                                 filterBtn.click();
                             }
@@ -72,14 +72,14 @@ class EvaScreenActions {
                     description: 'Filtrar entradas por mês e ano específico',
                     params: ['mes', 'ano'],
                     execute: async (mes, ano) => {
-                        const mesSelect = document.querySelector('[name="mes"], [data-eva-month-filter]');
-                        const anoSelect = document.querySelector('[name="ano"], [data-eva-year-filter]');
+                        const mesSelect = document.querySelector('[name="mes"], [data-IVA-month-filter]');
+                        const anoSelect = document.querySelector('[name="ano"], [data-IVA-year-filter]');
 
                         if (mesSelect && anoSelect) {
                             mesSelect.value = mes;
                             anoSelect.value = ano;
 
-                            const filterBtn = document.querySelector('[data-eva-filter-btn]');
+                            const filterBtn = document.querySelector('[data-IVA-filter-btn]');
                             if (filterBtn) {
                                 filterBtn.click();
                             }
@@ -96,12 +96,12 @@ class EvaScreenActions {
                     description: 'Filtrar por tipo de entrada (Serviços, Vendas, etc)',
                     params: ['tipoId'],
                     execute: async (tipoId) => {
-                        const tipoSelect = document.querySelector('[name="tipo"], [data-eva-type-filter]');
+                        const tipoSelect = document.querySelector('[name="tipo"], [data-IVA-type-filter]');
 
                         if (tipoSelect) {
                             tipoSelect.value = tipoId;
 
-                            const filterBtn = document.querySelector('[data-eva-filter-btn]');
+                            const filterBtn = document.querySelector('[data-IVA-filter-btn]');
                             if (filterBtn) {
                                 filterBtn.click();
                             }
@@ -118,12 +118,12 @@ class EvaScreenActions {
                     description: 'Filtrar por status (Realizada/Prevista)',
                     params: ['status'],
                     execute: async (status) => {
-                        const statusSelect = document.querySelector('[name="status"], [data-eva-status-filter]');
+                        const statusSelect = document.querySelector('[name="status"], [data-IVA-status-filter]');
 
                         if (statusSelect) {
                             statusSelect.value = status;
 
-                            const filterBtn = document.querySelector('[data-eva-filter-btn]');
+                            const filterBtn = document.querySelector('[data-IVA-filter-btn]');
                             if (filterBtn) {
                                 filterBtn.click();
                             }
@@ -148,14 +148,14 @@ class EvaScreenActions {
                     description: 'Filtrar saídas por mês e ano',
                     params: ['mes', 'ano'],
                     execute: async (mes, ano) => {
-                        const mesSelect = document.querySelector('[name="mes"], [data-eva-month-filter]');
-                        const anoSelect = document.querySelector('[name="ano"], [data-eva-year-filter]');
+                        const mesSelect = document.querySelector('[name="mes"], [data-IVA-month-filter]');
+                        const anoSelect = document.querySelector('[name="ano"], [data-IVA-year-filter]');
 
                         if (mesSelect && anoSelect) {
                             mesSelect.value = mes;
                             anoSelect.value = ano;
 
-                            const filterBtn = document.querySelector('[data-eva-filter-btn]');
+                            const filterBtn = document.querySelector('[data-IVA-filter-btn]');
                             if (filterBtn) {
                                 filterBtn.click();
                             }
@@ -172,12 +172,12 @@ class EvaScreenActions {
                     description: 'Filtrar por tipo de saída',
                     params: ['tipoId'],
                     execute: async (tipoId) => {
-                        const tipoSelect = document.querySelector('[name="tipo"], [data-eva-type-filter]');
+                        const tipoSelect = document.querySelector('[name="tipo"], [data-IVA-type-filter]');
 
                         if (tipoSelect) {
                             tipoSelect.value = tipoId;
 
-                            const filterBtn = document.querySelector('[data-eva-filter-btn]');
+                            const filterBtn = document.querySelector('[data-IVA-filter-btn]');
                             if (filterBtn) {
                                 filterBtn.click();
                             }
@@ -215,7 +215,7 @@ class EvaScreenActions {
         const screen = this.registry[screenId];
 
         if (!screen) {
-            console.error('[EvaScreenActions] Screen not found:', screenId);
+            console.error('[ivaScreenActions] Screen not found:', screenId);
             return {
                 success: false,
                 error: 'Tela não encontrada no registry'
@@ -225,7 +225,7 @@ class EvaScreenActions {
         const action = screen.actions.find(a => a.id === actionId);
 
         if (!action) {
-            console.error('[EvaScreenActions] Action not found:', actionId);
+            console.error('[ivaScreenActions] Action not found:', actionId);
             return {
                 success: false,
                 error: 'Ação não encontrada'
@@ -234,20 +234,20 @@ class EvaScreenActions {
 
         // 🔒 CRITICAL SECURITY CHECK
         if (!this.isReadOnly(action.type)) {
-            console.error('[EVA Security] BLOCKED non-read-only action attempted:', action);
+            console.error('[IVA Security] BLOCKED non-read-only action attempted:', action);
             return {
                 success: false,
-                error: 'Ação bloqueada por segurança. EVA não pode alterar dados do banco.'
+                error: 'Ação bloqueada por segurança. IVA não pode alterar dados do banco.'
             };
         }
 
         try {
-            console.log(`[EvaScreenActions] Executing ${screenId}.${actionId} with params:`, params);
+            console.log(`[ivaScreenActions] Executing ${screenId}.${actionId} with params:`, params);
             const result = await action.execute(...params);
-            console.log(`[EvaScreenActions] Execution result:`, result);
+            console.log(`[ivaScreenActions] Execution result:`, result);
             return { success: result };
         } catch (error) {
-            console.error('[EvaScreenActions] Execution error:', error);
+            console.error('[ivaScreenActions] Execution error:', error);
             return {
                 success: false,
                 error: error.message
@@ -289,4 +289,5 @@ class EvaScreenActions {
     }
 }
 
-export default EvaScreenActions;
+export default ivaScreenActions;
+
