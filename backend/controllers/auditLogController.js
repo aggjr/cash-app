@@ -142,10 +142,26 @@ exports.undoAction = async (req, res, next) => {
                 [...values, log.entity_id]
             );
         } else if (log.action === 'INSERT' || log.action === 'CREATE') {
+            let targetId = log.entity_id;
+
+            // If entity_id is missing (legacy logs), try to extract from new_data
+            if (!targetId && log.new_data) {
+                try {
+                    const newData = typeof log.new_data === 'string' ? JSON.parse(log.new_data) : log.new_data;
+                    targetId = newData.id || newData.ID;
+                } catch (e) {
+                    console.error('Error parsing new_data for ID extraction:', e);
+                }
+            }
+
+            if (!targetId) {
+                throw new AppError('VAL-003', 'Não foi possível identificar o ID do registro para desfazer a criação');
+            }
+
             // Delete the created record (undo creation)
             await connection.query(
                 `DELETE FROM ${log.entity} WHERE id = ?`,
-                [log.entity_id]
+                [targetId]
             );
         } else {
             throw new AppError('VAL-002', `Ação '${log.action}' não pode ser desfeita`);
