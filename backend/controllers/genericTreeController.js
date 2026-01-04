@@ -154,12 +154,12 @@ exports.move = async (req, res) => {
         const { id } = req.params;
         const { parent_id, ordem } = req.body;
 
-        // Note: Stored Procedure Move... might not handle project_id check, 
-        // but since we select by ID it should be fine for now. 
-        // Ideally we should verify project_id ownership here too.
-
-        const procName = `Move${tableName.split('_').map(w => w.charAt(0).toUpperCase() + w.slice(1)).join('')}`;
-        await db.query(`CALL ${procName}(?, ?, ?)`, [id, parent_id || null, ordem || 0]);
+        // Direct SQL update instead of stored procedure
+        await db.auditedQuery(
+            `UPDATE ${tableName} SET parent_id = ?, ordem = ? WHERE id = ?`,
+            [parent_id || null, ordem || 0, id],
+            req
+        );
 
         const [updated] = await db.query(
             `SELECT * FROM ${tableName} WHERE id = ?`,
@@ -167,7 +167,7 @@ exports.move = async (req, res) => {
         );
 
         res.json(updated[0]);
-        logAudit(req, 'UPDATE', tableName, id, { action: 'MOVE', new_parent: parent_id, new_order: ordem });
+        // Audit is automatic via auditedQuery
     } catch (error) {
         console.error('Error moving node:', error);
         res.status(500).json({ error: error.message || 'Failed to move node' });
