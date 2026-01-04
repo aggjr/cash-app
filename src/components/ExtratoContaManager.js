@@ -18,11 +18,12 @@ export const ExtratoContaManager = (project) => {
     const storedStart = localStorage.getItem('extrato_startDate');
     const storedEnd = localStorage.getItem('extrato_endDate');
     const storedAcc = localStorage.getItem('extrato_accountId');
+    const storedCompany = localStorage.getItem('extrato_companyId');
 
     let startDate = storedStart || new Date(today.getFullYear(), today.getMonth(), 1).toISOString().substring(0, 10);
     let endDate = storedEnd || new Date(today.getFullYear(), today.getMonth() + 1, 0).toISOString().substring(0, 10);
     let selectedAccountId = storedAcc || null;
-    let selectedCompanyId = null;
+    let selectedCompanyId = storedCompany ? parseInt(storedCompany) : null;
     let companies = [];
     let accounts = [];
     let allAccounts = []; // Store all accounts for filtering
@@ -71,11 +72,6 @@ export const ExtratoContaManager = (project) => {
         companySelect.style.width = '250px';
         companySelect.style.height = '38px';
         companySelect.style.padding = '0 0.5rem';
-
-        const companyPlaceholder = document.createElement('option');
-        companyPlaceholder.value = '';
-        companyPlaceholder.textContent = 'Todas as empresas';
-        companySelect.appendChild(companyPlaceholder);
 
         companies.forEach(comp => {
             const opt = document.createElement('option');
@@ -162,14 +158,9 @@ export const ExtratoContaManager = (project) => {
 
         // Company Filter Logic
         const filterAccountsByCompany = () => {
-            selectedCompanyId = companySelect.value ? parseInt(companySelect.value) : null;
+            selectedCompanyId = parseInt(companySelect.value);
 
-            // Filter accounts
-            if (selectedCompanyId) {
-                accounts = allAccounts.filter(acc => acc.company_id === selectedCompanyId);
-            } else {
-                accounts = [...allAccounts]; // Show all
-            }
+            accounts = allAccounts.filter(acc => acc.company_id === selectedCompanyId); `n`n            // Persist company selection`n            localStorage.setItem('extrato_companyId', selectedCompanyId);
 
             // Reset account selection if current account not in filtered list
             if (selectedAccountId && !accounts.find(a => a.id === parseInt(selectedAccountId))) {
@@ -403,9 +394,21 @@ export const ExtratoContaManager = (project) => {
             const resp = await fetch(`${API_BASE_URL}/accounts?projectId=${project.id}`, { headers: getHeaders() });
             if (resp.ok) {
                 allAccounts = await resp.json();
-                accounts = [...allAccounts]; // Initially show all
 
-                // Auto-select first account if available
+                // Auto-select first company if no company selected
+                if (!selectedCompanyId && companies.length > 0) {
+                    selectedCompanyId = companies[0].id;
+                    localStorage.setItem('extrato_companyId', selectedCompanyId);
+                }
+
+                // Filter accounts by selected company
+                if (selectedCompanyId) {
+                    accounts = allAccounts.filter(acc => acc.company_id === selectedCompanyId);
+                } else {
+                    accounts = [...allAccounts];
+                }
+
+                // Auto-select first account if available and none selected
                 if (accounts.length > 0 && !selectedAccountId) {
                     selectedAccountId = accounts[0].id;
                 }
@@ -563,3 +566,4 @@ export const ExtratoContaManager = (project) => {
 
     return container;
 };
+
