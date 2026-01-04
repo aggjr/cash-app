@@ -151,7 +151,7 @@ async function auditedQuery(connection, sql, params = [], req = null) {
                     const newData = await fetchNewData(connection, parsed.table, insertId);
                     await logAudit(
                         req,
-                        'CREATE',
+                        'INSERT',
                         parsed.table,
                         insertId,
                         { operation: 'insert' },

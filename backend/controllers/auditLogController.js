@@ -141,7 +141,7 @@ exports.undoAction = async (req, res, next) => {
                 `UPDATE ${log.entity} SET ${setClause} WHERE id = ?`,
                 [...values, log.entity_id]
             );
-        } else if (log.action === 'INSERT') {
+        } else if (log.action === 'INSERT' || log.action === 'CREATE') {
             // Delete the created record (undo creation)
             await connection.query(
                 `DELETE FROM ${log.entity} WHERE id = ?`,

@@ -167,21 +167,32 @@ export const LogAlteracoesManager = (project) => {
                     return span;
                 }
 
-                // Check if has old_data (can be undone) - INSERT doesn't need old_data
-                if (row.action !== 'DELETE' && row.action !== 'UPDATE' && row.action !== 'INSERT') {
+                // Check if has old_data (can be undone) - INSERT/CREATE doesn't need old_data
+                if (!['DELETE', 'UPDATE', 'INSERT', 'CREATE'].includes(row.action)) {
                     console.log(`[UNDO] Blocking: action "${row.action}" not supported`, row);
                     return document.createTextNode('-');
                 }
 
-                // INSERT doesn't need old_data, DELETE and UPDATE do
+                // INSERT/CREATE doesn't need old_data, DELETE and UPDATE do
                 if ((row.action === 'DELETE' || row.action === 'UPDATE') && !row.old_data) {
                     console.log(`[UNDO] Blocking: ${row.action} has no old_data`, row);
                     return document.createTextNode('-');
                 }
 
-                // For INSERT, we need entity_id (primary key) to delete
-                if (row.action === 'INSERT' && !row.entity_id) {
-                    console.log(`[UNDO] Blocking INSERT: missing entity_id`, row);
+                // For INSERT/CREATE, we need entity_id (primary key) to delete
+                // Fallback: try to find ID in new_data if entity_id is missing
+                let entityId = row.entity_id;
+                if ((row.action === 'INSERT' || row.action === 'CREATE') && !entityId && row.new_data) {
+                    try {
+                        const newData = typeof row.new_data === 'string' ? JSON.parse(row.new_data) : row.new_data;
+                        entityId = newData.id || newData.ID;
+                    } catch (e) {
+                        console.error('Error parsing new_data for ID', e);
+                    }
+                }
+
+                if ((row.action === 'INSERT' || row.action === 'CREATE') && !entityId) {
+                    console.log(`[UNDO] Blocking INSERT/CREATE: missing entity_id`, row);
                     return document.createTextNode('-');
                 }
 
@@ -199,6 +210,9 @@ export const LogAlteracoesManager = (project) => {
                 btn.style.fontSize = '0.85rem';
                 btn.onclick = async (e) => {
                     e.stopPropagation();
+                    // For CREATE/INSERT, we might need to tell backend the ID if it's missing in DB column
+                    // But currently API only accepts logId. 
+                    // I will fix backend to parse new_data if entity_id is null.
                     await undoAction(row.id, row.action, row.entity);
                 };
                 return btn;
@@ -300,8 +314,8 @@ export const LogAlteracoesManager = (project) => {
                 return;
             }
 
-            const actionLabel = action === 'DELETE' ? 'exclusão' : (action === 'INSERT' ? 'criação' : 'alteração');
-            const actionVerb = action === 'DELETE' ? 'restaurar' : (action === 'INSERT' ? 'deletar' : 'reverter');
+            const actionLabel = action === 'DELETE' ? 'exclusão' : (['INSERT', 'CREATE'].includes(action) ? 'criação' : 'alteração');
+            const actionVerb = action === 'DELETE' ? 'restaurar' : (['INSERT', 'CREATE'].includes(action) ? 'deletar' : 'reverter');
 
             // Parse old_data and new_data to show what will be restored
             let oldDataPreview = '';
@@ -336,7 +350,7 @@ export const LogAlteracoesManager = (project) => {
                 warningIcon = '♻️';
             } else if (action === 'UPDATE') {
                 warningIcon = '↩️';
-            } else if (action === 'INSERT') {
+            } else if (action === 'INSERT' || action === 'CREATE') {
                 warningIcon = '🗑️';
             }
 
