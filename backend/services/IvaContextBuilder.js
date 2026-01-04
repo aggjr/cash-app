@@ -1,7 +1,7 @@
-const systemPrompts = require('../config/IVA-system-prompts');
-const financialKnowledge = require('../config/IVA-financial-knowledge');
-const systemMap = require('../config/IVA-system-map');
-const ivaSecurityValidator = require('../utils/ivaSecurityValidator');
+const systemPrompts = require('../config/iva-system-prompts');
+const financialKnowledge = require('../config/iva-financial-knowledge');
+const systemMap = require('../config/iva-system-map');
+const IvaSecurityValidator = require('../utils/IvaSecurityValidator');
 
 /**
  * IVA Context Builder Service - Version 2.0
@@ -348,11 +348,11 @@ EXEMPLOS DE NAVEGAÇÃO ADEQUADA:
 
         // Validate and sanitize project context
         const rawProjectContext = project?.iva_context || {};
-        const projectContext = ivaSecurityValidator.validateEvaContext(rawProjectContext);
+        const projectContext = IvaSecurityValidator.validateEvaContext(rawProjectContext);
 
         // Check if we need to refresh cached profile
         const needsRefresh = !projectContext.inferred_profile ||
-            ivaSecurityValidator.needsMigration(projectContext);
+            IvaSecurityValidator.needsMigration(projectContext);
 
         let businessContext = '';
 
@@ -396,7 +396,7 @@ EXEMPLOS DE NAVEGAÇÃO ADEQUADA:
 
         // Validate and sanitize user preferences
         const rawUserPrefs = user?.iva_preferences || {};
-        const userPrefs = ivaSecurityValidator.validateEvaPreferences(rawUserPrefs);
+        const userPrefs = IvaSecurityValidator.validateEvaPreferences(rawUserPrefs);
 
         // Clear preference hierarchy implementation
         const communicationStyle = this.getCommunicationStyle(user, userPrefs);
@@ -668,4 +668,5 @@ User: "Olá IVA"
 }
 
 module.exports = ivaContextBuilder;
+
 
