@@ -162,9 +162,25 @@ exports.getConsolidatedData = async (req, res) => {
             };
 
             // --- 3. Execute for Main Tables ---
-            const saidasRoots = await buildTreeForTable('tipo_saida', 'saidas', 'tipo_saida_id');
+            let saidasRoots = await buildTreeForTable('tipo_saida', 'saidas', 'tipo_saida_id');
             const producaoRoots = await buildTreeForTable('tipo_producao_revenda', 'producao_revenda', 'tipo_id');
             let entradasRoots = await buildTreeForTable('tipo_entrada', 'entradas', 'tipo_entrada_id');
+
+            // --- Separate LOAN PAYMENTS (SAIDAS) ---
+            let pagamentosEmprestimosVirtual = { id: 'pagamentos_emprestimos_root', name: '- PGTO. EMPRÉSTIMOS', children: [], monthlyTotals: {}, total: 0, isNegative: true };
+
+            const pgtoEmpIndex = saidasRoots.findIndex(n => {
+                const name = n.name.toUpperCase();
+                return (name.includes('PAGAMENTO') && name.includes('EMPRÉSTIMO')) || name.includes('AMORTIZAÇÃO');
+            });
+
+            if (pgtoEmpIndex !== -1) {
+                const node = saidasRoots[pgtoEmpIndex];
+                saidasRoots.splice(pgtoEmpIndex, 1);
+                pagamentosEmprestimosVirtual.children = node.children;
+                pagamentosEmprestimosVirtual.monthlyTotals = node.monthlyTotals;
+                pagamentosEmprestimosVirtual.total = node.total;
+            }
 
             // --- Separate EMPRÉSTIMOS from ENTRADAS ---
             let emprestimosVirtual = { id: 'emprestimos_root', name: '+ EMPRÉSTIMOS', children: [], monthlyTotals: {}, total: 0, isPositive: true };
@@ -301,16 +317,27 @@ exports.getConsolidatedData = async (req, res) => {
 
             // Fluxo Financeiro
             const fluxoVirtual = { id: 'fluxo_financeiro_root', name: '= FLUXO FINANCEIRO MENSAL', children: [], monthlyTotals: {}, total: 0, isTotal: true, isFinal: true };
-            const flxMonths = new Set([...Object.keys(resOpVirtual.monthlyTotals), ...Object.keys(aportesVirtual.monthlyTotals), ...Object.keys(retiradasVirtual.monthlyTotals), ...Object.keys(emprestimosVirtual.monthlyTotals)]);
+            const flxMonths = new Set([
+                ...Object.keys(resOpVirtual.monthlyTotals),
+                ...Object.keys(aportesVirtual.monthlyTotals),
+                ...Object.keys(retiradasVirtual.monthlyTotals),
+                ...Object.keys(emprestimosVirtual.monthlyTotals),
+                ...Object.keys(pagamentosEmprestimosVirtual.monthlyTotals)
+            ]);
+
             flxMonths.forEach(m => {
-                fluxoVirtual.monthlyTotals[m] = (resOpVirtual.monthlyTotals[m] || 0) + (aportesVirtual.monthlyTotals[m] || 0) + (emprestimosVirtual.monthlyTotals[m] || 0) - (retiradasVirtual.monthlyTotals[m] || 0);
+                fluxoVirtual.monthlyTotals[m] = (resOpVirtual.monthlyTotals[m] || 0)
+                    + (aportesVirtual.monthlyTotals[m] || 0)
+                    + (emprestimosVirtual.monthlyTotals[m] || 0)
+                    - (retiradasVirtual.monthlyTotals[m] || 0)
+                    - (pagamentosEmprestimosVirtual.monthlyTotals[m] || 0);
             });
-            fluxoVirtual.total = resOpVirtual.total + aportesVirtual.total + emprestimosVirtual.total - retiradasVirtual.total;
+            fluxoVirtual.total = resOpVirtual.total + aportesVirtual.total + emprestimosVirtual.total - retiradasVirtual.total - pagamentosEmprestimosVirtual.total;
 
             return [
                 entradasVirtual, producaoVirtual, lucroBrutoVirtual, margemBrutaVirtual,
                 saidasVirtual, resOpVirtual, margemOpVirtual,
-                emprestimosVirtual, aportesVirtual, retiradasVirtual, fluxoVirtual
+                emprestimosVirtual, pagamentosEmprestimosVirtual, aportesVirtual, retiradasVirtual, fluxoVirtual
             ];
         };
 

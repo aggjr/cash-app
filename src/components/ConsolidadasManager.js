@@ -202,7 +202,7 @@ export const ConsolidadasManager = (project) => {
                             color = '#10B981';
                         } else if (node.id === 'retiradas_root') {
                             color = '#EF4444';
-                        } else if (node.id === 'emprestimos_root') {
+                        } else if (node.id === 'emprestimos_root' || node.id === 'pagamentos_emprestimos_root') {
                             color = '#3B82F6';
                         } else if (['resultado_operacional_root', 'fluxo_financeiro_root', 'lucro_bruto_root'].includes(node.id) || (node.id && (node.id.toString().startsWith('entradas') || node.id.toString().includes('tipo_entrada')))) {
                             color = val >= 0 ? '#10B981' : '#EF4444';
@@ -230,7 +230,7 @@ export const ConsolidadasManager = (project) => {
                         totalColor = '#10B981';
                     } else if (node.id === 'retiradas_root') {
                         totalColor = '#EF4444';
-                    } else if (node.id === 'emprestimos_root') {
+                    } else if (node.id === 'emprestimos_root' || node.id === 'pagamentos_emprestimos_root') {
                         totalColor = '#3B82F6';
                     } else if (['resultado_operacional_root', 'fluxo_financeiro_root', 'lucro_bruto_root'].includes(node.id) || (node.id && (node.id.toString().startsWith('entradas') || node.id.toString().includes('tipo_entrada')))) {
                         totalColor = node.total >= 0 ? '#10B981' : '#EF4444';
