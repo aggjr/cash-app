@@ -275,7 +275,7 @@ exports.getConsolidatedData = async (req, res) => {
             };
 
             const entradasVirtual = createVirtualRoot('entradas_root', 'ENTRADAS', entradasRoots);
-            const producaoVirtual = createVirtualRoot('producao_root', 'PRODUÇÃO / REVENDA', producaoRoots);
+            const producaoVirtual = createVirtualRoot('producao_root', 'Compras (Produção/Revenda)', producaoRoots);
             const saidasVirtual = createVirtualRoot('saidas_root', 'SAÍDAS OPERACIONAIS', saidasRoots);
 
             // Lucro Bruto
