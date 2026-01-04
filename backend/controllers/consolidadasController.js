@@ -164,7 +164,33 @@ exports.getConsolidatedData = async (req, res) => {
             // --- 3. Execute for Main Tables ---
             const saidasRoots = await buildTreeForTable('tipo_saida', 'saidas', 'tipo_saida_id');
             const producaoRoots = await buildTreeForTable('tipo_producao_revenda', 'producao_revenda', 'tipo_id');
-            const entradasRoots = await buildTreeForTable('tipo_entrada', 'entradas', 'tipo_entrada_id');
+            let entradasRoots = await buildTreeForTable('tipo_entrada', 'entradas', 'tipo_entrada_id');
+
+            // --- Separate EMPRÉSTIMOS from ENTRADAS ---
+            let emprestimosVirtual = { id: 'emprestimos_root', name: '+ EMPRÉSTIMOS', children: [], monthlyTotals: {}, total: 0, isPositive: true };
+
+            // Find and remove 'EMPRÉSTIMOS' from entradasRoots
+            const empIndex = entradasRoots.findIndex(n => n.name.toUpperCase().includes('EMPRÉSTIMOS') || n.name.toUpperCase().includes('EMPRESTIMOS'));
+            if (empIndex !== -1) {
+                const empNode = entradasRoots[empIndex];
+                entradasRoots.splice(empIndex, 1); // Remove from Entradas
+                // Use this node as Emprestimos Virtual (or wrap it)
+                // We wrap it to keep consistent ID structure or just use it?
+                // Visual consistency: The row "EMPRESTIMOS" should be the root.
+                // The found node is likely the root "EMPRÉSTIMOS".
+                // But we want to ensure 'isPositive' styling etc.
+                emprestimosVirtual.children = [empNode]; // Keep hierarchy if it has children? 
+                // Actually empNode IS the tree for loans.
+                // Let's just merge its data into emprestimosVirtual
+                emprestimosVirtual.children = empNode.children; // Assuming simple structure or we keep empNode as child?
+                // If I keep empNode as child, user sees "+ EMPRÉSTIMOS" -> "EMPRESTIMOS" -> items. Weird.
+                // Better: Just take empNode and rename/re-id it?
+                // Or if multiple loan types exist?
+                // Let's copy totals.
+                emprestimosVirtual.monthlyTotals = empNode.monthlyTotals;
+                emprestimosVirtual.total = empNode.total;
+                emprestimosVirtual.children = empNode.children; // Adopt children
+            }
 
             // --- 4. Extra Data (Aportes / Retiradas) ---
             // Logic: Include in BOTH Views (Realized=Real Date, Provisioned=Predicted Date)
@@ -275,16 +301,16 @@ exports.getConsolidatedData = async (req, res) => {
 
             // Fluxo Financeiro
             const fluxoVirtual = { id: 'fluxo_financeiro_root', name: '= FLUXO FINANCEIRO MENSAL', children: [], monthlyTotals: {}, total: 0, isTotal: true, isFinal: true };
-            const flxMonths = new Set([...Object.keys(resOpVirtual.monthlyTotals), ...Object.keys(aportesVirtual.monthlyTotals), ...Object.keys(retiradasVirtual.monthlyTotals)]);
+            const flxMonths = new Set([...Object.keys(resOpVirtual.monthlyTotals), ...Object.keys(aportesVirtual.monthlyTotals), ...Object.keys(retiradasVirtual.monthlyTotals), ...Object.keys(emprestimosVirtual.monthlyTotals)]);
             flxMonths.forEach(m => {
-                fluxoVirtual.monthlyTotals[m] = (resOpVirtual.monthlyTotals[m] || 0) + (aportesVirtual.monthlyTotals[m] || 0) - (retiradasVirtual.monthlyTotals[m] || 0);
+                fluxoVirtual.monthlyTotals[m] = (resOpVirtual.monthlyTotals[m] || 0) + (aportesVirtual.monthlyTotals[m] || 0) + (emprestimosVirtual.monthlyTotals[m] || 0) - (retiradasVirtual.monthlyTotals[m] || 0);
             });
-            fluxoVirtual.total = resOpVirtual.total + aportesVirtual.total - retiradasVirtual.total;
+            fluxoVirtual.total = resOpVirtual.total + aportesVirtual.total + emprestimosVirtual.total - retiradasVirtual.total;
 
             return [
                 entradasVirtual, producaoVirtual, lucroBrutoVirtual, margemBrutaVirtual,
                 saidasVirtual, resOpVirtual, margemOpVirtual,
-                aportesVirtual, retiradasVirtual, fluxoVirtual
+                emprestimosVirtual, aportesVirtual, retiradasVirtual, fluxoVirtual
             ];
         };
 
