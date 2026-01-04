@@ -175,8 +175,7 @@ exports.listIncomes = async (req, res, next) => {
                 th.full_path as tipo_entrada_name,
                 emp.name as company_name,
                 emp.cnpj as company_cnpj,
-                c.name as account_name,
-                c.account_type as account_type
+                c.name as account_name
              FROM entradas e
              LEFT JOIN TypeHierarchy th ON e.tipo_entrada_id = th.id
              INNER JOIN empresas emp ON e.company_id = emp.id

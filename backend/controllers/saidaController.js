@@ -164,8 +164,7 @@ exports.listSaidas = async (req, res, next) => {
                 th.full_path as tipo_saida_name,
                 emp.name as company_name,
                 emp.cnpj as company_cnpj,
-                c.name as account_name,
-                c.account_type as account_type
+                c.name as account_name
              FROM saidas s
              LEFT JOIN TypeHierarchy th ON s.tipo_saida_id = th.id
              INNER JOIN empresas emp ON s.company_id = emp.id

@@ -114,8 +114,7 @@ exports.listAportes = async (req, res, next) => {
                 a.*,
                 emp.name as company_name,
                 emp.cnpj as company_cnpj,
-                c.name as account_name,
-                c.account_type as account_type
+                c.name as account_name
              FROM aportes a
              INNER JOIN empresas emp ON a.company_id = emp.id
              LEFT JOIN contas c ON a.account_id = c.id
