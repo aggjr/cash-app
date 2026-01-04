@@ -90,11 +90,17 @@ export const UserManager = (project) => {
         { key: 'invited_at', label: 'Convidado em', width: '120px', align: 'center', type: 'date', render: (user) => formatDate(user.invited_at) },
         { key: 'invited_by_name', label: 'Convidado por', width: '150px', align: 'center', type: 'text', render: (user) => user.invited_by_name || '-' },
         {
-            key: 'actions', label: 'Ações', width: '100px', align: 'center', noFilter: true, render: (user) => {
+            key: 'actions', label: 'Ações', width: '120px', align: 'center', noFilter: true, render: (user) => {
                 const currentUser = JSON.parse(localStorage.getItem('user'));
                 const isMaster = usersList.find(u => u.id === currentUser.id)?.role === 'master';
                 const isCurrentUser = user.id === currentUser.id;
 
+                const container = document.createElement('div');
+                container.style.display = 'flex';
+                container.style.gap = '0.5rem';
+                container.style.justifyContent = 'center';
+
+                // Edit button (master or self)
                 if (isMaster || isCurrentUser) {
                     const editBtn = document.createElement('button');
                     editBtn.innerHTML = '✏️';
@@ -102,35 +108,50 @@ export const UserManager = (project) => {
                     editBtn.style.border = 'none';
                     editBtn.style.cursor = 'pointer';
                     editBtn.style.fontSize = '1.2rem';
-                    editBtn.style.marginRight = '0.5rem';
                     editBtn.title = 'Editar Perfil';
                     editBtn.onclick = (e) => {
                         e.stopPropagation();
-                        // Open Edit Modal
                         UserModal.show({
                             user,
                             onSave: (data) => updateUser(data)
                         });
                     };
-                    return editBtn;
+                    container.appendChild(editBtn);
                 }
 
+                // Remove from project button (master only, not on self or other masters)
                 if (isMaster && !isCurrentUser && user.role !== 'master') {
                     const removeBtn = document.createElement('button');
-                    removeBtn.innerHTML = '🗑️';
+                    removeBtn.innerHTML = '🚫';
                     removeBtn.style.background = 'none';
                     removeBtn.style.border = 'none';
                     removeBtn.style.cursor = 'pointer';
                     removeBtn.style.fontSize = '1.2rem';
-                    removeBtn.style.color = '#EF4444';
-                    removeBtn.title = 'Remover Usuário';
+                    removeBtn.style.color = '#F59E0B';
+                    removeBtn.title = 'Remover do Projeto';
                     removeBtn.onclick = (e) => {
                         e.stopPropagation();
                         removeUser(user.id, user.name);
                     };
-                    return removeBtn;
+                    container.appendChild(removeBtn);
+
+                    // Delete user button (smart delete - hard or soft)
+                    const deleteBtn = document.createElement('button');
+                    deleteBtn.innerHTML = '🗑️';
+                    deleteBtn.style.background = 'none';
+                    deleteBtn.style.border = 'none';
+                    deleteBtn.style.cursor = 'pointer';
+                    deleteBtn.style.fontSize = '1.2rem';
+                    deleteBtn.style.color = '#EF4444';
+                    deleteBtn.title = 'Deletar Usuário (Sistema)';
+                    deleteBtn.onclick = (e) => {
+                        e.stopPropagation();
+                        deleteUser(user.id, user.name);
+                    };
+                    container.appendChild(deleteBtn);
                 }
-                return '-';
+
+                return container.childNodes.length > 0 ? container : document.createTextNode('-');
             }
         }
     ];
@@ -237,6 +258,43 @@ export const UserManager = (project) => {
                 showToast(error.error || 'Erro ao remover usuário', 'error');
             }
         } catch (error) {
+            showToast('Erro de conexão', 'error');
+        }
+    };
+
+    const deleteUser = async (userId, userName) => {
+        const confirmed = await Dialogs.confirm(
+            `⚠️ ATENÇÃO: Esta ação irá DELETAR o usuário "${userName}" do sistema.\n\n` +
+            `• Se o usuário não tiver registros relacionados, será EXCLUÍDO PERMANENTEMENTE.\n` +
+            `• Se tiver registros no log de auditoria, será apenas INATIVADO.\n\n` +
+            `Deseja continuar?`,
+            'Deletar Usuário do Sistema'
+        );
+
+        if (!confirmed) return;
+
+        try {
+            const response = await fetch(`${API_BASE_URL}/users/${userId}`, {
+                method: 'DELETE',
+                headers: getHeaders()
+            });
+
+            const result = await response.json();
+
+            if (response.ok) {
+                if (result.action === 'deleted') {
+                    showToast(`✅ ${result.message}`, 'success');
+                } else if (result.action === 'inactivated') {
+                    showToast(`ℹ️ ${result.message}`, 'info');
+                } else {
+                    showToast(result.message, 'success');
+                }
+                loadUsers();
+            } else {
+                showToast(result.error || 'Erro ao deletar usuário', 'error');
+            }
+        } catch (error) {
+            console.error('Delete user error:', error);
             showToast('Erro de conexão', 'error');
         }
     };

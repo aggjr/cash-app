@@ -310,3 +310,93 @@ exports.updateUserProfile = async (req, res) => {
         if (connection) connection.release();
     }
 };
+
+// Smart Delete User - Hard delete if no dependencies, Soft delete otherwise
+exports.deleteUser = async (req, res) => {
+    let connection;
+    try {
+        const { userId } = req.params;
+        const requesterId = req.user.id;
+
+        connection = await db.getConnection();
+        await connection.beginTransaction();
+
+        // Prevent self-deletion
+        if (parseInt(userId) === parseInt(requesterId)) {
+            await connection.rollback();
+            return res.status(400).json({ error: 'Você não pode deletar sua própria conta' });
+        }
+
+        // Check if user exists
+        const [user] = await connection.query(
+            'SELECT id, name, is_active FROM users WHERE id = ?',
+            [userId]
+        );
+
+        if (!user.length) {
+            await connection.rollback();
+            return res.status(404).json({ error: 'Usuário não encontrado' });
+        }
+
+        // Check for dependencies (audit logs)
+        const [auditLogs] = await connection.query(
+            'SELECT COUNT(*) as count FROM audit_logs WHERE user_id = ?',
+            [userId]
+        );
+
+        const hasAuditLogs = auditLogs[0].count > 0;
+
+        if (hasAuditLogs) {
+            // SOFT DELETE - Inactivate user
+            await connection.query(
+                'UPDATE users SET is_active = FALSE WHERE id = ?',
+                [userId]
+            );
+
+            await connection.commit();
+            logAudit(req, 'UPDATE', 'users', userId, {
+                action: 'SOFT_DELETE_USER',
+                reason: 'Has audit log entries',
+                audit_logs_count: auditLogs[0].count
+            });
+
+            res.json({
+                message: 'Usuário inativado com sucesso (possui registros relacionados)',
+                action: 'inactivated',
+                reason: `Usuário possui ${auditLogs[0].count} registro(s) no log de auditoria`
+            });
+        } else {
+            // HARD DELETE - No dependencies
+            // First remove from all projects
+            await connection.query(
+                'DELETE FROM project_users WHERE user_id = ?',
+                [userId]
+            );
+
+            // Then delete user
+            await connection.query(
+                'DELETE FROM users WHERE id = ?',
+                [userId]
+            );
+
+            await connection.commit();
+            logAudit(req, 'DELETE', 'users', userId, {
+                action: 'HARD_DELETE_USER',
+                reason: 'No dependencies found'
+            });
+
+            res.json({
+                message: 'Usuário excluído permanentemente com sucesso',
+                action: 'deleted',
+                reason: 'Usuário não possui registros relacionados'
+            });
+        }
+
+    } catch (error) {
+        if (connection) await connection.rollback();
+        console.error('Delete user error:', error);
+        res.status(500).json({ error: 'Erro ao deletar usuário' });
+    } finally {
+        if (connection) connection.release();
+    }
+};
