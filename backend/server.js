@@ -64,7 +64,7 @@ apiRouter.use('/debug', debugRoutes);
 apiRouter.use('/settings', settingsRoutes);
 apiRouter.use('/audit-logs', auditRoutes);
 apiRouter.use('/loans', require('./routes/loans'));
-apiRouter.use('/IVA', require('./routes/IVA'));
+apiRouter.use('/iva', require('./routes/iva'));
 apiRouter.use('/tts', ttsRoutes); // Google Cloud TTS
 
 // Static Uploads Serving
