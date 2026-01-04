@@ -1366,9 +1366,9 @@ exports.bulkDeleteIncomes = async (req, res, next) => {
 
         for (const deleteId of ids) {
             try {
-                // Get income details for balance adjustment
+                // Get COMPLETE income record for audit log (for UNDO capability)
                 const [income] = await connection.query(
-                    'SELECT valor, account_id, data_real_recebimento FROM entradas WHERE id = ? AND active = 1',
+                    'SELECT * FROM entradas WHERE id = ? AND active = 1',
                     [deleteId]
                 );
 
@@ -1377,14 +1377,26 @@ exports.bulkDeleteIncomes = async (req, res, next) => {
                     continue;
                 }
 
+                const incomeRecord = income[0];
+
                 // Soft delete
                 await connection.query('UPDATE entradas SET active = 0 WHERE id = ?', [deleteId]);
 
+                // Log individual deletion with complete old_data for UNDO
+                await logAudit(req, 'DELETE', 'entradas', deleteId,
+                    {
+                        deletedAmount: incomeRecord.valor,
+                        scope: 'bulk_delete'
+                    },
+                    incomeRecord,  // old_data (complete record for restoration)
+                    null           // new_data (null for deletes)
+                );
+
                 // Decrease account balance only if it was already received
-                if (income[0].account_id && income[0].data_real_recebimento) {
+                if (incomeRecord.account_id && incomeRecord.data_real_recebimento) {
                     await connection.query(
                         'UPDATE contas SET current_balance = current_balance - ? WHERE id = ?',
-                        [income[0].valor, income[0].account_id]
+                        [incomeRecord.valor, incomeRecord.account_id]
                     );
                 }
 
@@ -1397,7 +1409,7 @@ exports.bulkDeleteIncomes = async (req, res, next) => {
         }
 
         await connection.commit();
-        logAudit(req, 'BULK_DELETE', 'entradas', ids.join(','), { count: deletedCount });
+        // Note: Individual logs already created in loop above
 
         res.json({
             success: true,
