@@ -102,8 +102,8 @@ export const ConsolidadasManager = (project) => {
         const tablesWrapper = container.querySelector('#consolidadas-tables-wrapper');
         tablesWrapper.innerHTML = '';
 
-        const titleReal = viewType === 'caixa' ? 'TRANSAÇÕES REAIS (CAIXA)' : 'TRANSAÇÕES DE COMPETÊNCIA';
-        const titleProv = 'TRANSAÇÕES PREVISTAS'; // Or "PROVISÃO"?
+        const titleReal = 'OPERAÇÕES FINALIZADAS';
+        const titleProv = 'OPERAÇÕES FINALIZADAS E PREVISTAS';
 
         // Table 1: Realized
         tablesWrapper.appendChild(createTableHTML(currentData.realized, titleReal));
