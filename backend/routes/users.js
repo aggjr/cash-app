@@ -1,21 +1,15 @@
 const express = require('express');
 const router = express.Router();
 const userController = require('../controllers/userController');
-const authMiddleware = require('../middleware/auth');
+const auth = require('../middleware/auth');
 
 // All routes require authentication
-router.use(authMiddleware);
+const authMiddleware = auth;
 
-// POST /api/projects/:projectId/invite - Invite user to project
-router.post('/:projectId/invite', userController.inviteUser);
+// PUT /api/users/:userId - Update user profile
+router.put('/:userId', authMiddleware, userController.updateUserProfile);
 
-// GET /api/projects/:projectId/users - List project users
-router.get('/:projectId/users', userController.listProjectUsers);
-
-// DELETE /api/projects/:projectId/users/:userId - Remove user from project
-router.delete('/:projectId/users/:userId', userController.removeUserFromProject);
-
-// PUT /api/projects/:projectId/transfer-master - Transfer master role
-router.put('/:projectId/transfer-master', userController.transferMaster);
+// DELETE /api/users/:userId - Smart delete user (hard delete if no deps, soft delete otherwise)
+router.delete('/:userId', authMiddleware, userController.deleteUser);
 
 module.exports = router;

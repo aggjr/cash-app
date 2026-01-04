@@ -141,6 +141,12 @@ exports.undoAction = async (req, res, next) => {
                 `UPDATE ${log.entity} SET ${setClause} WHERE id = ?`,
                 [...values, log.entity_id]
             );
+        } else if (log.action === 'INSERT') {
+            // Delete the created record (undo creation)
+            await connection.query(
+                `DELETE FROM ${log.entity} WHERE id = ?`,
+                [log.entity_id]
+            );
         } else {
             throw new AppError('VAL-002', `Ação '${log.action}' não pode ser desfeita`);
         }

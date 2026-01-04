@@ -167,8 +167,13 @@ export const LogAlteracoesManager = (project) => {
                     return span;
                 }
 
-                // Check if has old_data (can be undone)
-                if (!row.old_data || (row.action !== 'DELETE' && row.action !== 'UPDATE')) {
+                // Check if has old_data (can be undone) - INSERT doesn't need old_data
+                if (row.action !== 'DELETE' && row.action !== 'UPDATE' && row.action !== 'INSERT') {
+                    return document.createTextNode('-');
+                }
+
+                // INSERT doesn't need old_data, DELETE and UPDATE do
+                if ((row.action === 'DELETE' || row.action === 'UPDATE') && !row.old_data) {
                     return document.createTextNode('-');
                 }
 
