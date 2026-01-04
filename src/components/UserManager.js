@@ -65,6 +65,33 @@ export const UserManager = (project) => {
             }
         },
         { key: 'email', label: 'E-mail', width: '250px', align: 'left', type: 'text' },
+        {
+            key: 'company_name',
+            label: 'Empresa',
+            width: '200px',
+            align: 'left',
+            type: 'text',
+            render: (user) => {
+                const div = document.createElement('div');
+                div.style.display = 'flex';
+                div.style.flexDirection = 'column';
+
+                const nameSpan = document.createElement('span');
+                nameSpan.textContent = user.company_name || '-';
+
+                div.appendChild(nameSpan);
+
+                if (user.company_cnpj) {
+                    const cnpjSpan = document.createElement('span');
+                    cnpjSpan.textContent = user.company_cnpj.replace(/^(\d{2})(\d{3})(\d{3})(\d{4})(\d{2})$/, '$1.$2.$3/$4-$5');
+                    cnpjSpan.style.fontSize = '0.75rem';
+                    cnpjSpan.style.color = 'var(--color-text-muted)';
+                    div.appendChild(cnpjSpan);
+                }
+
+                return div;
+            }
+        },
         { key: 'job_title', label: 'Cargo', width: '150px', align: 'left', type: 'text', render: (user) => user.job_title || '-' },
         { key: 'department', label: 'Departamento', width: '150px', align: 'left', type: 'text', render: (user) => user.department || '-' },
         {

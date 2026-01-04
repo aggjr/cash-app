@@ -148,6 +148,7 @@ const migrateSetEvaRate75 = require('./migrate_set_eva_rate_75.js');
 const migrateAuditLogUndo = require('./migrate_audit_log_undo');
 const migrateAccountCompanyRequired = require('./migrate_account_company_required');
 const migrateRemoveAccountType = require('./migrate_remove_account_type');
+const migrateAddUserCompany = require('./migrate_add_user_company');
 
 
 loadErrorCatalog()
@@ -186,6 +187,7 @@ loadErrorCatalog()
     .then(() => migrateAuditLogUndo()) // NEW: Audit log undo capability
     .then(() => migrateAccountCompanyRequired()) // NEW: Enforce company_id NOT NULL
     .then(() => migrateRemoveAccountType()) // NEW: Remove account_type column
+    .then(() => migrateAddUserCompany()) // NEW: Add company_id to project_users
     .then(() => {
         startServer();
     })

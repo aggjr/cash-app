@@ -1,4 +1,5 @@
 import { Dialogs } from './Dialogs.js';
+import { getApiBaseUrl } from '../utils/apiConfig.js';
 
 export const UserModal = {
     show({ user = null, onSave, onCancel }) {
@@ -17,6 +18,23 @@ export const UserModal = {
 
             const modal = document.createElement('div');
             modal.className = 'account-modal animate-float-in';
+
+            // Fetch companies
+            const token = localStorage.getItem('token');
+            const currentProject = JSON.parse(localStorage.getItem('currentProject'));
+            const API_BASE_URL = getApiBaseUrl(); // Ensure API_BASE_URL is available
+            let companies = [];
+
+            try {
+                const response = await fetch(`${API_BASE_URL}/companies?projectId=${currentProject.id}`, {
+                    headers: { 'Authorization': `Bearer ${token}` }
+                });
+                if (response.ok) {
+                    companies = await response.json();
+                }
+            } catch (error) {
+                console.error('Error loading companies:', error);
+            }
 
             modal.innerHTML = `
                 <div class="account-modal-body" style="padding: 1.5rem; max-height: 85vh;">
@@ -62,6 +80,24 @@ export const UserModal = {
                             </div>
                         ` : ''}
 
+                         <div class="form-group full-width" style="margin-top: 5px;">
+                            <label for="user-company">Empresa <span class="required">*</span></label>
+                            <select 
+                                id="user-company" 
+                                class="form-input"
+                                required
+                                ${isEdit ? 'disabled' : ''} 
+                            >
+                                <option value="">Selecione uma empresa</option>
+                                ${companies.map(company => `
+                                    <option value="${company.id}" ${user?.company_id == company.id ? 'selected' : ''}>
+                                        ${company.name} - ${company.cnpj}
+                                    </option>
+                                `).join('')}
+                            </select>
+                            ${companies.length === 0 ? '<small style="color: #EF4444;">⚠️ Nenhuma empresa cadastrada. Cadastre uma empresa primeiro.</small>' : ''}
+                        </div>
+
                         <div class="form-group full-width" style="margin-top: 5px;">
                             <label for="user-job-title">Cargo / Função (Opcional)</label>
                             <input 
@@ -100,7 +136,7 @@ export const UserModal = {
                 </div>
                 <div class="account-modal-footer">
                     <button class="btn-secondary" id="modal-cancel">Cancelar</button>
-                    <button class="btn-primary" id="modal-save">
+                    <button class="btn-primary" id="modal-save" ${companies.length === 0 ? 'disabled' : ''}>
                         ${isEdit ? 'Salvar Alterações' : 'Convidar Usuário'}
                     </button>
                 </div>
@@ -113,23 +149,21 @@ export const UserModal = {
             const nameInput = modal.querySelector('#user-name');
             const emailInput = modal.querySelector('#user-email');
             const passwordInput = modal.querySelector('#user-password');
+            const companySelect = modal.querySelector('#user-company');
             const roleSelect = modal.querySelector('#user-role');
             const saveBtn = modal.querySelector('#modal-save');
             const cancelBtn = modal.querySelector('#modal-cancel');
 
-            // Focus on name input
-            setTimeout(() => {
-                if (!isEdit) {
-                    nameInput.focus();
-                    nameInput.select();
-                } else {
-                    roleSelect.focus();
-                }
-            }, 100);
-
             // Validation
             const validate = () => {
                 let isValid = true;
+
+                if (!companySelect.value) {
+                    companySelect.classList.add('input-error');
+                    isValid = false;
+                } else {
+                    companySelect.classList.remove('input-error');
+                }
 
                 if (!isEdit) {
                     const name = nameInput.value.trim();
@@ -204,6 +238,7 @@ export const UserModal = {
                     name: nameInput.value.trim(),
                     email: emailInput.value.trim(),
                     role: roleSelect.value,
+                    companyId: parseInt(companySelect.value),
                     job_title: document.getElementById('user-job-title').value.trim(),
                     department: document.getElementById('user-department').value.trim()
                 };

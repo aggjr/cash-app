@@ -7,11 +7,11 @@ exports.inviteUser = async (req, res) => {
     let connection;
     try {
         const { projectId } = req.params;
-        const { name, email, initialPassword, role = 'user' } = req.body;
+        const { name, email, initialPassword, role = 'user', companyId } = req.body;
         const inviterId = req.user.id;
 
-        if (!name || !email || !initialPassword) {
-            return res.status(400).json({ error: 'Nome, e-mail e senha inicial são obrigatórios' });
+        if (!name || !email || !initialPassword || !companyId) {
+            return res.status(400).json({ error: 'Nome, e-mail, senha inicial e empresa são obrigatórios' });
         }
 
         if (initialPassword.length < 8) {
@@ -72,9 +72,9 @@ exports.inviteUser = async (req, res) => {
         // authController uses 'status' in SELECT, but NOT in INSERT.
         // Let's try inserting just what authController does + status='active' if possible, or just standard fields.
         await connection.query(
-            `INSERT INTO project_users (project_id, user_id, password, role, status) 
-             VALUES (?, ?, ?, ?, 'active')`,
-            [projectId, userId, hashedPassword, role]
+            `INSERT INTO project_users (project_id, user_id, password, role, status, company_id) 
+             VALUES (?, ?, ?, ?, 'active', ?)`,
+            [projectId, userId, hashedPassword, role, companyId]
         );
 
         await connection.commit();
@@ -113,10 +113,13 @@ exports.listProjectUsers = async (req, res) => {
                 pu.status,
                 pu.invited_at,
                 pu.joined_at,
-                inviter.name as invited_by_name
+                inviter.name as invited_by_name,
+                e.name as company_name,
+                e.cnpj as company_cnpj
             FROM project_users pu
             INNER JOIN users u ON pu.user_id = u.id
             LEFT JOIN users inviter ON pu.invited_by = inviter.id
+            LEFT JOIN empresas e ON pu.company_id = e.id
             WHERE pu.project_id = ?
             ORDER BY pu.role DESC, u.name ASC`,
             [projectId]
