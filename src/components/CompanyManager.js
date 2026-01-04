@@ -291,7 +291,7 @@ export const CompanyManager = (project) => {
 
     // Initialize SharedTable
     const tableContainer = container.querySelector('#table-container');
-    sharedTable = SharedTable.init({
+    sharedTable = new SharedTable({
         container: tableContainer,
         columns: columns,
         data: [],

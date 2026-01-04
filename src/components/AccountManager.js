@@ -326,10 +326,12 @@ export const AccountManager = (project) => {
 
     // Initialize SharedTable
     const tableContainer = container.querySelector('#table-container');
-    sharedTable = SharedTable.init({
+    const footerElement = container.querySelector('#footer-summary');
+    sharedTable = new SharedTable({
         container: tableContainer,
         columns: columns,
         data: [],
+        footer: footerElement,
         onFilterChange: (filters) => {
             // Optional: Handle filter changes if needed
         },
