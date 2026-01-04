@@ -1,5 +1,7 @@
 import { CompanyModal } from './CompanyModal.js';
+import { SharedTable } from './SharedTable.js';
 import { Dialogs } from './Dialogs.js';
+import { showToast } from '../utils/toast.js';
 import { getApiBaseUrl } from '../utils/apiConfig.js';
 import { ExcelExporter } from '../utils/ExcelExporter.js';
 
@@ -7,11 +9,17 @@ export const CompanyManager = (project) => {
     const container = document.createElement('div');
     container.className = 'glass-panel';
     const API_BASE_URL = getApiBaseUrl();
-    container.style.padding = '2rem';
-    container.style.margin = '2rem';
-    container.style.height = 'calc(100vh - 150px)';
+    container.style.padding = '1rem';
+    container.style.margin = '0.5rem';
+    container.style.height = 'calc(100vh - 60px)';
+    container.style.width = 'calc(100% - 1rem)';
+    container.style.maxWidth = 'none';
     container.style.display = 'flex';
     container.style.flexDirection = 'column';
+
+    // State
+    let companies = [];
+    let sharedTable = null;
 
     const getHeaders = () => {
         const token = localStorage.getItem('token');
@@ -34,43 +42,94 @@ export const CompanyManager = (project) => {
         return cnpj.replace(/^(\d{2})(\d{3})(\d{3})(\d{4})(\d{2})$/, '$1.$2.$3/$4-$5');
     };
 
+    // Column Definitions for SharedTable
+    const columns = [
+        { key: 'name', label: 'Nome', width: 'auto', align: 'left', type: 'text' },
+        {
+            key: 'cnpj',
+            label: 'CNPJ',
+            width: '180px',
+            align: 'left',
+            type: 'text',
+            render: (item) => {
+                const span = document.createElement('span');
+                span.textContent = formatCNPJ(item.cnpj);
+                span.style.fontFamily = 'monospace';
+                return span;
+            }
+        },
+        { key: 'description', label: 'Descrição', width: '250px', align: 'left', type: 'text' },
+        {
+            key: 'active',
+            label: 'Status',
+            width: '100px',
+            align: 'center',
+            type: 'text',
+            render: (item) => {
+                const badge = document.createElement('span');
+                badge.className = `badge-${item.active ? 'active' : 'inactive'}`;
+                badge.textContent = item.active ? '✓ Ativo' : '✕ Inativo';
+                return badge;
+            }
+        },
+        {
+            key: 'created_at',
+            label: 'Criado em',
+            width: '120px',
+            align: 'center',
+            type: 'date'
+        },
+        {
+            key: 'actions',
+            label: 'Ações',
+            width: '80px',
+            align: 'center',
+            noFilter: true,
+            render: (item) => {
+                const div = document.createElement('div');
+                div.style.display = 'flex';
+                div.style.gap = '0.5rem';
+                div.style.justifyContent = 'center';
+
+                const btnEdit = document.createElement('button');
+                btnEdit.innerHTML = '✏️';
+                btnEdit.title = 'Editar';
+                btnEdit.style.background = 'none';
+                btnEdit.style.border = 'none';
+                btnEdit.style.cursor = 'pointer';
+                btnEdit.style.fontSize = '1.1rem';
+                btnEdit.onclick = (e) => { e.stopPropagation(); updateCompany(item); };
+
+                const btnDelete = document.createElement('button');
+                btnDelete.innerHTML = '🗑️';
+                btnDelete.title = 'Excluir';
+                btnDelete.style.background = 'none';
+                btnDelete.style.border = 'none';
+                btnDelete.style.cursor = 'pointer';
+                btnDelete.style.fontSize = '1.1rem';
+                btnDelete.onclick = (e) => { e.stopPropagation(); deleteCompany(item.id, item.name); };
+
+                div.appendChild(btnEdit);
+                div.appendChild(btnDelete);
+                return div;
+            }
+        }
+    ];
+
     const loadCompanies = async () => {
         try {
-            container.querySelector('.companies-table-wrapper')?.classList.add('loading');
-
             const response = await fetch(`${API_BASE_URL}/companies?projectId=${project.id}`, {
                 headers: getHeaders()
             });
-            const companies = await response.json();
+            companies = await response.json();
 
-            renderCompanies(companies);
+            if (sharedTable) {
+                sharedTable.render(companies);
+            }
         } catch (error) {
             console.error('Error loading companies:', error);
             showToast('Erro ao carregar empresas', 'error');
         }
-    };
-
-    const showToast = (message, type = 'info') => {
-        const toast = document.createElement('div');
-        toast.className = `toast toast-${type}`;
-        toast.textContent = message;
-        toast.style.cssText = `
-            position: fixed;
-            bottom: 2rem;
-            right: 2rem;
-            padding: 1rem 1.5rem;
-            background: ${type === 'error' ? '#EF4444' : type === 'success' ? '#10B981' : '#3B82F6'};
-            color: white;
-            border-radius: 8px;
-            box-shadow: var(--shadow-lg);
-            z-index: 10000;
-            animation: slideInRight 0.3s ease;
-        `;
-        document.body.appendChild(toast);
-        setTimeout(() => {
-            toast.style.animation = 'slideOutRight 0.3s ease';
-            setTimeout(() => toast.remove(), 300);
-        }, 3000);
     };
 
     const createCompany = async () => {
@@ -185,8 +244,8 @@ export const CompanyManager = (project) => {
         }
     };
 
-    const exportToExcel = async (companies) => {
-        const columns = [
+    const exportToExcel = async () => {
+        const exportColumns = [
             { header: 'Nome', key: 'name', width: 30 },
             { header: 'CNPJ', key: 'cnpj_formatted', width: 20 },
             { header: 'Descrição', key: 'description', width: 40 },
@@ -201,111 +260,56 @@ export const CompanyManager = (project) => {
             created_at_formatted: formatDate(c.created_at)
         }));
 
-        await ExcelExporter.exportTable(exportData, columns, 'Empresas', 'empresas_export');
+        await ExcelExporter.exportTable(exportData, exportColumns, 'Empresas', 'empresas_export');
     };
 
-    const renderCompanies = (companies) => {
-        container.innerHTML = `
-            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 2rem;">
-                <h2>🏢 Empresas</h2>
-                <div style="display: flex; gap: 0.5rem;">
-                     <!-- <a href="#" style="font-size: 0.9rem; color: var(--color-primary);">Lar</a>
-                     <span style="color: var(--color-text-muted);">/</span>
-                     <span style="font-size: 0.9rem; color: var(--color-text-muted);">Empresas</span> -->
-                     <button id="btn-print-pdf" class="btn-secondary" title="Imprimir / Salvar PDF" style="margin-right: 0.5rem;">🖨️ PDF</button>
-                     <button id="btn-export-excel" class="btn-secondary" title="Exportar Excel">📊 Excel</button>
-                </div>
+    // Initial UI Setup
+    container.innerHTML = `
+        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1rem;">
+            <h2>🏢 Empresas</h2>
+            <div style="display: flex; gap: 0.5rem;">
+                <button id="btn-print-pdf" class="btn-secondary" title="Imprimir / Salvar PDF">🖨️ PDF</button>
+                <button id="btn-export-excel" class="btn-secondary" title="Exportar Excel">📊 Excel</button>
             </div>
+        </div>
 
-            <div style="margin-bottom: 1rem;">
-                <button id="btn-new-company" class="btn-primary">+ Nova Empresa</button>
-            </div>
+        <div style="margin-bottom: 1rem;">
+            <button id="btn-new-company" class="btn-primary">+ Nova Empresa</button>
+        </div>
 
-            <div class="companies-table-wrapper" style="flex: 1; overflow: auto; border: 1px solid var(--color-border-light); border-radius: 8px;">
-                <table style="width: 100%; border-collapse: collapse;">
-                    <thead class="sticky-header">
-                        <tr>
-                            <th style="text-align: center; padding: 0.75rem 1rem; font-size: 1rem;">Nome</th>
-                            <th style="text-align: center; padding: 0.75rem 1rem; font-size: 1rem;">CNPJ</th>
-                            <th style="text-align: center; padding: 0.75rem 1rem; font-size: 1rem;">Descrição</th>
-                            <th style="text-align: center; padding: 0.75rem 1rem; font-size: 1rem;">Status</th>
-                            <th style="text-align: center; padding: 0.75rem 1rem; font-size: 1rem;">Criado em</th>
-                            <th style="text-align: center; padding: 0.75rem 1rem; font-size: 1rem;">Ações</th>
-                        </tr>
-                    </thead>
-                    <tbody>
-                        ${companies.map((company, index) => {
-            const isEven = index % 2 === 0;
-            const bgColor = isEven ? '#FFFFFF' : '#F3F4F6';
-            return `
-                            <tr style="border-bottom: 1px solid var(--color-border-light); background-color: ${bgColor}; transition: background 0.2s;" 
-                                onmouseover="this.style.background='rgba(218, 177, 119, 0.5)'" 
-                                onmouseout="this.style.background='${bgColor}'">
-                                <td style="padding: 0.32rem 1rem; font-size: 0.9rem; font-weight: 500;">
-                                    ${company.name}
-                                </td>
-                                <td style="padding: 0.32rem 1rem; font-size: 0.9rem; font-family: monospace;">
-                                    ${formatCNPJ(company.cnpj)}
-                                </td>
-                                <td style="padding: 0.32rem 1rem; font-size: 0.9rem; color: var(--color-text-muted);">
-                                    ${company.description || '-'}
-                                </td>
-                                <td style="padding: 0.32rem 1rem; text-align: center;">
-                                    <span class="badge-${company.active ? 'active' : 'inactive'}">
-                                        ${company.active ? '✓ Ativo' : '✕ Inativo'}
-                                    </span>
-                                </td>
-                                <td style="padding: 0.32rem 1rem; font-size: 0.85rem; text-align: center; color: var(--color-text-muted);">
-                                    ${formatDate(company.created_at)}
-                                </td>
-                                <td style="padding: 0.32rem 1rem; text-align: right;">
-                                    <button class="btn-edit" data-id="${company.id}" style="color: #10B981; margin-right: 0.5rem; font-size: 1.2rem; background: none; border: none; cursor: pointer; transition: transform 0.2s;" 
-                                        onmouseover="this.style.transform='scale(1.2)'" 
-                                        onmouseout="this.style.transform='scale(1)'">✏️</button>
-                                    <button class="btn-delete" data-id="${company.id}" style="color: #EF4444; font-size: 1.2rem; background: none; border: none; cursor: pointer; transition: transform 0.2s;" 
-                                        onmouseover="this.style.transform='scale(1.2)'" 
-                                        onmouseout="this.style.transform='scale(1)'">🗑️</button>
-                                </td>
-                            </tr>
-                        `}).join('')}
-                        ${companies.length === 0 ? `
-                            <tr>
-                                <td colspan="6" style="padding: 3rem; text-align: center; color: var(--color-text-muted);">
-                                    <div style="font-size: 3rem; margin-bottom: 1rem;">🏢</div>
-                                    <div style="font-size: 1.1rem;">Nenhuma empresa cadastrada</div>
-                                    <div style="font-size: 0.9rem; margin-top: 0.5rem;">Clique em "Nova Empresa" para começar</div>
-                                </td>
-                            </tr>
-                        ` : ''}
-                    </tbody>
-                </table>
-            </div>
-            
-            <div style="margin-top: 1rem; display: flex; justify-content: space-between; align-items: center; font-size: 0.85rem; color: var(--color-text-muted);">
-                <div>Total: ${companies.length} empresa${companies.length !== 1 ? 's' : ''}</div>
-            </div>
-        `;
+        <div id="table-container" style="flex: 1; overflow: hidden;"></div>
+        
+        <div id="footer-summary" style="margin-top: 1rem; display: flex; justify-content: space-between; align-items: center; font-size: 0.85rem; color: var(--color-text-muted);">
+            <div>Total: <span id="total-count">0</span> empresa(s)</div>
+        </div>
+    `;
 
-        container.querySelector('#btn-new-company').addEventListener('click', createCompany);
-        container.querySelector('#btn-print-pdf').addEventListener('click', () => window.print());
-        container.querySelector('#btn-export-excel').addEventListener('click', () => exportToExcel(companies));
+    // Event Listeners
+    container.querySelector('#btn-new-company').addEventListener('click', createCompany);
+    container.querySelector('#btn-print-pdf').addEventListener('click', () => window.print());
+    container.querySelector('#btn-export-excel').addEventListener('click', exportToExcel);
 
-        container.querySelectorAll('.btn-edit').forEach(btn => {
-            btn.addEventListener('click', () => {
-                const company = companies.find(c => c.id == btn.dataset.id);
-                updateCompany(company);
-            });
-        });
+    // Initialize SharedTable
+    const tableContainer = container.querySelector('#table-container');
+    sharedTable = SharedTable.init({
+        container: tableContainer,
+        columns: columns,
+        data: [],
+        onFilterChange: (filters) => {
+            // Optional: Handle filter changes if needed
+        },
+        onSortChange: (key, direction) => {
+            // Optional: Handle sort changes if needed
+        }
+    });
 
-        container.querySelectorAll('.btn-delete').forEach(btn => {
-            btn.addEventListener('click', () => {
-                const company = companies.find(c => c.id == btn.dataset.id);
-                deleteCompany(company.id, company.name);
-            });
-        });
-    };
-
-    loadCompanies();
+    // Initial Load
+    loadCompanies().then(() => {
+        const totalCount = container.querySelector('#total-count');
+        if (totalCount) {
+            totalCount.textContent = companies.length;
+        }
+    });
 
     return container;
 };
