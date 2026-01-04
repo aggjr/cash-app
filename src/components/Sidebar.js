@@ -24,7 +24,7 @@ export const Sidebar = () => {
         { id: 'usuarios', label: 'Usuários', icon: '👥' },
         { id: 'tipo-entrada', label: 'Tipo de Entrada', icon: '📥' },
         { id: 'tipo-saida', label: 'Tipo de Saída', icon: '💸' },
-        { id: 'tipo-producao-revenda', label: 'Tipo Producao Revenda', icon: '🏭' },
+        { id: 'tipo-producao-revenda', label: 'Compras<br/><span style="font-size: 0.85em;">(Produção/Revenda)</span>', icon: '🏭' },
         { id: 'centros-custo', label: 'Centros Custo', icon: '🏢', disabled: true },
 
       ]
