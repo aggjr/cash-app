@@ -144,35 +144,129 @@ export const LogAlteracoesManager = (project) => {
         };
     };
 
-    // Undo an action
+    // Undo an action with enhanced confirmation modal
     const undoAction = async (logId, action, entity) => {
-        const actionLabel = action === 'DELETE' ? 'exclusão' : 'alteração';
-        const confirmed = confirm(`Tem certeza que deseja desfazer esta ${actionLabel}?\n\nIsso irá restaurar o registro à sua forma anterior.`);
-
-        if (!confirmed) return;
-
-        try {
-            const response = await fetch(`${API_BASE_URL}/audit-logs/undo/${logId}`, {
-                method: 'POST',
-                headers: getHeaders()
-            });
-
-            const result = await response.json();
-
-            if (!response.ok) {
-                throw new Error(result.error || 'Erro ao desfazer ação');
-            }
-
-            showToast('Ação desfeita com sucesso!', 'success');
-            loadLogs(pagination.page); // Reload current page
-        } catch (error) {
-            console.error('Undo error:', error);
-            if (error.message.includes('403')) {
-                showToast('Acesso restrito a usuários Master', 'error');
-            } else {
-                showToast(error.message, 'error');
-            }
+        // Get full log entry to show details
+        const logEntry = logs.find(log => log.id === logId);
+        if (!logEntry) {
+            showToast('Log não encontrado', 'error');
+            return;
         }
+
+        const actionLabel = action === 'DELETE' ? 'exclusão' : 'alteração';
+        const actionVerb = action === 'DELETE' ? 'restaurar' : 'reverter';
+
+        // Parse old_data to show what will be restored
+        let oldDataPreview = '';
+        try {
+            const oldData = JSON.parse(logEntry.old_data || '{}');
+            const keys = Object.keys(oldData).slice(0, 3); // Show first 3 fields
+            oldDataPreview = keys.map(key => `${key}: ${oldData[key]}`).join(', ');
+            if (Object.keys(oldData).length > 3) {
+                oldDataPreview += '...';
+            }
+        } catch (e) {
+            oldDataPreview = 'Dados não disponíveis';
+        }
+
+        // Create enhanced confirmation modal
+        const modalHTML = `
+            <div class="modal-backdrop" style="position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.5); z-index: 9999; display: flex; align-items: center; justify-content: center;">
+                <div class="modal-content" style="background: white; padding: 30px; border-radius: 12px; max-width: 500px; box-shadow: 0 20px 60px rgba(0,0,0,0.3);">
+                    <div style="text-align: center; margin-bottom: 20px;">
+                        <div style="font-size: 48px; margin-bottom: 10px;">⚠️</div>
+                        <h2 style="margin: 0; color: #DC2626; font-size: 1.5rem;">OPERAÇÃO DE ALTO RISCO</h2>
+                    </div>
+                    
+                    <div style="background: #FEF3C7; border-left: 4px solid #F59E0B; padding: 15px; margin-bottom: 20px; border-radius: 4px;">
+                        <strong style="color: #B45309;">⚡ ATENÇÃO:</strong>
+                        <p style="margin: 8px 0 0 0; color: #92400E;">
+                            Esta ação irá <strong>${actionVerb}</strong> permanentemente a ${actionLabel} realizada.
+                            <br><br>
+                            <strong>Entidade:</strong> ${entity}<br>
+                            <strong>Operação:</strong> ${action}<br>
+                            <strong>Dados a restaurar:</strong> ${oldDataPreview}
+                        </p>
+                    </div>
+
+                    <div style="background: #FEE2E2; border-left: 4px solid #DC2626; padding: 15px; margin-bottom: 25px; border-radius: 4px;">
+                        <strong style="color: #991B1B;">🚨 RISCOS:</strong>
+                        <ul style="margin: 8px 0 0 20px; color: #7F1D1D; padding-left: 0;">
+                            <li>Pode afetar integridade de dados relacionados</li>
+                            <li>Não é possível desfazer esta operação</li>
+                            <li>Pode causar inconsistências no sistema</li>
+                        </ul>
+                    </div>
+
+                    <p style="text-align: center; font-weight: bold; margin-bottom: 20px; color: #374151;">
+                        Tem certeza absoluta que deseja prosseguir?
+                    </p>
+
+                    <div style="display: flex; gap: 10px; justify-content: center;">
+                        <button id="undo-cancel-btn" style="padding: 12px 24px; background: #6B7280; color: white; border: none; border-radius: 6px; cursor: pointer; font-size: 1rem; font-weight: 600;">
+                            ❌ Cancelar
+                        </button>
+                        <button id="undo-confirm-btn" style="padding: 12px 24px; background: #DC2626; color: white; border: none; border-radius: 6px; cursor: pointer; font-size: 1rem; font-weight: 600;">
+                            ↩️ Sim, Desfazer
+                        </button>
+                    </div>
+                </div>
+            </div>
+        `;
+
+        // Show modal
+        const modalDiv = document.createElement('div');
+        modalDiv.innerHTML = modalHTML;
+        document.body.appendChild(modalDiv);
+
+        // Handle buttons
+        return new Promise((resolve) => {
+            const confirmBtn = modalDiv.querySelector('#undo-confirm-btn');
+            const cancelBtn = modalDiv.querySelector('#undo-cancel-btn');
+            const backdrop = modalDiv.querySelector('.modal-backdrop');
+
+            const cleanup = () => {
+                document.body.removeChild(modalDiv);
+            };
+
+            const handleConfirm = async () => {
+                cleanup();
+                try {
+                    const response = await fetch(`${API_BASE_URL}/audit-logs/undo/${logId}`, {
+                        method: 'POST',
+                        headers: getHeaders()
+                    });
+
+                    const result = await response.json();
+
+                    if (!response.ok) {
+                        throw new Error(result.error || 'Erro ao desfazer ação');
+                    }
+
+                    showToast('✅ Ação desfeita com sucesso!', 'success');
+                    loadLogs(pagination.page); // Reload current page
+                } catch (error) {
+                    console.error('Undo error:', error);
+                    if (error.message.includes('403')) {
+                        showToast('❌ Acesso restrito a usuários Master', 'error');
+                    } else {
+                        showToast(`❌ ${error.message}`, 'error');
+                    }
+                }
+                resolve();
+            };
+
+            const handleCancel = () => {
+                cleanup();
+                resolve();
+            };
+
+            confirmBtn.onclick = handleConfirm;
+            cancelBtn.onclick = handleCancel;
+            backdrop.onclick = (e) => {
+                if (e.target === backdrop) handleCancel();
+            };
+        });
     };
 
     // SharedTable Instance
