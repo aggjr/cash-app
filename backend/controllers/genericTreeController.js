@@ -93,7 +93,7 @@ exports.update = async (req, res) => {
         }
         const node = current[0];
 
-        await db.query(
+        await db.auditedQuery(
             `UPDATE ${tableName} SET label = ?, parent_id = ?, ordem = ?, expanded = ?, active = ? WHERE id = ?`,
             [
                 label !== undefined ? label : node.label,
@@ -102,7 +102,8 @@ exports.update = async (req, res) => {
                 expanded !== undefined ? expanded : node.expanded,
                 active !== undefined ? active : node.active,
                 id
-            ]
+            ],
+            req
         );
 
         const [updated] = await db.query(
@@ -133,9 +134,9 @@ exports.delete = async (req, res) => {
             // Check for Foreign Key Constraint violation (Error 1451)
             if (deleteError.errno === 1451) {
                 // Soft delete: Mark as inactive
-                await db.query(`UPDATE ${tableName} SET active = FALSE WHERE id = ?`, [id]);
+                await db.auditedQuery(`UPDATE ${tableName} SET active = FALSE WHERE id = ?`, [id], req);
                 res.json({ message: 'Node marked as inactive (referenced elsewhere)', type: 'soft' });
-                logAudit(req, 'UPDATE', tableName, id, { action: 'SOFT_DELETE_INACTIVE' });
+                // Audit is automatic via auditedQuery
             } else {
                 throw deleteError;
             }
