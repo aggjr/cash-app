@@ -2,6 +2,7 @@ const db = require('../config/database');
 const AppError = require('../utils/AppError');
 const { logAudit } = require('../utils/auditLogger');
 const fileLogger = require('../utils/fileLogger');
+const { wrapConnectionWithAudit } = require('../utils/connectionWrapper');
 
 // Helper for Sorting
 const getOrderByClause = (sortBy, order) => {
@@ -200,8 +201,9 @@ exports.debugProbe = (req, res) => { // Updated to return logs
 
 exports.createRetirada = async (req, res, next) => {
     const connection = await db.getConnection();
+    const audited = wrapConnectionWithAudit(connection, req);
     try {
-        await connection.beginTransaction();
+        await audited.beginTransaction();
 
         const { dataFato, dataPrevista, dataReal, valor, descricao, companyId, accountId, projectId, comprovanteUrl, formaPagamento } = req.body;
 
@@ -268,7 +270,7 @@ exports.createRetirada = async (req, res, next) => {
         fileLogger.log('Validation Passed. Inserting into DB...');
 
         // Insert Retirada
-        const [result] = await connection.query(
+        const [result] = await audited.query(
             `INSERT INTO retiradas (data_fato, data_prevista, data_real, valor, descricao, company_id, account_id, project_id, comprovante_url, forma_pagamento)
              VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
             [dataFato, dataPrevista || null, dataReal || null, valor, descricao, companyId, accountId || null, projectId, comprovanteUrl || null, formaPagamento || null]
@@ -279,20 +281,20 @@ exports.createRetirada = async (req, res, next) => {
         // Decrease Account Balance (It's a withdrawal) - ONLY if Account is defined
         if (accountId) {
             const valorDecimal = parseFloat(valor);
-            await connection.query(
+            await audited.query(
                 'UPDATE contas SET current_balance = current_balance - ? WHERE id = ?',
                 [valorDecimal, accountId]
             );
         }
 
-        await connection.commit();
+        await audited.commit();
 
         res.status(201).json({
             id: newId,
             message: 'Retirada criada com sucesso'
         });
 
-        logAudit(req, 'CREATE', 'retiradas', newId, { valor, company_id: companyId, account_id: accountId });
+        // Audit is automatic via connectionWrapper
 
     } catch (error) {
         await connection.rollback();
@@ -309,14 +311,15 @@ exports.createRetirada = async (req, res, next) => {
 
 exports.updateRetirada = async (req, res, next) => {
     const connection = await db.getConnection();
+    const audited = wrapConnectionWithAudit(connection, req);
     try {
-        await connection.beginTransaction();
+        await audited.beginTransaction();
 
         const { id } = req.params;
         const { dataFato, dataPrevista, dataReal, valor, descricao, companyId, accountId, active, comprovanteUrl } = req.body;
 
         // Get old data to revert balance
-        const [oldRetirada] = await connection.query('SELECT * FROM retiradas WHERE id = ?', [id]);
+        const [oldRetirada] = await audited.query('SELECT * FROM retiradas WHERE id = ?', [id]);
         if (oldRetirada.length === 0) {
             throw new AppError('RES-001', 'Retirada não encontrada');
         }
@@ -339,7 +342,7 @@ exports.updateRetirada = async (req, res, next) => {
 
         if (updates.length > 0) {
             values.push(id);
-            await connection.query(`UPDATE retiradas SET ${updates.join(', ')} WHERE id = ?`, values);
+            await audited.query(`UPDATE retiradas SET ${updates.join(', ')} WHERE id = ?`, values);
         }
 
         // Handle Balance Updates if Value or Account Changed or Activation Changed
@@ -347,7 +350,7 @@ exports.updateRetirada = async (req, res, next) => {
 
         // 1. Revert Old (Increase balance back)
         if (oldData.active && oldData.account_id) {
-            await connection.query(
+            await audited.query(
                 'UPDATE contas SET current_balance = current_balance + ? WHERE id = ?',
                 [oldData.valor, oldData.account_id]
             );
@@ -360,16 +363,16 @@ exports.updateRetirada = async (req, res, next) => {
             const newAccountId = accountId !== undefined ? accountId : oldData.account_id;
 
             if (newAccountId) {
-                await connection.query(
+                await audited.query(
                     'UPDATE contas SET current_balance = current_balance - ? WHERE id = ?',
                     [newValor, newAccountId]
                 );
             }
         }
 
-        await connection.commit();
+        await audited.commit();
         res.json({ message: 'Retirada atualizada com sucesso' });
-        logAudit(req, 'UPDATE', 'retiradas', id, { updates: updates.length });
+        // Audit is automatic via connectionWrapper
 
     } catch (error) {
         await connection.rollback();
@@ -381,29 +384,30 @@ exports.updateRetirada = async (req, res, next) => {
 
 exports.deleteRetirada = async (req, res, next) => {
     const connection = await db.getConnection();
+    const audited = wrapConnectionWithAudit(connection, req);
     try {
-        await connection.beginTransaction();
+        await audited.beginTransaction();
         const { id } = req.params;
 
-        const [retirada] = await connection.query('SELECT * FROM retiradas WHERE id = ?', [id]);
+        const [retirada] = await audited.query('SELECT * FROM retiradas WHERE id = ?', [id]);
         if (retirada.length === 0) {
             throw new AppError('RES-001', 'Retirada não encontrada');
         }
 
         // Soft delete
-        await connection.query('UPDATE retiradas SET active = 0 WHERE id = ?', [id]);
+        await audited.query('UPDATE retiradas SET active = 0 WHERE id = ?', [id]);
 
         // Increase account balance (reverse the withdrawal)
         if (retirada[0].active && retirada[0].account_id) {
-            await connection.query(
+            await audited.query(
                 'UPDATE contas SET current_balance = current_balance + ? WHERE id = ?',
                 [retirada[0].valor, retirada[0].account_id]
             );
         }
 
-        await connection.commit();
+        await audited.commit();
         res.json({ message: 'Retirada excluída com sucesso' });
-        logAudit(req, 'DELETE', 'retiradas', id, {});
+        // Audit is automatic via connectionWrapper
 
     } catch (error) {
         await connection.rollback();
