@@ -1550,9 +1550,9 @@ Digite 1, 2 ou 3.`;
                     await savePreferences({ IVAIntroduced: 1 });
 
                     // Import and start tour
-                    const { IVATour } = await import('../IVA/IVATour.js');
+                    const { IvaTour } = await import('../iva/IvaTour.js');
                     setTimeout(() => {
-                        IVATour.start('overview');
+                        IvaTour.start('overview');
                     }, 2000);
 
                     pendingAction = null;
@@ -1566,9 +1566,9 @@ Digite 1, 2 ou 3.`;
                     await savePreferences({ IVAIntroduced: 1 });
 
                     // Import and start tour
-                    const { IVATour } = await import('../IVA/IVATour.js');
+                    const { IvaTour } = await import('../iva/IvaTour.js');
                     setTimeout(() => {
-                        IVATour.start('full');
+                        IvaTour.start('full');
                     }, 2000);
 
                     pendingAction = null;
