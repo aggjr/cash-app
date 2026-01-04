@@ -7,8 +7,10 @@ const db = require('../config/database');
  * @param {String} entity - Table name (entradas, saidas, etc)
  * @param {Number} entityId - ID of the record
  * @param {Object} details - JSON object with details (e.g. {old: ..., new: ...})
+ * @param {Object} oldData - Complete record before change (for UNDO)
+ * @param {Object} newData - Complete record after change (for UNDO)
  */
-const logAudit = async (req, action, entity, entityId, details = {}) => {
+const logAudit = async (req, action, entity, entityId, details = {}, oldData = null, newData = null) => {
     try {
         if (!req.user) {
             console.warn('⚠️ AuditLogger: No user in request. Skipping log.');
@@ -20,11 +22,13 @@ const logAudit = async (req, action, entity, entityId, details = {}) => {
         const userName = req.user.name || 'Unknown';
 
         const query = `
-            INSERT INTO audit_logs (project_id, user_id, user_name, action, entity, entity_id, details)
-            VALUES (?, ?, ?, ?, ?, ?, ?)
+            INSERT INTO audit_logs (project_id, user_id, user_name, action, entity, entity_id, details, old_data, new_data)
+            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
         `;
 
         const detailsJson = JSON.stringify(details);
+        const oldDataJson = oldData ? JSON.stringify(oldData) : null;
+        const newDataJson = newData ? JSON.stringify(newData) : null;
 
         await db.query(query, [
             projectId,
@@ -33,7 +37,9 @@ const logAudit = async (req, action, entity, entityId, details = {}) => {
             action,
             entity,
             entityId,
-            detailsJson
+            detailsJson,
+            oldDataJson,
+            newDataJson
         ]);
 
     } catch (error) {

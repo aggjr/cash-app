@@ -145,6 +145,7 @@ const migrateAddGenderColumn = require('./migrate_add_gender_column');
 const migrateAddScreenFamiliarity = require('./migrate_add_screen_familiarity');
 const migrateFixVoiceRate = require('./migrate_fix_voice_rate');
 const migrateSetEvaRate75 = require('./migrate_set_eva_rate_75.js');
+const migrateAuditLogUndo = require('./migrate_audit_log_undo');
 
 
 loadErrorCatalog()
@@ -180,6 +181,7 @@ loadErrorCatalog()
     .then(() => migrateFixVoiceRate()) // NEW: Force reset of high voice rates to 50
     .then(() => migrateSetEvaRate75()) // Update default to 75
     .then(() => migrateAddScreenFamiliarity()) // NEW: Screen familiarity tracking
+    .then(() => migrateAuditLogUndo()) // NEW: Audit log undo capability
     .then(() => {
         startServer();
     })
