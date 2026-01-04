@@ -16,9 +16,6 @@ export class SharedTable {
         this.scrollState = { top: 0, left: 0 };
         this.currentData = []; // Store current data for local distinct calculation
 
-        // Selection State
-        this.enableSelection = !!container.dataset.enableSelection;
-
         // Initialize State
         this.selection = new Set();
         this.activeFilters = {};
