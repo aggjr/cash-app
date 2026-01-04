@@ -1,7 +1,7 @@
 const OpenAI = require('openai');
 const db = require('../config/database');
 const IvaContextBuilder = require('../services/IvaContextBuilder');
-const IvaIntentValidator = require('../utils/IvaIntentValidator');
+const IvaIntentValidator = require('../utils/ivaIntentValidator');
 const IvaDataFetcher = require('../services/IvaDataFetcher');
 const IvaScreenCache = require('../services/IvaScreenCache');
 
