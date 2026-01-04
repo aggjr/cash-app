@@ -210,7 +210,7 @@ export class HierarchicalFilter {
                 }
             });
 
-            this.updateDisplay();
+            this.updateButtonText();
             this.notifyChange();
         });
 
@@ -266,7 +266,7 @@ export class HierarchicalFilter {
                 this.selectedIds.delete(child.id);
             }
 
-            this.updateDisplay();
+            this.updateButtonText();
             this.notifyChange();
         });
 
@@ -280,7 +280,7 @@ export class HierarchicalFilter {
                 this.selectedIds.delete(child.id);
             }
 
-            this.updateDisplay();
+            this.updateButtonText();
             this.notifyChange();
         });
 
@@ -303,6 +303,12 @@ export class HierarchicalFilter {
         return `${count} itens selecionados`;
     }
 
+    updateButtonText() {
+        if (this.buttonText) {
+            this.buttonText.textContent = this.getButtonText();
+        }
+    }
+
     updateDisplay() {
         this.buttonText.textContent = this.getButtonText();
         this.render();
@@ -320,6 +326,6 @@ export class HierarchicalFilter {
 
     setSelectedIds(ids) {
         this.selectedIds = new Set(ids);
-        this.updateDisplay();
+        this.updateButtonText();
     }
 }
