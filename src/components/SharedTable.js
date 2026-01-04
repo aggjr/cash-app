@@ -8,7 +8,7 @@ export class SharedTable {
         this.endpointPrefix = endpointPrefix; // If null, assumes client-side distinct values from passed data
         this.onFilterChange = onFilterChange;
         this.onSortChange = onSortChange;
-        this.enableSelection = enableSelection || false;
+        this.enableSelection = enableSelection !== false; // Enable by default unless explicitly disabled
         this.onSelectionChange = onSelectionChange;
         this.API_BASE_URL = getApiBaseUrl();
 
@@ -83,6 +83,39 @@ export class SharedTable {
         if (wrapper) {
             wrapper.scrollTop = this.scrollState.top;
             wrapper.scrollLeft = this.scrollState.left;
+        }
+    }
+
+    getSelectedTotal() {
+        const valorCol = this.columns.find(c => c.key === 'valor');
+        if (!valorCol || this.selection.size === 0) return null;
+
+        const selectedRows = this.currentData.filter(item => this.selection.has(item.id));
+        const total = selectedRows.reduce((sum, row) => sum + (parseFloat(row.valor) || 0), 0);
+
+        return {
+            count: this.selection.size,
+            total: total,
+            items: selectedRows
+        };
+    }
+
+    notifySelectionChange() {
+        if (this.onSelectionChange) {
+            const selectedTotal = this.getSelectedTotal();
+            if (selectedTotal) {
+                this.onSelectionChange(selectedTotal.items, this.selection);
+            } else {
+                this.onSelectionChange([], this.selection);
+            }
+        }
+    }
+
+    clearSelection() {
+        this.selection.clear();
+        this.notifySelectionChange();
+        if (this.currentData.length > 0) {
+            this.render(this.currentData);
         }
     }
 
