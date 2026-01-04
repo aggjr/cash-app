@@ -176,9 +176,10 @@ exports.getConsolidatedData = async (req, res) => {
                 // Now strictly: Provisioned = All, Realized = data_real NOT NULL?
                 // Schema has data_real, data_prevista.
                 let filter = '';
-                if (isCaixa) {
-                    if (!isProvisioned) filter = 'AND data_real IS NOT NULL';
-                    // Provisioned: Show ALL (no filter)
+                // Logic Update: Realized Table (!isProvisioned) ALWAYS requires data_real checking (actual payment/receipt)
+                // Provisioned Table (isProvisioned) shows ALL.
+                if (!isProvisioned) {
+                    filter = 'AND data_real IS NOT NULL';
                 }
 
                 let qParams = [projectId];
