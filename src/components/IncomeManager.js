@@ -5,6 +5,7 @@ import { getApiBaseUrl } from '../utils/apiConfig.js';
 import { EvaKnowledge } from '../eva/EvaKnowledge.js';
 import { ExcelExporter } from '../utils/ExcelExporter.js';
 import { BatchOperationDialog } from './BatchOperationDialog.js';
+import { PrintHelper } from '../utils/printHelper.js';
 
 
 export const IncomeManager = (project) => {
@@ -779,7 +780,10 @@ export const IncomeManager = (project) => {
         );
     };
 
-    container.querySelector('#btn-pdf').onclick = () => window.print();
+    container.querySelector('#btn-pdf').onclick = () => {
+        PrintHelper.autoConfigureOrientation('#table-container table');
+        window.print();
+    };
 
     // Initialize SharedTable
     const tableContainer = container.querySelector('#table-container');

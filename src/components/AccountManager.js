@@ -3,6 +3,7 @@ import { SharedTable } from './SharedTable.js';
 import { showToast } from '../utils/toast.js';
 import { getApiBaseUrl } from '../utils/apiConfig.js';
 import { ExcelExporter } from '../utils/ExcelExporter.js';
+import { PrintHelper } from '../utils/printHelper.js';
 
 export const AccountManager = (project) => {
     const container = document.createElement('div');
@@ -327,7 +328,10 @@ export const AccountManager = (project) => {
 
     // Event Listeners
     container.querySelector('#btn-new-account').addEventListener('click', createAccount);
-    container.querySelector('#btn-print-pdf').addEventListener('click', () => window.print());
+    container.querySelector('#btn-print-pdf').addEventListener('click', () => {
+        PrintHelper.autoConfigureOrientation('#table-container table');
+        window.print();
+    });
     container.querySelector('#btn-export-excel').addEventListener('click', exportToExcel);
 
     // Initialize SharedTable

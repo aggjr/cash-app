@@ -2,6 +2,7 @@ import { showToast } from '../utils/toast.js';
 import { getApiBaseUrl } from '../utils/apiConfig.js';
 import { MonthPicker } from './MonthPicker.js';
 import { ExcelExporter } from '../utils/ExcelExporter.js';
+import { PrintHelper } from '../utils/printHelper.js';
 
 export const ConsolidadasManager = (project) => {
     const container = document.createElement('div');
@@ -357,7 +358,10 @@ export const ConsolidadasManager = (project) => {
     btnPdf.className = 'btn-outline';
     btnPdf.innerHTML = '<span style="margin-right:0.25rem">🖨️</span> PDF';
     btnPdf.style.cssText = 'border:none; background:transparent; padding:0.25rem 0.5rem; font-weight:600; color:#374151;';
-    btnPdf.onclick = () => window.print();
+    btnPdf.onclick = () => {
+        PrintHelper.autoConfigureOrientation('#consolidadas-tables-wrapper table');
+        window.print();
+    };
 
     exportDiv.append(btnExcel, btnPdf);
     controlsRow.append(leftControls, exportDiv);

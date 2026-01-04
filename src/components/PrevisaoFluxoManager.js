@@ -1,6 +1,7 @@
 import { showToast } from '../utils/toast.js';
 import { getApiBaseUrl } from '../utils/apiConfig.js';
 import { ExcelExporter } from '../utils/ExcelExporter.js';
+import { PrintHelper } from '../utils/printHelper.js';
 
 export const PrevisaoFluxoManager = (project) => {
     const container = document.createElement('div');
@@ -538,7 +539,10 @@ export const PrevisaoFluxoManager = (project) => {
         }
 
         if (btnPdf) {
-            btnPdf.onclick = () => window.print();
+            btnPdf.onclick = () => {
+                PrintHelper.autoConfigureOrientation('#previsao-table-container table');
+                window.print();
+            };
         }
     }, 100);
 

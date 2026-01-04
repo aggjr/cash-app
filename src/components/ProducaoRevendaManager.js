@@ -1,5 +1,6 @@
-import { ProducaoRevendaModal } from './ProducaoRevendaModal.js';
+import { ExcelExporter } from '../utils/ExcelExporter.js';
 import { SharedTable } from './SharedTable.js';
+import { PrintHelper } from '../utils/printHelper.js';
 import { showToast } from '../utils/toast.js';
 import { getApiBaseUrl } from '../utils/apiConfig.js';
 import { ExcelExporter } from '../utils/ExcelExporter.js';
@@ -540,7 +541,10 @@ export const ProducaoRevendaManager = (project) => {
         }
     };
 
-    container.querySelector('#btn-pdf').onclick = () => window.print();
+    container.querySelector('#btn-pdf').onclick = () => {
+        PrintHelper.autoConfigureOrientation('#table-container table');
+        window.print();
+    };
 
     // Initialize SharedTable
     const tableContainer = container.querySelector('#table-container');

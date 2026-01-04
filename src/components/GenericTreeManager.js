@@ -2,6 +2,7 @@ import GenericTreeApi from '../services/genericTreeApi.js';
 import { Dialogs } from './Dialogs.js';
 import { getApiBaseUrl } from '../utils/apiConfig.js';
 import { ExcelExporter } from '../utils/ExcelExporter.js';
+import { PrintHelper } from '../utils/printHelper.js';
 
 
 /**
@@ -514,7 +515,10 @@ export const createTreeManager = (tableName, title, term = 'Categoria') => {
                 toggle: toggleNode,
                 indent: indentNode,
                 outdent: outdentNode,
-                print: () => window.print(),
+                print: () => {
+                    PrintHelper.autoConfigureOrientation('#tree-container');
+                    window.print();
+                },
                 export: exportToCSV
             };
 

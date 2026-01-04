@@ -3,6 +3,7 @@ import { SharedTable } from './SharedTable.js'; // Import SharedTable
 import { showToast } from '../utils/toast.js';
 import { getApiBaseUrl } from '../utils/apiConfig.js';
 import { ExcelExporter } from '../utils/ExcelExporter.js';
+import { PrintHelper } from '../utils/printHelper.js';
 
 export const AporteManager = (project) => {
     const container = document.createElement('div');
@@ -454,7 +455,10 @@ export const AporteManager = (project) => {
         }
     };
 
-    container.querySelector('#btn-pdf').onclick = () => window.print();
+    container.querySelector('#btn-pdf').onclick = () => {
+        PrintHelper.autoConfigureOrientation('#table-container table');
+        window.print();
+    };
 
     // Initialize SharedTable
     const tableContainer = container.querySelector('#table-container');

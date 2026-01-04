@@ -4,6 +4,7 @@ import { Dialogs } from './Dialogs.js';
 import { showToast } from '../utils/toast.js';
 import { getApiBaseUrl } from '../utils/apiConfig.js';
 import { ExcelExporter } from '../utils/ExcelExporter.js';
+import { PrintHelper } from '../utils/printHelper.js';
 
 export const CompanyManager = (project) => {
     const container = document.createElement('div');
@@ -286,7 +287,10 @@ export const CompanyManager = (project) => {
 
     // Event Listeners
     container.querySelector('#btn-new-company').addEventListener('click', createCompany);
-    container.querySelector('#btn-print-pdf').addEventListener('click', () => window.print());
+    container.querySelector('#btn-print-pdf').addEventListener('click', () => {
+        PrintHelper.autoConfigureOrientation('#table-container table');
+        window.print();
+    });
     container.querySelector('#btn-export-excel').addEventListener('click', exportToExcel);
 
     // Initialize SharedTable

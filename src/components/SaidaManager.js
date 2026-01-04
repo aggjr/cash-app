@@ -4,6 +4,7 @@ import { showToast } from '../utils/toast.js';
 import { getApiBaseUrl } from '../utils/apiConfig.js';
 import { ExcelExporter } from '../utils/ExcelExporter.js';
 import { BatchOperationDialog } from './BatchOperationDialog.js';
+import { PrintHelper } from '../utils/printHelper.js';
 
 export const SaidaManager = (project) => {
     const container = document.createElement('div');
@@ -693,7 +694,10 @@ export const SaidaManager = (project) => {
         );
     };
 
-    container.querySelector('#btn-pdf').onclick = () => window.print();
+    container.querySelector('#btn-pdf').onclick = () => {
+        PrintHelper.autoConfigureOrientation('#table-container table');
+        window.print();
+    };
 
     // Initialize SharedTable
     const tableContainer = container.querySelector('#table-container');

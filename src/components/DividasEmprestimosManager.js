@@ -4,6 +4,7 @@ import { SaidaModal } from './SaidaModal.js';
 import { showToast } from '../utils/toast.js';
 import { getApiBaseUrl } from '../utils/apiConfig.js';
 import { ExcelExporter } from '../utils/ExcelExporter.js';
+import { PrintHelper } from '../utils/printHelper.js';
 
 export const DividasEmprestimosManager = (project) => {
     const container = document.createElement('div');
@@ -292,7 +293,10 @@ export const DividasEmprestimosManager = (project) => {
     `;
 
     container.querySelector('#btn-new-loan').onclick = createLoan;
-    container.querySelector('#btn-pdf').onclick = () => window.print();
+    container.querySelector('#btn-pdf').onclick = () => {
+        PrintHelper.autoConfigureOrientation('#table-container table');
+        window.print();
+    };
     // Excel export logic (simplified)
     container.querySelector('#btn-excel').onclick = () => {
         ExcelExporter.exportTable(installments, columns, 'Relatório Dívidas', 'dividas');

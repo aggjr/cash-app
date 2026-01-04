@@ -4,6 +4,7 @@ import { showToast } from '../utils/toast.js';
 import { getApiBaseUrl } from '../utils/apiConfig.js';
 import * as filterUtils from '../utils/filterUtils.js'; // Assuming this exists or we inline logic
 import { ExcelExporter } from '../utils/ExcelExporter.js';
+import { PrintHelper } from '../utils/printHelper.js';
 
 export const RetiradaManager = (project) => {
     const container = document.createElement('div');
@@ -403,7 +404,10 @@ export const RetiradaManager = (project) => {
         }
     };
 
-    container.querySelector('#btn-pdf').onclick = () => window.print();
+    container.querySelector('#btn-pdf').onclick = () => {
+        PrintHelper.autoConfigureOrientation('#table-container table');
+        window.print();
+    };
 
     // Init SharedTable
     sharedTable = new SharedTable({

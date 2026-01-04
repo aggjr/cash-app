@@ -3,6 +3,7 @@ import { Dialogs } from './Dialogs.js';
 import { getApiBaseUrl } from '../utils/apiConfig.js';
 import { ExcelExporter } from '../utils/ExcelExporter.js';
 import { SharedTable } from './SharedTable.js';
+import { PrintHelper } from '../utils/printHelper.js';
 
 export const UserManager = (project) => {
     const API_BASE_URL = getApiBaseUrl();
@@ -328,7 +329,10 @@ export const UserManager = (project) => {
         btnPdf.className = 'btn-secondary';
         btnPdf.innerHTML = '🖨️ PDF';
         btnPdf.title = 'Imprimir / Salvar PDF';
-        btnPdf.onclick = () => window.print();
+        btnPdf.onclick = () => {
+            PrintHelper.autoConfigureOrientation('.table-container table');
+            window.print();
+        };
 
         const btnExcel = document.createElement('button');
         btnExcel.className = 'btn-secondary';
