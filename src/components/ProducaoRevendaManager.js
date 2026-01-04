@@ -438,11 +438,11 @@ export const ProducaoRevendaManager = (project) => {
     // Initial Render of Container Structure
     container.innerHTML = `
         <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 2rem;">
-            <h2>📊 Produção / Revenda</h2>
+            <h2>🛒 Compras (Produção/Revenda)</h2>
             <div style="display: flex; gap: 0.5rem;">
                     <span style="font-size: 0.9rem; color: var(--color-primary);">Lar</span>
                     <span style="color: var(--color-text-muted);">/</span>
-                    <span style="font-size: 0.9rem; color: var(--color-text-muted);">Produção / Revenda</span>
+                    <span style="font-size: 0.9rem; color: var(--color-text-muted);">Compras (Produção/Revenda)</span>
             </div>
         </div>
 
