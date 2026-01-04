@@ -523,7 +523,8 @@ export const FechamentoContasManager = (project) => {
                     }
 
                     // Dynamic import of ExcelJS
-                    const ExcelJS = await import('https://cdn.jsdelivr.net/npm/exceljs@4.3.0/dist/exceljs.min.js');
+                    const ExcelJSModule = await import('https://cdn.jsdelivr.net/npm/exceljs@4.3.0/dist/exceljs.min.js');
+                    const ExcelJS = ExcelJSModule.default || ExcelJSModule;
                     const workbook = new ExcelJS.Workbook();
                     const worksheet = workbook.addWorksheet('Fechamento de Contas');
 
