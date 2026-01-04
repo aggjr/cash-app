@@ -138,9 +138,11 @@ export const ExcelExporter = {
      * @param {Array} data - Flat array of objects
      * @param {Array} columns - Column definitions [{ header, key, width, type }]
      * @param {string} title - Worksheet title
+     * @param {string} title - Worksheet title
      * @param {string} fileName - Download filename
+     * @param {object} options - Optional: { headerRow, footerRow, freezeHeader }
      */
-    exportTable: async (data, columns, title, fileName) => {
+    exportTable: async (data, columns, title, fileName, options = {}) => {
         // Shared defines
         const HEADER_FILL = {
             type: 'pattern',
@@ -235,6 +237,92 @@ export const ExcelExporter = {
             to: `${lastColChar}1`,
         };
 
+        // Freeze Header if requested
+        if (options.freezeHeader) {
+            sheet.views = [
+                { state: 'frozen', ySplit: 1 }
+            ];
+        }
+
+        let rowIndex = 2; // Start data at row 2
+
+        // helper for special row styles
+        const applySpecialRowStyle = (row, styleConfig) => {
+            if (!styleConfig) return;
+
+            // Map CSS-like styles to ExcelJS
+            // Background Color
+            if (styleConfig.backgroundColor) {
+                const color = styleConfig.backgroundColor.replace('#', '');
+                const argb = 'FF' + (color.length === 3 ? color.split('').map(c => c + c).join('') : color).toUpperCase();
+
+                const fill = {
+                    type: 'pattern',
+                    pattern: 'solid',
+                    fgColor: { argb: argb }
+                };
+
+                row.eachCell(cell => { cell.fill = fill; });
+            }
+
+            // Font Weight
+            if (styleConfig.fontWeight === 'bold') {
+                row.eachCell(cell => { cell.font = { ...cell.font, bold: true }; });
+            }
+
+            // Borders (Simple mapping for now)
+            if (styleConfig.borderBottom || styleConfig.borderTop) {
+                // Parsers could be complex, assuming '2px solid #COLOR'
+                // Just applying a medium border color for now if logic exists
+                // Better to be generic for this specific case
+                const borderColor = 'FF00425F'; // Hardcoded for consistency with shared table request
+                const borderStyle = { style: 'medium', color: { argb: borderColor } };
+
+                const border = { ...BORDER_STYLE };
+                if (styleConfig.borderBottom) border.bottom = borderStyle;
+                if (styleConfig.borderTop) border.top = borderStyle;
+
+                row.eachCell(cell => { cell.border = border; });
+            }
+        };
+
+        // 2a. Special Header Row (Initial Balance)
+        if (options.headerRow) {
+            const rowData = {};
+            columns.forEach(col => {
+                rowData[col.key] = options.headerRow.data[col.key] || options.headerRow.data[col.originalKey] || '-';
+
+                // Special handling for currency in special row
+                if (col.type === 'currency' && typeof rowData[col.key] === 'number') {
+                    // Ensure it's treated as number for formatting
+                }
+            });
+
+            const row = sheet.addRow(rowData);
+
+            // Apply styles
+            if (options.headerRow.style) {
+                applySpecialRowStyle(row, options.headerRow.style);
+            }
+
+            // Alignments & Formats same as regular rows
+            row.eachCell((cell, colNumber) => {
+                const columnDef = columns[colNumber - 1];
+                if (columnDef && columnDef.type === 'currency') {
+                    cell.numFmt = '"R$ "* #,##0.00'; // Match main table currency format
+                    cell.alignment = { vertical: 'middle', horizontal: 'right' };
+                } else {
+                    cell.alignment = { vertical: 'middle', horizontal: 'center' };
+                }
+                // If not styled by special row logic, apply default border
+                if (!options.headerRow.style?.borderBottom && !options.headerRow.style?.borderTop) {
+                    cell.border = BORDER_STYLE;
+                }
+            });
+
+            rowIndex++;
+        }
+
         // 2. Add Data
         data.forEach((item, index) => {
             const rowData = {};
@@ -316,6 +404,45 @@ export const ExcelExporter = {
                 }
             });
         });
+
+        // 2c. Special Footer Row (Final Balance)
+        if (options.footerRow) {
+            const rowData = {};
+            columns.forEach(col => {
+                rowData[col.key] = options.footerRow.data[col.key] || '-';
+            });
+
+            const row = sheet.addRow(rowData);
+
+            // Apply styles
+            if (options.footerRow.style) {
+                applySpecialRowStyle(row, options.footerRow.style);
+            }
+
+            // Alignments & Formats
+            row.eachCell((cell, colNumber) => {
+                const columnDef = columns[colNumber - 1];
+                if (columnDef && columnDef.type === 'currency') {
+                    cell.numFmt = '"R$ "* #,##0.00';
+                    cell.alignment = { vertical: 'middle', horizontal: 'right' };
+                } else {
+                    cell.alignment = { vertical: 'middle', horizontal: 'center' };
+                }
+
+                // Custom font color logic for footer value (specific user request "diferenciadas", assuming standard color logic applies)
+                // If value is number and currency column
+                if (columnDef && columnDef.type === 'currency' && typeof cell.value === 'number') {
+                    const isPositive = cell.value >= 0;
+                    cell.font = {
+                        color: { argb: isPositive ? 'FF10B981' : 'FFEF4444' }, // Green/Red
+                        bold: true
+                    };
+                }
+                // Also apply to Header Row if it was added (Initial Balance) - retroactively? No, doing it here for footer is enough.
+                // Actually, let's fix the header row color too if needed, but usually initial balance is simple black or conditionally colored.
+                // Let's assume footer follows same color logic as cells.
+            });
+        }
 
         // 3. Write and Download
         const buffer = await workbook.xlsx.writeBuffer();

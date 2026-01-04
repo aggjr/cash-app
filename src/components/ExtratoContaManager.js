@@ -477,59 +477,76 @@ export const ExtratoContaManager = (project) => {
                         return;
                     }
 
-                    const exportData = [];
-                    let balance = extratoData.initialBalance;
+                    const accountName = accounts.find(a => a.id === parseInt(selectedAccountId))?.name || 'Conta';
 
-                    // Initial balance row
-                    exportData.push({
-                        'Data': '-',
-                        'Tipo': 'SALDO ANTERIOR',
-                        'Descrição': '-',
-                        'Fluxo': '-',
-                        'Valor': balance
-                    });
+                    // Prepare Data
+                    const exportData = extratoData.transactions.map(tx => ({
+                        data: tx.data, // format in exporter
+                        tipo_formatado: tx.tipo_formatado,
+                        descricao: tx.descricao || '-',
+                        fluxo: tx.direction === 'IN' ? 'ENTRADA' : 'SAÍDA',
+                        valor: tx.valor
+                    }));
 
-                    // Transactions
+                    // Define Columns (matching table structure)
+                    const columns = [
+                        { header: 'Data Execução', key: 'data', width: 18, type: 'date' },
+                        { header: 'TIPO DE MOVIMENTAÇÃO', key: 'tipo_formatado', width: 40 },
+                        { header: 'Descrição', key: 'descricao', width: 40 },
+                        { header: 'Fluxo', key: 'fluxo', width: 15, type: 'center' },
+                        { header: 'Valor', key: 'valor', width: 18, type: 'currency' }
+                    ];
+
+                    // Calculations for special rows (redundant but safe)
+                    let currentBalance = extratoData.initialBalance;
                     extratoData.transactions.forEach(tx => {
                         const isInput = tx.direction === 'IN';
                         const val = parseFloat(tx.valor);
-                        const balanceChange = isInput ? val : -val;
-                        balance += balanceChange;
-
-                        exportData.push({
-                            'Data': formatDate(tx.data),
-                            'Tipo': tx.tipo_formatado,
-                            'Descrição': tx.descricao || '-',
-                            'Fluxo': isInput ? 'ENTRADA' : 'SAÍDA',
-                            'Valor': val
-                        });
+                        currentBalance += (isInput ? val : -val);
                     });
+                    const finalBalance = currentBalance;
 
-                    // Final balance row
-                    exportData.push({
-                        'Data': '-',
-                        'Tipo': 'SALDO FINAL',
-                        'Descrição': '-',
-                        'Fluxo': '-',
-                        'Valor': balance
-                    });
-
-                    const columns = [
-                        { header: 'Data', key: 'Data', width: 15, type: 'text' },
-                        { header: 'Tipo', key: 'Tipo', width: 25, type: 'text' },
-                        { header: 'Descrição', key: 'Descrição', width: 35, type: 'text' },
-                        { header: 'Fluxo', key: 'Fluxo', width: 12, type: 'text' },
-                        { header: 'Valor', key: 'Valor', width: 15, type: 'currency' }
-                    ];
-
-                    const accountName = accounts.find(a => a.id === parseInt(selectedAccountId))?.name || 'Conta';
+                    // Header/Footer Options
+                    const options = {
+                        freezeHeader: true,
+                        headerRow: {
+                            data: {
+                                data: '-',
+                                tipo_formatado: 'SALDO ANTERIOR',
+                                descricao: '-',
+                                fluxo: '-',
+                                valor: extratoData.initialBalance
+                            },
+                            style: {
+                                backgroundColor: '#e0f2fe',
+                                fontWeight: 'bold',
+                                borderBottom: '2px solid #00425F'
+                            }
+                        },
+                        footerRow: {
+                            data: {
+                                data: '-',
+                                tipo_formatado: 'SALDO FINAL',
+                                descricao: '-',
+                                fluxo: '-',
+                                valor: finalBalance
+                            },
+                            style: {
+                                backgroundColor: '#e0f2fe',
+                                fontWeight: 'bold',
+                                borderTop: '2px solid #00425F'
+                            }
+                        }
+                    };
 
                     await ExcelExporter.exportTable(
                         exportData,
                         columns,
                         `Extrato - ${accountName}`,
-                        'extrato_conta'
+                        'extrato_conta',
+                        options
                     );
+
                 } catch (error) {
                     console.error('Error during Excel export:', error);
                     showToast(`Erro ao exportar: ${error.message}`, 'error');
