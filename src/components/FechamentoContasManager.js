@@ -3,6 +3,7 @@ import { getApiBaseUrl } from '../utils/apiConfig.js';
 import { MonthPicker } from './MonthPicker.js';
 import { ExcelExporter } from '../utils/ExcelExporter.js';
 import { HierarchicalFilter } from './HierarchicalFilter.js';
+import { PrintHelper } from '../utils/printHelper.js';
 
 export const FechamentoContasManager = (project) => {
     const container = document.createElement('div');
@@ -776,7 +777,10 @@ export const FechamentoContasManager = (project) => {
         }
 
         if (btnPdf) {
-            btnPdf.onclick = () => window.print();
+            btnPdf.onclick = () => {
+                PrintHelper.autoConfigureOrientation('.fechamento-table-wrapper table');
+                window.print();
+            };
         }
     }, 100);
 

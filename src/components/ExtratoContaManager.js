@@ -2,6 +2,7 @@ import { showToast } from '../utils/toast.js';
 import { getApiBaseUrl } from '../utils/apiConfig.js';
 import { ExcelExporter } from '../utils/ExcelExporter.js';
 import { SharedTable } from './SharedTable.js';
+import { PrintHelper } from '../utils/printHelper.js';
 
 export const ExtratoContaManager = (project) => {
     const container = document.createElement('div');
@@ -310,7 +311,11 @@ export const ExtratoContaManager = (project) => {
             }
         };
 
-        btnPdf.onclick = () => window.print();
+        btnPdf.onclick = () => {
+            // SharedTable renders table inside .table-wrapper
+            PrintHelper.autoConfigureOrientation('.extrato-table-wrapper table');
+            window.print();
+        };
 
         return controls;
     };
