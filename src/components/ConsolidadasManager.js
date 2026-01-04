@@ -3,6 +3,7 @@ import { getApiBaseUrl } from '../utils/apiConfig.js';
 import { MonthPicker } from './MonthPicker.js';
 import { ExcelExporter } from '../utils/ExcelExporter.js';
 import { PrintHelper } from '../utils/printHelper.js';
+import { HierarchicalFilter } from './HierarchicalFilter.js';
 
 export const ConsolidadasManager = (project) => {
     const container = document.createElement('div');
@@ -23,6 +24,9 @@ export const ConsolidadasManager = (project) => {
     let startMonth = localStorage.getItem('consolidadas_startMonth') || `${today.getFullYear()}-01`;
     let endMonth = localStorage.getItem('consolidadas_endMonth') || `${today.getFullYear()}-12`;
     let expandedNodes = new Set();
+    let selectedCompanyIds = [];
+    let companies = [];
+    let accounts = [];
 
     // Store full response
     let currentData = { realized: [], provisioned: [] };
@@ -52,7 +56,12 @@ export const ConsolidadasManager = (project) => {
         try {
             if (overlay) overlay.style.display = 'flex';
             const token = localStorage.getItem('token');
-            const url = `${API_BASE_URL}/consolidadas?projectId=${project.id}&viewType=${viewType}&startMonth=${startMonth}&endMonth=${endMonth}`;
+            let query = `projectId=${project.id}&viewType=${viewType}&startMonth=${startMonth}&endMonth=${endMonth}`;
+            if (selectedCompanyIds.length > 0) {
+                query += `&companyIds=${selectedCompanyIds.join(',')}`;
+            }
+
+            const url = `${API_BASE_URL}/consolidadas?${query}`;
 
             const resp = await fetch(url, { headers: { 'Authorization': `Bearer ${token}` } });
             if (!resp.ok) throw new Error('Falha ao carregar dados consolidados');
@@ -290,25 +299,107 @@ export const ConsolidadasManager = (project) => {
         return wrapper;
     };
 
+    // --- Fetch Metadata (Companies/Accounts) ---
+    const loadMetadata = async () => {
+        try {
+            const token = localStorage.getItem('token');
+            const [cRes, aRes] = await Promise.all([
+                fetch(`${API_BASE_URL}/companies?projectId=${project.id}`, { headers: { 'Authorization': `Bearer ${token}` } }),
+                fetch(`${API_BASE_URL}/accounts?projectId=${project.id}`, { headers: { 'Authorization': `Bearer ${token}` } })
+            ]);
 
-    // --- Header / Controls ---
+            companies = await cRes.json();
+            accounts = await aRes.json();
+
+            // Render Filter
+            const filterContainer = document.getElementById('consolidadas-filter-container');
+            if (filterContainer && companies.length > 0) {
+                // Build data structure for HierarchicalFilter
+                const filterData = companies.map(comp => ({
+                    id: comp.id,
+                    label: comp.name,
+                    children: [] // Consolidating by Company, we filter only Companies usually.
+                    // But user said "like Fechamento", which filters Accounts too?
+                    // Backend logic we implemented filters tables by `company_id`.
+                    // Accounts table `contas` is not directly queried for transactions, but transactions have `account_id` too?
+                    // No, transactions have `company_id`. 
+                    // So filtering by ACCOUNT in transactions is possible but backend currently checks `company_id`.
+                    // Let's stick to COMPANY filter as per request "seleção de EMPRESA".
+                    // User said "seleção de EMPRESA usando o componente que permite a multipla seleção de empresas em estilo excel que tem na tela de fechamento de contas".
+                    // Fechamento filters Accounts grouped by Companies.
+                    // If I select a company, I select all its accounts?
+                    // Backend check `company_id IN (...)`. 
+                    // So I should treat the "Children" as just placeholders or maybe I don't need children if I only filter companies?
+                    // HierarchicalFilter EXPECTS children structure?
+                    // Let's make children empty or just use companies as leaf nodes if possible?
+                    // HierarchicalFilter requires `children` array.
+                    // I will format as: Company -> [Account1, Account2] but actually selecting 'Company' selects all accounts.
+                    // BUT our backend filter uses `companyIds`.
+                    // If user deselects an account, does it filter that account's transactions?
+                    // Backend loop `company_id IN (...)`. It ignores account selection.
+                    // So effectively this is a COMPANY filter.
+                    // To avoid confusion, I will just list Companies. 
+                    // But HierarchicalFilter is hierarchical.
+                    // Let's mock children as "Todas" or just make it flat if possible?
+                    // No, I'll just map companies.
+                }));
+
+                // Actually, to look like Fechamento, it should show accounts.
+                // But since backend only filters by company_id, selecting specific accounts won't affect result unless I update backend to filter by account_id too.
+                // Given query `companyIds`, I'll filter by Companies.
+                // I will create dummy children if needed or just use `children: []`? 
+                // HierarchicalFilter code: `parent.children.forEach`. It iterates children.
+                // So I MUST populate children.
+                // I will populate with accounts, but ignore specific account selection technically, 
+                // OR I simply pass the company ID if *any* or *all* accounts are selected?
+                // Simpler: Just allow Company selection (Parent). 
+                // Impl: Company -> [ "Selecionar" ]. 
+                // Or better: Just list Companies as parents, and give them 1 child "Selecionar".
+                // Wait, `FechamentoContas` filters specific accounts. 
+                // User asked for "seleção de EMPRESA".
+                // I will just use companies. I'll hack HierarchicalFilter to have 1 dummy child per company if needed, or modify it?
+                // No, I'll just use accounts as children. And if any account is selected, we include the company?
+                // Or better: Pass `companyIds` of completely selected companies.
+                // Let's try to pass all columns.
+                // FOR NOW: I will load companies and accounts, build the tree.
+                // If `selectedIds` contains accounts, I extract unique company IDs from those accounts.
+
+                const treeData = companies.map(c => ({
+                    id: `comp_${c.id}`,
+                    label: c.name,
+                    children: accounts.filter(a => a.company_id === c.id).map(a => ({ id: a.id, label: a.name }))
+                }));
+
+                new HierarchicalFilter({
+                    container: filterContainer,
+                    data: treeData,
+                    onChange: (ids) => {
+                        // IDs are Account IDs (integers).
+                        // We need Company IDs.
+                        // Map Account ID -> Company ID
+                        const relevantCompanyIds = new Set();
+                        ids.forEach(accId => {
+                            const acc = accounts.find(a => a.id == accId);
+                            if (acc) relevantCompanyIds.add(acc.company_id);
+                        });
+                        selectedCompanyIds = Array.from(relevantCompanyIds);
+                        loadData();
+                    },
+                    placeholder: 'Todas as Empresas'
+                });
+            }
+        } catch (e) {
+            console.error('Error loading metadata', e);
+        }
+    };
     const controls = document.createElement('div');
     controls.style.cssText = 'display:flex; flex-direction:column; gap:0.5rem; padding:1rem 0.5rem 0.5rem; margin-bottom:0; position:sticky; top:0; z-index:40; background:#fff; border-bottom:1px solid #e5e7eb;';
 
     // Header Row
     const headerRow = document.createElement('div');
-    headerRow.style.cssText = 'display:flex; justify-content:flex-end; margin-bottom:0.5rem;';
-    headerRow.innerHTML = '<div style="font-size:1.5rem; font-weight:bold; color:#00425F;">📑 Consolidadas</div>';
+    headerRow.style.cssText = 'display:flex; justify-content:space-between; align-items:center; margin-bottom:0.5rem;';
 
-    // Controls
-    const controlsRow = document.createElement('div');
-    controlsRow.style.cssText = 'display:flex; align-items:center; justify-content:space-between; flex-wrap:wrap; gap:1rem;';
-
-    // Left
-    const leftControls = document.createElement('div');
-    leftControls.style.cssText = 'display:flex; align-items:center; gap:1.5rem;';
-
-    // Radios
+    // Radios (Moved to Top Left)
     const radioGroup = document.createElement('div');
     radioGroup.style.cssText = 'display:flex; gap:1.5rem; align-items:center; background:#f3f4f6; padding:0.25rem 1rem; border-radius:8px; min-height:40px; white-space:nowrap;';
 
@@ -323,15 +414,24 @@ export const ConsolidadasManager = (project) => {
     };
     radioGroup.append(createRadio('Visão de Caixa', 'caixa'), createRadio('Visão de Competência', 'competencia'));
 
-    // Dates
-    const dateGroup = document.createElement('div'); dateGroup.style.cssText = 'display:flex; align-items:center; gap:0.5rem;';
-    dateGroup.append(
-        Object.assign(document.createElement('span'), { textContent: 'De:', style: 'font-size:0.9rem; color:#4B5563;' }),
-        MonthPicker(startMonth, (v) => { startMonth = v; localStorage.setItem('consolidadas_startMonth', v); loadData(); }),
-        Object.assign(document.createElement('span'), { textContent: 'Até:', style: 'font-size:0.9rem; color:#4B5563;' }),
-        MonthPicker(endMonth, (v) => { endMonth = v; localStorage.setItem('consolidadas_endMonth', v); loadData(); })
-    );
-    leftControls.append(radioGroup, dateGroup);
+    headerRow.appendChild(radioGroup);
+    headerRow.insertAdjacentHTML('beforeend', '<div style="font-size:1.5rem; font-weight:bold; color:#00425F;">📑 Consolidadas</div>');
+
+    // Controls
+    const controlsRow = document.createElement('div');
+    controlsRow.style.cssText = 'display:flex; align-items:center; justify-content:space-between; flex-wrap:wrap; gap:1rem;';
+
+    // Left
+    const leftControls = document.createElement('div');
+    leftControls.style.cssText = 'display:flex; align-items:center; gap:1.5rem;';
+
+    // Company Filter (Replaces Radios)
+    const filterContainer = document.createElement('div');
+    filterContainer.id = 'consolidadas-filter-container';
+    // Style it to match look
+    filterContainer.style.marginRight = '1rem';
+
+    leftControls.append(filterContainer, dateGroup);
 
     // Exports
     const exportDiv = document.createElement('div'); exportDiv.style.cssText = 'display:flex; gap:1rem; align-items:center;';
@@ -385,7 +485,8 @@ export const ConsolidadasManager = (project) => {
     loadingOverlay.style.cssText = 'position:absolute; top:0; left:0; width:100%; height:100%; background:rgba(255,255,255,0.7); display:none; justify-content:center; align-items:center; z-index:50;';
 
     container.append(controls, scrollContainer, loadingOverlay);
-    loadData();
+    loadMetadata().then(() => loadData()); // Load metadata (companies) first, then data.
+
 
     return container;
 

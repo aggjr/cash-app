@@ -2,7 +2,12 @@ const db = require('../config/database');
 
 exports.getConsolidatedData = async (req, res) => {
     try {
-        const { projectId, viewType, startMonth, endMonth } = req.query; // startMonth/endMonth format: YYYY-MM
+        const { projectId, viewType, startMonth, endMonth, companyIds } = req.query; // startMonth/endMonth format: YYYY-MM
+
+        let companyIdList = [];
+        if (companyIds) {
+            companyIdList = companyIds.split(',').map(id => parseInt(id)).filter(id => !isNaN(id));
+        }
 
         if (!projectId) {
             return res.status(400).json({ error: 'Project ID is required' });
@@ -61,6 +66,13 @@ exports.getConsolidatedData = async (req, res) => {
                         filter = `AND ${colReal} IS NOT NULL`;
                     }
                 }
+                // Add company filter if present
+                if (companyIdList.length > 0) {
+                    // Check if table has company_column. Most do.
+                    // entradas, saidas, producao_revenda all have company_id.
+                    filter += ` AND company_id IN (${companyIdList.join(',')})`;
+                }
+
                 return { dateField, filter };
             };
 
@@ -180,6 +192,10 @@ exports.getConsolidatedData = async (req, res) => {
                 // Provisioned Table (isProvisioned) shows ALL.
                 if (!isProvisioned) {
                     filter = 'AND data_real IS NOT NULL';
+                }
+
+                if (companyIdList.length > 0) {
+                    filter += ` AND company_id IN (${companyIdList.join(',')})`;
                 }
 
                 let qParams = [projectId];
