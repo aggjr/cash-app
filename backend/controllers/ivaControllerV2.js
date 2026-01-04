@@ -1,9 +1,9 @@
 const OpenAI = require('openai');
 const db = require('../config/database');
-const ivaContextBuilder = require('../services/ivaContextBuilder');
-const ivaIntentValidator = require('../utils/ivaIntentValidator');
-const ivaDataFetcher = require('../services/ivaDataFetcher');
-const ivaScreenCache = require('../services/ivaScreenCache');
+const IvaContextBuilder = require('../services/IvaContextBuilder');
+const IvaIntentValidator = require('../utils/IvaIntentValidator');
+const IvaDataFetcher = require('../services/IvaDataFetcher');
+const IvaScreenCache = require('../services/IvaScreenCache');
 
 const openai = new OpenAI({
     apiKey: process.env.OPENAI_API_KEY
@@ -21,7 +21,7 @@ const chat = async (req, res, next) => {
         }
 
         // Validate intent before calling LLM (security layer)
-        const validation = ivaIntentValidator.validate(message);
+        const validation = IvaIntentValidator.validate(message);
         if (!validation.valid) {
             console.log(`[IVA Security] Blocked ${validation.reason}:`, message.substring(0, 50));
             return res.json({
@@ -70,10 +70,10 @@ const chat = async (req, res, next) => {
         }));
 
         // Build dynamic profile
-        const dynamicProfile = await ivaContextBuilder.buildDynamicBusinessProfile(db, context.projectId);
+        const dynamicProfile = await IvaContextBuilder.buildDynamicBusinessProfile(db, context.projectId);
 
         // Build system prompt
-        const systemPrompt = await ivaContextBuilder.buildChatContext(userData, projectData, dynamicProfile, { isIntroduction });
+        const systemPrompt = await IvaContextBuilder.buildChatContext(userData, projectData, dynamicProfile, { isIntroduction });
 
         console.log('[IVA Chat] Step 4 - System Prompt Length:', systemPrompt?.length);
         console.log('[IVA Chat] Step 4 - Prompt contains name?', systemPrompt?.includes(userData?.name || 'NOTFOUND'));
@@ -181,7 +181,7 @@ const operate = async (req, res) => {
         }
 
         // Validate intent before calling LLM (security layer)
-        const validation = ivaIntentValidator.validate(message);
+        const validation = IvaIntentValidator.validate(message);
         if (!validation.valid) {
             console.log(`[IVA Security] Blocked ${validation.reason}:`, message.substring(0, 50));
             return res.json({
@@ -255,7 +255,7 @@ const operate = async (req, res) => {
 
             try {
                 // Fetch complete data from DB with same filters
-                screenData = await ivaDataFetcher.fetchScreenData(
+                screenData = await IvaDataFetcher.fetchScreenData(
                     db,
                     context.screenContext.screenId,
                     context.screenContext.filters,
@@ -264,12 +264,12 @@ const operate = async (req, res) => {
 
                 // Cache the data
                 if (screenData) {
-                    ivaScreenCache.set(user.id, context.projectId, screenData.screenId, screenData);
+                    IvaScreenCache.set(user.id, context.projectId, screenData.screenId, screenData);
                     console.log('[IVA Operate] Cached screen data:', screenData.screenId);
                 }
 
                 // Get most accessed screens for cross-analysis
-                cachedScreens = ivaScreenCache.getMostAccessed(user.id, context.projectId, 3);
+                cachedScreens = IvaScreenCache.getMostAccessed(user.id, context.projectId, 3);
                 console.log('[IVA Operate] Most accessed screens:', cachedScreens.map(s => s.screenId));
 
             } catch (error) {
@@ -279,13 +279,13 @@ const operate = async (req, res) => {
         }
 
         // Build dynamic profile
-        const dynamicProfile = await ivaContextBuilder.buildDynamicBusinessProfile(db, context?.projectId);
+        const dynamicProfile = await IvaContextBuilder.buildDynamicBusinessProfile(db, context?.projectId);
 
         // Build screen data context
-        const screenDataContext = ivaContextBuilder.buildScreenDataContext(screenData, cachedScreens);
+        const screenDataContext = IvaContextBuilder.buildScreenDataContext(screenData, cachedScreens);
 
         // Build operate system prompt
-        const systemPrompt = await ivaContextBuilder.buildOperateContext(
+        const systemPrompt = await IvaContextBuilder.buildOperateContext(
             userData,
             projectData,
             screenContext,
@@ -366,4 +366,5 @@ module.exports = {
     chat,
     operate
 };
+
 
