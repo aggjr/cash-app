@@ -40,9 +40,10 @@ exports.getConsolidatedData = async (req, res) => {
                         // Logic Update: Show ALL items. Priority: Real > Atraso > Prevista
                         filter = '';
                         if (table === 'entradas') {
-                            dateField = 'COALESCE(data_real_recebimento, data_prevista_atraso, data_prevista_recebimento)';
+                            // Entradas uses 'data_atraso'
+                            dateField = 'COALESCE(data_real_recebimento, data_atraso, data_prevista_recebimento)';
                         } else {
-                            // Saidas / Producao
+                            // Saidas / Producao uses 'data_prevista_atraso'
                             dateField = 'COALESCE(data_real_pagamento, data_prevista_atraso, data_prevista_pagamento)';
                         }
                     } else {
