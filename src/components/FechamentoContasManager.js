@@ -243,7 +243,7 @@ export const FechamentoContasManager = (project) => {
         thFixed.style.width = '1%';
         thFixed.style.whiteSpace = 'nowrap';
         thFixed.style.borderBottom = '2px solid white';
-        thFixed.style.borderRight = '2px solid white';
+        thFixed.style.borderRight = '2px solid #00425F';
         headerRow.appendChild(thFixed);
 
         // Month Columns Headers
@@ -257,10 +257,7 @@ export const FechamentoContasManager = (project) => {
             th.style.borderBottom = '1px solid #1e3a8a';
             th.style.whiteSpace = 'nowrap';
 
-            // Add blue right border to first month column to eliminate gap
-            if (index === 0) {
-                th.style.borderRight = '2px solid #00425F';
-            }
+            // Removed blue right border from first month column
 
             headerRow.appendChild(th);
         });
@@ -328,7 +325,7 @@ export const FechamentoContasManager = (project) => {
                 tdFixed.style.padding = '0.5rem 0.75rem';
                 tdFixed.style.textAlign = 'left';
                 tdFixed.style.borderBottom = '2px solid white';
-                tdFixed.style.borderRight = '2px solid white';
+                tdFixed.style.borderRight = '2px solid #00425F';
                 tdFixed.style.whiteSpace = 'nowrap';
                 tr.appendChild(tdFixed);
 
@@ -354,11 +351,6 @@ export const FechamentoContasManager = (project) => {
                     td.style.textAlign = 'right';
                     td.style.borderBottom = '1px solid #e2e8f0';
                     td.style.whiteSpace = 'nowrap';
-
-                    // Add blue right border to first month column
-                    if (mIndex === 0) {
-                        td.style.borderRight = '2px solid #00425F';
-                    }
 
                     if (val > 0) td.style.color = '#10B981';
                     else if (val < 0) td.style.color = '#EF4444';
@@ -404,11 +396,6 @@ export const FechamentoContasManager = (project) => {
             td.style.borderTop = '2px solid #cbd5e1';
             td.style.backgroundColor = '#e2e8f0'; // Slightly darker
             td.style.whiteSpace = 'nowrap';
-
-            // Add blue right border to first month column
-            if (index === 0) {
-                td.style.borderRight = '2px solid #00425F';
-            }
 
             // Color Logic
             if (val > 0) td.style.color = '#10B981';
