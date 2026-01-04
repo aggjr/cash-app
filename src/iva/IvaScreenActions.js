@@ -4,7 +4,7 @@
  * Security: NO database write operations allowed
  */
 
-class ivaScreenActions {
+class IvaScreenActions {
     static registry = {
         // ========================================
         // PREVISÃO DE FLUXO
