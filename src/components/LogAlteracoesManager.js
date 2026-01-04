@@ -30,7 +30,7 @@ export const LogAlteracoesManager = (project) => {
             type: 'date',
             render: (row) => {
                 if (!row.created_at) return '-';
-                const d = new Date(row.created_at);
+                const d = new Date(row.created_at + (row.created_at.includes('Z') ? '' : 'Z'));
                 return d.toLocaleDateString('pt-BR') + ' ' + d.toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' });
             }
         },
