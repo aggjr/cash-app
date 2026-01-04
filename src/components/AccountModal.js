@@ -36,13 +36,6 @@ export const AccountModal = {
             const modal = document.createElement('div');
             modal.className = 'account-modal animate-float-in';
 
-            const accountTypes = [
-                { value: 'caixa', label: 'Caixa', icon: '💰' },
-                { value: 'banco', label: 'Banco', icon: '🏦' },
-                { value: 'cartao', label: 'Cartão de Crédito', icon: '💳' },
-                { value: 'digital', label: 'Carteira Digital', icon: '📱' },
-                { value: 'outros', label: 'Outros', icon: '🏪' }
-            ];
 
             modal.innerHTML = `
 
@@ -195,7 +188,6 @@ export const AccountModal = {
                 const data = {
                     name: nameInput.value.trim(),
                     description: descriptionInput.value.trim(),
-                    accountType: 'outros',
                     initialBalance: 0,
                     companyId: parseInt(companySelect.value)
                 };

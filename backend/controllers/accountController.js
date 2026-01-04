@@ -25,7 +25,7 @@ exports.listAccounts = async (req, res, next) => {
 
 exports.createAccount = async (req, res, next) => {
     try {
-        const { name, description, projectId, accountType, initialBalance, companyId } = req.body;
+        const { name, description, projectId, initialBalance, companyId } = req.body;
 
         if (!name || !projectId) {
             throw new AppError('VAL-002', 'Name and Project ID are required');
@@ -35,12 +35,11 @@ exports.createAccount = async (req, res, next) => {
             throw new AppError('VAL-002', 'Company ID is required');
         }
 
-        const type = accountType || 'outros';
         const balance = parseFloat(initialBalance) || 0;
 
         const [result] = await db.auditedQuery(
-            'INSERT INTO contas (name, description, account_type, initial_balance, current_balance, project_id, company_id) VALUES (?, ?, ?, ?, ?, ?, ?)',
-            [name, description, type, balance, balance, projectId, companyId],
+            'INSERT INTO contas (name, description, initial_balance, current_balance, project_id, company_id) VALUES (?, ?, ?, ?, ?, ?)',
+            [name, description, balance, balance, projectId, companyId],
             req  // ← User context for automatic audit
         );
 
@@ -48,7 +47,6 @@ exports.createAccount = async (req, res, next) => {
             id: result.insertId,
             name,
             description,
-            account_type: type,
             initial_balance: balance,
             current_balance: balance,
             active: 1,
@@ -65,7 +63,7 @@ exports.createAccount = async (req, res, next) => {
 exports.updateAccount = async (req, res, next) => {
     try {
         const { id } = req.params;
-        const { name, description, active, accountType, initialBalance } = req.body;
+        const { name, description, active, initialBalance } = req.body;
 
         const updates = [];
         const values = [];
@@ -81,10 +79,6 @@ exports.updateAccount = async (req, res, next) => {
         if (active !== undefined) {
             updates.push('active = ?');
             values.push(active);
-        }
-        if (accountType !== undefined) {
-            updates.push('account_type = ?');
-            values.push(accountType);
         }
         if (initialBalance !== undefined) {
             updates.push('initial_balance = ?');

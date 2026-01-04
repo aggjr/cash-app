@@ -44,30 +44,36 @@ export const AccountManager = (project) => {
         return date.toLocaleDateString('pt-BR');
     };
 
-    // Account type icons and labels
-    const accountTypeInfo = {
-        'caixa': { icon: '💰', label: 'Caixa' },
-        'banco': { icon: '🏦', label: 'Banco' },
-        'cartao': { icon: '💳', label: 'Cartão' },
-        'digital': { icon: '📱', label: 'Digital' },
-        'outros': { icon: '🏪', label: 'Outros' }
-    };
 
     // Column Definitions for SharedTable
     const columns = [
         { key: 'name', label: 'Nome', width: 'auto', align: 'left', type: 'text' },
         {
-            key: 'account_type',
-            label: 'Tipo',
-            width: '150px',
+            key: 'company_name',
+            label: 'Empresa',
+            width: '200px',
             align: 'left',
             type: 'text',
             render: (item) => {
-                const info = accountTypeInfo[item.account_type] || accountTypeInfo['outros'];
-                const span = document.createElement('span');
-                span.className = 'account-type-badge';
-                span.textContent = `${info.icon} ${info.label}`;
-                return span;
+                const div = document.createElement('div');
+                div.style.display = 'flex';
+                div.style.flexDirection = 'column';
+
+                const nameSpan = document.createElement('span');
+                nameSpan.textContent = item.company_name || '-';
+                nameSpan.style.fontWeight = '500';
+
+                div.appendChild(nameSpan);
+
+                if (item.company_cnpj) {
+                    const cnpjSpan = document.createElement('span');
+                    cnpjSpan.textContent = item.company_cnpj.replace(/^(\d{2})(\d{3})(\d{3})(\d{4})(\d{2})$/, '$1.$2.$3/$4-$5');
+                    cnpjSpan.style.fontSize = '0.75rem';
+                    cnpjSpan.style.color = 'var(--color-text-muted)';
+                    div.appendChild(cnpjSpan);
+                }
+
+                return div;
             }
         },
         { key: 'description', label: 'Descrição', width: '200px', align: 'left', type: 'text' },

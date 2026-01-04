@@ -147,6 +147,7 @@ const migrateFixVoiceRate = require('./migrate_fix_voice_rate');
 const migrateSetEvaRate75 = require('./migrate_set_eva_rate_75.js');
 const migrateAuditLogUndo = require('./migrate_audit_log_undo');
 const migrateAccountCompanyRequired = require('./migrate_account_company_required');
+const migrateRemoveAccountType = require('./migrate_remove_account_type');
 
 
 loadErrorCatalog()
@@ -184,6 +185,7 @@ loadErrorCatalog()
     .then(() => migrateAddScreenFamiliarity()) // NEW: Screen familiarity tracking
     .then(() => migrateAuditLogUndo()) // NEW: Audit log undo capability
     .then(() => migrateAccountCompanyRequired()) // NEW: Enforce company_id NOT NULL
+    .then(() => migrateRemoveAccountType()) // NEW: Remove account_type column
     .then(() => {
         startServer();
     })
