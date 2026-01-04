@@ -180,10 +180,22 @@ export class SharedTable {
             tr.innerHTML = `<td colspan="${this.columns.length}" style="text-align:center; padding: 2rem; color: var(--color-text-muted);">Nenhum registro encontrado.</td>`;
             tbody.appendChild(tr);
         } else {
-            data.forEach(item => {
+            data.forEach((item, index) => {
                 const tr = document.createElement('tr');
                 tr.className = 'hoverable-row';
-                tr.style.borderBottom = '1px solid var(--color-background)';
+                tr.style.borderBottom = '1px solid var(--color-border-light)';
+
+                // Zebra striping: alternate white and light gray
+                const isEven = index % 2 === 0;
+                tr.style.backgroundColor = isEven ? '#FFFFFF' : '#F3F4F6';
+
+                // Hover effect
+                tr.addEventListener('mouseenter', () => {
+                    tr.style.backgroundColor = 'rgba(218, 177, 119, 0.5)';
+                });
+                tr.addEventListener('mouseleave', () => {
+                    tr.style.backgroundColor = isEven ? '#FFFFFF' : '#F3F4F6';
+                });
 
                 // Checkbox Column
                 if (this.enableSelection) {
