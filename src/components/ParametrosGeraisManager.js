@@ -382,41 +382,17 @@ export const ParametrosGeraisManager = (project) => {
                 }
             </style>
             
-            <!-- Tab Navigation -->
-            <div style="display: flex; border-bottom: 2px solid var(--color-border-light); margin-bottom: 2rem;">
+            <!-- Tab Navigation (Chrome Style) -->
+            <div class="chrome-tabs-wrapper">
                 <button 
                     id="tab-geral" 
-                    class="settings-tab active"
-                    style="
-                        flex: 1;
-                        padding: 1rem;
-                        border: none;
-                        background: transparent;
-                        font-size: 1rem;
-                        font-weight: 600;
-                        color: var(--color-text-muted);
-                        cursor: pointer;
-                        border-bottom: 3px solid transparent;
-                        transition: all 0.2s;
-                    "
+                    class="chrome-tab active"
                 >
                     ⚙️ Sistema
                 </button>
                 <button 
                     id="tab-IVA" 
-                    class="settings-tab"
-                    style="
-                        flex: 1;
-                        padding: 1rem;
-                        border: none;
-                        background: transparent;
-                        font-size: 1rem;
-                        font-weight: 600;
-                        color: var(--color-text-muted);
-                        cursor: pointer;
-                        border-bottom: 3px solid transparent;
-                        transition: all 0.2s;
-                    "
+                    class="chrome-tab"
                 >
                     🤖 IA IVA
                 </button>
@@ -822,14 +798,20 @@ export const ParametrosGeraisManager = (project) => {
                         t.style.borderBottom = '3px solid transparent';
                     });
 
+                    // Reset all tabs
+                    tabs.forEach(t => {
+                        t.classList.remove('active');
+                        t.style.color = '';
+                        t.style.borderBottom = '';
+                    });
+
                     // Hide all contents
                     contents.forEach(c => {
                         c.style.display = 'none';
                     });
 
                     // Activate clicked tab
-                    tab.style.color = 'var(--color-primary)';
-                    tab.style.borderBottom = '3px solid var(--color-primary)';
+                    tab.classList.add('active');
 
                     // Show target content
                     const content = container.querySelector(`#${targetId}`);
@@ -843,15 +825,7 @@ export const ParametrosGeraisManager = (project) => {
             const defaultTab = container.querySelector('#tab-geral');
             if (defaultTab) defaultTab.click();
         }, 100);
-        const tabId = button.id.replace('tab-', 'content-');
-        document.getElementById(tabId).style.display = 'block';
-    });
-});
-
-// Initialize first tab as active
-document.querySelector('#tab-geral').style.color = 'var(--color-primary)';
-document.querySelector('#tab-geral').style.borderBottomColor = 'var(--color-primary)';
-            </script
+            </script >
 
     >
 

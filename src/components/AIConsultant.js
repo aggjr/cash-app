@@ -64,12 +64,20 @@ export const AIConsultant = () => {
         const u = getUser();
         // If no rate set, OR rate is the old default (50), update to 75
         if (u && (!u.IVA_voice_rate || u.IVA_voice_rate === 50)) {
-            console.log('[AIConsultant] Migrating legacy voice rate (50/undefined) -> 75 (FAST)');
-            u.IVA_voice_rate = 75;
-            updateLocalUser(u);
+            const oldSpeed = 50;
+            const currentSpeed = u.IVA_voice_rate;
+            console.log(`[AI Consultant] Migrating legacy voice rate (${oldSpeed}/${currentSpeed}) -> 75 (FAST)`);
+            localStorage.setItem('iva_voice_rate', '75');
+
+            // Clean headers object to avoid 400 errors
+            const headers = {
+                'Content-Type': 'application/json',
+                'Authorization': `Bearer ${localStorage.getItem('token')}`
+            };
+
             fetch(`${API_BASE_URL}/auth/update-preference`, {
                 method: 'PUT',
-                headers: getHeaders(),
+                headers: headers,
                 body: JSON.stringify({ ivaVoiceRate: 75 })
             }).catch(e => console.error('Migration sync failed:', e));
         }

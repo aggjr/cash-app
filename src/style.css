@@ -1685,7 +1685,66 @@ body.dark-mode tr:nth-child(odd) {
   outline: none;
 }
 
-.input-error {
-  border-color: #EF4444 !important;
-  background-color: #FEF2F2 !important;
+
+/* --- Chrome-style Tabs for Settings --- */
+.chrome-tabs-wrapper {
+  background: #E3E5E8;
+  /* Chrome-like tab bar background */
+  padding: 8px 12px 0 12px;
+  border-radius: 12px 12px 0 0;
+  display: flex;
+  gap: 6px;
+  align-items: flex-end;
+  border-bottom: 1px solid var(--color-border-light);
+}
+
+.chrome-tab {
+  padding: 10px 20px;
+  border-radius: 8px 8px 0 0;
+  border: none;
+  background: transparent;
+  color: var(--color-text-medium);
+  font-size: 0.95rem;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  position: relative;
+  user-select: none;
+  /* Visual separation */
+  margin-bottom: -1px;
+  /* Overlap border */
+}
+
+.chrome-tab:hover {
+  background: rgba(255, 255, 255, 0.5);
+  color: var(--color-text-dark);
+}
+
+.chrome-tab.active {
+  background: var(--color-bg-card);
+  /* Matches content background */
+  color: var(--color-primary);
+  font-weight: 600;
+  box-shadow: 0 -2px 10px rgba(0, 0, 0, 0.05);
+  z-index: 2;
+  /* Ensure it looks connected */
+  border-bottom: 1px solid var(--color-bg-card);
+}
+
+/* Dark mode adjustments */
+body.dark-mode .chrome-tabs-wrapper {
+  background: #000000;
+  /* Darker bar */
+  border-bottom: 1px solid var(--color-border-light);
+}
+
+body.dark-mode .chrome-tab:hover {
+  background: rgba(255, 255, 255, 0.1);
+  color: var(--color-text-dark);
+}
+
+body.dark-mode .chrome-tab.active {
+  background: var(--color-bg-card);
+  color: var(--color-primary);
+  border-bottom: 1px solid var(--color-bg-card);
 }
