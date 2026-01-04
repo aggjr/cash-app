@@ -289,6 +289,7 @@ class ivaScreenActions {
     }
 }
 
-export default ivaScreenActions;
+export default IvaScreenActions;
+
 
 

@@ -7,7 +7,7 @@ const HIGHLIGHT_COLOR = '#DAB177'; // System golden color
 const HIGHLIGHT_DURATION = 3000; // 3 seconds
 const PULSE_ANIMATION = 'IVA-pulse 1.5s ease-in-out infinite';
 
-export const ivaHighlight = {
+export const IvaHighlight = {
     // Currently highlighted elements
     currentHighlights: [],
 
@@ -126,5 +126,6 @@ styleElement.textContent = `
     }
 `;
 document.head.appendChild(styleElement);
+
 
 

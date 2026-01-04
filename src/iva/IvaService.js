@@ -1,6 +1,6 @@
 import { getApiBaseUrl } from '../utils/apiConfig.js';
 
-export const ivaService = {
+export const IvaService = {
     decideOperation: async (text, context) => {
         try {
             const token = localStorage.getItem('token');
@@ -96,5 +96,6 @@ export const ivaService = {
         }
     }
 };
+
 
 

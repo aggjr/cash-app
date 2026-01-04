@@ -248,6 +248,7 @@ class ivaHighlighter {
     }
 }
 
-export default ivaHighlighter;
+export default IvaHighlighter;
+
 
 

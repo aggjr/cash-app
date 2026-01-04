@@ -6,7 +6,7 @@
 
 const INDICATOR_COLOR = '#DAB177'; // System golden color
 
-export const ivaNavigationIndicator = {
+export const IvaNavigationIndicator = {
     activeIndicators: [],
     isEvaNavigating: false,
 
@@ -269,5 +269,6 @@ document.head.appendChild(style);
 
 // Auto-initialize when module loads
 ivaNavigationIndicator.init();
+
 
 
