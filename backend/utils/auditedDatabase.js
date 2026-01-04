@@ -94,6 +94,13 @@ async function fetchNewData(connection, table, insertId) {
 async function auditedQuery(connection, sql, params = [], req = null) {
     const parsed = parseSql(sql);
 
+    console.log('[AuditedQuery] ▶️ Query intercepted:', {
+        operation: parsed.operation,
+        table: parsed.table,
+        hasReq: !!req,
+        hasUser: !!(req && req.user)
+    });
+
     // Skip audit for SELECT queries
     if (parsed.operation === 'SELECT') {
         return connection.query(sql, params);
@@ -114,7 +121,16 @@ async function auditedQuery(connection, sql, params = [], req = null) {
 
     // Fetch old data for UPDATE/DELETE
     if ((parsed.operation === 'UPDATE' || parsed.operation === 'DELETE') && whereClause) {
+        console.log('[AuditedQuery] 🔍 Fetching old_data before operation:', {
+            operation: parsed.operation,
+            table: parsed.table,
+            whereClause
+        });
         oldDataArray = await fetchOldData(connection, parsed.table, whereClause, params);
+        console.log('[AuditedQuery] 📦 old_data fetched:', {
+            count: oldDataArray.length,
+            firstRecord: oldDataArray[0] || null
+        });
     }
 
     // Execute original query
@@ -122,6 +138,11 @@ async function auditedQuery(connection, sql, params = [], req = null) {
 
     // Log to audit if we have user context
     if (req && req.user && parsed.table) {
+        console.log('[AuditedQuery] ✅ Conditions met for audit logging:', {
+            operation: parsed.operation,
+            table: parsed.table,
+            user: req.user.name
+        });
         try {
             if (parsed.operation === 'INSERT') {
                 // For INSERT, fetch the newly created record

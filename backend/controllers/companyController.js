@@ -160,10 +160,20 @@ exports.deleteCompany = async (req, res, next) => {
             });
         }
 
+        console.log('[CompanyController] 🗑️ Calling db.auditedQuery for DELETE:', {
+            id,
+            hasReq: !!req,
+            hasUser: !!(req && req.user)
+        });
+
         await db.auditedQuery('DELETE FROM empresas WHERE id = ?', [id], req);
+
+        console.log('[CompanyController] ✅ DELETE completed successfully');
+
         res.json({ message: 'Company deleted successfully' });
         // Audit is automatic via auditedQuery
     } catch (error) {
         next(error);
     }
 };
+```

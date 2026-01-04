@@ -1,5 +1,12 @@
 const pool = require('../config/database').pool; // Get raw pool, not wrapper
 
+// DIAGNOSTIC LOG - Check if pool loaded correctly
+console.log('[AuditLogger] Pool loaded:', {
+    poolExists: !!pool,
+    poolType: typeof pool,
+    hasQuery: pool && typeof pool.query === 'function'
+});
+
 /**
  * Log an audit event
  * @param {Object} req - Express request object (to extract user/project info)
@@ -11,6 +18,15 @@ const pool = require('../config/database').pool; // Get raw pool, not wrapper
  * @param {Object} newData - Complete record after change (for UNDO)
  */
 const logAudit = async (req, action, entity, entityId, details = {}, oldData = null, newData = null) => {
+    console.log('[AuditLogger] ▶️ logAudit CALLED:', {
+        action,
+        entity,
+        entityId,
+        hasReq: !!req,
+        hasUser: !!(req && req.user),
+        poolCheck: !!pool
+    });
+
     try {
         if (!req.user) {
             console.warn('⚠️ AuditLogger: No user in request. Skipping log.');
@@ -31,6 +47,13 @@ const logAudit = async (req, action, entity, entityId, details = {}, oldData = n
         const newDataJson = newData ? JSON.stringify(newData) : null;
 
         // Use RAW pool.query (not db.query) to avoid circular reference with auditedQuery
+        console.log('[AuditLogger] 🔍 About to execute pool.query:', {
+            poolExists: !!pool,
+            poolQueryType: pool && typeof pool.query,
+            entity,
+            action
+        });
+
         await pool.query(query, [
             projectId,
             userId,
@@ -42,6 +65,8 @@ const logAudit = async (req, action, entity, entityId, details = {}, oldData = n
             oldDataJson,
             newDataJson
         ]);
+
+        console.log('[AuditLogger] ✅ Audit log inserted successfully:', { entity, action });
 
     } catch (error) {
         console.error('❌ AuditLogger Error:', error);
