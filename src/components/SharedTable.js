@@ -1,7 +1,7 @@
 import { getApiBaseUrl } from '../utils/apiConfig.js';
 
 export class SharedTable {
-    constructor({ container, columns, projectId, endpointPrefix, onFilterChange, onSortChange, enableSelection, onSelectionChange }) {
+    constructor({ container, columns, projectId, endpointPrefix, onFilterChange, onSortChange, enableSelection, onSelectionChange, headerRow, footerRow }) {
         this.container = container;
         this.columns = columns;
         this.projectId = projectId;
@@ -10,6 +10,8 @@ export class SharedTable {
         this.onSortChange = onSortChange;
         this.enableSelection = enableSelection !== false; // Enable by default unless explicitly disabled
         this.onSelectionChange = onSelectionChange;
+        this.headerRow = headerRow; // Optional: { data: {...}, style: {...}, className: '' }
+        this.footerRow = footerRow; // Optional: { data: {...}, style: {...}, className: '' }
         this.API_BASE_URL = getApiBaseUrl();
 
         // State
@@ -116,6 +118,65 @@ export class SharedTable {
         }
     }
 
+    renderSpecialRow(rowConfig, className) {
+        const tr = document.createElement('tr');
+        tr.className = className;
+        tr.setAttribute('data-special-row', 'true');
+
+        // Apply custom styles
+        if (rowConfig.style) {
+            Object.assign(tr.style, rowConfig.style);
+        }
+
+        // Apply custom className
+        if (rowConfig.className) {
+            tr.classList.add(rowConfig.className);
+        }
+
+        // Add empty checkbox cell if selection is enabled
+        if (this.enableSelection) {
+            const tdEmpty = document.createElement('td');
+            tdEmpty.style.padding = 'var(--row-padding)';
+            tdEmpty.style.width = '40px';
+            tr.appendChild(tdEmpty);
+        }
+
+        // Render data cells
+        this.columns.forEach(col => {
+            const td = document.createElement('td');
+            td.style.padding = 'var(--row-padding)';
+            td.style.textAlign = col.align || 'left';
+            td.style.whiteSpace = 'nowrap';
+            if (col.width) td.style.width = col.width;
+
+            const value = rowConfig.data[col.key];
+
+            if (col.type === 'currency' && value !== undefined) {
+                td.textContent = this.formatCurrency(value);
+                if (col.colorLogic) {
+                    const num = parseFloat(value || 0);
+                    let color = '';
+                    if (col.colorLogic === 'blue') {
+                        color = '#3B82F6';
+                    } else {
+                        let isPositiveColor = false;
+                        if (col.colorLogic === 'inflow') isPositiveColor = num >= 0;
+                        else if (col.colorLogic === 'outflow') isPositiveColor = num < 0;
+                        color = isPositiveColor ? '#10B981' : '#EF4444';
+                    }
+                    td.style.color = color;
+                    td.style.fontWeight = '600';
+                }
+            } else {
+                td.textContent = value || '-';
+            }
+
+            tr.appendChild(td);
+        });
+
+        return tr;
+    }
+
     render(data) {
         // Sanitize data to remove any null/undefined entries which cause sort/render errors
         this.currentData = Array.isArray(data) ? data.filter(item => item != null) : [];
@@ -175,6 +236,13 @@ export class SharedTable {
 
         // Body
         const tbody = document.createElement('tbody');
+
+        // Render Header Row (e.g., SALDO ANTERIOR)
+        if (this.headerRow) {
+            const trHeader = this.renderSpecialRow(this.headerRow, 'header-row');
+            tbody.appendChild(trHeader);
+        }
+
         if (data.length === 0) {
             const tr = document.createElement('tr');
             tr.innerHTML = `<td colspan="${this.columns.length}" style="text-align:center; padding: 2rem; color: var(--color-text-muted);">Nenhum registro encontrado.</td>`;
@@ -264,6 +332,12 @@ export class SharedTable {
                 });
                 tbody.appendChild(tr);
             });
+        }
+
+        // Render Footer Row (e.g., SALDO FINAL)
+        if (this.footerRow) {
+            const trFooter = this.renderSpecialRow(this.footerRow, 'footer-row');
+            tbody.appendChild(trFooter);
         }
         table.appendChild(tbody);
         wrapper.appendChild(table);
