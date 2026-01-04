@@ -2,6 +2,7 @@ const db = require('../config/database');
 const AppError = require('../utils/AppError');
 const { logAudit } = require('../utils/auditLogger');
 const { validateDateWithinRange } = require('../utils/dateValidation');
+const { wrapConnectionWithAudit } = require('../utils/connectionWrapper');
 
 // Helper function to generate dynamic ORDER BY clause
 const getOrderByClause = (sortBy, order = 'desc') => {
@@ -319,7 +320,8 @@ exports.createProducaoRevenda = async (req, res, next) => {
         }
 
         connection = await db.getConnection();
-        await connection.beginTransaction();
+        const audited = wrapConnectionWithAudit(connection, req);
+        await audited.beginTransaction();
 
         // Determine installment parameters
         const type = installmentType || 'total';
@@ -352,7 +354,7 @@ exports.createProducaoRevenda = async (req, res, next) => {
                 ? `${descricao || ''} - Parcela ${i + 1}/${count}`.trim()
                 : descricao;
 
-            const [result] = await connection.query(
+            const [result] = await audited.query(
                 `INSERT INTO producao_revenda 
                 (data_fato, data_prevista_pagamento, data_prevista_atraso, data_real_pagamento, valor, descricao, tipo_id, company_id, account_id, comprovante_url, project_id, forma_pagamento, installment_group_id, installment_number, installment_total, installment_interval, installment_custom_days) 
                 VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
@@ -382,7 +384,7 @@ exports.createProducaoRevenda = async (req, res, next) => {
 
             // SUBTRACT from account balance (Cost) - only if accountId provided
             if (accountId) {
-                await connection.query(
+                await audited.query(
                     'UPDATE contas SET current_balance = current_balance - ? WHERE id = ?',
                     [installmentValues[i], accountId]
                 );
@@ -390,7 +392,7 @@ exports.createProducaoRevenda = async (req, res, next) => {
             }
         }
 
-        await connection.commit();
+        await audited.commit();
         console.log('=== CREATE PRODUCAO/REVENDA SUCCESS ===');
 
         res.status(201).json({
@@ -399,10 +401,7 @@ exports.createProducaoRevenda = async (req, res, next) => {
             count: createdIds.length
         });
 
-        // Log Audit (Multiple items potentially)
-        // We log the batch creation as a single entry or multiple? 
-        // Let's log the first ID as reference and indicate count in details
-        logAudit(req, 'CREATE', 'producao_revenda', createdIds[0], { count: createdIds.length, totalValue: valorDecimal * count, description });
+        // Audit is automatic via connectionWrapper
 
     } catch (error) {
         console.error('=== CREATE PRODUCAO/REVENDA ERROR ===', error);
@@ -420,9 +419,10 @@ exports.updateProducaoRevenda = async (req, res, next) => {
         const updates = req.body;
 
         connection = await db.getConnection();
-        await connection.beginTransaction();
+        const audited = wrapConnectionWithAudit(connection, req);
+        await audited.beginTransaction();
 
-        const [oldItem] = await connection.query(
+        const [oldItem] = await audited.query(
             'SELECT valor, account_id, data_real_pagamento FROM producao_revenda WHERE id = ?',
             [id]
         );
@@ -487,7 +487,7 @@ exports.updateProducaoRevenda = async (req, res, next) => {
 
         if (fields.length > 0) {
             values.push(id);
-            await connection.query(
+            await audited.query(
                 `UPDATE producao_revenda SET ${fields.join(', ')} WHERE id = ?`,
                 values
             );
@@ -501,7 +501,7 @@ exports.updateProducaoRevenda = async (req, res, next) => {
 
             // Revert old if there was an account
             if (oldAccountId) {
-                await connection.query(
+                await audited.query(
                     'UPDATE contas SET current_balance = current_balance + ? WHERE id = ?',
                     [oldItem[0].valor, oldAccountId]
                 );
@@ -509,16 +509,16 @@ exports.updateProducaoRevenda = async (req, res, next) => {
 
             // Apply new if account_id is set
             if (newAccountId) {
-                await connection.query(
+                await audited.query(
                     'UPDATE contas SET current_balance = current_balance - ? WHERE id = ?',
                     [newValor, newAccountId]
                 );
             }
         }
 
-        await connection.commit();
+        await audited.commit();
         res.json({ message: 'Atualizado com sucesso' });
-        logAudit(req, 'UPDATE', 'producao_revenda', id, { updates: Object.keys(updates).length });
+        // Audit is automatic via connectionWrapper
     } catch (error) {
         if (connection) await connection.rollback();
         next(error);
@@ -533,9 +533,10 @@ exports.deleteProducaoRevenda = async (req, res, next) => {
         const { id } = req.params;
 
         connection = await db.getConnection();
-        await connection.beginTransaction();
+        const audited = wrapConnectionWithAudit(connection, req);
+        await audited.beginTransaction();
 
-        const [item] = await connection.query(
+        const [item] = await audited.query(
             'SELECT valor, account_id FROM producao_revenda WHERE id = ? AND active = 1',
             [id]
         );
@@ -544,17 +545,17 @@ exports.deleteProducaoRevenda = async (req, res, next) => {
             throw new AppError('RES-001', 'Item não encontrado.');
         }
 
-        await connection.query('UPDATE producao_revenda SET active = 0 WHERE id = ?', [id]);
+        await audited.query('UPDATE producao_revenda SET active = 0 WHERE id = ?', [id]);
 
         // Revert balance (ADD back)
-        await connection.query(
+        await audited.query(
             'UPDATE contas SET current_balance = current_balance + ? WHERE id = ?',
             [item[0].valor, item[0].account_id]
         );
 
-        await connection.commit();
+        await audited.commit();
         res.json({ message: 'Excluído com sucesso' });
-        logAudit(req, 'DELETE', 'producao_revenda', id, {});
+        // Audit is automatic via connectionWrapper
     } catch (error) {
         if (connection) await connection.rollback();
         next(error);
