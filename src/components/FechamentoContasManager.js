@@ -615,19 +615,75 @@ export const FechamentoContasManager = (project) => {
                                         fgColor: { argb: 'FF00425F' }
                                     };
                                     cell.font = { color: { argb: 'FFFFFFFF' }, bold: colNumber === 1 };
+
+                                    // BORDERS: Match screen logic
+                                    // Col 1 (Empresa) -> Right White
+                                    // Col 2 (Conta) -> Right Blue #00425F (to fix "dente") - but here background is already blue, so border color doesn't matter unless it's contrasting.
+                                    // Actually, in Excel, if bg is blue, right border blue is invisible. 
+                                    // But we need the separator. The screen uses white borders for headers/fixed columns.
+                                    // EXCEPT the rightmost border of fixed columns which pushes against the scrollable area.
+                                    // Screen Logic Update (from Step 1743):
+                                    // Header/Data Fixed Col 2: borderRight = '2px solid #00425F' (Blue)
+                                    // Since cell bg is blue, we need a way to distinguish? No, on screen fixed cols are blue.
+                                    // Wait, on screen fixed cols are blue BG, white text.
+                                    // The border separates Fixed Col 2 from Scrollable Col 1.
+                                    // Scrollable Col 1 has white BG.
+                                    // So a Blue border on Fixed Col 2 merges with Fixed Col 2 BG?
+                                    // Let's look at screen logic again.
+                                    // Fixed data cells (Empresa/Conta) have blue BG?
+                                    // No, looking at screenshot (Step 1770), Empresa/Conta have DARK BLUE BG.
+                                    // Step 1743:
+                                    // thFixed.style.borderRight = '2px solid #00425F'; (Header)
+                                    // tdFixed.style.borderRight = '2px solid #00425F'; (Data)
+                                    // WAIT. The data cells (tdFixed) in `FechamentoContasManager.js` (lines 310-330)
+                                    // actually have `tdFixed.style.backgroundColor = '#00425F';` inside the `item` loop?
+                                    // Let's check `view_file` 325.
+                                    // It seems lines 580+ in Export logic assumes `backgroundColor` is Blue for cols 1-2.
+
+                                    const borderStyle = { style: 'thin', color: { argb: 'FFFFFFFF' } }; // White default
+                                    // Special case: Col 2 Right Border needs to be Blue to match screen fix?
+                                    // If BG is Blue, Blue border is invisible. 
+                                    // Maybe the screen "Blue Border" was effectively REMOVING the white border that was there?
+                                    // PROPOSAL: Set Right Border of Col 2 to match neighboring cell BG (White/Gray) or just standard Blue?
+                                    // Retaining White border to match standard internal borders.
+
                                     cell.border = {
-                                        bottom: { style: 'thin', color: { argb: 'FFFFFFFF' } },
-                                        right: { style: 'thin', color: { argb: 'FFFFFFFF' } }
+                                        bottom: borderStyle,
+                                        right: borderStyle
                                     };
+
+                                    // FIX: If colNumber === 2 (Conta), remove right white border to simulate the "dente" fix?
+                                    // Or make it same color as header/data? 
+                                    // Let's stick effectively to what looks like the screen.
+                                    // Screen: Blue BG. Next col: White/Gray BG. 
+                                    // If border is Blue, it blends with Col 2. Visual effect: No border between Col 2 and 3?
+                                    // Or does Col 3 have a border?
+                                    if (colNumber === 2) {
+                                        // Use blue border to match screen fix
+                                        cell.border = {
+                                            bottom: borderStyle,
+                                            right: { style: 'medium', color: { argb: 'FF00425F' } }
+                                        };
+                                    }
                                 } else {
                                     // Month columns: currency formatting and color based on value
                                     cell.numFmt = 'R$ #,##0.00;[Red]-R$ #,##0.00';
                                     const value = cell.value;
+
+                                    // Text Color
                                     if (value > 0) {
                                         cell.font = { color: { argb: 'FF10B981' } };
                                     } else if (value < 0) {
                                         cell.font = { color: { argb: 'FFEF4444' } };
+                                    } else {
+                                        cell.font = { color: { argb: 'FF9CA3AF' } }; // Gray for zero
                                     }
+
+                                    // Borders for month cells (standard gray grid)
+                                    cell.border = {
+                                        bottom: { style: 'thin', color: { argb: 'FFE2E8F0' } }, // slate-200
+                                        right: { style: 'thin', color: { argb: 'FFE2E8F0' } }
+                                    };
                                 }
 
                                 cell.alignment = { vertical: 'middle', horizontal: colNumber <= 2 ? 'left' : 'right' };
@@ -658,23 +714,41 @@ export const FechamentoContasManager = (project) => {
                     totalMergedCell.value = 'TOTAL';
                     totalMergedCell.alignment = { vertical: 'middle', horizontal: 'center' };
 
-                    // Style TOTAL row
-                    totalRow.font = { bold: true };
-                    totalRow.fill = {
+                    // Style TOTAL Row - Match Screen exactly
+                    // Label (Merged A-B): Dark Blue BG, White Text
+                    totalMergedCell.fill = {
                         type: 'pattern',
                         pattern: 'solid',
-                        fgColor: { argb: 'FFE0F2FE' }
+                        fgColor: { argb: 'FF00425F' }
                     };
+                    totalMergedCell.font = { color: { argb: 'FFFFFFFF' }, bold: true };
+                    totalMergedCell.border = {
+                        right: { style: 'medium', color: { argb: 'FF00425F' } } // Match the "dente" fix
+                    };
+
+                    // Values (Month Cols): Gray BG (#E2E8F0), Top Border (#CBD5E1)
                     totalRow.eachCell({ includeEmpty: true }, (cell, colNumber) => {
                         if (colNumber > 2) {
+                            cell.fill = {
+                                type: 'pattern',
+                                pattern: 'solid',
+                                fgColor: { argb: 'FFE2E8F0' }
+                            };
+                            cell.border = {
+                                top: { style: 'medium', color: { argb: 'FFCBD5E1' } }
+                            };
+
                             cell.numFmt = 'R$ #,##0.00;[Red]-R$ #,##0.00';
                             const value = cell.value;
                             if (value > 0) {
                                 cell.font = { color: { argb: 'FF10B981' }, bold: true };
                             } else if (value < 0) {
                                 cell.font = { color: { argb: 'FFEF4444' }, bold: true };
+                            } else {
+                                cell.font = { color: { argb: 'FF374151' }, bold: true };
                             }
                         }
+                        // Alignment
                         cell.alignment = { vertical: 'middle', horizontal: colNumber <= 2 ? 'center' : 'right' };
                     });
 
