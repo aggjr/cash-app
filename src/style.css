@@ -456,31 +456,28 @@ button {
   }
 
   /* Table Specifics */
-  .table-wrapper {
-    overflow: visible !important;
-    display: block !important;
-    height: auto !important;
-    border: none !important;
-    width: 100% !important;
-  }
-
-  table {
-    width: max-content !important;
-    /* Force tightest possible fit */
-    max-width: 100% !important;
-    font-size: 8pt !important;
-    table-layout: auto !important;
-    border-collapse: collapse !important;
-  }
-
-  /* Relaxed rules to allow custom colors */
-  th {
+  th,
+  td {
     border: 1px solid #ddd !important;
     padding: 4px 6px !important;
     font-size: 8pt !important;
+    white-space: normal !important;
+    /* Allow wrapping to fit page */
+    overflow-wrap: break-word !important;
+  }
+
+  th {
     font-weight: bold !important;
-    white-space: nowrap !important;
     /* Removed fixed background/color overrides to allow inline styles */
+  }
+
+  /* Specific Wrapper Overrides for Print */
+  .table-wrapper,
+  .extrato-table-wrapper {
+    overflow: visible !important;
+    display: block !important;
+    width: 100% !important;
+    height: auto !important;
   }
 
   /* ... */
