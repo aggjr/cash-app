@@ -1353,7 +1353,7 @@ Digite 1, 2 ou 3.`;
 
                     // Highlight elements
                     if (highlights && highlights.length > 0) {
-                        IVAHighlighter.highlightElements(highlights);
+                        IvaHighlighter.highlightElements(highlights);
 
                         // Show tips if available
                         if (tips && tips.length > 0) {
@@ -1363,7 +1363,7 @@ Digite 1, 2 ou 3.`;
 
                         // Auto-clear highlights on next user interaction
                         const clearHandler = () => {
-                            IVAHighlighter.clearAll();
+                            IvaHighlighter.clearAll();
                             document.removeEventListener('click', clearHandler);
                         };
                         document.addEventListener('click', clearHandler);
