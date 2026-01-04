@@ -84,15 +84,71 @@ export const LogAlteracoesManager = (project) => {
             label: 'Detalhes',
             width: 'auto',
             align: 'left',
-            type: 'text',
+            type: 'custom',
             render: (row) => {
+                const container = document.createElement('div');
+
+                // Parse old_data and new_data
+                let oldData = null;
+                let newData = null;
+
                 try {
-                    const json = typeof row.details === 'string' ? JSON.parse(row.details) : row.details;
-                    const text = JSON.stringify(json);
-                    return document.createTextNode(text.length > 80 ? text.substring(0, 80) + '...' : text);
+                    oldData = row.old_data ? (typeof row.old_data === 'string' ? JSON.parse(row.old_data) : row.old_data) : null;
                 } catch (e) {
-                    return document.createTextNode(row.details || '-');
+                    console.warn('Failed to parse old_data:', e);
                 }
+
+                try {
+                    newData = row.new_data ? (typeof row.new_data === 'string' ? JSON.parse(row.new_data) : row.new_data) : null;
+                } catch (e) {
+                    console.warn('Failed to parse new_data:', e);
+                }
+
+                // Create summary
+                const summary = document.createElement('div');
+                summary.style.fontSize = '0.85rem';
+
+                if (oldData || newData) {
+                    const lines = [];
+
+                    if (oldData) {
+                        const keys = Object.keys(oldData).filter(k => !k.includes('password')).slice(0, 2);
+                        const preview = keys.map(k => `${k}: ${oldData[k]}`).join(', ');
+                        lines.push(`<strong style="color: #3B82F6;">OLD:</strong> ${preview}${Object.keys(oldData).length > 2 ? '...' : ''}`);
+                    }
+
+                    if (newData) {
+                        const keys = Object.keys(newData).filter(k => !k.includes('password')).slice(0, 2);
+                        const preview = keys.map(k => `${k}: ${newData[k]}`).join(', ');
+                        lines.push(`<strong style="color: #10B981;">NEW:</strong> ${preview}${Object.keys(newData).length > 2 ? '...' : ''}`);
+                    }
+
+                    summary.innerHTML = lines.join('<br>');
+
+                    // Add expand button
+                    const expandBtn = document.createElement('button');
+                    expandBtn.textContent = '🔍 Ver JSON';
+                    expandBtn.style.cssText = 'margin-left: 8px; padding: 2px 6px; background: #E5E7EB; border: 1px solid #D1D5DB; border-radius: 4px; cursor: pointer; font-size: 0.75rem;';
+                    expandBtn.onclick = (e) => {
+                        e.stopPropagation();
+                        showJsonModal(row.entity, row.action, oldData, newData);
+                    };
+
+                    container.appendChild(summary);
+                    container.appendChild(expandBtn);
+                } else {
+                    // Fallback to details field
+                    try {
+                        const details = typeof row.details === 'string' ? JSON.parse(row.details) : row.details;
+                        summary.textContent = JSON.stringify(details).substring(0, 60) + '...';
+                        container.appendChild(summary);
+                    } catch (e) {
+                        summary.textContent = row.details || '-';
+                        container.appendChild(summary);
+                    }
+                }
+
+                return container;
             }
         },
         {
@@ -144,129 +200,241 @@ export const LogAlteracoesManager = (project) => {
         };
     };
 
-    // Undo an action with enhanced confirmation modal
-    const undoAction = async (logId, action, entity) => {
-        // Get full log entry to show details
-        const logEntry = logs.find(log => log.id === logId);
-        if (!logEntry) {
-            showToast('Log não encontrado', 'error');
-            return;
-        }
-
-        const actionLabel = action === 'DELETE' ? 'exclusão' : 'alteração';
-        const actionVerb = action === 'DELETE' ? 'restaurar' : 'reverter';
-
-        // Parse old_data to show what will be restored
-        let oldDataPreview = '';
-        try {
-            const oldData = JSON.parse(logEntry.old_data || '{}');
-            const keys = Object.keys(oldData).slice(0, 3); // Show first 3 fields
-            oldDataPreview = keys.map(key => `${key}: ${oldData[key]}`).join(', ');
-            if (Object.keys(oldData).length > 3) {
-                oldDataPreview += '...';
-            }
-        } catch (e) {
-            oldDataPreview = 'Dados não disponíveis';
-        }
-
-        // Create enhanced confirmation modal
+    // Show JSON modal for detailed view
+    const showJsonModal = (entity, action, oldData, newData) => {
         const modalHTML = `
-            <div class="modal-backdrop" style="position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.5); z-index: 9999; display: flex; align-items: center; justify-content: center;">
-                <div class="modal-content" style="background: white; padding: 30px; border-radius: 12px; max-width: 500px; box-shadow: 0 20px 60px rgba(0,0,0,0.3);">
-                    <div style="text-align: center; margin-bottom: 20px;">
-                        <div style="font-size: 48px; margin-bottom: 10px;">⚠️</div>
-                        <h2 style="margin: 0; color: #DC2626; font-size: 1.5rem;">OPERAÇÃO DE ALTO RISCO</h2>
+            <div class="json-modal-backdrop" style="position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.7); z-index: 10000; display: flex; align-items: center; justify-content: center; padding: 20px;">
+                <div class="json-modal-content" style="background: #1E293B; color: #E2E8F0; padding: 30px; border-radius: 12px; max-width: 900px; width: 100%; max-height: 90vh; overflow-y: auto; box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.5); font-family: monospace;">
+                    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px; border-bottom: 2px solid #475569; padding-bottom: 15px;">
+                        <h2 style="margin: 0; color: #F1F5F9; font-size: 1.25rem;">
+                            📋 Detalhes do Log - ${entity} (${action})
+                        </h2>
+                        <button id="json-close-btn" style="background: #EF4444; color: white; border: none; padding: 8px 16px; border-radius: 6px; cursor: pointer; font-weight: 600;">
+                            ✕ Fechar
+                        </button>
                     </div>
                     
-                    <div style="background: #FEF3C7; border-left: 4px solid #F59E0B; padding: 15px; margin-bottom: 20px; border-radius: 4px;">
-                        <strong style="color: #B45309;">⚡ ATENÇÃO:</strong>
-                        <p style="margin: 8px 0 0 0; color: #92400E;">
-                            Esta ação irá <strong>${actionVerb}</strong> permanentemente a ${actionLabel} realizada.
-                            <br><br>
-                            <strong>Entidade:</strong> ${entity}<br>
-                            <strong>Operação:</strong> ${action}<br>
-                            <strong>Dados a restaurar:</strong> ${oldDataPreview}
-                        </p>
+                    ${oldData ? `
+                    <div style="margin-bottom: 25px;">
+                        <h3 style="color: #60A5FA; margin: 0 0 10px 0; display: flex; align-items: center; gap: 8px;">
+                            <span style="font-size: 1.5rem;">📄</span> Dados ANTES (old_data)
+                        </h3>
+                        <pre style="background: #0F172A; padding: 16px; border-radius: 8px; overflow-x: auto; border-left: 4px solid #60A5FA; margin: 0; color: #93C5FD; font-size: 0.875rem; line-height: 1.5;">${JSON.stringify(oldData, null, 2)}</pre>
                     </div>
-
-                    <div style="background: #FEE2E2; border-left: 4px solid #DC2626; padding: 15px; margin-bottom: 25px; border-radius: 4px;">
-                        <strong style="color: #991B1B;">🚨 RISCOS:</strong>
-                        <ul style="margin: 8px 0 0 20px; color: #7F1D1D; padding-left: 0;">
-                            <li>Pode afetar integridade de dados relacionados</li>
-                            <li>Não é possível desfazer esta operação</li>
-                            <li>Pode causar inconsistências no sistema</li>
-                        </ul>
+                    ` : ''}
+                    
+                    ${newData ? `
+                    <div>
+                        <h3 style="color: #34D399; margin: 0 0 10px 0; display: flex; align-items: center; gap: 8px;">
+                            <span style="font-size: 1.5rem;">📝</span> Dados DEPOIS (new_data)
+                        </h3>
+                        <pre style="background: #0F172A; padding: 16px; border-radius: 8px; overflow-x: auto; border-left: 4px solid #34D399; margin: 0; color: #6EE7B7; font-size: 0.875rem; line-height: 1.5;">${JSON.stringify(newData, null, 2)}</pre>
                     </div>
-
-                    <p style="text-align: center; font-weight: bold; margin-bottom: 20px; color: #374151;">
-                        Tem certeza absoluta que deseja prosseguir?
-                    </p>
-
-                    <div style="display: flex; gap: 10px; justify-content: center;">
-                        <button id="undo-cancel-btn" style="padding: 12px 24px; background: #6B7280; color: white; border: none; border-radius: 6px; cursor: pointer; font-size: 1rem; font-weight: 600;">
-                            ❌ Cancelar
-                        </button>
-                        <button id="undo-confirm-btn" style="padding: 12px 24px; background: #DC2626; color: white; border: none; border-radius: 6px; cursor: pointer; font-size: 1rem; font-weight: 600;">
-                            ↩️ Sim, Desfazer
-                        </button>
+                    ` : ''}
+                    
+                    ${!oldData && !newData ? `
+                    <div style="text-align: center; padding: 40px; color: #94A3B8;">
+                        <div style="font-size: 3rem; margin-bottom: 16px;">📭</div>
+                        <p style="margin: 0; font-size: 1.125rem;">Nenhum dado disponível para exibição</p>
                     </div>
+                    ` : ''}
                 </div>
             </div>
         `;
 
-        // Show modal
         const modalDiv = document.createElement('div');
         modalDiv.innerHTML = modalHTML;
         document.body.appendChild(modalDiv);
 
-        // Handle buttons
-        return new Promise((resolve) => {
-            const confirmBtn = modalDiv.querySelector('#undo-confirm-btn');
-            const cancelBtn = modalDiv.querySelector('#undo-cancel-btn');
-            const backdrop = modalDiv.querySelector('.modal-backdrop');
+        const closeBtn = modalDiv.querySelector('#json-close-btn');
+        const backdrop = modalDiv.querySelector('.json-modal-backdrop');
 
-            const cleanup = () => {
-                document.body.removeChild(modalDiv);
-            };
+        const cleanup = () => document.body.removeChild(modalDiv);
 
-            const handleConfirm = async () => {
+        closeBtn.onclick = cleanup;
+        backdrop.onclick = (e) => {
+            if (e.target === backdrop) cleanup();
+        };
+
+        // ESC key to close
+        const escHandler = (e) => {
+            if (e.key === 'Escape') {
                 cleanup();
-                try {
-                    const response = await fetch(`${API_BASE_URL}/audit-logs/undo/${logId}`, {
-                        method: 'POST',
-                        headers: getHeaders()
-                    });
+                document.removeEventListener('keydown', escHandler);
+            }
+        };
+        document.addEventListener('keydown', escHandler);
+    };
 
-                    const result = await response.json();
+    // Undo an action with enhanced confirmation modal
+    const undoAction = async (logId, action, entity) => {
+        try {
+            // Fetch full log entry from API to get old_data
+            const response = await fetch(`${API_BASE_URL}/audit-logs?logId=${logId}`, {
+                headers: getHeaders()
+            });
 
-                    if (!response.ok) {
-                        throw new Error(result.error || 'Erro ao desfazer ação');
-                    }
+            if (!response.ok) {
+                throw new Error('Erro ao buscar dados do log');
+            }
 
-                    showToast('✅ Ação desfeita com sucesso!', 'success');
-                    loadLogs(pagination.page); // Reload current page
-                } catch (error) {
-                    console.error('Undo error:', error);
-                    if (error.message.includes('403')) {
-                        showToast('❌ Acesso restrito a usuários Master', 'error');
-                    } else {
-                        showToast(`❌ ${error.message}`, 'error');
-                    }
+            const result = await response.json();
+            const logEntry = Array.isArray(result.data) ? result.data[0] : result[0];
+
+            if (!logEntry) {
+                showToast('❌ Log não encontrado', 'error');
+                return;
+            }
+
+            const actionLabel = action === 'DELETE' ? 'exclusão' : 'alteração';
+            const actionVerb = action === 'DELETE' ? 'restaurar' : 'reverter';
+
+            // Parse old_data and new_data to show what will be restored
+            let oldDataPreview = '';
+            let newDataPreview = '';
+            let oldDataFull = {};
+            let newDataFull = {};
+
+            try {
+                oldDataFull = logEntry.old_data ? (typeof logEntry.old_data === 'string' ? JSON.parse(logEntry.old_data) : logEntry.old_data) : {};
+                newDataFull = logEntry.new_data ? (typeof logEntry.new_data === 'string' ? JSON.parse(logEntry.new_data) : logEntry.new_data) : {};
+
+                const oldKeys = Object.keys(oldDataFull).filter(k => !k.includes('password')).slice(0, 3);
+                oldDataPreview = oldKeys.map(key => `<strong>${key}:</strong> ${oldDataFull[key]}`).join('<br>');
+                if (Object.keys(oldDataFull).length > 3) {
+                    oldDataPreview += '<br>...';
                 }
-                resolve();
-            };
 
-            const handleCancel = () => {
-                cleanup();
-                resolve();
-            };
+                const newKeys = Object.keys(newDataFull).filter(k => !k.includes('password')).slice(0, 3);
+                newDataPreview = newKeys.map(key => `<strong>${key}:</strong> ${newDataFull[key]}`).join('<br>');
+                if (Object.keys(newDataFull).length > 3) {
+                    newDataPreview += '<br>...';
+                }
+            } catch (e) {
+                console.error('Error parsing audit data:', e);
+                oldDataPreview = 'Dados não disponíveis';
+                newDataPreview = 'Dados não disponíveis';
+            }
 
-            confirmBtn.onclick = handleConfirm;
-            cancelBtn.onclick = handleCancel;
-            backdrop.onclick = (e) => {
-                if (e.target === backdrop) handleCancel();
-            };
-        });
+            // Create enhanced confirmation modal
+            const modalHTML = `
+                <div class="modal-backdrop" style="position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.5); z-index: 9999; display: flex; align-items: center; justify-content: center;">
+                    <div class="modal-content" style="background: white; padding: 30px; border-radius: 12px; max-width: 600px; max-height: 90vh; overflow-y: auto; box-shadow: 0 20px 60px rgba(0,0,0,0.3);">
+                        <div style="text-align: center; margin-bottom: 20px;">
+                            <div style="font-size: 48px; margin-bottom: 10px;">⚠️</div>
+                            <h2 style="margin: 0; color: #DC2626; font-size: 1.5rem;">OPERAÇÃO DE ALTO RISCO</h2>
+                        </div>
+                        
+                        <div style="background: #FEF3C7; border-left: 4px solid #F59E0B; padding: 15px; margin-bottom: 20px; border-radius: 4px;">
+                            <strong style="color: #B45309;">⚡ ATENÇÃO:</strong>
+                            <p style="margin: 8px 0 0 0; color: #92400E;">
+                                Esta ação irá <strong>${actionVerb}</strong> permanentemente a ${actionLabel} realizada.
+                                <br><br>
+                                <strong>Entidade:</strong> ${entity}<br>
+                                <strong>Operação:</strong> ${action}
+                            </p>
+                        </div>
+
+                        ${oldDataPreview ? `
+                        <div style="background: #DBEAFE; border-left: 4px solid #3B82F6; padding: 15px; margin-bottom: 15px; border-radius: 4px;">
+                            <strong style="color: #1E40AF;">📄 Dados ANTES (old_data):</strong>
+                            <div style="margin-top: 8px; font-size: 0.9rem; color: #1E3A8A; font-family: monospace;">
+                                ${oldDataPreview}
+                            </div>
+                        </div>
+                        ` : ''}
+
+                        ${newDataPreview && action === 'UPDATE' ? `
+                        <div style="background: #D1FAE5; border-left: 4px solid #10B981; padding: 15px; margin-bottom: 20px; border-radius: 4px;">
+                            <strong style="color: #065F46;">📝 Dados DEPOIS (new_data):</strong>
+                            <div style="margin-top: 8px; font-size: 0.9rem; color: #064E3B; font-family: monospace;">
+                                ${newDataPreview}
+                            </div>
+                        </div>
+                        ` : ''}
+
+                        <div style="background: #FEE2E2; border-left: 4px solid #DC2626; padding: 15px; margin-bottom: 25px; border-radius: 4px;">
+                            <strong style="color: #991B1B;">🚨 RISCOS:</strong>
+                            <ul style="margin: 8px 0 0 20px; color: #7F1D1D; padding-left: 0;">
+                                <li>Pode afetar integridade de dados relacionados</li>
+                                <li>Não é possível desfazer esta operação</li>
+                                <li>Pode causar inconsistências no sistema</li>
+                            </ul>
+                        </div>
+
+                        <p style="text-align: center; font-weight: bold; margin-bottom: 20px; color: #374151;">
+                            Tem certeza absoluta que deseja prosseguir?
+                        </p>
+
+                        <div style="display: flex; gap: 10px; justify-content: center;">
+                            <button id="undo-cancel-btn" style="padding: 12px 24px; background: #6B7280; color: white; border: none; border-radius: 6px; cursor: pointer; font-size: 1rem; font-weight: 600;">
+                                ❌ Cancelar
+                            </button>
+                            <button id="undo-confirm-btn" style="padding: 12px 24px; background: #DC2626; color: white; border: none; border-radius: 6px; cursor: pointer; font-size: 1rem; font-weight: 600;">
+                                ↩️ Sim, Desfazer
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            `;
+
+            // Show modal
+            const modalDiv = document.createElement('div');
+            modalDiv.innerHTML = modalHTML;
+            document.body.appendChild(modalDiv);
+
+            // Handle buttons
+            return new Promise((resolve) => {
+                const confirmBtn = modalDiv.querySelector('#undo-confirm-btn');
+                const cancelBtn = modalDiv.querySelector('#undo-cancel-btn');
+                const backdrop = modalDiv.querySelector('.modal-backdrop');
+
+                const cleanup = () => {
+                    document.body.removeChild(modalDiv);
+                };
+
+                const handleConfirm = async () => {
+                    cleanup();
+                    try {
+                        const undoResponse = await fetch(`${API_BASE_URL}/audit-logs/undo/${logId}`, {
+                            method: 'POST',
+                            headers: getHeaders()
+                        });
+
+                        const result = await undoResponse.json();
+
+                        if (!undoResponse.ok) {
+                            throw new Error(result.error || 'Erro ao desfazer ação');
+                        }
+
+                        showToast('✅ Ação desfeita com sucesso!', 'success');
+                        loadLogs(pagination.page); // Reload current page
+                    } catch (error) {
+                        console.error('Undo error:', error);
+                        if (error.message.includes('403')) {
+                            showToast('❌ Acesso restrito a usuários Master', 'error');
+                        } else {
+                            showToast(`❌ ${error.message}`, 'error');
+                        }
+                    }
+                    resolve();
+                };
+
+                const handleCancel = () => {
+                    cleanup();
+                    resolve();
+                };
+
+                confirmBtn.onclick = handleConfirm;
+                cancelBtn.onclick = handleCancel;
+                backdrop.onclick = (e) => {
+                    if (e.target === backdrop) handleCancel();
+                };
+            });
+        } catch (error) {
+            console.error('Error loading log for undo:', error);
+            showToast(`❌ Erro ao carregar log: ${error.message}`, 'error');
+        }
     };
 
     // SharedTable Instance
