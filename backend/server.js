@@ -127,8 +127,8 @@ const migrateFixTransferenciaNulls = require('./migrate_fix_transferencia_nulls'
 // const migrateAddPaymentColumns = require('./migrate-add-payment-columns'); // File doesn't exist
 const migrateAddComprovante = require('./migrate-add-comprovante-url');
 const migrateInstallmentFields = require('./migrate_add_installment_fields');
-const migrateAddEvaTimeout = require('./migrate_add_eva_timeout');
-const migrateAddEvaVoiceSettings = require('./migrate_add_eva_voice_settings');
+const migrateAddIvaTimeout = require('./migrate_add_iva_timeout');
+const migrateAddIvaVoiceSettings = require('./migrate_add_iva_voice_settings');
 const migrateVoiceSettingsToBoolean = require('./migrate_voice_settings_to_boolean');
 const migrateVoiceTierSystem = require('./migrate_voice_tier_system');
 const migrateVoicePremiumDefault = require('./migrate_voice_premium_default');
@@ -137,14 +137,14 @@ const migrateSystemSettings = require('./migrate_add_system_settings');
 const migrateCreateAuditLogs = require('./migrate-create-audit-logs');
 const migrateLoans = require('./migrate_loans');
 const migratePreferredName = require('./migrate_add_preferred_name');
-const migrateAddEvaContext = require('./migrate_add_eva_context');
+const migrateAddIvaContext = require('./migrate_add_iva_context');
 const migrateAddUserRoles = require('./migrate_add_user_roles');
-const migrateEvaPreferences = require('./migrate-IVA-user-preferences');
-const migrateEvaVoiceRate = require('./migrate_add_eva_voice_rate');
+const migrateIvaPreferences = require('./migrate-iva-user-preferences');
+const migrateIvaVoiceRate = require('./migrate_add_iva_voice_rate');
 const migrateAddGenderColumn = require('./migrate_add_gender_column');
 const migrateAddScreenFamiliarity = require('./migrate_add_screen_familiarity');
 const migrateFixVoiceRate = require('./migrate_fix_voice_rate');
-const migrateSetEvaRate75 = require('./migrate_set_eva_rate_75.js');
+const migrateSetIvaRate75 = require('./migrate_set_iva_rate_75.js');
 const migrateAuditLogUndo = require('./migrate_audit_log_undo');
 const migrateAccountCompanyRequired = require('./migrate_account_company_required');
 const migrateRemoveAccountType = require('./migrate_remove_account_type');
@@ -160,9 +160,9 @@ loadErrorCatalog()
 
         await migrateInstallmentFields();
 
-        await migrateAddEvaTimeout();
+        await migrateAddIvaTimeout();
 
-        await migrateAddEvaVoiceSettings();
+        await migrateAddIvaVoiceSettings();
         await migrateVoiceSettingsToBoolean(); // Convert to boolean
         await migrateVoiceTierSystem(); // Upgrade to 3-tier system (0/1/2)
         await migrateVoicePremiumDefault(); // Set Premium as default
@@ -177,12 +177,12 @@ loadErrorCatalog()
     .then(() => migrateCreateAuditLogs())
     .then(() => migrateLoans())
     .then(() => migratePreferredName())
-    .then(() => migrateAddEvaContext())
+    .then(() => migrateAddIvaContext())
     .then(() => migrateAddUserRoles()) // NEW: User Roles (Job Title/Dept)
-    .then(() => migrateEvaPreferences())
-    .then(() => migrateEvaVoiceRate())
+    .then(() => migrateIvaPreferences())
+    .then(() => migrateIvaVoiceRate())
     .then(() => migrateFixVoiceRate()) // NEW: Force reset of high voice rates to 50
-    .then(() => migrateSetEvaRate75()) // Update default to 75
+    .then(() => migrateSetIvaRate75()) // Update default to 75
     .then(() => migrateAddScreenFamiliarity()) // NEW: Screen familiarity tracking
     .then(() => migrateAuditLogUndo()) // NEW: Audit log undo capability
     .then(() => migrateAccountCompanyRequired()) // NEW: Enforce company_id NOT NULL
