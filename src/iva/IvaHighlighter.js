@@ -4,7 +4,7 @@
  * Used for GUIDE action to teach users how to perform tasks
  */
 
-class ivaHighlighter {
+class IvaHighlighter {
     static activeHighlights = [];
     static stylesInitialized = false;
 
