@@ -321,6 +321,16 @@ export const LogAlteracoesManager = (project) => {
                 newDataPreview = 'Dados não disponíveis';
             }
 
+            // Define warning icon based on action
+            let warningIcon = '';
+            if (action === 'DELETE') {
+                warningIcon = '♻️';
+            } else if (action === 'UPDATE') {
+                warningIcon = '↩️';
+            } else if (action === 'INSERT') {
+                warningIcon = '🗑️';
+            }
+
             // Create enhanced confirmation modal
             const modalHTML = `
                 <div class="modal-backdrop" style="position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.5); z-index: 9999; display: flex; align-items: center; justify-content: center;">
