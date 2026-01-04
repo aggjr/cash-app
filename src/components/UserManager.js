@@ -90,7 +90,7 @@ export const UserManager = (project) => {
         { key: 'invited_at', label: 'Convidado em', width: '120px', align: 'center', type: 'date', render: (user) => formatDate(user.invited_at) },
         { key: 'invited_by_name', label: 'Convidado por', width: '150px', align: 'center', type: 'text', render: (user) => user.invited_by_name || '-' },
         {
-            key: 'actions', label: 'Ações', width: '120px', align: 'center', noFilter: true, render: (user) => {
+            key: 'actions', label: 'Ações', width: '100px', align: 'center', noFilter: true, render: (user) => {
                 const currentUser = JSON.parse(localStorage.getItem('user'));
                 const isMaster = usersList.find(u => u.id === currentUser.id)?.role === 'master';
                 const isCurrentUser = user.id === currentUser.id;
@@ -119,23 +119,8 @@ export const UserManager = (project) => {
                     container.appendChild(editBtn);
                 }
 
-                // Remove from project button (master only, not on self or other masters)
+                // Delete button (smart delete - master only, not on self or other masters)
                 if (isMaster && !isCurrentUser && user.role !== 'master') {
-                    const removeBtn = document.createElement('button');
-                    removeBtn.innerHTML = '🚫';
-                    removeBtn.style.background = 'none';
-                    removeBtn.style.border = 'none';
-                    removeBtn.style.cursor = 'pointer';
-                    removeBtn.style.fontSize = '1.2rem';
-                    removeBtn.style.color = '#F59E0B';
-                    removeBtn.title = 'Remover do Projeto';
-                    removeBtn.onclick = (e) => {
-                        e.stopPropagation();
-                        removeUser(user.id, user.name);
-                    };
-                    container.appendChild(removeBtn);
-
-                    // Delete user button (smart delete - hard or soft)
                     const deleteBtn = document.createElement('button');
                     deleteBtn.innerHTML = '🗑️';
                     deleteBtn.style.background = 'none';
@@ -143,7 +128,7 @@ export const UserManager = (project) => {
                     deleteBtn.style.cursor = 'pointer';
                     deleteBtn.style.fontSize = '1.2rem';
                     deleteBtn.style.color = '#EF4444';
-                    deleteBtn.title = 'Deletar Usuário (Sistema)';
+                    deleteBtn.title = 'Deletar Usuário';
                     deleteBtn.onclick = (e) => {
                         e.stopPropagation();
                         deleteUser(user.id, user.name);
@@ -234,32 +219,6 @@ export const UserManager = (project) => {
                 }
             }
         });
-    };
-
-    const removeUser = async (userId, userName) => {
-        const confirmed = await Dialogs.confirm(
-            `Tem certeza que deseja remover o usuário "${userName}" deste projeto?`,
-            'Remover Usuário'
-        );
-
-        if (!confirmed) return;
-
-        try {
-            const response = await fetch(`${API_BASE_URL}/projects/${project.id}/users/${userId}`, {
-                method: 'DELETE',
-                headers: getHeaders()
-            });
-
-            if (response.ok) {
-                showToast('Usuário removido com sucesso!', 'success');
-                loadUsers();
-            } else {
-                const error = await response.json();
-                showToast(error.error || 'Erro ao remover usuário', 'error');
-            }
-        } catch (error) {
-            showToast('Erro de conexão', 'error');
-        }
     };
 
     const deleteUser = async (userId, userName) => {
