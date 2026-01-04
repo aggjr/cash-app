@@ -550,10 +550,11 @@ exports.deleteSaida = async (req, res, next) => {
         const { id } = req.params;
 
         connection = await db.getConnection();
-        await connection.beginTransaction();
+        const audited = wrapConnectionWithAudit(connection, req);
+        await audited.beginTransaction();
 
         // Get saida details first to know the amount and account
-        const [saida] = await connection.query(
+        const [saida] = await audited.query(
             'SELECT valor, account_id FROM saidas WHERE id = ? AND active = 1',
             [id]
         );
@@ -563,16 +564,16 @@ exports.deleteSaida = async (req, res, next) => {
         }
 
         // Soft delete
-        await connection.query('UPDATE saidas SET active = 0 WHERE id = ?', [id]);
+        await audited.query('UPDATE saidas SET active = 0 WHERE id = ?', [id]);
 
         // Increase account balance (revert the expense - ADD back the money)
-        await connection.query(
+        await audited.query(
             'UPDATE contas SET current_balance = current_balance + ? WHERE id = ?',
             [saida[0].valor, saida[0].account_id]
         );
 
-        await connection.commit();
-        logAudit(req, 'DELETE', 'saidas', id, { amount: saida[0]?.valor });
+        await audited.commit();
+        // Audit is automatic via connectionWrapper
         res.json({ message: 'Saída deleted successfully' });
     } catch (error) {
         if (connection) await connection.rollback();
