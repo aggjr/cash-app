@@ -60,11 +60,12 @@ exports.getConsolidatedData = async (req, res) => {
                 // --- COMPETENCIA VIEW ---
                 else {
                     dateField = 'data_fato';
-                    if (isProvisioned) {
-                        filter = '';
-                    } else {
-                        filter = `AND ${colReal} IS NOT NULL`;
-                    }
+                    // In Competencia, Realized means Incurred (data_fato exists). 
+                    // No extra filter needed for "Realized" vs "Provisioned" if both rely on data_fato.
+                    // Both show the same data? 
+                    // User requested distinction, but conceptually Competencia Realizada is everything with data_fato.
+                    // We remove the data_real check.
+                    filter = '';
                 }
                 // Add company filter if present
                 if (companyIdList.length > 0) {
@@ -188,9 +189,9 @@ exports.getConsolidatedData = async (req, res) => {
                 // Now strictly: Provisioned = All, Realized = data_real NOT NULL?
                 // Schema has data_real, data_prevista.
                 let filter = '';
-                // Logic Update: Realized Table (!isProvisioned) ALWAYS requires data_real checking (actual payment/receipt)
-                // Provisioned Table (isProvisioned) shows ALL.
-                if (!isProvisioned) {
+                // Logic Update: Realized Table (!isProvisioned) ALWAYS requires data_real checking (actual payment/receipt) ONLY IN CAIXA.
+                // In Competencia, we show everything.
+                if (isCaixa && !isProvisioned) {
                     filter = 'AND data_real IS NOT NULL';
                 }
 
