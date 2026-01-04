@@ -167,16 +167,18 @@ export const ExtratoContaManager = (project) => {
             // Persist company selection
             localStorage.setItem('extrato_companyId', selectedCompanyId);
 
-            // Reset account selection if current account not in filtered list
-            if (selectedAccountId && !accounts.find(a => a.id === parseInt(selectedAccountId))) {
-                selectedAccountId = null;
-            }
+            // ALWAYS Reset account selection when company changes (User Request)
+            selectedAccountId = null;
+            localStorage.removeItem('extrato_accountId'); // Clear persistence
 
             // Re-render controls to update account dropdown
             const oldControls = container.querySelector('.extrato-controls');
             if (oldControls) {
                 oldControls.replaceWith(renderControls());
             }
+
+            // Reload extrato (will show empty table)
+            loadExtrato();
         };
 
         // Auto-Trigger Search Logic
@@ -411,11 +413,9 @@ export const ExtratoContaManager = (project) => {
 
     const loadExtrato = async () => {
         if (!selectedAccountId) {
-            // Clear table if no account selected
-            const wrapper = container.querySelector('.extrato-table-wrapper');
-            if (wrapper) {
-                wrapper.remove();
-            }
+            // Show empty table logic via renderTable
+            extratoData = null; // Clear data
+            renderTable();
             return;
         }
 
