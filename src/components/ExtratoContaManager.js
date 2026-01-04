@@ -22,7 +22,10 @@ export const ExtratoContaManager = (project) => {
     let startDate = storedStart || new Date(today.getFullYear(), today.getMonth(), 1).toISOString().substring(0, 10);
     let endDate = storedEnd || new Date(today.getFullYear(), today.getMonth() + 1, 0).toISOString().substring(0, 10);
     let selectedAccountId = storedAcc || null;
+    let selectedCompanyId = null;
+    let companies = [];
     let accounts = [];
+    let allAccounts = []; // Store all accounts for filtering
     let extratoData = null;
 
     const getHeaders = () => {
@@ -52,6 +55,38 @@ export const ExtratoContaManager = (project) => {
         controls.style.gap = '1.5rem'; // Reduced gap
         controls.style.marginBottom = '0.5rem'; // Reduced margin
         controls.style.alignItems = 'flex-end';
+
+        // Company Select
+        const companyDiv = document.createElement('div');
+        const companyLabel = document.createElement('label');
+        companyLabel.textContent = 'Empresa';
+        companyLabel.style.display = 'block';
+        companyLabel.style.marginBottom = '0.2rem';
+        companyLabel.style.fontWeight = '500';
+        companyLabel.style.color = '#374151';
+
+        const companySelect = document.createElement('select');
+        companySelect.id = 'extrato-company-select';
+        companySelect.className = 'form-input';
+        companySelect.style.width = '250px';
+        companySelect.style.height = '38px';
+        companySelect.style.padding = '0 0.5rem';
+
+        const companyPlaceholder = document.createElement('option');
+        companyPlaceholder.value = '';
+        companyPlaceholder.textContent = 'Todas as empresas';
+        companySelect.appendChild(companyPlaceholder);
+
+        companies.forEach(comp => {
+            const opt = document.createElement('option');
+            opt.value = comp.id;
+            opt.textContent = comp.name;
+            if (comp.id === selectedCompanyId) opt.selected = true;
+            companySelect.appendChild(opt);
+        });
+
+        companyDiv.appendChild(companyLabel);
+        companyDiv.appendChild(companySelect);
 
         // Account Select
         const accDiv = document.createElement('div');
@@ -125,6 +160,29 @@ export const ExtratoContaManager = (project) => {
         endDiv.appendChild(endLabel);
         endDiv.appendChild(endInput);
 
+        // Company Filter Logic
+        const filterAccountsByCompany = () => {
+            selectedCompanyId = companySelect.value ? parseInt(companySelect.value) : null;
+
+            // Filter accounts
+            if (selectedCompanyId) {
+                accounts = allAccounts.filter(acc => acc.company_id === selectedCompanyId);
+            } else {
+                accounts = [...allAccounts]; // Show all
+            }
+
+            // Reset account selection if current account not in filtered list
+            if (selectedAccountId && !accounts.find(a => a.id === parseInt(selectedAccountId))) {
+                selectedAccountId = null;
+            }
+
+            // Re-render controls to update account dropdown
+            const oldControls = container.querySelector('.extrato-controls');
+            if (oldControls) {
+                oldControls.replaceWith(renderControls());
+            }
+        };
+
         // Auto-Trigger Search Logic
         const triggerSearch = () => {
             selectedAccountId = accSelect.value;
@@ -140,10 +198,12 @@ export const ExtratoContaManager = (project) => {
         };
 
         // Attach listeners
+        companySelect.addEventListener('change', filterAccountsByCompany);
         accSelect.addEventListener('change', triggerSearch);
         startInput.addEventListener('change', triggerSearch);
         endInput.addEventListener('change', triggerSearch);
 
+        controls.appendChild(companyDiv);
         controls.appendChild(accDiv);
         controls.appendChild(startDiv);
         controls.appendChild(endDiv);
@@ -333,9 +393,17 @@ export const ExtratoContaManager = (project) => {
 
     const loadAccounts = async () => {
         try {
+            // Fetch companies
+            const companiesResp = await fetch(`${API_BASE_URL}/companies?projectId=${project.id}`, { headers: getHeaders() });
+            if (companiesResp.ok) {
+                companies = await companiesResp.json();
+            }
+
+            // Fetch accounts with company info
             const resp = await fetch(`${API_BASE_URL}/accounts?projectId=${project.id}`, { headers: getHeaders() });
             if (resp.ok) {
-                accounts = await resp.json();
+                allAccounts = await resp.json();
+                accounts = [...allAccounts]; // Initially show all
 
                 // Auto-select first account if available
                 if (accounts.length > 0 && !selectedAccountId) {
