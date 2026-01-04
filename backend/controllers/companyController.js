@@ -176,4 +176,4 @@ exports.deleteCompany = async (req, res, next) => {
         next(error);
     }
 };
-```
+

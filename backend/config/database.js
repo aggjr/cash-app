@@ -1,5 +1,4 @@
 const mysql = require('mysql2/promise');
-const { auditedQuery } = require('../utils/auditedDatabase');
 require('dotenv').config();
 
 // Create connection pool - TCP/IP configuration for Windows
@@ -20,7 +19,9 @@ const pool = mysql.createPool({
 });
 
 // Wrapper for pool.query that includes audit logging
+// NOTE: Lazy import to break circular dependency with auditedDatabase
 const poolQueryWithAudit = async (sql, params, req) => {
+    const { auditedQuery } = require('../utils/auditedDatabase');
     return auditedQuery(pool, sql, params, req);
 };
 
