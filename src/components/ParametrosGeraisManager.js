@@ -71,25 +71,27 @@ export const ParametrosGeraisManager = (project) => {
             const settings = await response.json();
             console.log('✅ Settings loaded:', settings);
 
+            // Helper to get local user
+            const getUser = () => {
+                try { return JSON.parse(localStorage.getItem('user')); } catch (e) { return null; }
+            };
+
+            const currentUser = getUser();
+            console.log('👤 Current User Prefs:', currentUser);
+
             originalSettings = {
                 numero_dias: settings.numero_dias,
                 tempo_minutos_liberacao: settings.tempo_minutos_liberacao,
-                iva_timeout: settings.iva_timeout || 3, // Default 3s
-                iva_voice_rate: settings.iva_voice_rate || 50, // Default 50 = Normal (1.0x)
-                iva_voice_premium: settings.iva_voice_premium || 0, // Default 0 = free
-                iva_voice_male: settings.iva_voice_male || 0 // Default 0 = female
+                iva_timeout: settings.iva_timeout || 3,
+                // Voice settings: prioritization (User > System > Default)
+                iva_voice_enabled: (currentUser?.IVA_voice_enabled !== undefined) ? currentUser.IVA_voice_enabled : 1,
+                iva_voice_rate: (currentUser?.IVA_voice_rate !== undefined) ? currentUser.IVA_voice_rate : (settings.iva_voice_rate || 50),
+                iva_voice_premium: settings.iva_voice_premium || 0,
+                iva_voice_male: settings.iva_voice_male || 0
             };
             currentSettings = { ...originalSettings };
 
-            console.log('[ParametrosGerais] Settings loaded:', {
-                iva_timeout: currentSettings.iva_timeout,
-                iva_voice_rate: currentSettings.iva_voice_rate,
-                iva_voice_premium: currentSettings.iva_voice_premium,
-                iva_voice_male: currentSettings.iva_voice_male
-            });
-
-            console.log('Original settings:', originalSettings);
-            console.log('Current settings:', currentSettings);
+            console.log('[ParametrosGerais] Merged Settings:', currentSettings);
 
             renderSettings();
 
@@ -548,6 +550,28 @@ export const ParametrosGeraisManager = (project) => {
             <div id="content-IVA" class="tab-content" style="display: none;">
                 <h2 style="margin-bottom: 1.5rem;">🤖 Configurações da IA IVA</h2>
                 <div style="background: var(--color-surface); padding: 2rem; border-radius: 12px; border: 1px solid var(--color-border-light);">
+
+                <!-- Ativar Voz (Toggle) -->
+                <div style="margin-bottom: 2rem; display: flex; align-items: center; justify-content: space-between; padding: 1rem; background: ${currentSettings.iva_voice_enabled ? 'rgba(16, 185, 129, 0.1)' : 'rgba(107, 114, 128, 0.05)'}; border-radius: 8px; border: 1px solid ${currentSettings.iva_voice_enabled ? 'rgba(16, 185, 129, 0.3)' : 'rgba(107, 114, 128, 0.2)'};">
+                    <div>
+                        <label style="display: block; font-weight: 600; color: var(--color-text); font-size: 1.1rem; margin-bottom: 0.25rem;">
+                            🗣️ Ativar Voz da IVA
+                        </label>
+                        <small style="color: var(--color-text-muted);">
+                            Se desativado, a IVA responderá apenas por texto.
+                        </small>
+                    </div>
+                    <label class="switch" style="position: relative; display: inline-block; width: 60px; height: 34px;">
+                        <input type="checkbox" id="toggle-iva_voice_enabled" ${currentSettings.iva_voice_enabled ? 'checked' : ''}>
+                        <span class="slider round" style="position: absolute; cursor: pointer; top: 0; left: 0; right: 0; bottom: 0; background-color: #ccc; transition: .4s; border-radius: 34px;"></span>
+                        <style>
+                            .switch input:checked + .slider { background-color: var(--color-primary); }
+                            .switch input:focus + .slider { box-shadow: 0 0 1px var(--color-primary); }
+                            .switch input:checked + .slider:before { transform: translateX(26px); }
+                            .slider:before { position: absolute; content: ""; height: 26px; width: 26px; left: 4px; bottom: 4px; background-color: white; transition: .4s; border-radius: 50%; }
+                        </style>
+                    </label>
+                </div>
 
                 <!-- Tempo Resposta IVA - SLIDER -->
                 <div style="margin-bottom: 2rem;">
