@@ -39,10 +39,10 @@ export const AccountModal = {
 
             modal.innerHTML = `
 
-                <div class="account-modal-body" style="padding: 2rem;">
-                    <h3 style="margin: 0 0 1.5rem 0; color: var(--color-primary); font-size: 1.3rem;">${isEdit ? 'Editar Conta' : 'Nova Conta'}</h3>
-                    <div class="form-grid">
-                        <div class="form-group full-width">
+                <div class="account-modal-body" style="padding: 1.5rem; max-height: 85vh;">
+                    <h3 style="margin: 0 0 1rem 0; color: var(--color-primary); font-size: 1.3rem;">${isEdit ? 'Editar Conta' : 'Nova Conta'}</h3>
+                    <div class="form-grid" style="gap: 0.5rem;">
+                        <div class="form-group" style="margin-top: 5px;">
                             <label for="account-name">Nome da Conta <span class="required">*</span></label>
                             <input 
                                 type="text" 
@@ -54,7 +54,7 @@ export const AccountModal = {
                             />
                         </div>
 
-                        <div class="form-group full-width">
+                        <div class="form-group" style="margin-top: 5px;">
                             <label for="account-company">Empresa <span class="required">*</span></label>
                             <select 
                                 id="account-company" 
@@ -68,6 +68,9 @@ export const AccountModal = {
                                     </option>
                                 `).join('')}
                             </select>
+                        </div>
+
+                        <div class="form-group full-width" style="margin-top: 5px;">
                             ${companies.length === 0 ? '<small style="color: #EF4444;">⚠️ Nenhuma empresa cadastrada. Cadastre uma empresa primeiro na tela "Empresa".</small>' : ''}
                         </div>
 
