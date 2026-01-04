@@ -1,6 +1,7 @@
 import { showToast } from '../utils/toast.js';
 import { getApiBaseUrl } from '../utils/apiConfig.js';
 import { ExcelExporter } from '../utils/ExcelExporter.js';
+import { SharedTable } from './SharedTable.js';
 
 export const ExtratoContaManager = (project) => {
     const container = document.createElement('div');
@@ -28,6 +29,7 @@ export const ExtratoContaManager = (project) => {
     let accounts = [];
     let allAccounts = []; // Store all accounts for filtering
     let extratoData = null;
+    let sharedTable = null; // SharedTable instance
 
     const getHeaders = () => {
         const token = localStorage.getItem('token');
@@ -232,155 +234,127 @@ export const ExtratoContaManager = (project) => {
         const wrapper = document.createElement('div');
         wrapper.className = 'extrato-table-wrapper';
         wrapper.style.flex = '1';
-        wrapper.style.overflow = 'auto';
+        wrapper.style.overflow = 'hidden'; // SharedTable handles internal scroll
         wrapper.style.backgroundColor = 'white';
         wrapper.style.borderRadius = '8px';
         wrapper.style.border = '1px solid var(--color-border-light)';
         wrapper.style.boxShadow = 'var(--shadow-sm)';
+        wrapper.style.display = 'flex';
+        wrapper.style.flexDirection = 'column';
 
-        const table = document.createElement('table');
-        table.style.width = '100%';
-        table.style.borderCollapse = 'collapse';
-
-        // --- THEAD ---
-        const thead = document.createElement('thead');
-        const headerRow = document.createElement('tr');
-        headerRow.style.backgroundColor = '#00425F';
-        headerRow.style.color = 'white';
-        headerRow.style.textAlign = 'left';
-
-        // Sticky Header Logic
-        headerRow.style.position = 'sticky';
-        headerRow.style.top = '0';
-        headerRow.style.zIndex = '10'; // Ensure it stays on top
-
-        // Headers (Added Fluxo)
-        const headers = ['Data Execução', 'TIPO DE MOVIMENTAÇÃO', 'Descrição', 'Fluxo', 'Valor'];
-        headers.forEach(text => {
-            const th = document.createElement('th');
-            th.textContent = text;
-            th.style.padding = '1rem';
-            th.style.fontWeight = '600';
-            th.style.borderBottom = '2px solid #e5e7eb';
-            if (text === 'Valor') th.style.textAlign = 'right';
-            if (text === 'Fluxo') th.style.textAlign = 'center';
-            headerRow.appendChild(th);
-        });
-        thead.appendChild(headerRow);
-        table.appendChild(thead);
-
-        // --- TBODY ---
-        const tbody = document.createElement('tbody');
+        container.appendChild(wrapper);
 
         // Show empty state if no data or no account selected
         if (!extratoData || !selectedAccountId) {
-            const trEmpty = document.createElement('tr');
-            trEmpty.innerHTML = `
-                <td colspan="5" style="padding: 3rem; text-align: center; color: var(--color-text-muted);">
+            wrapper.style.overflow = 'auto'; // Re-enable for empty state content
+            wrapper.innerHTML = `
+                <div style="padding: 3rem; text-align: center; color: var(--color-text-muted);">
                     <div style="font-size: 3rem; margin-bottom: 1rem;">📭</div>
                     <div style="font-size: 1.1rem;">${!selectedAccountId ? 'Selecione uma conta para ver o extrato' : 'Nenhuma movimentação encontrada'}</div>
                     <div style="font-size: 0.9rem; margin-top: 0.5rem;">Clique no botão de pesquisa após selecionar uma conta e período</div>
-                </td>
+                </div>
             `;
-            tbody.appendChild(trEmpty);
-            table.appendChild(tbody);
-            wrapper.appendChild(table);
-            container.appendChild(wrapper);
             return;
         }
 
+        // Calculate Final Balance
         let currentBalance = extratoData.initialBalance;
-
-        // 1. Initial Balance Row
-        const trInit = document.createElement('tr');
-        trInit.style.backgroundColor = '#e0f2fe';
-        trInit.style.fontWeight = 'bold';
-        trInit.style.borderBottom = '2px solid #00425F';
-        trInit.innerHTML = `
-            <td style="padding: 0.32rem 1rem">-</td>
-            <td style="padding: 0.32rem 1rem">SALDO ANTERIOR</td>
-            <td style="padding: 0.32rem 1rem">-</td>
-            <td style="padding: 0.32rem 1rem">-</td>
-            <td style="padding: 0.32rem 1rem; text-align: right; color: ${currentBalance >= 0 ? '#10B981' : '#EF4444'}">
-                ${formatCurrency(currentBalance)}
-            </td>
-        `;
-        tbody.appendChild(trInit);
-
-        // 2. Transactions
-        extratoData.transactions.forEach((tx, index) => {
-            const tr = document.createElement('tr');
-            const isEven = index % 2 === 0;
-            const bgColor = isEven ? '#FFFFFF' : '#F3F4F6';
-
-            tr.style.backgroundColor = bgColor;
-            tr.style.borderBottom = '1px solid #e5e7eb';
-            tr.style.transition = 'background 0.2s';
-
-            // Hover effect
-            tr.onmouseover = () => tr.style.backgroundColor = 'rgba(218, 177, 119, 0.5)';
-            tr.onmouseout = () => tr.style.backgroundColor = bgColor;
-
+        extratoData.transactions.forEach(tx => {
             const isInput = tx.direction === 'IN';
             const val = parseFloat(tx.valor);
-
-            // Balance Calc (Must be signed for math)
             const balanceChange = isInput ? val : -val;
             currentBalance += balanceChange;
+        });
+        const finalBalance = currentBalance;
 
-            // Strict User Rule:
-            // Flow IN (Entrada/Aporte/Transf-IN): Pos=Green, Neg=Red.
-            // Flow OUT (Saida/Retirada/Transf-OUT): Neg=Green, Pos=Red.
-            let color;
-            if (isInput) {
-                // IN: Normal(Pos)=Green, Reversal(Neg)=Red
-                color = val >= 0 ? '#10B981' : '#EF4444';
-            } else {
-                // OUT: Normal(Pos)=Red, Reversal(Neg)=Green
-                color = val >= 0 ? '#EF4444' : '#10B981';
+        // Configuration
+        const columns = [
+            {
+                header: 'Data Execução',
+                key: 'data',
+                type: 'date',
+                render: (item) => formatDate(item.data)
+            },
+            { header: 'TIPO DE MOVIMENTAÇÃO', key: 'tipo_formatado' },
+            {
+                header: 'Descrição',
+                key: 'descricao',
+                render: (item) => item.descricao || '-'
+            },
+            {
+                header: 'Fluxo',
+                key: 'fluxo',
+                align: 'center',
+                render: (item) => {
+                    const isInput = item.direction === 'IN';
+                    const badgeBg = isInput ? '#d1fae5' : '#fee2e2';
+                    const badgeColor = isInput ? '#065f46' : '#991b1b';
+                    const badgeText = isInput ? 'ENTRADA' : 'SAÍDA';
+                    return `<span style="background-color: ${badgeBg}; color: ${badgeColor}; padding: 0.25rem 0.5rem; border-radius: 0.25rem; font-size: 0.75rem; font-weight: 600;">${badgeText}</span>`;
+                }
+            },
+            {
+                header: 'Valor',
+                key: 'valor',
+                type: 'currency',
+                align: 'right',
+                render: (item) => {
+                    const isInput = item.direction === 'IN';
+                    const val = parseFloat(item.valor);
+                    let color;
+                    if (isInput) {
+                        color = val >= 0 ? '#10B981' : '#EF4444';
+                    } else {
+                        color = val >= 0 ? '#EF4444' : '#10B981';
+                    }
+                    const span = document.createElement('span');
+                    span.style.color = color;
+                    span.style.fontWeight = '600';
+                    span.textContent = formatCurrency(val);
+                    return span;
+                }
             }
+        ];
 
-            // Badge Logic
-            const badgeBg = isInput ? '#d1fae5' : '#fee2e2';
-            const badgeColor = isInput ? '#065f46' : '#991b1b';
-            const badgeText = isInput ? 'ENTRADA' : 'SAÍDA';
-
-            tr.innerHTML = `
-                <td style="padding: 0.32rem 1rem; color: #4B5563;">${formatDate(tx.data)}</td>
-                <td style="padding: 0.32rem 1rem; font-weight: 500;">${tx.tipo_formatado}</td>
-                <td style="padding: 0.32rem 1rem; color: #6B7280;">${tx.descricao || '-'}</td>
-                <td style="padding: 0.32rem 1rem; text-align: center;">
-                    <span style="background-color: ${badgeBg}; color: ${badgeColor}; padding: 0.25rem 0.5rem; border-radius: 0.25rem; font-size: 0.75rem; font-weight: 600;">
-                        ${badgeText}
-                    </span>
-                </td>
-                <td style="padding: 0.32rem 1rem; text-align: right; font-weight: 600; color: ${color};">
-                    ${formatCurrency(val)}
-                </td>
-            `;
-
-            tbody.appendChild(tr);
+        sharedTable = new SharedTable({
+            container: wrapper,
+            columns: columns,
+            enableSelection: false, // Extrato typically readonly
+            onFilterChange: () => { }, // Optional
+            onSortChange: () => { },   // Optional
+            headerRow: {
+                data: {
+                    data: '-',
+                    tipo_formatado: 'SALDO ANTERIOR',
+                    descricao: '-',
+                    fluxo: '-',
+                    valor: extratoData.initialBalance
+                },
+                style: {
+                    backgroundColor: '#e0f2fe',
+                    fontWeight: 'bold',
+                    borderBottom: '2px solid #00425F'
+                },
+                className: 'extrato-header-row'
+            },
+            footerRow: {
+                data: {
+                    data: '-',
+                    tipo_formatado: 'SALDO FINAL',
+                    descricao: '-',
+                    fluxo: '-',
+                    valor: finalBalance
+                },
+                style: {
+                    backgroundColor: '#e0f2fe',
+                    fontWeight: 'bold',
+                    borderTop: '2px solid #00425F'
+                },
+                className: 'extrato-footer-row'
+            }
         });
 
-        // 3. Final Balance Row
-        const trFinal = document.createElement('tr');
-        trFinal.style.backgroundColor = '#e0f2fe';
-        trFinal.style.fontWeight = 'bold';
-        trFinal.style.borderTop = '2px solid #00425F';
-        trFinal.innerHTML = `
-            <td style="padding: 0.32rem 1rem">-</td>
-            <td style="padding: 0.32rem 1rem">SALDO FINAL</td>
-            <td style="padding: 0.32rem 1rem">-</td>
-            <td style="padding: 0.32rem 1rem">-</td>
-            <td style="padding: 0.32rem 1rem; text-align: right; color: ${currentBalance >= 0 ? '#10B981' : '#EF4444'}">
-                ${formatCurrency(currentBalance)}
-            </td>
-        `;
-        tbody.appendChild(trFinal);
-
-        table.appendChild(tbody);
-        wrapper.appendChild(table);
-        container.appendChild(wrapper);
+        sharedTable.render(extratoData.transactions);
     };
 
     // --- Loading ---
