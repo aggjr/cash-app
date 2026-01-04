@@ -290,14 +290,14 @@ export const ConsolidadasManager = (project) => {
                     </th>
                 </tr>
                 <tr>
-                    <th class="js-col-name" style="padding: 1rem; text-align: center; border-bottom: 2px solid #e5e7eb; width: auto; position: sticky; left: 0; z-index: 11; background-color: #00425F; white-space: nowrap;"></th>
-                    <th style="padding: 1rem; text-align: center; border-bottom: 2px solid #e5e7eb; width: 140px; min-width: 140px; position: sticky; left: var(--c2-left, 320px); z-index: 11; background-color: #4B5563; color: white; white-space: nowrap;">MÉDIA</th>
-                    <th style="padding: 1rem; text-align: center; border-bottom: 2px solid #e5e7eb; width: 140px; min-width: 140px; position: sticky; left: var(--c3-left, 460px); z-index: 11; background-color: #374151; color: white; white-space: nowrap;">TOTAL</th>
+                    <th class="js-col-name" style="padding: 0.5rem; text-align: center; border-bottom: 2px solid #e5e7eb; width: auto; position: sticky; left: 0; z-index: 11; background-color: #00425F; white-space: nowrap;"></th>
+                    <th style="padding: 0.5rem; text-align: center; border-bottom: 2px solid #e5e7eb; width: 140px; min-width: 140px; position: sticky; left: var(--c2-left, 320px); z-index: 11; background-color: #4B5563; color: white; white-space: nowrap;">MÉDIA</th>
+                    <th style="padding: 0.5rem; text-align: center; border-bottom: 2px solid #e5e7eb; width: 140px; min-width: 140px; position: sticky; left: var(--c3-left, 460px); z-index: 11; background-color: #374151; color: white; white-space: nowrap;">TOTAL</th>
                     ${months.map(m => {
             const [y, mo] = m.split('-');
             // User Request: Smallest possible width (fit content). Removed min-width: 120px.
-            // Reduced padding to 0.5rem (horizontal) to tighten it further.
-            return `<th style="padding: 1rem 0.5rem; text-align: center; border-bottom: 2px solid #e5e7eb; white-space: nowrap;">${mo}/${y}</th>`;
+            // Reduced padding to 0.5rem (all sides) to tighten height.
+            return `<th style="padding: 0.5rem; text-align: center; border-bottom: 2px solid #e5e7eb; white-space: nowrap;">${mo}/${y}</th>`;
         }).join('')}
                 </tr>
             </thead>
