@@ -204,9 +204,9 @@ export const LogAlteracoesManager = (project) => {
     const showJsonModal = (entity, action, oldData, newData) => {
         const modalHTML = `
             <div class="json-modal-backdrop" style="position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.7); z-index: 10000; display: flex; align-items: center; justify-content: center; padding: 20px;">
-                <div class="json-modal-content" style="background: #1E293B; color: #E2E8F0; padding: 30px; border-radius: 12px; max-width: 900px; width: 100%; max-height: 90vh; overflow-y: auto; box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.5); font-family: monospace;">
-                    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px; border-bottom: 2px solid #475569; padding-bottom: 15px;">
-                        <h2 style="margin: 0; color: #F1F5F9; font-size: 1.25rem;">
+                <div class="json-modal-content" style="background: var(--color-bg-card); color: var(--color-text-dark); padding: 30px; border-radius: 12px; max-width: 900px; width: 100%; max-height: 90vh; overflow-y: auto; box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.5); font-family: monospace; border: 1px solid var(--color-border-light);">
+                    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px; border-bottom: 2px solid var(--color-border-light); padding-bottom: 15px;">
+                        <h2 style="margin: 0; color: var(--color-text-dark); font-size: 1.25rem;">
                             📋 Detalhes do Log - ${entity} (${action})
                         </h2>
                         <button id="json-close-btn" style="background: #EF4444; color: white; border: none; padding: 8px 16px; border-radius: 6px; cursor: pointer; font-weight: 600;">
@@ -219,7 +219,7 @@ export const LogAlteracoesManager = (project) => {
                         <h3 style="color: #60A5FA; margin: 0 0 10px 0; display: flex; align-items: center; gap: 8px;">
                             <span style="font-size: 1.5rem;">📄</span> Dados ANTES (old_data)
                         </h3>
-                        <pre style="background: #0F172A; padding: 16px; border-radius: 8px; overflow-x: auto; border-left: 4px solid #60A5FA; margin: 0; color: #93C5FD; font-size: 0.875rem; line-height: 1.5;">${JSON.stringify(oldData, null, 2)}</pre>
+                        <pre style="background: var(--color-bg-secondary); padding: 16px; border-radius: 8px; overflow-x: auto; border-left: 4px solid #60A5FA; margin: 0; color: var(--color-text-dark); font-size: 0.875rem; line-height: 1.5; border: 1px solid var(--color-border-light);">${JSON.stringify(oldData, null, 2)}</pre>
                     </div>
                     ` : ''}
                     
@@ -228,12 +228,12 @@ export const LogAlteracoesManager = (project) => {
                         <h3 style="color: #34D399; margin: 0 0 10px 0; display: flex; align-items: center; gap: 8px;">
                             <span style="font-size: 1.5rem;">📝</span> Dados DEPOIS (new_data)
                         </h3>
-                        <pre style="background: #0F172A; padding: 16px; border-radius: 8px; overflow-x: auto; border-left: 4px solid #34D399; margin: 0; color: #6EE7B7; font-size: 0.875rem; line-height: 1.5;">${JSON.stringify(newData, null, 2)}</pre>
+                        <pre style="background: var(--color-bg-secondary); padding: 16px; border-radius: 8px; overflow-x: auto; border-left: 4px solid #34D399; margin: 0; color: var(--color-text-dark); font-size: 0.875rem; line-height: 1.5; border: 1px solid var(--color-border-light);">${JSON.stringify(newData, null, 2)}</pre>
                     </div>
                     ` : ''}
                     
                     ${!oldData && !newData ? `
-                    <div style="text-align: center; padding: 40px; color: #94A3B8;">
+                    <div style="text-align: center; padding: 40px; color: var(--color-text-muted);">
                         <div style="font-size: 3rem; margin-bottom: 16px;">📭</div>
                         <p style="margin: 0; font-size: 1.125rem;">Nenhum dado disponível para exibição</p>
                     </div>
