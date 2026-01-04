@@ -522,10 +522,18 @@ export const FechamentoContasManager = (project) => {
                         return;
                     }
 
-                    // Dynamic import of ExcelJS
-                    const ExcelJSModule = await import('https://cdn.jsdelivr.net/npm/exceljs@4.3.0/dist/exceljs.min.js');
-                    const ExcelJS = ExcelJSModule.default || ExcelJSModule;
-                    const workbook = new ExcelJS.Workbook();
+                    // Load ExcelJS if not already loaded
+                    if (!window.ExcelJS) {
+                        const script = document.createElement('script');
+                        script.src = 'https://cdn.jsdelivr.net/npm/exceljs@4.3.0/dist/exceljs.min.js';
+                        await new Promise((resolve, reject) => {
+                            script.onload = resolve;
+                            script.onerror = reject;
+                            document.head.appendChild(script);
+                        });
+                    }
+
+                    const workbook = new window.ExcelJS.Workbook();
                     const worksheet = workbook.addWorksheet('Fechamento de Contas');
 
                     const months = getMonthList();
