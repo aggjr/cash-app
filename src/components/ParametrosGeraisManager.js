@@ -398,7 +398,7 @@ export const ParametrosGeraisManager = (project) => {
                         transition: all 0.2s;
                     "
                 >
-                    ⚙️ Geral
+                    ⚙️ Sistema
                 </button>
                 <button 
                     id="tab-IVA" 
@@ -422,7 +422,7 @@ export const ParametrosGeraisManager = (project) => {
 
             <!-- Tab Content: Geral -->
             <div id="content-geral" class="tab-content" style="display: block;">
-                <h2 style="margin-bottom: 1.5rem;">⚙️ Configurações Gerais do Sistema</h2>
+                <h2 style="margin-bottom: 1.5rem;">⚙️ Configurações do Sistema</h2>
                 <div style="background: var(--color-surface); padding: 2rem; border-radius: 12px; border: 1px solid var(--color-border-light);">
                     
                     <!-- Número de Dias -->
