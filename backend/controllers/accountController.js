@@ -38,9 +38,10 @@ exports.createAccount = async (req, res, next) => {
         const type = accountType || 'outros';
         const balance = parseFloat(initialBalance) || 0;
 
-        const [result] = await db.query(
+        const [result] = await db.auditedQuery(
             'INSERT INTO contas (name, description, account_type, initial_balance, current_balance, project_id, company_id) VALUES (?, ?, ?, ?, ?, ?, ?)',
-            [name, description, type, balance, balance, projectId, companyId]
+            [name, description, type, balance, balance, projectId, companyId],
+            req  // ← User context for automatic audit
         );
 
         res.status(201).json({
@@ -55,8 +56,7 @@ exports.createAccount = async (req, res, next) => {
             company_id: companyId
         });
 
-        // Log Audit
-        logAudit(req, 'CREATE', 'contas', result.insertId, { name, description, account_type: type, initial_balance: balance, company_id: companyId });
+        // Audit is automatic via auditedQuery
     } catch (error) {
         next(error);
     }
@@ -93,14 +93,15 @@ exports.updateAccount = async (req, res, next) => {
 
         if (updates.length > 0) {
             values.push(id);
-            await db.query(
+            await db.auditedQuery(
                 `UPDATE contas SET ${updates.join(', ')} WHERE id = ?`,
-                values
+                values,
+                req  // ← User context for automatic audit
             );
         }
 
         res.json({ message: 'Account updated successfully' });
-        logAudit(req, 'UPDATE', 'contas', id, { updates: updates.length });
+        // Audit is automatic via auditedQuery
     } catch (error) {
         next(error);
     }
@@ -113,9 +114,9 @@ exports.deleteAccount = async (req, res, next) => {
         // Hard delete for now
         // TODO: Handle foreign key constraints errors gracefully (RES-003)
         try {
-            await db.query('DELETE FROM contas WHERE id = ?', [id]);
+            await db.auditedQuery('DELETE FROM contas WHERE id = ?', [id], req);
             res.json({ message: 'Account deleted successfully' });
-            logAudit(req, 'DELETE', 'contas', id, {});
+            // Audit is automatic via auditedQuery
         } catch (dbError) {
             if (dbError.code === 'ER_ROW_IS_REFERENCED_2') {
                 throw new AppError('RES-003', 'Esta conta possui transações vinculadas.');
