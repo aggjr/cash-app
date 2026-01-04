@@ -3,7 +3,6 @@ import { SharedTable } from './SharedTable.js';
 import { PrintHelper } from '../utils/printHelper.js';
 import { showToast } from '../utils/toast.js';
 import { getApiBaseUrl } from '../utils/apiConfig.js';
-import { ExcelExporter } from '../utils/ExcelExporter.js';
 
 export const ProducaoRevendaManager = (project) => {
     const container = document.createElement('div');
