@@ -1,6 +1,7 @@
 const db = require('../config/database');
 const AppError = require('../utils/AppError');
 const { logAudit } = require('../utils/auditLogger');
+const { wrapConnectionWithAudit } = require('../utils/connectionWrapper');
 
 exports.listTransferencias = async (req, res, next) => {
     try {
@@ -223,8 +224,9 @@ exports.listTransferencias = async (req, res, next) => {
 
 exports.createTransferencia = async (req, res, next) => {
     const connection = await db.getConnection();
+    const audited = wrapConnectionWithAudit(connection, req);
     try {
-        await connection.beginTransaction();
+        await audited.beginTransaction();
 
         const { dataFato, dataPrevista, dataReal, valor, descricao, sourceAccountId, destinationAccountId, projectId, comprovanteUrl, formaPagamento } = req.body;
 
@@ -237,7 +239,7 @@ exports.createTransferencia = async (req, res, next) => {
         }
 
         // Insert
-        const [result] = await connection.query(
+        const [result] = await audited.query(
             `INSERT INTO transferencias (data_fato, data_prevista, data_real, valor, descricao, source_account_id, destination_account_id, project_id, comprovante_url, forma_pagamento)
              VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
             [dataFato || null, dataPrevista, dataReal || null, valor, descricao, sourceAccountId || null, destinationAccountId || null, projectId, comprovanteUrl || null, formaPagamento || null]
@@ -249,27 +251,26 @@ exports.createTransferencia = async (req, res, next) => {
         // Update Balances - Only if Realized
         if (dataReal && sourceAccountId && destinationAccountId) {
             // Source Account: Decrease
-            await connection.query(
+            await audited.query(
                 'UPDATE contas SET current_balance = current_balance - ? WHERE id = ?',
                 [valorDecimal, sourceAccountId]
             );
 
             // Destination Account: Increase
-            await connection.query(
+            await audited.query(
                 'UPDATE contas SET current_balance = current_balance + ? WHERE id = ?',
                 [valorDecimal, destinationAccountId]
             );
         }
 
-        await connection.commit();
+        await audited.commit();
 
         res.status(201).json({
             id: newId,
             message: 'Transferência gerada com sucesso'
         });
 
-        // Log Audit
-        logAudit(req, 'CREATE', 'transferencias', newId, { valor, description: descricao, source: sourceAccountId, destination: destinationAccountId });
+        // Audit is automatic via connectionWrapper
 
     } catch (error) {
         await connection.rollback();
@@ -281,13 +282,14 @@ exports.createTransferencia = async (req, res, next) => {
 
 exports.updateTransferencia = async (req, res, next) => {
     const connection = await db.getConnection();
+    const audited = wrapConnectionWithAudit(connection, req);
     try {
-        await connection.beginTransaction();
+        await audited.beginTransaction();
 
         const { id } = req.params;
         const { dataFato, dataPrevista, dataReal, valor, descricao, sourceAccountId, destinationAccountId, active, comprovanteUrl } = req.body;
 
-        const [oldTransf] = await connection.query('SELECT * FROM transferencias WHERE id = ?', [id]);
+        const [oldTransf] = await audited.query('SELECT * FROM transferencias WHERE id = ?', [id]);
         if (oldTransf.length === 0) {
             throw new AppError('RES-001', 'Transferência não encontrada');
         }
@@ -310,17 +312,17 @@ exports.updateTransferencia = async (req, res, next) => {
 
         if (updates.length > 0) {
             values.push(id);
-            await connection.query(`UPDATE transferencias SET ${updates.join(', ')} WHERE id = ?`, values);
+            await audited.query(`UPDATE transferencias SET ${updates.join(', ')} WHERE id = ?`, values);
         }
 
         // Handle Balance Updates
         // 1. Revert Old (Source +, Dest -) - IF it was realized
         if (oldData.active && oldData.data_real && oldData.source_account_id && oldData.destination_account_id) {
-            await connection.query(
+            await audited.query(
                 'UPDATE contas SET current_balance = current_balance + ? WHERE id = ?',
                 [oldData.valor, oldData.source_account_id]
             );
-            await connection.query(
+            await audited.query(
                 'UPDATE contas SET current_balance = current_balance - ? WHERE id = ?',
                 [oldData.valor, oldData.destination_account_id]
             );
@@ -343,19 +345,19 @@ exports.updateTransferencia = async (req, res, next) => {
                 // Assuming frontend blocks this.
             }
 
-            await connection.query(
+            await audited.query(
                 'UPDATE contas SET current_balance = current_balance - ? WHERE id = ?',
                 [newValor, newSourceId]
             );
-            await connection.query(
+            await audited.query(
                 'UPDATE contas SET current_balance = current_balance + ? WHERE id = ?',
                 [newValor, newDestId]
             );
         }
 
-        await connection.commit();
+        await audited.commit();
         res.json({ message: 'Transferência atualizada com sucesso' });
-        logAudit(req, 'UPDATE', 'transferencias', id, { updates: updates.length });
+        // Audit is automatic via connectionWrapper
 
     } catch (error) {
         await connection.rollback();
@@ -367,33 +369,34 @@ exports.updateTransferencia = async (req, res, next) => {
 
 exports.deleteTransferencia = async (req, res, next) => {
     const connection = await db.getConnection();
+    const audited = wrapConnectionWithAudit(connection, req);
     try {
-        await connection.beginTransaction();
+        await audited.beginTransaction();
         const { id } = req.params;
 
-        const [transf] = await connection.query('SELECT * FROM transferencias WHERE id = ?', [id]);
+        const [transf] = await audited.query('SELECT * FROM transferencias WHERE id = ?', [id]);
         if (transf.length === 0) {
             throw new AppError('RES-001', 'Transferência não encontrada');
         }
 
         // Soft delete
-        await connection.query('UPDATE transferencias SET active = 0 WHERE id = ?', [id]);
+        await audited.query('UPDATE transferencias SET active = 0 WHERE id = ?', [id]);
 
         // Revert Balances (Source +, Dest -) - IF it was realized
         if (transf[0].active && transf[0].data_real && transf[0].source_account_id && transf[0].destination_account_id) {
-            await connection.query(
+            await audited.query(
                 'UPDATE contas SET current_balance = current_balance + ? WHERE id = ?',
                 [transf[0].valor, transf[0].source_account_id]
             );
-            await connection.query(
+            await audited.query(
                 'UPDATE contas SET current_balance = current_balance - ? WHERE id = ?',
                 [transf[0].valor, transf[0].destination_account_id]
             );
         }
 
-        await connection.commit();
+        await audited.commit();
         res.json({ message: 'Transferência excluída com sucesso' });
-        logAudit(req, 'DELETE', 'transferencias', id, {});
+        // Audit is automatic via connectionWrapper
 
     } catch (error) {
         await connection.rollback();
