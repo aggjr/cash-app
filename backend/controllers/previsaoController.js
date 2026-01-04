@@ -350,6 +350,40 @@ exports.getDailyForecast = async (req, res, next) => {
         const producaoRoots = await buildDailyTree('tipo_producao_revenda', 'producao_revenda', 'tipo_id');
         const entradasRoots = await buildDailyTree('tipo_entrada', 'entradas', 'tipo_entrada_id');
 
+        // --- Separate LOAN PAYMENTS (SAIDAS) ---
+        let pagamentosEmprestimosVirtual = { id: 'pagamentos_emprestimos_root', name: '- PGTO. EMPRÉSTIMOS', children: [], dailyTotals: {}, dailyDelayed: {}, dailyOverdue: {}, total: 0 };
+
+        const pgtoEmpIndex = saidasRoots.findIndex(n => {
+            const name = n.name.toUpperCase();
+            return (name.includes('PAGAMENTO') && name.includes('EMPRÉSTIMO')) || name.includes('AMORTIZAÇÃO');
+        });
+
+        if (pgtoEmpIndex !== -1) {
+            const node = saidasRoots[pgtoEmpIndex];
+            saidasRoots.splice(pgtoEmpIndex, 1);
+            // Copy data
+            pagamentosEmprestimosVirtual.children = node.children;
+            pagamentosEmprestimosVirtual.dailyTotals = node.dailyTotals;
+            pagamentosEmprestimosVirtual.dailyDelayed = node.dailyDelayed;
+            pagamentosEmprestimosVirtual.dailyOverdue = node.dailyOverdue;
+            pagamentosEmprestimosVirtual.total = node.total;
+        }
+
+        // --- Separate EMPRÉSTIMOS from ENTRADAS ---
+        let emprestimosVirtual = { id: 'emprestimos_root', name: '+ EMPRÉSTIMOS', children: [], dailyTotals: {}, dailyDelayed: {}, dailyOverdue: {}, total: 0 };
+
+        const empIndex = entradasRoots.findIndex(n => n.name.toUpperCase().includes('EMPRÉSTIMOS') || n.name.toUpperCase().includes('EMPRESTIMOS'));
+        if (empIndex !== -1) {
+            const empNode = entradasRoots[empIndex];
+            entradasRoots.splice(empIndex, 1);
+            // Copy data
+            emprestimosVirtual.children = empNode.children;
+            emprestimosVirtual.dailyTotals = empNode.dailyTotals;
+            emprestimosVirtual.dailyDelayed = empNode.dailyDelayed;
+            emprestimosVirtual.dailyOverdue = empNode.dailyOverdue;
+            emprestimosVirtual.total = empNode.total;
+        }
+
         // Aportes & Retiradas
 
         const fetchFlatDaily = async (table, label, id) => {
@@ -453,10 +487,12 @@ exports.getDailyForecast = async (req, res, next) => {
             initialBalance: runningBalance,
             data: [
                 aportesRoot,        // Requested First
+                retiradasRoot,
+                emprestimosVirtual,
+                pagamentosEmprestimosVirtual,
                 entradasVirtual,
                 saidasVirtual,
-                producaoVirtual,
-                retiradasRoot       // Requested Last
+                producaoVirtual
             ]
         });
 
