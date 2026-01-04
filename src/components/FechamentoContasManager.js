@@ -247,7 +247,7 @@ export const FechamentoContasManager = (project) => {
         headerRow.appendChild(thFixed);
 
         // Month Columns Headers
-        months.forEach(m => {
+        months.forEach((m, index) => {
             const th = document.createElement('th');
             th.textContent = formatDateMonth(m);
             th.style.padding = '0.5rem 0.25rem';
@@ -256,7 +256,12 @@ export const FechamentoContasManager = (project) => {
             th.style.width = '120px';
             th.style.borderBottom = '1px solid #1e3a8a';
             th.style.whiteSpace = 'nowrap';
-            // No overflow hidden to respect "without hiding info"
+
+            // Add blue right border to first month column to eliminate gap
+            if (index === 0) {
+                th.style.borderRight = '2px solid #00425F';
+            }
+
             headerRow.appendChild(th);
         });
 
@@ -350,6 +355,11 @@ export const FechamentoContasManager = (project) => {
                     td.style.borderBottom = '1px solid #e2e8f0';
                     td.style.whiteSpace = 'nowrap';
 
+                    // Add blue right border to first month column
+                    if (mIndex === 0) {
+                        td.style.borderRight = '2px solid #00425F';
+                    }
+
                     if (val > 0) td.style.color = '#10B981';
                     else if (val < 0) td.style.color = '#EF4444';
                     else td.style.color = '#9ca3af';
@@ -386,7 +396,7 @@ export const FechamentoContasManager = (project) => {
         trTotal.appendChild(tdTotalLabel);
 
         // Month Totals
-        monthTotals.forEach(val => {
+        monthTotals.forEach((val, index) => {
             const td = document.createElement('td');
             td.textContent = formatCurrency(val);
             td.style.padding = '0.5rem 0.5rem';
@@ -394,6 +404,11 @@ export const FechamentoContasManager = (project) => {
             td.style.borderTop = '2px solid #cbd5e1';
             td.style.backgroundColor = '#e2e8f0'; // Slightly darker
             td.style.whiteSpace = 'nowrap';
+
+            // Add blue right border to first month column
+            if (index === 0) {
+                td.style.borderRight = '2px solid #00425F';
+            }
 
             // Color Logic
             if (val > 0) td.style.color = '#10B981';
