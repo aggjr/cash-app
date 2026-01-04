@@ -160,7 +160,10 @@ export const ExtratoContaManager = (project) => {
         const filterAccountsByCompany = () => {
             selectedCompanyId = parseInt(companySelect.value);
 
-            accounts = allAccounts.filter(acc => acc.company_id === selectedCompanyId); `n`n            // Persist company selection`n            localStorage.setItem('extrato_companyId', selectedCompanyId);
+            accounts = allAccounts.filter(acc => acc.company_id === selectedCompanyId);
+
+            // Persist company selection
+            localStorage.setItem('extrato_companyId', selectedCompanyId);
 
             // Reset account selection if current account not in filtered list
             if (selectedAccountId && !accounts.find(a => a.id === parseInt(selectedAccountId))) {
