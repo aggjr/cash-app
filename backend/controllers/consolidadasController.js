@@ -68,7 +68,7 @@ exports.getConsolidatedData = async (req, res) => {
                 const config = getTableConfig(dataTable);
 
                 // Fetch Types
-                const [types] = await db.execute(
+                const [types] = await db.query(
                     `SELECT id, label, parent_id FROM ${typeTable} WHERE project_id = ? ORDER BY label`,
                     [projectId]
                 );
@@ -96,7 +96,7 @@ exports.getConsolidatedData = async (req, res) => {
                     FROM ${dataTable} d
                     WHERE d.project_id = ? AND d.active = 1 ${localFilter}
                 `;
-                const [items] = await db.execute(query, queryParams);
+                const [items] = await db.query(query, queryParams);
 
                 // Build Map & Aggregate (Same generic logic)
                 const typeMap = new Map();
@@ -186,7 +186,7 @@ exports.getConsolidatedData = async (req, res) => {
                 if (startMonth) { qFilter += ` AND DATE_FORMAT(${dateField}, '%Y-%m') >= ?`; qParams.push(startMonth); }
                 if (endMonth) { qFilter += ` AND DATE_FORMAT(${dateField}, '%Y-%m') <= ?`; qParams.push(endMonth); }
 
-                const [rows] = await db.execute(`
+                const [rows] = await db.query(`
                     SELECT DATE_FORMAT(${dateField}, '%Y-%m') as month_key, SUM(valor) as total
                     FROM ${table} WHERE project_id = ? AND active = 1 ${qFilter} GROUP BY month_key
                 `, qParams);
