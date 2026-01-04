@@ -1,4 +1,5 @@
 const mysql = require('mysql2/promise');
+const { auditedQuery } = require('../utils/auditedDatabase');
 require('dotenv').config();
 
 // Create connection pool - TCP/IP configuration for Windows
@@ -18,16 +19,20 @@ const pool = mysql.createPool({
     timezone: 'Z' // Use UTC to prevent automatic timezone conversions
 });
 
-// Test connection (lazy - will connect on first query)
-// Removed synchronous test to prevent server from exiting on slow connections
-// pool.getConnection()
-//     .then(connection => {
-//         console.log('✓ Database connected successfully');
-//         connection.release();
-//     })
-//     .catch(err => {
-//         console.error('✗ Database connection failed:', err.message);
-//         process.exit(1);
-//     });
+// Wrapper for pool.query that includes audit logging
+const poolQueryWithAudit = async (sql, params, req) => {
+    return auditedQuery(pool, sql, params, req);
+};
 
-module.exports = pool;
+// Export both methods
+module.exports = {
+    // Standard pool methods (backward compatibility)
+    query: pool.query.bind(pool),
+    getConnection: pool.getConnection.bind(pool),
+
+    // NEW: Audited query (use this for all mutations)
+    auditedQuery: poolQueryWithAudit,
+
+    // Direct pool access if needed
+    pool: pool
+};
