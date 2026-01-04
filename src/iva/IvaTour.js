@@ -3,10 +3,10 @@
  * Automatically navigates through system screens with narration and highlights
  */
 
-import { ivaNavigationIndicator } from './ivaNavigationIndicator.js';
-import { ivaActions } from './ivaActions.js';
+import { IvaNavigationIndicator } from './IvaNavigationIndicator.js';
+import { IvaActions } from './IvaActions.js';
 
-export const ivaTour = {
+export const IvaTour = {
     currentStep: 0,
     isActive: false,
     steps: [],
@@ -76,11 +76,11 @@ export const ivaTour = {
 
         try {
             // 1. Clear previous highlights
-            ivaNavigationIndicator.clearAll();
+            IvaNavigationIndicator.clearAll();
 
             // 2. Navigate to screen
             if (step.screenId) {
-                ivaActions.handle('NAVIGATE', { target: step.screenId });
+                IvaActions.handle('NAVIGATE', { target: step.screenId });
             }
 
             // 3. Wait for navigation to complete
@@ -88,7 +88,7 @@ export const ivaTour = {
 
             // 4. Add navigation indicators (arrows + highlights)
             if (step.screenId) {
-                ivaNavigationIndicator.markNavigationPath(step.screenId);
+                IvaNavigationIndicator.markNavigationPath(step.screenId);
             }
 
             // 5. Highlight specific elements
@@ -97,9 +97,9 @@ export const ivaTour = {
                 step.highlights.forEach(h => {
                     const el = document.querySelector(h.selector);
                     if (el) {
-                        ivaNavigationIndicator.addBorderHighlight(el);
+                        IvaNavigationIndicator.addBorderHighlight(el);
                         if (h.addArrow) {
-                            ivaNavigationIndicator.addArrowIndicator(el);
+                            IvaNavigationIndicator.addArrowIndicator(el);
                         }
                         console.log('[IVA Tour] Highlighted:', h.selector);
                     } else {
@@ -214,11 +214,11 @@ export const ivaTour = {
         this.isPaused = false;
 
         // Clear all highlights
-        ivaNavigationIndicator.clearAll();
+        IvaNavigationIndicator.clearAll();
 
         // Safety clear after 1.5s to catch any racing navigation indicators
         setTimeout(() => {
-            ivaNavigationIndicator.clearAll();
+            IvaNavigationIndicator.clearAll();
         }, 1500);
 
         // Hide controls
@@ -270,10 +270,10 @@ export const ivaTour = {
                     <span class="progress-text">Etapa 0 de 0</span>
                 </div>
                 <div class="tour-buttons">
-                    <button onclick="window.ivaTour.pause()" class="btn-pause">⏸️ Pausar</button>
-                    <button onclick="window.ivaTour.resume()" class="btn-resume" style="display:none;">▶️ Continuar</button>
-                    <button onclick="window.ivaTour.skip()" class="btn-skip">⏭️ Pular</button>
-                    <button onclick="window.ivaTour.finish()" class="btn-exit">❌ Sair</button>
+                    <button onclick="window.IvaTour.pause()" class="btn-pause">⏸️ Pausar</button>
+                    <button onclick="window.IvaTour.resume()" class="btn-resume" style="display:none;">▶️ Continuar</button>
+                    <button onclick="window.IvaTour.skip()" class="btn-skip">⏭️ Pular</button>
+                    <button onclick="window.IvaTour.finish()" class="btn-exit">❌ Sair</button>
                 </div>
             `;
             controls.style.cssText = `
@@ -360,7 +360,7 @@ export const ivaTour = {
         }
 
         // Expose to window for onclick handlers
-        window.ivaTour = this;
+        window.IvaTour = this;
     },
 
     /**
@@ -444,6 +444,7 @@ export const ivaTour = {
 };
 
 // Auto-expose to window
-window.ivaTour = ivaTour;
+window.IvaTour = IvaTour;
+
 
 
