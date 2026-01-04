@@ -431,6 +431,15 @@ export const ConsolidadasManager = (project) => {
     // Style it to match look
     filterContainer.style.marginRight = '1rem';
 
+    // Dates
+    const dateGroup = document.createElement('div'); dateGroup.style.cssText = 'display:flex; align-items:center; gap:0.5rem;';
+    dateGroup.append(
+        Object.assign(document.createElement('span'), { textContent: 'De:', style: 'font-size:0.9rem; color:#4B5563;' }),
+        MonthPicker(startMonth, (v) => { startMonth = v; localStorage.setItem('consolidadas_startMonth', v); loadData(); }),
+        Object.assign(document.createElement('span'), { textContent: 'Até:', style: 'font-size:0.9rem; color:#4B5563;' }),
+        MonthPicker(endMonth, (v) => { endMonth = v; localStorage.setItem('consolidadas_endMonth', v); loadData(); })
+    );
+
     leftControls.append(filterContainer, dateGroup);
 
     // Exports
