@@ -133,7 +133,7 @@ exports.getDailyForecast = async (req, res, next) => {
         const validitySql = (table) => getValiditySql(table);
 
         // 1.1 Calculate Historic Inflows (active=1)
-        const [inflowResult] = await db.execute(`
+        const [inflowResult] = await db.query(`
             SELECT SUM(valor) as total 
             FROM entradas 
             WHERE project_id = ? 
@@ -144,7 +144,7 @@ exports.getDailyForecast = async (req, res, next) => {
         const historicInflow = parseFloat(inflowResult[0].total || 0);
 
         // 1.2 Calculate Historic Outflows
-        const [saidasResult] = await db.execute(`
+        const [saidasResult] = await db.query(`
             SELECT SUM(valor) as total 
             FROM saidas 
             WHERE project_id = ? 
@@ -154,7 +154,7 @@ exports.getDailyForecast = async (req, res, next) => {
         `, [projectId, startDate]);
         const historicSaidas = parseFloat(saidasResult[0].total || 0);
 
-        const [producaoResult] = await db.execute(`
+        const [producaoResult] = await db.query(`
             SELECT SUM(valor) as total 
             FROM producao_revenda 
             WHERE project_id = ? 
@@ -165,7 +165,7 @@ exports.getDailyForecast = async (req, res, next) => {
         const historicProducao = parseFloat(producaoResult[0].total || 0);
 
         // 1.3 Historic Aportes
-        const [aportesResult] = await db.execute(`
+        const [aportesResult] = await db.query(`
             SELECT SUM(valor) as total 
             FROM aportes 
             WHERE project_id = ? 
@@ -176,7 +176,7 @@ exports.getDailyForecast = async (req, res, next) => {
         const historicAportes = parseFloat(aportesResult[0].total || 0);
 
         // 1.4 Historic Retiradas
-        const [retiradasResult] = await db.execute(`
+        const [retiradasResult] = await db.query(`
             SELECT SUM(valor) as total 
             FROM retiradas 
             WHERE project_id = ? 
@@ -196,7 +196,7 @@ exports.getDailyForecast = async (req, res, next) => {
 
         const buildDailyTree = async (typeTable, dataTable, fkCol) => {
             // Types
-            const [types] = await db.execute(
+            const [types] = await db.query(
                 `SELECT id, label, parent_id FROM ${typeTable} WHERE project_id = ? ORDER BY label`,
                 [projectId]
             );
@@ -230,7 +230,7 @@ exports.getDailyForecast = async (req, res, next) => {
                 AND ${dateExpr} >= ?
                 AND ${dateExpr} <= ?
                     `;
-            const [items] = await db.execute(query, [projectId, startDate, endDate]);
+            const [items] = await db.query(query, [projectId, startDate, endDate]);
 
             // Map & Aggregate
             const typeMap = new Map();
@@ -364,7 +364,7 @@ exports.getDailyForecast = async (req, res, next) => {
                 selectCols = 'valor, data_real, data_prevista';
             }
 
-            const [items] = await db.execute(`
+            const [items] = await db.query(`
             SELECT
                 ${selectCols},
                 ${dateExpr} as raw_date
