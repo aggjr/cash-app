@@ -124,7 +124,33 @@ export const ConsolidadasManager = (project) => {
         tablesWrapper.appendChild(spacer);
 
         // Table 2: Provisioned
+        // Table 2: Provisioned
         tablesWrapper.appendChild(createTableHTML(currentData.provisioned, titleProv));
+
+        // Adjust sticky columns dynamically
+        setTimeout(adjustStickyColumns, 0);
+    };
+
+    const adjustStickyColumns = () => {
+        const tablesWrapper = container.querySelector('#consolidadas-tables-wrapper');
+        const tables = tablesWrapper.querySelectorAll('table');
+
+        tables.forEach(table => {
+            // Find max width of first column
+            // We can't trust the TH width alone if it's auto.
+            // But table layout auto should handle it?
+            // Let's measure the first TH.
+            const firstTh = table.querySelector('th.js-col-name');
+            if (firstTh) {
+                const w1 = firstTh.getBoundingClientRect().width;
+                table.style.setProperty('--c1-width', `${w1}px`);
+
+                // Avg Col Width (fixed 140px)
+                const avgWidth = 140;
+                table.style.setProperty('--c2-left', `${w1}px`);
+                table.style.setProperty('--c3-left', `${w1 + avgWidth}px`);
+            }
+        });
     };
 
     // --- Reusable Logic to Create Table Element ---
@@ -219,7 +245,7 @@ export const ConsolidadasManager = (project) => {
                 if (Math.abs(node.total) > totalTol) {
                     displayTotal = node.isPercentage ? formatPercent(node.total) : formatCurrency(node.total);
                 }
-                const totalCell = `<td style="padding: 0.5rem 1rem; text-align: right; border-bottom: 1px solid #f3f4f6; font-weight: bold; color: ${totalColor}; font-size: ${fontSize}; position: sticky; left: 460px; background-color: ${rowBg}; z-index: 1; white-space: nowrap;">${displayTotal}</td>`;
+                const totalCell = `<td style="padding: 0.5rem 1rem; text-align: right; border-bottom: 1px solid #f3f4f6; font-weight: bold; color: ${totalColor}; font-size: ${fontSize}; position: sticky; left: var(--c3-left, 460px); background-color: ${rowBg}; z-index: 1; white-space: nowrap;">${displayTotal}</td>`;
 
                 // Average
                 let average = 0;
@@ -234,11 +260,11 @@ export const ConsolidadasManager = (project) => {
                 if (Math.abs(average) > totalTol) {
                     displayAvg = node.isPercentage ? formatPercent(average) : formatCurrency(average);
                 }
-                const averageCell = `<td style="padding: 0.5rem 1rem; text-align: right; border-bottom: 1px solid #f3f4f6; font-weight: bold; color: ${totalColor}; font-size: ${fontSize}; position: sticky; left: 320px; background-color: ${rowBg}; z-index: 1; white-space: nowrap;">${displayAvg}</td>`;
+                const averageCell = `<td style="padding: 0.5rem 1rem; text-align: right; border-bottom: 1px solid #f3f4f6; font-weight: bold; color: ${totalColor}; font-size: ${fontSize}; position: sticky; left: var(--c2-left, 320px); background-color: ${rowBg}; z-index: 1; white-space: nowrap;">${displayAvg}</td>`;
 
                 rowsHtml += `
                     <tr class="${rowClass}" data-id="${node.id}" style="background-color: ${rowBg}; cursor: ${hasChildren ? 'pointer' : 'default'};">
-                        <td style="padding: 0.5rem 1rem 0.5rem ${paddingLeft}rem; border-bottom: 1px solid #f3f4f6; font-weight: ${fontWeight}; font-size: ${fontSize}; display: flex; align-items: center; gap: 0.5rem; position: sticky; left: 0; background-color: ${rowBg}; z-index: 1; width: 320px; min-width: 320px; max-width: 320px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;" title="${node.name}">
+                        <td class="js-col-name" style="padding: 0.5rem 1rem 0.5rem ${paddingLeft}rem; border-bottom: 1px solid #f3f4f6; font-weight: ${fontWeight}; font-size: ${fontSize}; display: flex; align-items: center; gap: 0.5rem; position: sticky; left: 0; background-color: ${rowBg}; z-index: 1; width: auto; white-space: nowrap;" title="${node.name}">
                             ${hasChildren ? `<span style="font-size: 0.8rem; transform: rotate(${isExpanded ? '90deg' : '0deg'}); transition: transform 0.2s;">▶</span>` : ''}
                             ${node.name}
                         </td>
@@ -264,9 +290,9 @@ export const ConsolidadasManager = (project) => {
                     </th>
                 </tr>
                 <tr>
-                    <th style="padding: 1rem; text-align: center; border-bottom: 2px solid #e5e7eb; width: 320px; min-width: 320px; max-width: 320px; position: sticky; left: 0; z-index: 11; background-color: #00425F; white-space: nowrap;"></th>
-                    <th style="padding: 1rem; text-align: center; border-bottom: 2px solid #e5e7eb; width: 140px; min-width: 140px; position: sticky; left: 320px; z-index: 11; background-color: #00425F; white-space: nowrap;">MÉDIA</th>
-                    <th style="padding: 1rem; text-align: center; border-bottom: 2px solid #e5e7eb; width: 140px; min-width: 140px; position: sticky; left: 460px; z-index: 11; background-color: #00425F; white-space: nowrap;">TOTAL</th>
+                    <th class="js-col-name" style="padding: 1rem; text-align: center; border-bottom: 2px solid #e5e7eb; width: auto; position: sticky; left: 0; z-index: 11; background-color: #00425F; white-space: nowrap;"></th>
+                    <th style="padding: 1rem; text-align: center; border-bottom: 2px solid #e5e7eb; width: 140px; min-width: 140px; position: sticky; left: var(--c2-left, 320px); z-index: 11; background-color: #00425F; white-space: nowrap;">MÉDIA</th>
+                    <th style="padding: 1rem; text-align: center; border-bottom: 2px solid #e5e7eb; width: 140px; min-width: 140px; position: sticky; left: var(--c3-left, 460px); z-index: 11; background-color: #00425F; white-space: nowrap;">TOTAL</th>
                     ${months.map(m => {
             const [y, mo] = m.split('-');
             // User Request: Smallest possible width (fit content). Removed min-width: 120px.
