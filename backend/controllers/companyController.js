@@ -43,9 +43,10 @@ exports.createCompany = async (req, res, next) => {
             throw new AppError('RES-002', 'CNPJ already registered');
         }
 
-        const [result] = await db.query(
+        const [result] = await db.auditedQuery(
             'INSERT INTO empresas (name, cnpj, description, project_id) VALUES (?, ?, ?, ?)',
-            [name, cnpj, description, projectId]
+            [name, cnpj, description, projectId],
+            req
         );
 
         res.status(201).json({
@@ -57,8 +58,7 @@ exports.createCompany = async (req, res, next) => {
             project_id: projectId
         });
 
-        // Log Audit
-        logAudit(req, 'CREATE', 'empresas', result.insertId, { name, cnpj, description });
+        // Audit is automatic via auditedQuery
     } catch (error) {
         next(error);
     }
@@ -107,14 +107,15 @@ exports.updateCompany = async (req, res, next) => {
 
         if (updates.length > 0) {
             values.push(id);
-            await db.query(
+            await db.auditedQuery(
                 `UPDATE empresas SET ${updates.join(', ')} WHERE id = ?`,
-                values
+                values,
+                req
             );
         }
 
         res.json({ message: 'Company updated successfully' });
-        logAudit(req, 'UPDATE', 'empresas', id, { updates: updates.length });
+        // Audit is automatic via auditedQuery
     } catch (error) {
         next(error);
     }
@@ -159,9 +160,9 @@ exports.deleteCompany = async (req, res, next) => {
             });
         }
 
-        await db.query('DELETE FROM empresas WHERE id = ?', [id]);
+        await db.auditedQuery('DELETE FROM empresas WHERE id = ?', [id], req);
         res.json({ message: 'Company deleted successfully' });
-        logAudit(req, 'DELETE', 'empresas', id, {});
+        // Audit is automatic via auditedQuery
     } catch (error) {
         next(error);
     }

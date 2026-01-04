@@ -29,9 +29,10 @@ exports.create = async (req, res) => {
     try {
         const { label, parent_id, ordem, expanded } = req.body;
 
-        const [result] = await db.query(
+        const [result] = await db.auditedQuery(
             'INSERT INTO tipo_entrada (label, parent_id, ordem, expanded) VALUES (?, ?, ?, ?)',
-            [label, parent_id || null, ordem || 0, expanded !== false]
+            [label, parent_id || null, ordem || 0, expanded !== false],
+            null  // No req parameter in this legacy controller
         );
 
         const [newNode] = await db.query(
@@ -52,9 +53,10 @@ exports.update = async (req, res) => {
         const { id } = req.params;
         const { label, parent_id, ordem, expanded } = req.body;
 
-        await db.query(
+        await db.auditedQuery(
             'UPDATE tipo_entrada SET label = ?, parent_id = ?, ordem = ?, expanded = ? WHERE id = ?',
-            [label, parent_id || null, ordem, expanded, id]
+            [label, parent_id || null, ordem, expanded, id],
+            null  // No req parameter in this legacy controller
         );
 
         const [updated] = await db.query(
@@ -74,7 +76,11 @@ exports.delete = async (req, res) => {
     try {
         const { id } = req.params;
 
-        await db.query('DELETE FROM tipo_entrada WHERE id = ?', [id]);
+        await db.auditedQuery(
+            'DELETE FROM tipo_entrada WHERE id = ?',
+            [id],
+            null  // No req parameter in this legacy controller
+        );
 
         res.json({ message: 'Node deleted successfully' });
     } catch (error) {
