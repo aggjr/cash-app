@@ -436,7 +436,14 @@ export const ExtratoContaManager = (project) => {
     };
 
     const loadExtrato = async () => {
-        if (!selectedAccountId) return;
+        if (!selectedAccountId) {
+            // Clear table if no account selected
+            const wrapper = container.querySelector('.extrato-table-wrapper');
+            if (wrapper) {
+                wrapper.remove();
+            }
+            return;
+        }
 
         try {
             const wrapper = container.querySelector('.extrato-table-wrapper');
