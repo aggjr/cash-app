@@ -2,6 +2,7 @@ const db = require('../config/database');
 const AppError = require('../utils/AppError');
 const { logAudit } = require('../utils/auditLogger');
 const { validateDateWithinRange } = require('../utils/dateValidation');
+const { wrapConnectionWithAudit } = require('../utils/connectionWrapper');
 
 // Helper for Sorting
 const getOrderByClause = (sortBy, order) => {
@@ -172,9 +173,10 @@ exports.createAporte = async (req, res, next) => {
         }
 
         connection = await db.getConnection();
-        await connection.beginTransaction();
+        const audited = wrapConnectionWithAudit(connection, req);
+        await audited.beginTransaction();
 
-        const [result] = await connection.query(
+        const [result] = await audited.query(
             `INSERT INTO aportes 
             (data_fato, data_real, valor, descricao, company_id, account_id, project_id, comprovante_url, forma_pagamento) 
             VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)`,
@@ -192,13 +194,13 @@ exports.createAporte = async (req, res, next) => {
         // This implies if no Data Real, No Account. So accountId CAN be null.
 
         if (accountId) {
-            await connection.query(
+            await audited.query(
                 'UPDATE contas SET current_balance = current_balance + ? WHERE id = ?',
                 [valorDecimal, accountId]
             );
         }
 
-        await connection.commit();
+        await audited.commit();
 
         res.status(201).json({
             id: result.insertId,
@@ -214,7 +216,7 @@ exports.createAporte = async (req, res, next) => {
             forma_pagamento: formaPagamento || null
         });
 
-        logAudit(req, 'CREATE', 'aportes', result.insertId, { valor: valorDecimal, company_id: companyId, account_id: accountId });
+        // Audit is automatic via connectionWrapper
     } catch (error) {
         if (connection) await connection.rollback();
         next(error);
@@ -240,10 +242,11 @@ exports.updateAporte = async (req, res, next) => {
         } = req.body;
 
         connection = await db.getConnection();
-        await connection.beginTransaction();
+        const audited = wrapConnectionWithAudit(connection, req);
+        await audited.beginTransaction();
 
         // Get old aporte data
-        const [oldAporte] = await connection.query(
+        const [oldAporte] = await audited.query(
             'SELECT valor, account_id, data_real FROM aportes WHERE id = ?',
             [id]
         );
@@ -327,7 +330,7 @@ exports.updateAporte = async (req, res, next) => {
 
         if (updates.length > 0) {
             values.push(id);
-            await connection.query(
+            await audited.query(
                 `UPDATE aportes SET ${updates.join(', ')} WHERE id = ?`,
                 values
             );
@@ -344,7 +347,7 @@ exports.updateAporte = async (req, res, next) => {
 
         // 1. Revert old transaction if it existed
         if (oldAcc) {
-            await connection.query(
+            await audited.query(
                 'UPDATE contas SET current_balance = current_balance - ? WHERE id = ?',
                 [oldAporte[0].valor, oldAcc]
             );
@@ -352,15 +355,15 @@ exports.updateAporte = async (req, res, next) => {
 
         // 2. Apply new transaction if it exists
         if (newAccountId) {
-            await connection.query(
+            await audited.query(
                 'UPDATE contas SET current_balance = current_balance + ? WHERE id = ?',
                 [newValor, newAccountId]
             );
         }
 
-        await connection.commit();
+        await audited.commit();
         res.json({ message: 'Aporte updated successfully' });
-        logAudit(req, 'UPDATE', 'aportes', id, { updates: updates.length });
+        // Audit is automatic via connectionWrapper
     } catch (error) {
         if (connection) await connection.rollback();
         next(error);
@@ -375,9 +378,10 @@ exports.deleteAporte = async (req, res, next) => {
         const { id } = req.params;
 
         connection = await db.getConnection();
-        await connection.beginTransaction();
+        const audited = wrapConnectionWithAudit(connection, req);
+        await audited.beginTransaction();
 
-        const [aporte] = await connection.query(
+        const [aporte] = await audited.query(
             'SELECT valor, account_id FROM aportes WHERE id = ? AND active = 1',
             [id]
         );
@@ -387,17 +391,17 @@ exports.deleteAporte = async (req, res, next) => {
         }
 
         // Soft delete
-        await connection.query('UPDATE aportes SET active = 0 WHERE id = ?', [id]);
+        await audited.query('UPDATE aportes SET active = 0 WHERE id = ?', [id]);
 
         // Decrease account balance (reverse the injection)
-        await connection.query(
+        await audited.query(
             'UPDATE contas SET current_balance = current_balance - ? WHERE id = ?',
             [aporte[0].valor, aporte[0].account_id]
         );
 
-        await connection.commit();
+        await audited.commit();
         res.json({ message: 'Aporte deleted successfully' });
-        logAudit(req, 'DELETE', 'aportes', id, {});
+        // Audit is automatic via connectionWrapper
     } catch (error) {
         if (connection) await connection.rollback();
         next(error);
