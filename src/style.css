@@ -465,7 +465,9 @@ button {
   }
 
   table {
-    width: 100% !important;
+    width: auto !important;
+    /* Allow table to shrink to fit content */
+    max-width: 100% !important;
     font-size: 8pt !important;
     table-layout: auto !important;
     border-collapse: collapse !important;
@@ -481,22 +483,17 @@ button {
     /* Removed fixed background/color overrides to allow inline styles */
   }
 
-  td {
-    border: 1px solid #ddd !important;
-    padding: 3px 5px !important;
-    font-size: 8pt !important;
-    white-space: nowrap !important;
-    /* Removed color: black !important to allow red/green text */
-  }
+  /* ... */
 
   /* Ensure rows don't break awkwardly */
   tr {
     page-break-inside: avoid;
   }
 
-  /* Hide last 2 columns (Link and Ações) - not useful in print */
-  th:nth-last-child(-n+2),
-  td:nth-last-child(-n+2) {
+  /* Hide specific UI columns if they have a class, but DO NOT blindly hide last columns */
+  /* This prevents cutting off data in dynamic tables like Fechamento */
+  .actions-column,
+  .link-column {
     display: none !important;
   }
 
