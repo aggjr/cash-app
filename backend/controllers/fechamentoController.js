@@ -136,9 +136,58 @@ exports.getFechamentoReport = async (req, res) => {
             movementsMap[row.account_id][row.month_key] = parseFloat(row.monthly_delta || 0);
         });
 
+        // --- 3. FETCH ACCOUNTS WITH COMPANY INFO ---
+        let accountsQuery = `
+            SELECT 
+                c.id as account_id,
+                c.name as account_name,
+                c.company_id,
+                e.name as company_name
+            FROM contas c
+            INNER JOIN empresas e ON c.company_id = e.id
+            WHERE c.project_id = ? AND c.active = 1
+        `;
+
+        const accountsParams = [projectId];
+
+        // Apply account filter if provided
+        if (req.query.accountIds) {
+            const accountIds = Array.isArray(req.query.accountIds)
+                ? req.query.accountIds
+                : [req.query.accountIds];
+
+            if (accountIds.length > 0) {
+                accountsQuery += ` AND c.id IN (${accountIds.map(() => '?').join(',')})`;
+                accountsParams.push(...accountIds);
+            }
+        }
+
+        accountsQuery += ` ORDER BY e.name, c.name`;
+
+        const [accounts] = await db.query(accountsQuery, accountsParams);
+
+        // Group accounts by company
+        const companiesMap = {};
+        accounts.forEach(acc => {
+            if (!companiesMap[acc.company_id]) {
+                companiesMap[acc.company_id] = {
+                    company_id: acc.company_id,
+                    company_name: acc.company_name,
+                    accounts: []
+                };
+            }
+            companiesMap[acc.company_id].accounts.push({
+                account_id: acc.account_id,
+                account_name: acc.account_name
+            });
+        });
+
+        const companies = Object.values(companiesMap);
+
         res.json({
             initialBalances: balanceMap,
-            movements: movementsMap
+            movements: movementsMap,
+            companies: companies
         });
 
     } catch (error) {

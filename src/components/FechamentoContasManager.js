@@ -2,6 +2,7 @@ import { showToast } from '../utils/toast.js';
 import { getApiBaseUrl } from '../utils/apiConfig.js';
 import { MonthPicker } from './MonthPicker.js';
 import { ExcelExporter } from '../utils/ExcelExporter.js';
+import { HierarchicalFilter } from './HierarchicalFilter.js';
 
 export const FechamentoContasManager = (project) => {
     const container = document.createElement('div');
@@ -30,8 +31,11 @@ export const FechamentoContasManager = (project) => {
 
     // Data
     let accounts = [];
+    let companies = [];
     let initialBalances = {};
     let movementsData = {};
+    let selectedAccountIds = [];
+    let hierarchicalFilter = null;
 
     const getHeaders = () => {
         const token = localStorage.getItem('token');
@@ -132,6 +136,24 @@ export const FechamentoContasManager = (project) => {
         controls.appendChild(startDiv);
         controls.appendChild(endDiv);
 
+        // Company/Account Filter
+        const filterDiv = document.createElement('div');
+        filterDiv.style.minWidth = '250px';
+        const filterLabel = document.createElement('label');
+        filterLabel.textContent = 'Filtrar Empresas/Contas';
+        filterLabel.style.display = 'block';
+        filterLabel.style.marginBottom = '0.25rem';
+        filterLabel.style.fontWeight = '500';
+        filterLabel.style.fontSize = '0.9rem';
+        filterLabel.style.color = '#374151';
+
+        const filterContainer = document.createElement('div');
+        filterContainer.id = 'hierarchical-filter-container';
+
+        filterDiv.appendChild(filterLabel);
+        filterDiv.appendChild(filterContainer);
+        controls.appendChild(filterDiv);
+
         // Export Buttons
         const exportDiv = document.createElement('div');
         exportDiv.style.display = 'flex';
@@ -192,17 +214,33 @@ export const FechamentoContasManager = (project) => {
         headerRow.style.top = '0';
         headerRow.style.zIndex = '100'; // Highest priority vertical
 
-        // Fixed First Column Header
+        // Fixed Company Column Header
+        const thCompany = document.createElement('th');
+        thCompany.textContent = 'Empresa';
+        thCompany.style.position = 'sticky';
+        thCompany.style.left = '0';
+        thCompany.style.zIndex = '101';
+        thCompany.style.backgroundColor = '#00425F';
+        thCompany.style.color = 'white';
+        thCompany.style.padding = '0.5rem 0.75rem';
+        thCompany.style.textAlign = 'left';
+        thCompany.style.width = '1%';
+        thCompany.style.whiteSpace = 'nowrap';
+        thCompany.style.borderBottom = '1px solid #1e3a8a';
+        thCompany.style.borderRight = '1px solid #1e3a8a';
+        headerRow.appendChild(thCompany);
+
+        // Fixed Account Column Header
         const thFixed = document.createElement('th');
         thFixed.textContent = 'Conta Bancária';
         thFixed.style.position = 'sticky';
-        thFixed.style.left = '0';
-        thFixed.style.zIndex = '101'; // Higher priority than other headers (corner)
+        thFixed.style.left = '0'; // Will be calculated dynamically
+        thFixed.style.zIndex = '101';
         thFixed.style.backgroundColor = '#00425F';
         thFixed.style.color = 'white';
-        thFixed.style.padding = '0.5rem 0.75rem'; // Compact padding
+        thFixed.style.padding = '0.5rem 0.75rem';
         thFixed.style.textAlign = 'left';
-        thFixed.style.width = '1%'; // Auto-shrink
+        thFixed.style.width = '1%';
         thFixed.style.whiteSpace = 'nowrap';
         thFixed.style.borderBottom = '1px solid #1e3a8a';
         thFixed.style.borderRight = '1px solid #1e3a8a';
@@ -231,77 +269,100 @@ export const FechamentoContasManager = (project) => {
         // Totals array (one per month)
         const monthTotals = new Array(months.length).fill(0);
 
-        accounts.forEach((acc, index) => {
-            const isEven = index % 2 === 0;
-            const bgColor = isEven ? '#FFFFFF' : '#F8FAFC';
+        // Group accounts by company for rowspan calculation
+        const companyGroups = {};
+        accounts.forEach(acc => {
+            if (!companyGroups[acc.company_id]) {
+                companyGroups[acc.company_id] = {
+                    company_name: acc.company_name,
+                    accounts: []
+                };
+            }
+            companyGroups[acc.company_id].accounts.push(acc);
+        });
 
-            const tr = document.createElement('tr');
+        let globalIndex = 0;
+        Object.values(companyGroups).forEach(group => {
+            const rowspan = group.accounts.length;
 
-            // Fixed First Column Cell
-            const tdFixed = document.createElement('td');
-            tdFixed.textContent = acc.name;
-            tdFixed.style.position = 'sticky';
-            tdFixed.style.left = '0';
-            tdFixed.style.backgroundColor = '#00425F'; // Header Match ??? No, should match row but sticky needs bg.
-            // Using a specific dark grey/blue for row headers or just white/grey?
-            // To match the design requests commonly: sticky columns often keep background.
-            // But let's use the requested dark header style for the first column or standard row color?
-            // The previous code had '#00425F' for the first column cell? That makes the first column look like a header.
-            // Let's stick to the previous design if not complained about, but user asked for "standardized width".
-            // If I change the color it changes design. I'll keep the previous color logic for the first column.
-            tdFixed.style.backgroundColor = '#00425F';
-            tdFixed.style.color = 'white';
-            tdFixed.style.fontWeight = '500';
-            tdFixed.style.zIndex = '10'; // Sticky Horizontal
-            tdFixed.style.padding = '0.5rem 0.75rem'; // Compact
-            tdFixed.style.textAlign = 'left';
-            tdFixed.style.borderBottom = '1px solid #e2e8f0'; // Light, but on dark bg?
-            tdFixed.style.borderBottom = '1px solid #1e3a8a'; // Match header border for consistency in dark col
-            tdFixed.style.borderRight = '1px solid #1e3a8a';
-            tdFixed.style.whiteSpace = 'nowrap';
-            tr.appendChild(tdFixed);
+            group.accounts.forEach((acc, localIndex) => {
+                const isEven = globalIndex % 2 === 0;
+                const bgColor = isEven ? '#FFFFFF' : '#F8FAFC';
 
-            // Calculation Logic
-            // Start with Pre-Period Balance
-            let currentBalance = initialBalances[acc.id] || 0;
+                const tr = document.createElement('tr');
 
-            // Month Data Cells
-            months.forEach((m, mIndex) => {
-                const monthKey = `${m.getFullYear()}-${(m.getMonth() + 1).toString().padStart(2, '0')}`;
+                // Company Cell (only on first row of group)
+                if (localIndex === 0) {
+                    const tdCompany = document.createElement('td');
+                    tdCompany.textContent = group.company_name;
+                    tdCompany.rowSpan = rowspan;
+                    tdCompany.style.position = 'sticky';
+                    tdCompany.style.left = '0';
+                    tdCompany.style.backgroundColor = '#00425F';
+                    tdCompany.style.color = 'white';
+                    tdCompany.style.fontWeight = '600';
+                    tdCompany.style.zIndex = '10';
+                    tdCompany.style.padding = '0.5rem 0.75rem';
+                    tdCompany.style.textAlign = 'left';
+                    tdCompany.style.borderBottom = '1px solid #1e3a8a';
+                    tdCompany.style.borderRight = '1px solid #1e3a8a';
+                    tdCompany.style.whiteSpace = 'nowrap';
+                    tdCompany.style.verticalAlign = 'middle';
+                    tr.appendChild(tdCompany);
+                }
 
-                // Get Delta for this month (In - Out)
-                const monthDelta = (movementsData[acc.id] && movementsData[acc.id][monthKey])
-                    ? movementsData[acc.id][monthKey]
-                    : 0;
+                // Account Name Cell
+                const tdFixed = document.createElement('td');
+                tdFixed.textContent = acc.name;
+                tdFixed.style.position = 'sticky';
+                tdFixed.style.left = '0'; // Will overlap company column
+                tdFixed.style.backgroundColor = '#00425F';
+                tdFixed.style.color = 'white';
+                tdFixed.style.fontWeight = '500';
+                tdFixed.style.zIndex = '10';
+                tdFixed.style.padding = '0.5rem 0.75rem';
+                tdFixed.style.textAlign = 'left';
+                tdFixed.style.borderBottom = '1px solid #1e3a8a';
+                tdFixed.style.borderRight = '1px solid #1e3a8a';
+                tdFixed.style.whiteSpace = 'nowrap';
+                tr.appendChild(tdFixed);
 
-                // Update Running Balance
-                currentBalance += monthDelta;
+                // Calculation Logic
+                let currentBalance = initialBalances[acc.id] || 0;
 
-                // Add to Column Total
-                monthTotals[mIndex] += currentBalance;
+                // Month Data Cells
+                months.forEach((m, mIndex) => {
+                    const monthKey = `${m.getFullYear()}-${(m.getMonth() + 1).toString().padStart(2, '0')}`;
+                    const monthDelta = (movementsData[acc.id] && movementsData[acc.id][monthKey])
+                        ? movementsData[acc.id][monthKey]
+                        : 0;
 
-                const td = document.createElement('td');
-                const val = currentBalance;
+                    currentBalance += monthDelta;
+                    monthTotals[mIndex] += currentBalance;
 
-                td.textContent = formatCurrency(val);
-                td.style.backgroundColor = bgColor;
-                td.style.padding = '0.5rem 0.25rem'; // Match header compact padding
-                td.style.textAlign = 'right';
-                td.style.borderBottom = '1px solid #e2e8f0';
-                td.style.whiteSpace = 'nowrap'; // Prevent wrapping of currency
+                    const td = document.createElement('td');
+                    const val = currentBalance;
 
-                // Color Logic: Positive Green, Negative Red
-                if (val > 0) td.style.color = '#10B981'; // Green
-                else if (val < 0) td.style.color = '#EF4444'; // Red
-                else td.style.color = '#9ca3af'; // Gray for zero
+                    td.textContent = formatCurrency(val);
+                    td.style.backgroundColor = bgColor;
+                    td.style.padding = '0.5rem 0.25rem';
+                    td.style.textAlign = 'right';
+                    td.style.borderBottom = '1px solid #e2e8f0';
+                    td.style.whiteSpace = 'nowrap';
 
-                td.addEventListener('mouseenter', () => td.style.backgroundColor = 'rgba(218, 177, 119, 0.5)');
-                td.addEventListener('mouseleave', () => td.style.backgroundColor = bgColor);
+                    if (val > 0) td.style.color = '#10B981';
+                    else if (val < 0) td.style.color = '#EF4444';
+                    else td.style.color = '#9ca3af';
 
-                tr.appendChild(td);
+                    td.addEventListener('mouseenter', () => td.style.backgroundColor = 'rgba(218, 177, 119, 0.5)');
+                    td.addEventListener('mouseleave', () => td.style.backgroundColor = bgColor);
+
+                    tr.appendChild(td);
+                });
+
+                tbody.appendChild(tr);
+                globalIndex++;
             });
-
-            tbody.appendChild(tr);
         });
 
         // --- TOTAL ROW ---
@@ -309,9 +370,10 @@ export const FechamentoContasManager = (project) => {
         trTotal.style.fontWeight = '700';
         trTotal.style.backgroundColor = '#f0f9ff'; // Light highlight
 
-        // Fixed First Cell (Label TOTAL)
+        // Fixed First Cell (Label TOTAL) - spans both company and account columns
         const tdTotalLabel = document.createElement('td');
         tdTotalLabel.textContent = 'TOTAL';
+        tdTotalLabel.colSpan = 2; // Span both company and account columns
         tdTotalLabel.style.position = 'sticky';
         tdTotalLabel.style.left = '0';
         tdTotalLabel.style.backgroundColor = '#00425F';
@@ -355,27 +417,71 @@ export const FechamentoContasManager = (project) => {
             const wrapper = container.querySelector('.fechamento-table-wrapper');
             if (wrapper) wrapper.style.opacity = '0.5';
 
-            // 1. Load Accounts (if not loaded)
-            if (accounts.length === 0) {
-                const accountsResp = await fetch(`${API_BASE_URL}/accounts?projectId=${project.id}`, { headers: getHeaders() });
-                if (!accountsResp.ok) throw new Error('Failed to load accounts');
-                accounts = await accountsResp.json();
-            }
-
-            // 2. Load Report Data
+            // 1. Load Report Data (now includes companies)
             const startStr = `${startMonth.getFullYear()}-${(startMonth.getMonth() + 1).toString().padStart(2, '0')}`;
             const endStr = `${endMonth.getFullYear()}-${(endMonth.getMonth() + 1).toString().padStart(2, '0')}`;
 
-            const reportResp = await fetch(`${API_BASE_URL}/fechamento?projectId=${project.id}&startMonth=${startStr}&endMonth=${endStr}`, { headers: getHeaders() });
+            let url = `${API_BASE_URL}/fechamento?projectId=${project.id}&startMonth=${startStr}&endMonth=${endStr}`;
+
+            // Add account filter if any selected
+            if (selectedAccountIds.length > 0) {
+                selectedAccountIds.forEach(id => {
+                    url += `&accountIds=${id}`;
+                });
+            }
+
+            const reportResp = await fetch(url, { headers: getHeaders() });
 
             if (reportResp.ok) {
                 const reportData = await reportResp.json();
                 initialBalances = reportData.initialBalances || {};
                 movementsData = reportData.movements || {};
+                companies = reportData.companies || [];
+
+                // Build accounts list from companies
+                accounts = [];
+                companies.forEach(company => {
+                    company.accounts.forEach(acc => {
+                        accounts.push({
+                            id: acc.account_id,
+                            name: acc.account_name,
+                            company_id: company.company_id,
+                            company_name: company.company_name
+                        });
+                    });
+                });
+
+                // Initialize hierarchical filter if not yet created
+                if (!hierarchicalFilter && companies.length > 0) {
+                    const filterContainer = document.getElementById('hierarchical-filter-container');
+                    if (filterContainer) {
+                        const filterData = companies.map(company => ({
+                            id: `company-${company.company_id}`,
+                            label: company.company_name,
+                            children: company.accounts.map(acc => ({
+                                id: acc.account_id.toString(),
+                                label: acc.account_name
+                            }))
+                        }));
+
+                        hierarchicalFilter = new HierarchicalFilter({
+                            container: filterContainer,
+                            data: filterData,
+                            selectedIds: selectedAccountIds,
+                            onChange: (ids) => {
+                                selectedAccountIds = ids.map(id => parseInt(id));
+                                loadData();
+                            },
+                            placeholder: 'Todas as contas'
+                        });
+                    }
+                }
             } else {
                 console.error('Failed to load report data');
                 initialBalances = {};
                 movementsData = {};
+                companies = [];
+                accounts = [];
             }
 
             renderTable();
@@ -383,8 +489,6 @@ export const FechamentoContasManager = (project) => {
         } catch (error) {
             console.error(error);
             showToast('Erro ao carregar dados', 'error');
-            // Mock if fails
-            if (accounts.length === 0) accounts = [{ name: 'Conta Teste 1', id: -1 }];
             renderTable();
         }
     };
