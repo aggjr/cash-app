@@ -1085,7 +1085,7 @@ Digite 1, 2 ou 3.`;
                     };
 
                     try {
-                        const decision = await IVAService.decideOperation('IVA_AUTO_GREETING', context);
+                        const decision = await IvaService.decideOperation('IVA_AUTO_GREETING', context);
 
                         if (thinkingMsg.parentNode) thinkingMsg.parentNode.removeChild(thinkingMsg);
 
@@ -1146,7 +1146,7 @@ Digite 1, 2 ou 3.`;
                 console.log('[IVA] Screen Context:', screenContext);
 
                 // Add available actions for this screen
-                screenContext.availableActions = IVAScreenActions.getActionsForLLM(
+                screenContext.availableActions = IvaScreenActions.getActionsForLLM(
                     screenContext.screenId
                 );
                 console.log('[IVA] Available Actions:', screenContext.availableActions);
@@ -1163,7 +1163,7 @@ Digite 1, 2 ou 3.`;
             messagesContainer.scrollTop = messagesContainer.scrollHeight;
 
             try {
-                const decision = await IVAService.decideOperation(text, context);
+                const decision = await IvaService.decideOperation(text, context);
 
                 // Remove thinking bubble
                 if (thinkingMsg.parentNode) thinkingMsg.parentNode.removeChild(thinkingMsg);
@@ -1281,7 +1281,7 @@ Digite 1, 2 ou 3.`;
                     speak(message);
 
                     // Execute the interaction
-                    const result = await IVAScreenActions.executeAction(
+                    const result = await IvaScreenActions.executeAction(
                         screenContext?.screenId,
                         interaction.actionId,
                         interaction.params
@@ -1406,7 +1406,7 @@ Digite 1, 2 ou 3.`;
 
                             // Also update availableActions for new screen
                             if (screenContext && screenContext.screenId) {
-                                screenContext.availableActions = IVAScreenActions.getAvailableActions(screenContext.screenId);
+                                screenContext.availableActions = IvaScreenActions.getAvailableActions(screenContext.screenId);
                                 console.log('[IVA] Available actions on new screen:', screenContext.availableActions);
                             }
 
@@ -1453,7 +1453,7 @@ Digite 1, 2 ou 3.`;
                                         availableScreens: IvaKnowledge.screens
                                     };
     
-                                    const nextDecision = await IVAService.decideOperation(analysisRequest, newContext);
+                                    const nextDecision = await IvaService.decideOperation(analysisRequest, newContext);
     
                                     if (analyzingDiv.parentNode) analyzingDiv.parentNode.removeChild(analyzingDiv);
     
@@ -1682,7 +1682,7 @@ Digite 1, 2 ou 3.`;
                 return;
             }
 
-            // Old fallback chat logic removed - now handled by IVAService above
+            // Old fallback chat logic removed - now handled by IvaService above
         }, 800);
     };
 
