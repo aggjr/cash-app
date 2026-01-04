@@ -291,8 +291,8 @@ export const LogAlteracoesManager = (project) => {
                 return;
             }
 
-            const actionLabel = action === 'DELETE' ? 'exclusão' : 'alteração';
-            const actionVerb = action === 'DELETE' ? 'restaurar' : 'reverter';
+            const actionLabel = action === 'DELETE' ? 'exclusão' : (action === 'INSERT' ? 'criação' : 'alteração');
+            const actionVerb = action === 'DELETE' ? 'restaurar' : (action === 'INSERT' ? 'deletar' : 'reverter');
 
             // Parse old_data and new_data to show what will be restored
             let oldDataPreview = '';
@@ -339,50 +339,26 @@ export const LogAlteracoesManager = (project) => {
                                 <strong>Operação:</strong> ${action}
                             </p>
                         </div>
-
-                        ${oldDataPreview ? `
-                        <div style="background: #DBEAFE; border-left: 4px solid #3B82F6; padding: 15px; margin-bottom: 15px; border-radius: 4px;">
-                            <strong style="color: #1E40AF;">📄 Dados ANTES (old_data):</strong>
-                            <div style="margin-top: 8px; font-size: 0.9rem; color: #1E3A8A; font-family: monospace;">
-                                ${oldDataPreview}
+                            <div style="background: var(--color-bg-secondary); padding: 16px; border-radius: 8px; margin-bottom: 20px; border-left: 4px solid #F59E0B;">
+                                <p style="margin: 0 0 8px 0; font-weight: 600; color: var(--color-text-dark);">📋 Detalhes:</p>
+                                <p style="margin: 0; font-size: 0.95rem; color: var(--color-text-muted);">
+                                    <strong>Tabela:</strong> ${entity}<br>
+                                    <strong>Ação:</strong> ${actionLabel}
+                                </p>
+                                ${oldDataPreview ? `<p style="margin: 8px 0 0 0; font-size: 0.9rem; font-family: monospace; color: var(--color-text-muted);">${oldDataPreview}</p>` : ''}
                             </div>
-                        </div>
-                        ` : ''}
-
-                        ${newDataPreview && action === 'UPDATE' ? `
-                        <div style="background: #D1FAE5; border-left: 4px solid #10B981; padding: 15px; margin-bottom: 20px; border-radius: 4px;">
-                            <strong style="color: #065F46;">📝 Dados DEPOIS (new_data):</strong>
-                            <div style="margin-top: 8px; font-size: 0.9rem; color: #064E3B; font-family: monospace;">
-                                ${newDataPreview}
+                            <div style="display: flex; gap: 12px; justify-content: flex-end;">
+                                <button id="cancel-undo" style="padding: 10px 24px; border: 1px solid var(--color-border-light); background: var(--color-bg-secondary); color: var(--color-text-dark); border-radius: 6px; cursor: pointer; font-weight: 500;">
+                                    Cancelar
+                                </button>
+                                <button id="confirm-undo" style="padding: 10px 24px; border: none; background: #F59E0B; color: white; border-radius: 6px; cursor: pointer; font-weight: 600;">
+                                    ${warningIcon} Confirmar
+                                </button>
                             </div>
-                        </div>
-                        ` : ''}
-
-                        <div style="background: #FEE2E2; border-left: 4px solid #DC2626; padding: 15px; margin-bottom: 25px; border-radius: 4px;">
-                            <strong style="color: #991B1B;">🚨 RISCOS:</strong>
-                            <ul style="margin: 8px 0 0 20px; color: #7F1D1D; padding-left: 0;">
-                                <li>Pode afetar integridade de dados relacionados</li>
-                                <li>Não é possível desfazer esta operação</li>
-                                <li>Pode causar inconsistências no sistema</li>
-                            </ul>
-                        </div>
-
-                        <p style="text-align: center; font-weight: bold; margin-bottom: 20px; color: #374151;">
-                            Tem certeza absoluta que deseja prosseguir?
-                        </p>
-
-                        <div style="display: flex; gap: 10px; justify-content: center;">
-                            <button id="undo-cancel-btn" style="padding: 12px 24px; background: #6B7280; color: white; border: none; border-radius: 6px; cursor: pointer; font-size: 1rem; font-weight: 600;">
-                                ❌ Cancelar
-                            </button>
-                            <button id="undo-confirm-btn" style="padding: 12px 24px; background: #DC2626; color: white; border: none; border-radius: 6px; cursor: pointer; font-size: 1rem; font-weight: 600;">
-                                ↩️ Sim, Desfazer
-                            </button>
                         </div>
                     </div>
                 </div>
             `;
-
             // Show modal
             const modalDiv = document.createElement('div');
             modalDiv.innerHTML = modalHTML;
