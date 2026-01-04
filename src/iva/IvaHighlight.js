@@ -3,7 +3,7 @@
  * Highlights UI elements when IVA is guiding the user
  */
 
-const HIGHLIGHT_COLOR = '#DAB177'; // System golden color
+const HIGHLIGHT_COLOR = '#00425F'; // System Primary Blue (Dark Teal)
 const HIGHLIGHT_DURATION = 3000; // 3 seconds
 const PULSE_ANIMATION = 'IVA-pulse 1.5s ease-in-out infinite';
 

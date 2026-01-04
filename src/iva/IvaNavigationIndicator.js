@@ -4,7 +4,7 @@
  * Stays visible until user navigates manually or closes IVA
  */
 
-const INDICATOR_COLOR = '#DAB177'; // System golden color
+const INDICATOR_COLOR = '#00425F'; // System Primary Blue (Dark Teal)
 
 export const IvaNavigationIndicator = {
     activeIndicators: [],
