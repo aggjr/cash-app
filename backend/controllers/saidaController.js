@@ -2,6 +2,7 @@ const db = require('../config/database');
 const AppError = require('../utils/AppError');
 const { validateDateWithinRange } = require('../utils/dateValidation');
 const { logAudit } = require('../utils/auditLogger');
+const { wrapConnectionWithAudit } = require('../utils/connectionWrapper');
 
 // Helper function to generate dynamic ORDER BY clause
 const getOrderByClause = (sortBy, order = 'desc') => {
