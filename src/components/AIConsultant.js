@@ -67,7 +67,7 @@ export const AIConsultant = () => {
             console.log('[AIConsultant] Migrating legacy voice rate (50/undefined) -> 75 (FAST)');
             u.IVA_voice_rate = 75;
             updateLocalUser(u);
-            fetch(`${API_BASE_URL} /auth/update - preference`, {
+            fetch(`${API_BASE_URL}/auth/update-preference`, {
                 method: 'PUT',
                 headers: getHeaders(),
                 body: JSON.stringify({ IVAVoiceRate: 75 })
@@ -113,7 +113,7 @@ export const AIConsultant = () => {
 
                 console.log(`[IVA Voice] Requesting Google TTS(Tier ${voiceTier}, ${isMale ? 'Male' : 'Female'}, Rate: ${rate.toFixed(2)})`);
 
-                const response = await fetch(`${API_BASE_URL} /tts/synthesize`, {
+                const response = await fetch(`${API_BASE_URL}/tts/synthesize`, {
                     method: 'POST',
                     headers: getHeaders(),
                     body: JSON.stringify({
@@ -1065,8 +1065,8 @@ Digite 1, 2 ou 3.`;
                 // Send greeting request to backend
                 setTimeout(async () => {
                     const context = {
-                        currentScreen: IVAKnowledge.activeScreen,
-                        availableScreens: IVAKnowledge.screens,
+                        currentScreen: IvaKnowledge.activeScreen,
+                        availableScreens: IvaKnowledge.screens,
                         // Different instructions based on interaction type
                         systemInstruction: isFirstSessionInteraction
                             ? `SYSTEM_TRIGGER: SESSÃO_INICIADA
@@ -1130,9 +1130,9 @@ Digite 1, 2 ou 3.`;
 
             // 1. Gather Context
             const context = {
-                currentScreen: IVAKnowledge.activeScreen,
-                currentScreenData: IVAKnowledge.activeScreenData, // THE EYES: Send semantic data
-                availableScreens: IVAKnowledge.screens
+                currentScreen: IvaKnowledge.activeScreen,
+                currentScreenData: IvaKnowledge.activeScreenData, // THE EYES: Send semantic data
+                availableScreens: IvaKnowledge.screens
             };
 
             console.log('[IVA] Context:', {
@@ -1448,9 +1448,9 @@ Digite 1, 2 ou 3.`;
     
                                     // 1. Gather NEW Context (Post-Navigation)
                                     const newContext = {
-                                        currentScreen: IVAKnowledge.activeScreen,
-                                        currentScreenData: IVAKnowledge.activeScreenData,
-                                        availableScreens: IVAKnowledge.screens
+                                        currentScreen: IvaKnowledge.activeScreen,
+                                        currentScreenData: IvaKnowledge.activeScreenData,
+                                        availableScreens: IvaKnowledge.screens
                                     };
     
                                     const nextDecision = await IVAService.decideOperation(analysisRequest, newContext);
@@ -1689,7 +1689,7 @@ Digite 1, 2 ou 3.`;
     // --- Semantic Screen Reading "The Eyes" ---
     const updateScreenContext = (contextData) => {
         // Store in global knowledge
-        IVAKnowledge.activeScreenData = contextData;
+        IvaKnowledge.activeScreenData = contextData;
         console.log('[IVA Vision] Screen Context Updated:', contextData);
     };
 
