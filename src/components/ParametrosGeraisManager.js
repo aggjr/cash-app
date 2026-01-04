@@ -799,54 +799,75 @@ export const ParametrosGeraisManager = (project) => {
 
             <script>
                 // Tab switching logic
-                const tabButtons = document.querySelectorAll('.settings-tab');
-                const tabContents = document.querySelectorAll('.tab-content');
+                // Note: The script tag here is for documentation of structure. 
+                // Actual listeners are attached below in the main function execution.
+            </script>
+        `;
 
-                tabButtons.forEach(button => {
-                    button.addEventListener('click', () => {
-                        // Remove active from all tabs
-                        tabButtons.forEach(btn => {
-                            btn.classList.remove('active');
-                            btn.style.color = 'var(--color-text-muted)';
-                            btn.style.borderBottomColor = 'transparent';
-                        });
+        // Wait for DOM
+        setTimeout(() => {
+            const tabs = container.querySelectorAll('.settings-tab');
+            const contents = container.querySelectorAll('.tab-content');
 
-                        // Hide all content
-                        tabContents.forEach(content => {
-                            content.style.display = 'none';
-                        });
+            console.log('[Settings] Tabs found:', tabs.length);
 
-                        // Activate clicked tab
-                        button.classList.add('active');
-                        button.style.color = 'var(--color-primary)';
-                        button.style.borderBottomColor = 'var(--color-primary)';
+            tabs.forEach(tab => {
+                tab.addEventListener('click', () => {
+                    const targetId = tab.id.replace('tab-', 'content-');
+                    console.log('[Settings] Switching to:', targetId);
 
-                        // Show corresponding content
-                        const tabId = button.id.replace('tab-', 'content-');
-                        document.getElementById(tabId).style.display = 'block';
+                    // Reset all tabs
+                    tabs.forEach(t => {
+                        t.style.color = 'var(--color-text-muted)';
+                        t.style.borderBottom = '3px solid transparent';
                     });
-                });
 
-                // Initialize first tab as active
-                document.querySelector('#tab-geral').style.color = 'var(--color-primary)';
-                document.querySelector('#tab-geral').style.borderBottomColor = 'var(--color-primary)';
+                    // Hide all contents
+                    contents.forEach(c => {
+                        c.style.display = 'none';
+                    });
+
+                    // Activate clicked tab
+                    tab.style.color = 'var(--color-primary)';
+                    tab.style.borderBottom = '3px solid var(--color-primary)';
+
+                    // Show target content
+                    const content = container.querySelector(`#${targetId}`);
+                    if (content) {
+                        content.style.display = 'block';
+                    }
+                });
+            });
+
+            // Trigger click on active tab (default: Geral/Sistema)
+            const defaultTab = container.querySelector('#tab-geral');
+            if (defaultTab) defaultTab.click();
+        }, 100);
+        const tabId = button.id.replace('tab-', 'content-');
+        document.getElementById(tabId).style.display = 'block';
+    });
+});
+
+// Initialize first tab as active
+document.querySelector('#tab-geral').style.color = 'var(--color-primary)';
+document.querySelector('#tab-geral').style.borderBottomColor = 'var(--color-primary)';
             </script
 
->
+    >
 
-            </div>
-        `;
+            </div >
+    `;
 
         // Event listeners para inputs (exceto iva_timeout que agora é slider)
         const fields = ['numero_dias', 'tempo_minutos_liberacao'];
         fields.forEach(field => {
-            const input = container.querySelector(`#input-${field}`);
+            const input = container.querySelector(`#input - ${ field } `);
             input.addEventListener('input', () => {
                 currentSettings[field] = parseInt(input.value);
                 updateFieldState(field);
             });
 
-            const saveBtn = container.querySelector(`#save-${field}`);
+            const saveBtn = container.querySelector(`#save - ${ field } `);
             saveBtn.addEventListener('click', () => saveSetting(field));
         });
 
@@ -860,7 +881,7 @@ export const ParametrosGeraisManager = (project) => {
 
             // Move display above slider position (range is now 1-10)
             const percentage = ((value - 1) / 9) * 100; // (value - min) / (max - min)
-            timeoutDisplay.style.left = `${percentage}%`;
+            timeoutDisplay.style.left = `${ percentage }% `;
         };
 
         timeoutSlider.addEventListener('input', (e) => {
@@ -876,7 +897,7 @@ export const ParametrosGeraisManager = (project) => {
             // Auto-save after 800ms of inactivity
             timeoutSaveTimer = setTimeout(async () => {
                 try {
-                    const response = await fetch(`${API_BASE_URL}/settings/iva_timeout`, {
+                    const response = await fetch(`${ API_BASE_URL } /settings/iva_timeout`, {
                         method: 'PUT',
                         headers: getHeaders(),
                         body: JSON.stringify({ value })
@@ -927,7 +948,7 @@ export const ParametrosGeraisManager = (project) => {
                     }
 
                     // Call API
-                    const response = await fetch(`${API_BASE_URL}/auth/update-preference`, {
+                    const response = await fetch(`${ API_BASE_URL } /auth/update - preference`, {
                         method: 'PUT',
                         headers: getHeaders(),
                         body: JSON.stringify({ ivaVoiceEnabled: enabled })
@@ -957,7 +978,7 @@ export const ParametrosGeraisManager = (project) => {
 
             // Move display above slider position
             const percentage = ((value + 100) / 200) * 100;
-            voiceDisplay.style.left = `${percentage}%`;
+            voiceDisplay.style.left = `${ percentage }% `;
         };
 
         if (voiceSlider) {
@@ -980,14 +1001,14 @@ export const ParametrosGeraisManager = (project) => {
                         }
 
                         // SYSTEM SETTING (Fallback/Global)
-                        const sysResponse = await fetch(`${API_BASE_URL}/settings/iva_voice_rate`, {
+                        const sysResponse = await fetch(`${ API_BASE_URL } /settings/iva_voice_rate`, {
                             method: 'PUT',
                             headers: getHeaders(),
                             body: JSON.stringify({ value })
                         });
 
                         // USER PREFERENCE (Primary)
-                        const userResponse = await fetch(`${API_BASE_URL}/auth/update-preference`, {
+                        const userResponse = await fetch(`${ API_BASE_URL } /auth/update - preference`, {
                             method: 'PUT',
                             headers: getHeaders(),
                             body: JSON.stringify({ ivaVoiceRate: value })
@@ -1021,10 +1042,10 @@ export const ParametrosGeraisManager = (project) => {
         const voiceGenderRadios = container.querySelectorAll('input[name="iva_voice_male"]');
 
         // Set initial values
-        const voiceTypeChecked = container.querySelector(`input[name="iva_voice_premium"][value="${currentSettings.iva_voice_premium}"]`);
+        const voiceTypeChecked = container.querySelector(`input[name = "iva_voice_premium"][value = "${currentSettings.iva_voice_premium}"]`);
         if (voiceTypeChecked) voiceTypeChecked.checked = true;
 
-        const voiceGenderChecked = container.querySelector(`input[name="iva_voice_male"][value="${currentSettings.iva_voice_male}"]`);
+        const voiceGenderChecked = container.querySelector(`input[name = "iva_voice_male"][value = "${currentSettings.iva_voice_male}"]`);
         if (voiceGenderChecked) voiceGenderChecked.checked = true;
 
         // Function to update voice type borders
@@ -1062,7 +1083,7 @@ export const ParametrosGeraisManager = (project) => {
         // Check if Google Cloud TTS is available
         (async () => {
             try {
-                const response = await fetch(`${API_BASE_URL}/tts/status`, {
+                const response = await fetch(`${ API_BASE_URL } /tts/status`, {
                     headers: getHeaders()
                 });
                 const data = await response.json();
@@ -1107,203 +1128,203 @@ export const ParametrosGeraisManager = (project) => {
 
                         // Auto-save fallback
                         try {
-                            await fetch(`${API_BASE_URL}/settings`, {
-                                method: 'PATCH',
-                                headers: getHeaders(),
-                                body: JSON.stringify({
-                                    setting: 'iva_voice_premium',
-                                    value: 0
-                                })
+                            await fetch(`${ API_BASE_URL }/settings`, {
+method: 'PATCH',
+    headers: getHeaders(),
+        body: JSON.stringify({
+            setting: 'iva_voice_premium',
+            value: 0
+        })
                             });
-                            showToast('⚠️ Voz alterada para Gratuita (TTS não disponível)', 'warning');
+showToast('⚠️ Voz alterada para Gratuita (TTS não disponível)', 'warning');
                         } catch (error) {
-                            console.error('[IVA Settings] Failed to save fallback:', error);
-                        }
+    console.error('[IVA Settings] Failed to save fallback:', error);
+}
                     }
                 } else {
-                    console.log('[IVA Settings] Google Cloud TTS is available');
+    console.log('[IVA Settings] Google Cloud TTS is available');
+}
+            } catch (error) {
+    console.error('[IVA Settings] Failed to check TTS status:', error);
+}
+        }) ();
+
+// Auto-save voice type
+let voiceTypeSaveTimer = null;
+voiceTypeRadios.forEach(radio => {
+    radio.addEventListener('change', () => {
+        const value = parseInt(radio.value); // Convert to integer
+        currentSettings.iva_voice_premium = value;
+
+        // Update visual feedback
+        updateVoiceTypeBorders();
+
+        // Clear previous timer
+        if (voiceTypeSaveTimer) clearTimeout(voiceTypeSaveTimer);
+
+        // Auto-save after 500ms
+        voiceTypeSaveTimer = setTimeout(async () => {
+            try {
+                const response = await fetch(`${API_BASE_URL}/settings/iva_voice_premium`, {
+                    method: 'PUT',
+                    headers: getHeaders(),
+                    body: JSON.stringify({ value })
+                });
+
+                if (response.ok) {
+                    originalSettings.iva_voice_premium = value;
+
+                    // Update global variable immediately (no need to reload page!)
+                    window.ivaVoicePremium = value;
+                    console.log('[Settings] Auto-saved voice premium to:', value);
+
+                    const tierNames = ['Gratuita', 'Standard', 'Premium'];
+                    showToast(`✓ Tipo de voz: ${tierNames[value] || 'Desconhecido'}`, 'success');
+                } else {
+                    const error = await response.json();
+                    showToast(error.error || 'Erro ao salvar', 'error');
                 }
             } catch (error) {
-                console.error('[IVA Settings] Failed to check TTS status:', error);
+                console.error('[Settings] Error saving voice premium:', error);
+                showToast('Erro de conexão', 'error');
             }
-        })();
+        }, 500);
+    });
+});
 
-        // Auto-save voice type
-        let voiceTypeSaveTimer = null;
-        voiceTypeRadios.forEach(radio => {
-            radio.addEventListener('change', () => {
-                const value = parseInt(radio.value); // Convert to integer
-                currentSettings.iva_voice_premium = value;
+//Auto-save voice gender
+let voiceGenderSaveTimer = null;
+voiceGenderRadios.forEach(radio => {
+    radio.addEventListener('change', () => {
+        const value = parseInt(radio.value); // Convert to integer
+        currentSettings.iva_voice_male = value;
 
-                // Update visual feedback
-                updateVoiceTypeBorders();
+        // Update visual feedback
+        updateGenderBorders();
 
-                // Clear previous timer
-                if (voiceTypeSaveTimer) clearTimeout(voiceTypeSaveTimer);
+        // Clear previous timer
+        if (voiceGenderSaveTimer) clearTimeout(voiceGenderSaveTimer);
 
-                // Auto-save after 500ms
-                voiceTypeSaveTimer = setTimeout(async () => {
-                    try {
-                        const response = await fetch(`${API_BASE_URL}/settings/iva_voice_premium`, {
-                            method: 'PUT',
-                            headers: getHeaders(),
-                            body: JSON.stringify({ value })
-                        });
+        // Auto-save after 500ms
+        voiceGenderSaveTimer = setTimeout(async () => {
+            try {
+                const response = await fetch(`${API_BASE_URL}/settings/iva_voice_male`, {
+                    method: 'PUT',
+                    headers: getHeaders(),
+                    body: JSON.stringify({ value })
+                });
 
-                        if (response.ok) {
-                            originalSettings.iva_voice_premium = value;
+                if (response.ok) {
+                    originalSettings.iva_voice_male = value;
 
-                            // Update global variable immediately (no need to reload page!)
-                            window.ivaVoicePremium = value;
-                            console.log('[Settings] Auto-saved voice premium to:', value);
-
-                            const tierNames = ['Gratuita', 'Standard', 'Premium'];
-                            showToast(`✓ Tipo de voz: ${tierNames[value] || 'Desconhecido'}`, 'success');
-                        } else {
-                            const error = await response.json();
-                            showToast(error.error || 'Erro ao salvar', 'error');
-                        }
-                    } catch (error) {
-                        console.error('[Settings] Error saving voice premium:', error);
-                        showToast('Erro de conexão', 'error');
-                    }
-                }, 500);
-            });
-        });
-
-        //Auto-save voice gender
-        let voiceGenderSaveTimer = null;
-        voiceGenderRadios.forEach(radio => {
-            radio.addEventListener('change', () => {
-                const value = parseInt(radio.value); // Convert to integer
-                currentSettings.iva_voice_male = value;
-
-                // Update visual feedback
-                updateGenderBorders();
-
-                // Clear previous timer
-                if (voiceGenderSaveTimer) clearTimeout(voiceGenderSaveTimer);
-
-                // Auto-save after 500ms
-                voiceGenderSaveTimer = setTimeout(async () => {
-                    try {
-                        const response = await fetch(`${API_BASE_URL}/settings/iva_voice_male`, {
-                            method: 'PUT',
-                            headers: getHeaders(),
-                            body: JSON.stringify({ value })
-                        });
-
-                        if (response.ok) {
-                            originalSettings.iva_voice_male = value;
-
-                            // Update global variable immediately
-                            window.ivaVoiceMale = value;
-                            console.log('[Settings] Auto-saved voice male to:', value);
-                            showToast(`✓ Gênero da voz: ${value === 1 ? 'Masculina' : 'Feminina'}`, 'success');
-                        } else {
-                            const error = await response.json();
-                            showToast(error.error || 'Erro ao salvar', 'error');
-                        }
-                    } catch (error) {
-                        console.error('[Settings] Error saving voice male:', error);
-                        showToast('Erro de conexão', 'error');
-                    }
-                }, 500);
-            });
-        });
-
-        // Helper function to calculate speech rate
-        const calculateSpeechRate = (value) => {
-            // Linear scale: 0.5 to 1.5
-            return 0.5 + (value / 100);
-        };
-
-        // Test voice speed button
-        const testVoiceBtn = container.querySelector('#test-voice-speed');
-        if (testVoiceBtn) {
-            testVoiceBtn.addEventListener('click', () => {
-                // Cancel any ongoing speech
-                window.speechSynthesis.cancel();
-
-                // Get current settings
-                const rate = calculateSpeechRate(currentSettings.iva_voice_rate || 70);
-                const isMale = currentSettings.iva_voice_male === 1;
-
-                console.log('[Test Voice] Speaking at rate:', rate.toFixed(2), 'Gender:', isMale ? 'Male' : 'Female');
-
-                // Get available voices
-                const voices = window.speechSynthesis.getVoices();
-                console.log('[Test Voice] Available voices:', voices.map(v => v.name).join(', '));
-
-                // Known male and female voice names
-                const maleNames = ['daniel', 'ricardo', 'felipe', 'carlos', 'bruno', 'paulo', 'male'];
-                const femaleNames = ['maria', 'luciana', 'francisca', 'joana', 'ana', 'bruna', 'female', 'feminina'];
-
-                let selectedVoice = null;
-
-                // Filter pt-BR voices
-                const ptBRVoices = voices.filter(v => v.lang === 'pt-BR' || v.lang.startsWith('pt'));
-
-                if (isMale) {
-                    // Find male voice: check if name contains male names
-                    selectedVoice = ptBRVoices.find(v => {
-                        const lowerName = v.name.toLowerCase();
-                        return maleNames.some(name => lowerName.includes(name));
-                    });
-
-                    // If no male voice found, use first pt-BR that's NOT female
-                    if (!selectedVoice) {
-                        selectedVoice = ptBRVoices.find(v => {
-                            const lowerName = v.name.toLowerCase();
-                            return !femaleNames.some(name => lowerName.includes(name));
-                        });
-                    }
+                    // Update global variable immediately
+                    window.ivaVoiceMale = value;
+                    console.log('[Settings] Auto-saved voice male to:', value);
+                    showToast(`✓ Gênero da voz: ${value === 1 ? 'Masculina' : 'Feminina'}`, 'success');
                 } else {
-                    // Find female voice: check if name contains female names
-                    selectedVoice = ptBRVoices.find(v => {
-                        const lowerName = v.name.toLowerCase();
-                        return femaleNames.some(name => lowerName.includes(name));
-                    });
-
-                    // If no female voice found, explicitly avoid male voices
-                    if (!selectedVoice) {
-                        selectedVoice = ptBRVoices.find(v => {
-                            const lowerName = v.name.toLowerCase();
-                            return !maleNames.some(name => lowerName.includes(name));
-                        });
-                    }
+                    const error = await response.json();
+                    showToast(error.error || 'Erro ao salvar', 'error');
                 }
+            } catch (error) {
+                console.error('[Settings] Error saving voice male:', error);
+                showToast('Erro de conexão', 'error');
+            }
+        }, 500);
+    });
+});
 
-                // Ultimate fallback: first pt-BR voice
-                if (!selectedVoice && ptBRVoices.length > 0) {
-                    selectedVoice = ptBRVoices[0];
-                }
+// Helper function to calculate speech rate
+const calculateSpeechRate = (value) => {
+    // Linear scale: 0.5 to 1.5
+    return 0.5 + (value / 100);
+};
 
-                const utterance = new SpeechSynthesisUtterance('A partir de agora vou falar nesta velocidade');
-                utterance.rate = rate;
-                utterance.lang = 'pt-BR';
-                if (selectedVoice) {
-                    utterance.voice = selectedVoice;
-                    console.log('[Test Voice] Using voice:', selectedVoice.name);
-                } else {
-                    console.warn('[Test Voice] No pt-BR voice found, using default');
-                }
+// Test voice speed button
+const testVoiceBtn = container.querySelector('#test-voice-speed');
+if (testVoiceBtn) {
+    testVoiceBtn.addEventListener('click', () => {
+        // Cancel any ongoing speech
+        window.speechSynthesis.cancel();
 
-                window.speechSynthesis.speak(utterance);
+        // Get current settings
+        const rate = calculateSpeechRate(currentSettings.iva_voice_rate || 70);
+        const isMale = currentSettings.iva_voice_male === 1;
+
+        console.log('[Test Voice] Speaking at rate:', rate.toFixed(2), 'Gender:', isMale ? 'Male' : 'Female');
+
+        // Get available voices
+        const voices = window.speechSynthesis.getVoices();
+        console.log('[Test Voice] Available voices:', voices.map(v => v.name).join(', '));
+
+        // Known male and female voice names
+        const maleNames = ['daniel', 'ricardo', 'felipe', 'carlos', 'bruno', 'paulo', 'male'];
+        const femaleNames = ['maria', 'luciana', 'francisca', 'joana', 'ana', 'bruna', 'female', 'feminina'];
+
+        let selectedVoice = null;
+
+        // Filter pt-BR voices
+        const ptBRVoices = voices.filter(v => v.lang === 'pt-BR' || v.lang.startsWith('pt'));
+
+        if (isMale) {
+            // Find male voice: check if name contains male names
+            selectedVoice = ptBRVoices.find(v => {
+                const lowerName = v.name.toLowerCase();
+                return maleNames.some(name => lowerName.includes(name));
             });
+
+            // If no male voice found, use first pt-BR that's NOT female
+            if (!selectedVoice) {
+                selectedVoice = ptBRVoices.find(v => {
+                    const lowerName = v.name.toLowerCase();
+                    return !femaleNames.some(name => lowerName.includes(name));
+                });
+            }
+        } else {
+            // Find female voice: check if name contains female names
+            selectedVoice = ptBRVoices.find(v => {
+                const lowerName = v.name.toLowerCase();
+                return femaleNames.some(name => lowerName.includes(name));
+            });
+
+            // If no female voice found, explicitly avoid male voices
+            if (!selectedVoice) {
+                selectedVoice = ptBRVoices.find(v => {
+                    const lowerName = v.name.toLowerCase();
+                    return !maleNames.some(name => lowerName.includes(name));
+                });
+            }
         }
 
-        // Event listener para botão de liberação
-        const unlockBtn = container.querySelector('#btn-activate-unlock');
-        unlockBtn.addEventListener('click', activateUnlock);
+        // Ultimate fallback: first pt-BR voice
+        if (!selectedVoice && ptBRVoices.length > 0) {
+            selectedVoice = ptBRVoices[0];
+        }
+
+        const utterance = new SpeechSynthesisUtterance('A partir de agora vou falar nesta velocidade');
+        utterance.rate = rate;
+        utterance.lang = 'pt-BR';
+        if (selectedVoice) {
+            utterance.voice = selectedVoice;
+            console.log('[Test Voice] Using voice:', selectedVoice.name);
+        } else {
+            console.warn('[Test Voice] No pt-BR voice found, using default');
+        }
+
+        window.speechSynthesis.speak(utterance);
+    });
+}
+
+// Event listener para botão de liberação
+const unlockBtn = container.querySelector('#btn-activate-unlock');
+unlockBtn.addEventListener('click', activateUnlock);
     };
 
-    loadSettings();
+loadSettings();
 
-    // Create IVA tab content (placeholder for now)
-    const ivaTabContent = () => {
-        const ivaContainer = document.createElement('div');
-        ivaContainer.innerHTML = `
+// Create IVA tab content (placeholder for now)
+const ivaTabContent = () => {
+    const ivaContainer = document.createElement('div');
+    ivaContainer.innerHTML = `
             <h2 style="margin-bottom: 1.5rem; color: var(--color-text-dark); font-size: 1.5rem;">
                 🤖 Configurações da IA IVA
             </h2>
@@ -1316,14 +1337,14 @@ export const ParametrosGeraisManager = (project) => {
                 </p>
             </div>
         `;
-        return ivaContainer;
-    };
+    return ivaContainer;
+};
 
-    // Create TabPanel - REMOVED TO FIX DOUBLE TABS
-    // The container already implements its own tabs (Geral / IA IVA) via renderSettings
-    // Wrapping it in TabPanel caused duplication and layout issues
+// Create TabPanel - REMOVED TO FIX DOUBLE TABS
+// The container already implements its own tabs (Geral / IA IVA) via renderSettings
+// Wrapping it in TabPanel caused duplication and layout issues
 
-    wrapper.appendChild(container);
-    return wrapper;
+wrapper.appendChild(container);
+return wrapper;
 };
 

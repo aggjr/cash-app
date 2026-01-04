@@ -70,7 +70,7 @@ export const AIConsultant = () => {
             fetch(`${API_BASE_URL}/auth/update-preference`, {
                 method: 'PUT',
                 headers: getHeaders(),
-                body: JSON.stringify({ IVAVoiceRate: 75 })
+                body: JSON.stringify({ ivaVoiceRate: 75 })
             }).catch(e => console.error('Migration sync failed:', e));
         }
     })();
@@ -1347,7 +1347,7 @@ Digite 1, 2 ou 3.`;
 
                     // Navigate if needed
                     if (navigation && navigation.target) {
-                        await IVAActions.navigate(navigation.target);
+                        await IvaActions.navigate(navigation.target);
                         await new Promise(r => setTimeout(r, 1000)); // Wait for screen to load
                     }
 
@@ -1370,7 +1370,7 @@ Digite 1, 2 ou 3.`;
                     }
                 }
                 else if (['NAVIGATE', 'FILL_FORM', 'CLICK_ACTION'].includes(decision.action)) {
-                    const result = await IVAActions.handle(decision.action, decision);
+                    const result = await IvaActions.handle(decision.action, decision);
 
 
 
