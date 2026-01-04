@@ -226,8 +226,8 @@ export const FechamentoContasManager = (project) => {
         thCompany.style.textAlign = 'left';
         thCompany.style.width = '1%';
         thCompany.style.whiteSpace = 'nowrap';
-        thCompany.style.borderBottom = '1px solid #1e3a8a';
-        thCompany.style.borderRight = '1px solid #1e3a8a';
+        thCompany.style.borderBottom = '2px solid white';
+        thCompany.style.borderRight = '2px solid white';
         headerRow.appendChild(thCompany);
 
         // Fixed Account Column Header
@@ -242,8 +242,8 @@ export const FechamentoContasManager = (project) => {
         thFixed.style.textAlign = 'left';
         thFixed.style.width = '1%';
         thFixed.style.whiteSpace = 'nowrap';
-        thFixed.style.borderBottom = '1px solid #1e3a8a';
-        thFixed.style.borderRight = '1px solid #1e3a8a';
+        thFixed.style.borderBottom = '2px solid white';
+        thFixed.style.borderRight = '2px solid white';
         headerRow.appendChild(thFixed);
 
         // Month Columns Headers
@@ -304,8 +304,8 @@ export const FechamentoContasManager = (project) => {
                     tdCompany.style.zIndex = '10';
                     tdCompany.style.padding = '0.5rem 0.75rem';
                     tdCompany.style.textAlign = 'left';
-                    tdCompany.style.borderBottom = '1px solid #1e3a8a';
-                    tdCompany.style.borderRight = '1px solid #1e3a8a';
+                    tdCompany.style.borderBottom = '2px solid white';
+                    tdCompany.style.borderRight = '2px solid white';
                     tdCompany.style.whiteSpace = 'nowrap';
                     tdCompany.style.verticalAlign = 'middle';
                     tr.appendChild(tdCompany);
@@ -322,8 +322,8 @@ export const FechamentoContasManager = (project) => {
                 tdFixed.style.zIndex = '10';
                 tdFixed.style.padding = '0.5rem 0.75rem';
                 tdFixed.style.textAlign = 'left';
-                tdFixed.style.borderBottom = '1px solid #1e3a8a';
-                tdFixed.style.borderRight = '1px solid #1e3a8a';
+                tdFixed.style.borderBottom = '2px solid white';
+                tdFixed.style.borderRight = '2px solid white';
                 tdFixed.style.whiteSpace = 'nowrap';
                 tr.appendChild(tdFixed);
 
@@ -467,7 +467,6 @@ export const FechamentoContasManager = (project) => {
                         hierarchicalFilter = new HierarchicalFilter({
                             container: filterContainer,
                             data: filterData,
-                            selectedIds: selectedAccountIds,
                             onChange: (ids) => {
                                 selectedAccountIds = ids.map(id => parseInt(id));
                                 loadData();

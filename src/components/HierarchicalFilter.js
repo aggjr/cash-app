@@ -24,7 +24,20 @@ export class HierarchicalFilter {
     constructor({ container, data, selectedIds = [], onChange, placeholder = 'Selecione...' }) {
         this.container = container;
         this.data = data;
-        this.selectedIds = new Set(selectedIds);
+
+        // If no selectedIds provided, select all by default
+        if (selectedIds.length === 0) {
+            const allIds = [];
+            data.forEach(parent => {
+                parent.children.forEach(child => {
+                    allIds.push(child.id);
+                });
+            });
+            this.selectedIds = new Set(allIds);
+        } else {
+            this.selectedIds = new Set(selectedIds);
+        }
+
         this.onChange = onChange;
         this.placeholder = placeholder;
         this.expandedParents = new Set();
@@ -136,10 +149,12 @@ export class HierarchicalFilter {
         const expandIcon = document.createElement('span');
         expandIcon.style.cssText = `
             margin-right: 8px;
-            font-size: 0.7rem;
+            font-size: 1rem;
+            font-weight: bold;
             transition: transform 0.2s;
+            font-family: monospace;
         `;
-        expandIcon.textContent = this.expandedParents.has(parent.id) ? '▼' : '▶';
+        expandIcon.textContent = this.expandedParents.has(parent.id) ? '−' : '+';
 
         const parentCheckbox = document.createElement('input');
         parentCheckbox.type = 'checkbox';
@@ -173,11 +188,11 @@ export class HierarchicalFilter {
 
             if (this.expandedParents.has(parent.id)) {
                 this.expandedParents.delete(parent.id);
-                expandIcon.textContent = '▶';
+                expandIcon.textContent = '+';
                 childrenContainer.style.display = 'none';
             } else {
                 this.expandedParents.add(parent.id);
-                expandIcon.textContent = '▼';
+                expandIcon.textContent = '−';
                 childrenContainer.style.display = 'block';
             }
         });
