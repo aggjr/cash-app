@@ -207,7 +207,7 @@ function initAppLogic() {
   const treeConfigs = {
     'tipo-entrada': { tableName: 'tipo_entrada', title: 'Tipo Entrada', term: 'Entrada' },
     'tipo-saida': { tableName: 'tipo_saida', title: 'Tipo de Saída', term: 'Saída' },
-    'tipo-producao-revenda': { tableName: 'tipo_producao_revenda', title: 'Tipo Produção Revenda', term: 'Produção/Revenda' }
+    'tipo-producao-revenda': { tableName: 'tipo_producao_revenda', title: 'Compras<br/><span style="font-size: 0.85em;">(Produção/Revenda)</span>', term: 'Produção/Revenda' }
   };
 
   // Global Navigation Function (Accessble by EVA)
