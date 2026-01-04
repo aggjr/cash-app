@@ -270,19 +270,19 @@ export const ExtratoContaManager = (project) => {
         // Configuration
         const columns = [
             {
-                header: 'Data Execução',
+                label: 'Data Execução',
                 key: 'data',
                 type: 'date',
                 render: (item) => formatDate(item.data)
             },
-            { header: 'TIPO DE MOVIMENTAÇÃO', key: 'tipo_formatado' },
+            { label: 'TIPO DE MOVIMENTAÇÃO', key: 'tipo_formatado' },
             {
-                header: 'Descrição',
+                label: 'Descrição',
                 key: 'descricao',
                 render: (item) => item.descricao || '-'
             },
             {
-                header: 'Fluxo',
+                label: 'Fluxo',
                 key: 'fluxo',
                 align: 'center',
                 render: (item) => {
@@ -294,7 +294,7 @@ export const ExtratoContaManager = (project) => {
                 }
             },
             {
-                header: 'Valor',
+                label: 'Valor',
                 key: 'valor',
                 type: 'currency',
                 align: 'right',
