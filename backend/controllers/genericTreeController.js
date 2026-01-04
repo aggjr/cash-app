@@ -60,9 +60,10 @@ exports.create = async (req, res) => {
 
         if (!projectId) return res.status(400).json({ error: 'Project ID required' });
 
-        const [result] = await db.query(
+        const [result] = await db.auditedQuery(
             `INSERT INTO ${tableName} (label, parent_id, ordem, expanded, active, project_id) VALUES (?, ?, ?, ?, TRUE, ?)`,
-            [label, parent_id || null, ordem || 0, expanded !== false, projectId]
+            [label, parent_id || null, ordem || 0, expanded !== false, projectId],
+            req
         );
 
         const [newNode] = await db.query(
@@ -71,7 +72,7 @@ exports.create = async (req, res) => {
         );
 
         res.status(201).json(newNode[0]);
-        logAudit(req, 'CREATE', tableName, result.insertId, { label, parent_id, ordem });
+        // Audit is automatic via auditedQuery
     } catch (error) {
         console.error('Error creating node:', error);
         res.status(500).json({ error: error.message || 'Failed to create node' });
@@ -110,7 +111,7 @@ exports.update = async (req, res) => {
         );
 
         res.json(updated[0]);
-        logAudit(req, 'UPDATE', tableName, id, { label, expanded, active });
+        // Audit is automatic via auditedQuery
     } catch (error) {
         console.error('Error updating node:', error);
         res.status(500).json({ error: error.message || 'Failed to update node' });
@@ -125,9 +126,9 @@ exports.delete = async (req, res) => {
 
         try {
             // Try hard delete first
-            await db.query(`DELETE FROM ${tableName} WHERE id = ?`, [id]);
+            await db.auditedQuery(`DELETE FROM ${tableName} WHERE id = ?`, [id], req);
             res.json({ message: 'Node deleted successfully', type: 'hard' });
-            logAudit(req, 'DELETE', tableName, id, {});
+            // Audit is automatic via auditedQuery
         } catch (deleteError) {
             // Check for Foreign Key Constraint violation (Error 1451)
             if (deleteError.errno === 1451) {
