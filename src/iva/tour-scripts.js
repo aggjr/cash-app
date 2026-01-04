@@ -1,5 +1,5 @@
 /**
- * EVA Guided Tour Scripts
+ * Iva Guided Tour Scripts
  * Narration and configuration for overview and full tours
  */
 
@@ -269,3 +269,4 @@ export const TOUR_FULL = [
         duration: 8000
     }
 ];
+

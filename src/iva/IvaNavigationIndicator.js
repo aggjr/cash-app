@@ -270,3 +270,4 @@ document.head.appendChild(style);
 // Auto-initialize when module loads
 ivaNavigationIndicator.init();
 
+

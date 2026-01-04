@@ -1,5 +1,5 @@
 /**
- * EVA Screen Context Extractor
+ * Iva Screen Context Extractor
  * Extracts visible data from current screen for contextual Q&A
  */
 
@@ -236,3 +236,4 @@ export const ScreenContextExtractor = {
 
 // Export to window
 window.ScreenContextExtractor = ScreenContextExtractor;
+

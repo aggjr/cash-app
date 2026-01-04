@@ -1,4 +1,4 @@
-export const EvaKnowledge = {
+export const IvaKnowledge = {
     activeScreenData: null,
     screens: {
         'dashboard': {
@@ -90,23 +90,23 @@ export const EvaKnowledge = {
     activeScreen: null,
 
     registerScreen: (screenId, knowledge) => {
-        console.log(`[EVA Knowledge] Learning about screen: ${screenId}`);
-        EvaKnowledge.activeScreen = {
+        console.log(`[Iva Knowledge] Learning about screen: ${screenId}`);
+        IvaKnowledge.activeScreen = {
             id: screenId,
             ...knowledge
         };
     },
 
     clearActiveScreen: () => {
-        EvaKnowledge.activeScreen = null;
+        IvaKnowledge.activeScreen = null;
     },
 
     getScreenByKeyword: (text) => {
-        const normalize = EvaKnowledge.normalize;
+        const normalize = IvaKnowledge.normalize;
         const lowerText = normalize(text);
 
-        for (const key in EvaKnowledge.screens) {
-            const screen = EvaKnowledge.screens[key];
+        for (const key in IvaKnowledge.screens) {
+            const screen = IvaKnowledge.screens[key];
             // Check against keywords
             if (screen.keywords.some(k => lowerText.includes(normalize(k)))) {
                 return screen;
@@ -119,3 +119,4 @@ export const EvaKnowledge = {
         return null;
     }
 };
+

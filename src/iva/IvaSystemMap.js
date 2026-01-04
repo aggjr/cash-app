@@ -1,5 +1,5 @@
 /**
- * EVA System Map
+ * Iva System Map
  * Defines the geography of the application for the AI Agent.
  * 
  * Screens describe:
@@ -8,7 +8,7 @@
  * - usage: When to go there (Goal mapping)
  */
 
-export const EvaSystemMap = {
+export const IvaSystemMap = {
     screens: [
         {
             id: 'cash_flow_daily',
@@ -44,3 +44,4 @@ export const EvaSystemMap = {
         }
     ]
 };
+

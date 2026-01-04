@@ -1,6 +1,6 @@
-import { EvaHighlight } from './EvaHighlight.js';
+import { IvaHighlight } from './IvaHighlight.js';
 
-export const EvaActions = {
+export const IvaActions = {
     NAVIGATE: 'NAVIGATE',
     EXPLAIN_SCREEN: 'EXPLAIN_SCREEN',
     FILL_FORM: 'FILL_FORM',
@@ -8,12 +8,12 @@ export const EvaActions = {
 
     // Convenience methods
     navigate: async (target) => {
-        return EvaActions.handle('NAVIGATE', { target });
+        return IvaActions.handle('NAVIGATE', { target });
     },
 
     // Action Handlers
     handle: async (action, payload) => {
-        console.log(`[EVA] Executing action: ${action}`, payload);
+        console.log(`[Iva] Executing action: ${action}`, payload);
 
         switch (action) {
             case 'NAVIGATE':
@@ -22,14 +22,14 @@ export const EvaActions = {
 
                     // Use persistent navigation indicators
                     setTimeout(() => {
-                        console.log('[EVA] Starting persistent navigation indicators...');
+                        console.log('[Iva] Starting persistent navigation indicators...');
                         try {
                             // Import and use new indicator system
-                            import('./EvaNavigationIndicator.js').then(module => {
-                                module.EvaNavigationIndicator.markNavigationPath(payload.target);
+                            import('./IvaNavigationIndicator.js').then(module => {
+                                module.IvaNavigationIndicator.markNavigationPath(payload.target);
                             });
                         } catch (error) {
-                            console.error('[EVA] Error showing indicators:', error);
+                            console.error('[Iva] Error showing indicators:', error);
                         }
                     }, 800); // Wait for navigation to complete
 
@@ -54,7 +54,7 @@ export const EvaActions = {
 
                     if (element) {
                         // Highlight the field before filling
-                        EvaHighlight.highlight(element, { duration: 2000 });
+                        IvaHighlight.highlight(element, { duration: 2000 });
 
                         // Handle different input types
                         if (element.tagName === 'SELECT') {
@@ -95,7 +95,7 @@ export const EvaActions = {
                     for (const btn of elements) {
                         if (btn && btn.offsetParent !== null) { // Check if visible
                             // Highlight the button before clicking
-                            EvaHighlight.highlight(btn, { duration: 1500 });
+                            IvaHighlight.highlight(btn, { duration: 1500 });
 
                             // Click after brief delay
                             setTimeout(() => btn.click(), 300);
@@ -107,7 +107,7 @@ export const EvaActions = {
                 return { success: false, message: 'Botão não encontrado ou não visível.' };
 
             default:
-                console.warn(`[EVA] Unknown action: ${action}`);
+                console.warn(`[Iva] Unknown action: ${action}`);
                 return { success: false, message: `Ação desconhecida: ${action}` };
         }
     },
@@ -117,8 +117,8 @@ export const EvaActions = {
      * This helps users understand where they are in the system hierarchy
      */
     highlightNavigationPath(targetScreen) {
-        console.log('[EVA] Highlighting navigation path for:', targetScreen);
-        console.log('[EVA] Current DOM state:', {
+        console.log('[Iva] Highlighting navigation path for:', targetScreen);
+        console.log('[Iva] Current DOM state:', {
             allTreeNodes: document.querySelectorAll('.tree-node').length,
             allTreeNodeContents: document.querySelectorAll('.tree-node-content').length,
             activeTreeNodes: document.querySelectorAll('.tree-node-content.active').length
@@ -141,30 +141,30 @@ export const EvaActions = {
             }
         }
 
-        console.log('[EVA] Active menu item found:', !!activeMenuItem, activeMenuItem);
+        console.log('[Iva] Active menu item found:', !!activeMenuItem, activeMenuItem);
 
         // Step 2: Find parent menu if exists (climb up the DOM tree)
         let parentMenu = null;
         if (activeMenuItem) {
             // Look for parent tree node or menu group
             const treeNode = activeMenuItem.closest('.tree-node');
-            console.log('[EVA] Active item tree node:', treeNode);
+            console.log('[Iva] Active item tree node:', treeNode);
 
             if (treeNode) {
                 // Find the parent node by looking for preceding tree-node at lower indent level
                 const currentMargin = parseInt(treeNode.style.marginLeft) || 0;
-                console.log('[EVA] Current margin:', currentMargin);
+                console.log('[Iva] Current margin:', currentMargin);
 
                 let currentElement = treeNode.previousElementSibling;
 
                 while (currentElement) {
                     if (currentElement.classList.contains('tree-node')) {
                         const elementMargin = parseInt(currentElement.style.marginLeft) || 0;
-                        console.log('[EVA] Checking sibling margin:', elementMargin);
+                        console.log('[Iva] Checking sibling margin:', elementMargin);
 
                         if (elementMargin < currentMargin) {
                             parentMenu = currentElement.querySelector('.tree-node-content');
-                            console.log('[EVA] Parent menu found!');
+                            console.log('[Iva] Parent menu found!');
                             break;
                         }
                     }
@@ -173,7 +173,7 @@ export const EvaActions = {
             }
         }
 
-        console.log('[EVA] Parent menu found:', !!parentMenu, parentMenu);
+        console.log('[Iva] Parent menu found:', !!parentMenu, parentMenu);
 
         // Step 3: Find the main content area - try multiple selectors
         let contentArea = document.querySelector('.glass-panel');
@@ -191,7 +191,7 @@ export const EvaActions = {
             }
         }
 
-        console.log('[EVA] Content area found:', !!contentArea, contentArea);
+        console.log('[Iva] Content area found:', !!contentArea, contentArea);
 
         // Step 4: Highlight in sequence (top-down hierarchy)
         const highlights = [];
@@ -208,20 +208,20 @@ export const EvaActions = {
             highlights.push({ element: contentArea, label: 'Tela' });
         }
 
-        console.log('[EVA] Total elements to highlight:', highlights.length);
+        console.log('[Iva] Total elements to highlight:', highlights.length);
 
         // Apply highlights with slight delays for visual sequence
         highlights.forEach((item, index) => {
             setTimeout(() => {
-                console.log(`[EVA] 🌟 Highlighting ${item.label}`, item.element);
+                console.log(`[Iva] 🌟 Highlighting ${item.label}`, item.element);
                 try {
-                    EvaHighlight.highlight(item.element, {
+                    IvaHighlight.highlight(item.element, {
                         duration: 3500 - (index * 500), // Decreasing duration
                         pulse: index < 2 // Only pulse menu items, not content area
                     });
-                    console.log(`[EVA] ✓ Successfully highlighted ${item.label}`);
+                    console.log(`[Iva] ✓ Successfully highlighted ${item.label}`);
                 } catch (error) {
-                    console.error(`[EVA] ✗ Error highlighting ${item.label}:`, error);
+                    console.error(`[Iva] ✗ Error highlighting ${item.label}:`, error);
                 }
             }, index * 200); // 200ms between each highlight
         });
@@ -229,3 +229,4 @@ export const EvaActions = {
         return highlights.length;
     }
 };
+
