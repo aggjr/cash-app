@@ -1,4 +1,4 @@
-const db = require('../config/database');
+const pool = require('../config/database').pool; // Get raw pool, not wrapper
 
 /**
  * Log an audit event
@@ -30,7 +30,8 @@ const logAudit = async (req, action, entity, entityId, details = {}, oldData = n
         const oldDataJson = oldData ? JSON.stringify(oldData) : null;
         const newDataJson = newData ? JSON.stringify(newData) : null;
 
-        await db.query(query, [
+        // Use RAW pool.query (not db.query) to avoid circular reference with auditedQuery
+        await pool.query(query, [
             projectId,
             userId,
             userName,
