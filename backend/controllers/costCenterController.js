@@ -1,6 +1,7 @@
 const db = require('../config/database');
 const AppError = require('../utils/AppError');
 const { logAudit } = require('../utils/auditLogger');
+const { wrapConnectionWithAudit } = require('../utils/connectionWrapper');
 
 exports.list = async (req, res, next) => {
     try {
@@ -30,7 +31,8 @@ exports.create = async (req, res, next) => {
         }
 
         connection = await db.getConnection();
-        const [result] = await connection.query(
+        const audited = wrapConnectionWithAudit(connection, req);
+        const [result] = await audited.query(
             'INSERT INTO centros_custo (name, description, project_id) VALUES (?, ?, ?)',
             [name, description, projectId]
         );
@@ -43,7 +45,7 @@ exports.create = async (req, res, next) => {
             active: 1,
             created_at: new Date()
         });
-        logAudit(req, 'CREATE', 'centros_custo', result.insertId, { name, description });
+        // Audit is automatic via connectionWrapper
     } catch (error) {
         next(error);
     } finally {
@@ -58,6 +60,7 @@ exports.update = async (req, res, next) => {
         const { name, description, active } = req.body;
 
         connection = await db.getConnection();
+        const audited = wrapConnectionWithAudit(connection, req);
 
         const updates = [];
         const values = [];
@@ -77,7 +80,7 @@ exports.update = async (req, res, next) => {
 
         if (updates.length > 0) {
             values.push(id);
-            await connection.query(
+            await audited.query(
                 `UPDATE centros_custo SET ${updates.join(', ')} WHERE id = ?`,
                 values
             );
@@ -86,7 +89,7 @@ exports.update = async (req, res, next) => {
 
 
         res.json({ message: 'Updated successfully' });
-        logAudit(req, 'UPDATE', 'centros_custo', id, { updates: updates.length });
+        // Audit is automatic via connectionWrapper
     } catch (error) {
         next(error);
     } finally {
@@ -99,24 +102,25 @@ exports.delete = async (req, res, next) => {
     try {
         const { id } = req.params;
         connection = await db.getConnection();
+        const audited = wrapConnectionWithAudit(connection, req);
 
         // Check usage
-        const [entradas] = await connection.query('SELECT COUNT(*) as count FROM entradas WHERE centro_custo_id = ?', [id]);
-        const [saidas] = await connection.query('SELECT COUNT(*) as count FROM saidas WHERE centro_custo_id = ?', [id]);
-        const [producao] = await connection.query('SELECT COUNT(*) as count FROM producao_revenda WHERE centro_custo_id = ?', [id]);
+        const [entradas] = await audited.query('SELECT COUNT(*) as count FROM entradas WHERE centro_custo_id = ?', [id]);
+        const [saidas] = await audited.query('SELECT COUNT(*) as count FROM saidas WHERE centro_custo_id = ?', [id]);
+        const [producao] = await audited.query('SELECT COUNT(*) as count FROM producao_revenda WHERE centro_custo_id = ?', [id]);
 
         const totalUsage = entradas[0].count + saidas[0].count + producao[0].count;
 
         if (totalUsage > 0) {
             // Soft delete
-            await connection.query('UPDATE centros_custo SET active = 0 WHERE id = ?', [id]);
+            await audited.query('UPDATE centros_custo SET active = 0 WHERE id = ?', [id]);
             res.json({ type: 'soft', message: 'Item inativado pois possui vínculos.' });
-            logAudit(req, 'UPDATE', 'centros_custo', id, { action: 'SOFT_DELETE_INACTIVE' });
+            // Audit is automatic via connectionWrapper
         } else {
             // Hard delete
-            await connection.query('DELETE FROM centros_custo WHERE id = ?', [id]);
+            await audited.query('DELETE FROM centros_custo WHERE id = ?', [id]);
             res.json({ type: 'hard', message: 'Item excluído permanentemente.' });
-            logAudit(req, 'DELETE', 'centros_custo', id, {});
+            // Audit is automatic via connectionWrapper
         }
     } catch (error) {
         next(error);
