@@ -532,13 +532,6 @@ export const IncomeModal = {
                         comprovanteInput.click();
                     });
 
-                    // Trigger file select on container click (if empty)
-                    comprovanteContainer.addEventListener('click', (e) => {
-                        if (!comprovanteUrlInput.value && e.target !== btnRemove && e.target !== fileLink) {
-                            comprovanteInput.click();
-                        }
-                    });
-
                     // Remove file
                     btnRemove.addEventListener('click', (e) => {
                         e.stopPropagation();
@@ -617,12 +610,6 @@ export const IncomeModal = {
                     btnBoletoAttach.addEventListener('click', (e) => {
                         e.stopPropagation();
                         boletoInput.click();
-                    });
-
-                    boletoContainer.addEventListener('click', (e) => {
-                        if (!boletoUrlInput.value && e.target !== btnBoletoRemove && e.target !== boletoLink) {
-                            boletoInput.click();
-                        }
                     });
 
                     btnBoletoRemove.addEventListener('click', (e) => {
