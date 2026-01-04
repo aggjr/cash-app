@@ -252,7 +252,27 @@ export class HierarchicalFilter {
 
         childRow.addEventListener('click', (e) => {
             e.stopPropagation();
+
+            // If clicking directly on checkbox, let it handle itself
+            if (e.target === childCheckbox) {
+                return;
+            }
+
             childCheckbox.checked = !childCheckbox.checked;
+
+            if (childCheckbox.checked) {
+                this.selectedIds.add(child.id);
+            } else {
+                this.selectedIds.delete(child.id);
+            }
+
+            this.updateDisplay();
+            this.notifyChange();
+        });
+
+        // Also handle direct checkbox clicks
+        childCheckbox.addEventListener('change', (e) => {
+            e.stopPropagation();
 
             if (childCheckbox.checked) {
                 this.selectedIds.add(child.id);
