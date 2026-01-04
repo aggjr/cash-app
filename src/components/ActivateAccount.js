@@ -115,7 +115,7 @@ export const ActivateAccount = () => {
                 <form id="activate-form">
                     <div class="form-group" style="margin-bottom: 1.5rem;">
                         <label for="new-password" style="display: block; margin-bottom: 0.5rem; font-weight: 600;">
-                            Nova Senha <span style="color: #EF4444;">*</span>
+                            Nova Senha <span class="required">*</span>
                         </label>
                         <input 
                             type="password" 
@@ -131,7 +131,7 @@ export const ActivateAccount = () => {
 
                     <div class="form-group" style="margin-bottom: 2rem;">
                         <label for="confirm-password" style="display: block; margin-bottom: 0.5rem; font-weight: 600;">
-                            Confirmar Senha <span style="color: #EF4444;">*</span>
+                            Confirmar Senha <span class="required">*</span>
                         </label>
                         <input 
                             type="password" 

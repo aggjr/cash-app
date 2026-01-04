@@ -56,7 +56,7 @@ export const AporteModal = {
                             <!-- PRIMEIRA LINHA: Data Fato + Data Real + Valor -->
                             <div style="display: flex; gap: 1rem; align-items: flex-end;">
                                 <div style="flex: 1;">
-                                    <label style="display:block; margin-bottom:0.5rem; font-weight:500; font-size: 0.85rem;">Data Fato <span style="color:#EF4444">*</span></label>
+                                    <label style="display:block; margin-bottom:0.5rem; font-weight:500; font-size: 0.85rem;">Data Fato <span class="required">*</span></label>
                                     <input type="date" id="aporte-fato" class="form-input" value="${aporte?.data_fato ? aporte.data_fato.substring(0, 10) : ''}" style="font-size: 0.85rem;">
                                 </div>
                                 <div style="flex: 1;">
@@ -64,7 +64,7 @@ export const AporteModal = {
                                     <input type="date" id="aporte-real" class="form-input" value="${aporte?.data_real ? aporte.data_real.substring(0, 10) : ''}" style="font-size: 0.85rem;">
                                 </div>
                                 <div style="flex: 1;">
-                                    <label style="display:block; margin-bottom:0.5rem; font-weight:500; font-size: 0.85rem;">Valor (R$) <span style="color:#EF4444">*</span></label>
+                                    <label style="display:block; margin-bottom:0.5rem; font-weight:500; font-size: 0.85rem;">Valor (R$) <span class="required">*</span></label>
                                     <input type="text" id="aporte-valor" class="form-input" placeholder="R$ 0,00" style="font-size: 0.85rem;">
                                 </div>
                             </div>
@@ -72,14 +72,14 @@ export const AporteModal = {
                             <!-- SEGUNDA LINHA: Empresa + Conta -->
                             <div style="display: flex; gap: 1rem;">
                                 <div style="flex: 1;">
-                                    <label style="display:block; margin-bottom:0.5rem; font-weight:500;">Empresa <span style="color:#EF4444">*</span></label>
+                                    <label style="display:block; margin-bottom:0.5rem; font-weight:500;">Empresa <span class="required">*</span></label>
                                     <select id="aporte-company" class="form-input">
                                         <option value="">Selecione...</option>
                                         ${companies.map(c => `<option value="${c.id}" ${aporte?.company_id === c.id ? 'selected' : ''}>${c.name}</option>`).join('')}
                                     </select>
                                 </div>
                                 <div style="flex: 1;">
-                                    <label style="display:block; margin-bottom:0.5rem; font-weight:500;">Conta <span id="account-required-asterisk" style="color:#EF4444; display:none;">*</span></label>
+                                    <label style="display:block; margin-bottom:0.5rem; font-weight:500;">Conta <span id="account-required-asterisk" class="required" style="display:none;">*</span></label>
                                     <select id="aporte-account" class="form-input" disabled>
                                         <option value="">Selecione...</option>
                                         ${accounts.map(a => `<option value="${a.id}" ${aporte?.account_id === a.id ? 'selected' : ''}>${a.name}</option>`).join('')}

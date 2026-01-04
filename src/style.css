@@ -1685,11 +1685,6 @@ body.dark-mode tr:nth-child(odd) {
   outline: none;
 }
 
-.required {
-  color: #EF4444;
-  margin-left: 2px;
-}
-
 .input-error {
   border-color: #EF4444 !important;
   background-color: #FEF2F2 !important;

@@ -67,12 +67,12 @@ export const RetiradaModal = {
                             
                             <!-- Row 1: Dates -->
                             <div style="grid-column: span 2;">
-                                <label style="display:block; margin-bottom:0.5rem; font-weight:500;">Data Fato <span style="color:#EF4444">*</span></label>
+                                <label style="display:block; margin-bottom:0.5rem; font-weight:500;">Data Fato <span class="required">*</span></label>
                                 <input type="date" id="retirada-fato" class="form-input" 
                                     value="${formatDateForInput(retirada?.data_fato) || ''}">
                             </div>
                             <div style="grid-column: span 2;">
-                                <label style="display:block; margin-bottom:0.5rem; font-weight:500;">Data Prevista <span style="color:#EF4444">*</span></label>
+                                <label style="display:block; margin-bottom:0.5rem; font-weight:500;">Data Prevista <span class="required">*</span></label>
                                 <input type="date" id="retirada-prevista" class="form-input" 
                                     value="${formatDateForInput(retirada?.data_prevista) || ''}">
                             </div>
@@ -84,21 +84,21 @@ export const RetiradaModal = {
 
                             <!-- Row 2: Entities & Value -->
                             <div style="grid-column: span 2;">
-                                <label style="display:block; margin-bottom:0.5rem; font-weight:500;">Empresa <span style="color:#EF4444">*</span></label>
+                                <label style="display:block; margin-bottom:0.5rem; font-weight:500;">Empresa <span class="required">*</span></label>
                                 <select id="retirada-company" class="form-input">
                                     <option value="">Selecione...</option>
                                     ${companies.map(c => `<option value="${c.id}" ${retirada?.company_id === c.id ? 'selected' : ''}>${c.name}</option>`).join('')}
                                 </select>
                             </div>
                             <div style="grid-column: span 2;">
-                                <label style="display:block; margin-bottom:0.5rem; font-weight:500;">Conta <span id="account-required-asterisk" style="color:#EF4444; display:none;">*</span></label>
+                                <label style="display:block; margin-bottom:0.5rem; font-weight:500;">Conta <span id="account-required-asterisk" class="required" style="display:none;">*</span></label>
                                 <select id="retirada-account" class="form-input" disabled>
                                     <option value="">Selecione...</option>
                                     ${accounts.map(a => `<option value="${a.id}" ${retirada?.account_id === a.id ? 'selected' : ''}>${a.name}</option>`).join('')}
                                 </select>
                             </div>
                             <div style="grid-column: span 2;">
-                                <label style="display:block; margin-bottom:0.5rem; font-weight:500;">Valor (R$) <span style="color:#EF4444">*</span></label>
+                                <label style="display:block; margin-bottom:0.5rem; font-weight:500;">Valor (R$) <span class="required">*</span></label>
                                 <input type="text" id="retirada-valor" class="form-input" placeholder="R$ 0,00" value="">
                             </div>
 
