@@ -169,14 +169,23 @@ export const LogAlteracoesManager = (project) => {
 
                 // Check if has old_data (can be undone) - INSERT doesn't need old_data
                 if (row.action !== 'DELETE' && row.action !== 'UPDATE' && row.action !== 'INSERT') {
+                    console.log(`[UNDO] Blocking: action "${row.action}" not supported`, row);
                     return document.createTextNode('-');
                 }
 
                 // INSERT doesn't need old_data, DELETE and UPDATE do
                 if ((row.action === 'DELETE' || row.action === 'UPDATE') && !row.old_data) {
+                    console.log(`[UNDO] Blocking: ${row.action} has no old_data`, row);
                     return document.createTextNode('-');
                 }
 
+                // For INSERT, we need entity_id (primary key) to delete
+                if (row.action === 'INSERT' && !row.entity_id) {
+                    console.log(`[UNDO] Blocking INSERT: missing entity_id`, row);
+                    return document.createTextNode('-');
+                }
+
+                console.log(`[UNDO] Showing button for ${row.action}`, row);
                 // Create undo button
                 const btn = document.createElement('button');
                 btn.innerHTML = '↩️ Desfazer';
