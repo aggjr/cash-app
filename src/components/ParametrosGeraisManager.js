@@ -904,6 +904,47 @@ export const ParametrosGeraisManager = (project) => {
         // Initialize timeout display
         updateTimeoutDisplay(currentSettings.iva_timeout || 2);
 
+        // --- Voice Toggle Logic ---
+        const voiceToggle = container.querySelector('#toggle-iva_voice_enabled');
+        if (voiceToggle) {
+            voiceToggle.addEventListener('change', async (e) => {
+                const enabled = e.target.checked ? 1 : 0;
+                currentSettings.iva_voice_enabled = enabled;
+
+                // Visual feedback update
+                const parentDiv = e.target.closest('div').parentElement;
+                if (parentDiv) {
+                    parentDiv.style.background = enabled ? 'rgba(16, 185, 129, 0.1)' : 'rgba(107, 114, 128, 0.05)';
+                    parentDiv.style.borderColor = enabled ? 'rgba(16, 185, 129, 0.3)' : 'rgba(107, 114, 128, 0.2)';
+                }
+
+                try {
+                    // Update Local Storage User immediately
+                    const user = getUser();
+                    if (user) {
+                        user.IVA_voice_enabled = enabled;
+                        localStorage.setItem('user', JSON.stringify(user));
+                    }
+
+                    // Call API
+                    const response = await fetch(`${API_BASE_URL}/auth/update-preference`, {
+                        method: 'PUT',
+                        headers: getHeaders(),
+                        body: JSON.stringify({ ivaVoiceEnabled: enabled })
+                    });
+
+                    if (response.ok) {
+                        showToast(enabled ? '🔊 Voz ativada' : '🔇 Voz desativada', 'success');
+                    } else {
+                        showToast('Erro ao salvar preferência de voz', 'error');
+                    }
+                } catch (error) {
+                    console.error('Error saving voice toggle:', error);
+                    showToast('Erro de conexão', 'error');
+                }
+            });
+        }
+
         // Event listener para voice rate slider (AUTO-SAVE)
         const voiceSlider = container.querySelector('#slider-iva_voice_rate');
         const voiceDisplay = container.querySelector('#voice-rate-display');
@@ -919,41 +960,58 @@ export const ParametrosGeraisManager = (project) => {
             voiceDisplay.style.left = `${percentage}%`;
         };
 
-        voiceSlider.addEventListener('input', (e) => {
-            const value = parseInt(e.target.value);
-            currentSettings.iva_voice_rate = value;
-            updateVoiceDisplay(value);
+        if (voiceSlider) {
+            voiceSlider.addEventListener('input', (e) => {
+                const value = parseInt(e.target.value);
+                currentSettings.iva_voice_rate = value;
+                updateVoiceDisplay(value);
 
-            // Clear previous timer
-            if (voiceSaveTimer) {
-                clearTimeout(voiceSaveTimer);
-            }
+                // Clear previous timer
+                if (voiceSaveTimer) clearTimeout(voiceSaveTimer);
 
-            // Auto-save after 800ms of inactivity
-            voiceSaveTimer = setTimeout(async () => {
-                try {
-                    const response = await fetch(`${API_BASE_URL}/settings/iva_voice_rate`, {
-                        method: 'PUT',
-                        headers: getHeaders(),
-                        body: JSON.stringify({ value })
-                    });
+                // Auto-save
+                voiceSaveTimer = setTimeout(async () => {
+                    try {
+                        // Update Local Storage User
+                        const user = getUser();
+                        if (user) {
+                            user.IVA_voice_rate = value;
+                            localStorage.setItem('user', JSON.stringify(user));
+                        }
 
-                    if (response.ok) {
-                        originalSettings.iva_voice_rate = value;
-                        // Update global voice rate immediately
-                        window.ivaVoiceRateAdjustment = value;
-                        console.log('[Settings] Auto-saved voice rate to:', value);
-                        showToast('✓ Velocidade da voz atualizada', 'success');
-                    } else {
-                        const error = await response.json();
-                        showToast(error.error || 'Erro ao salvar', 'error');
+                        // SYSTEM SETTING (Fallback/Global)
+                        const sysResponse = await fetch(`${API_BASE_URL}/settings/iva_voice_rate`, {
+                            method: 'PUT',
+                            headers: getHeaders(),
+                            body: JSON.stringify({ value })
+                        });
+
+                        // USER PREFERENCE (Primary)
+                        const userResponse = await fetch(`${API_BASE_URL}/auth/update-preference`, {
+                            method: 'PUT',
+                            headers: getHeaders(),
+                            body: JSON.stringify({ ivaVoiceRate: value })
+                        });
+
+                        if (userResponse.ok) {
+                            originalSettings.iva_voice_rate = value;
+                            console.log('[Settings] Auto-saved voice rate:', value);
+                            showToast('✓ Velocidade da voz atualizada', 'success');
+                        } else {
+                            if (sysResponse.ok) {
+                                showToast('✓ Velocidade (Sistema) atualizada', 'success');
+                            } else {
+                                const error = await userResponse.json();
+                                showToast(error.error || 'Erro ao salvar', 'error');
+                            }
+                        }
+                    } catch (error) {
+                        console.error('[Settings] Error saving voice rate:', error);
+                        showToast('Erro de conexão', 'error');
                     }
-                } catch (error) {
-                    console.error('[Settings] Error saving voice rate:', error);
-                    showToast('Erro de conexão', 'error');
-                }
-            }, 800);
-        });
+                }, 800);
+            });
+        }
 
         // Initialize voice display
         updateVoiceDisplay(currentSettings.iva_voice_rate || 0);
