@@ -94,6 +94,45 @@ export const LogAlteracoesManager = (project) => {
                     return document.createTextNode(row.details || '-');
                 }
             }
+        },
+        {
+            key: 'undo',
+            label: 'Ações',
+            width: '120px',
+            align: 'center',
+            noFilter: true,
+            render: (row) => {
+                // Check if already undone
+                if (row.undone_at) {
+                    const span = document.createElement('span');
+                    span.textContent = '✅ Desfeito';
+                    span.style.color = '#10B981';
+                    span.style.fontSize = '0.9rem';
+                    return span;
+                }
+
+                // Check if has old_data (can be undone)
+                if (!row.old_data || (row.action !== 'DELETE' && row.action !== 'UPDATE')) {
+                    return document.createTextNode('-');
+                }
+
+                // Create undo button
+                const btn = document.createElement('button');
+                btn.innerHTML = '↩️ Desfazer';
+                btn.className = 'btn-sm';
+                btn.style.background = '#F59E0B';
+                btn.style.color = 'white';
+                btn.style.border = 'none';
+                btn.style.padding = '4px 8px';
+                btn.style.borderRadius = '4px';
+                btn.style.cursor = 'pointer';
+                btn.style.fontSize = '0.85rem';
+                btn.onclick = async (e) => {
+                    e.stopPropagation();
+                    await undoAction(row.id, row.action, row.entity);
+                };
+                return btn;
+            }
         }
     ];
 
@@ -103,6 +142,37 @@ export const LogAlteracoesManager = (project) => {
             'Content-Type': 'application/json',
             'Authorization': `Bearer ${token}`
         };
+    };
+
+    // Undo an action
+    const undoAction = async (logId, action, entity) => {
+        const actionLabel = action === 'DELETE' ? 'exclusão' : 'alteração';
+        const confirmed = confirm(`Tem certeza que deseja desfazer esta ${actionLabel}?\n\nIsso irá restaurar o registro à sua forma anterior.`);
+
+        if (!confirmed) return;
+
+        try {
+            const response = await fetch(`${API_BASE_URL}/audit-logs/undo/${logId}`, {
+                method: 'POST',
+                headers: getHeaders()
+            });
+
+            const result = await response.json();
+
+            if (!response.ok) {
+                throw new Error(result.error || 'Erro ao desfazer ação');
+            }
+
+            showToast('Ação desfeita com sucesso!', 'success');
+            loadLogs(pagination.page); // Reload current page
+        } catch (error) {
+            console.error('Undo error:', error);
+            if (error.message.includes('403')) {
+                showToast('Acesso restrito a usuários Master', 'error');
+            } else {
+                showToast(error.message, 'error');
+            }
+        }
     };
 
     // SharedTable Instance
