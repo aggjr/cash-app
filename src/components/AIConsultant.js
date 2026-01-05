@@ -91,7 +91,8 @@ export const AIConsultant = () => {
 
         // Check if voice is enabled and load rate adjustment
         const user = getUser();
-        if (!user?.IVA_voice_enabled) return;
+        // Fix: Check lowercase property name from database
+        if (!user?.iva_voice_enabled && user?.iva_voice_enabled !== 1) return;
 
         window.speechSynthesis.cancel();
 
@@ -1093,10 +1094,11 @@ Digite 1, 2 ou 3.`;
                             ? `SYSTEM_TRIGGER: SESSÃO_INICIADA
                             Contexto temporal: ${timeMessage}
                             Ação: Dê boas-vindas completas e calorosas ao usuário.
+                            - OBRIGATÓRIO: Inicie com saudação de horário: "Bom dia" (5h-12h), "Boa tarde" (12h-19h), ou "Boa noite" (19h-5h)
                             - Use tratamento apropriado ao cargo (Dr., Sr., você)
                             - Se tempo desde último acesso > 24h, mencione educadamente
-                            - Pergunte "Como posso ajudar?" ou  similar
-                            - Seja breve mas acolhedora (máx 2 linhas)`
+                            - Pergunte "Como posso ajudar?" ou similar
+                            - Seja breve mas acolhedora (máx 2-3 linhas)`
                             : `SYSTEM_TRIGGER: CHAT_REABERTO
                             Ação: Saudação MUITO curta e informal.
                             Exemplos adequados ao cargo:
