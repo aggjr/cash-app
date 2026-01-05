@@ -28,6 +28,7 @@ export class SharedTable {
     updateOptions({ enableSelection, onSelectionChange }) {
         if (enableSelection !== undefined) this.enableSelection = enableSelection;
         if (onSelectionChange !== undefined) this.onSelectionChange = onSelectionChange;
+        console.log('🛡️ SharedTable v0.2.19 - Secure Filter Loaded');
     }
 
     getHeaders() {
