@@ -1609,3 +1609,4 @@ export class SharedTable {
             setTimeout(() => document.addEventListener('click', close), 0);
         }
     }
+}
