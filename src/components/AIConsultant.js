@@ -6,6 +6,7 @@ import { showToast } from '../utils/toast.js';
 import ScreenContextExtractor from '../utils/screenContextExtractor.js';
 import IvaScreenActions from '../iva/IvaScreenActions.js';
 import IvaHighlighter from '../iva/IvaHighlighter.js';
+import { IvaNavigationIndicator } from '../iva/IvaNavigationIndicator.js';
 
 export const AIConsultant = () => {
     console.log('AIConsultant: Version 2.1 (Iva UI Interactions fixed)');
@@ -1129,6 +1130,10 @@ Digite 1, 2 ou 3.`;
                 renderMessages();
                 input.focus();
             }
+        } else {
+            // Chat is closing - clear navigation indicators
+            console.log('[IVA] Chat closing - clearing navigation indicators');
+            IvaNavigationIndicator.clearAll();
         }
     };
 

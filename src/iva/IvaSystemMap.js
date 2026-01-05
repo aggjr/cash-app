@@ -40,7 +40,38 @@ export const IvaSystemMap = {
             route: '/saidas',
             description: 'Lista detalhada de todos os pagamentos e custos.',
             semantic_data: ['transaction_list', 'values', 'suppliers', 'categories'],
-            keywords: ['paguei', 'gastei', 'fornecedor', 'custo detalhado']
+        },
+        {
+            id: 'dividas-emprestimos',
+            name: 'Dívidas / Empréstimos',
+            route: '/dividas-emprestimos',
+            description: 'Gerencia contratos de empréstimos e financiamentos. Calcula parcelas, juros, amortização e IOF automaticamente.',
+            semantic_data: ['loan_contracts', 'installments', 'interest_rates', 'payment_schedule'],
+            keywords: ['empréstimo', 'financiamento', 'dívida', 'parcela', 'juros', 'contratar', 'banco']
+        },
+        {
+            id: 'previsao',
+            name: 'Previsão de Fluxo',
+            route: '/previsao',
+            description: 'Projeção de saldo futuro com base em entradas e saídas previstas.',
+            semantic_data: ['projected_balance', 'cash_flow_forecast'],
+            keywords: ['previsão', 'projeção', 'futuro', 'saldo previsto']
+        },
+        {
+            id: 'consolidadas',
+            name: 'Consolidadas (DRE/Fluxo)',
+            route: '/consolidadas',
+            description: 'Visão consolidada de transações reais e previstas, com análise de DRE e fluxo financeiro.',
+            semantic_data: ['consolidated_transactions', 'dre_analysis', 'cash_flow_analysis'],
+            keywords: ['consolidado', 'visão geral', 'resumo', 'análise completa']
+        },
+        {
+            id: 'producao-revenda',
+            name: 'Produção / Revenda',
+            route: '/producao-revenda',
+            description: 'Registro de produção própria ou revenda de produtos/serviços.',
+            semantic_data: ['production_records', 'resale_transactions'],
+            keywords: ['produção', 'revenda', 'fabricação', 'produto']
         }
     ]
 };
