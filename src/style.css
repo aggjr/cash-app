@@ -49,6 +49,8 @@
   --text-xxl: 5rem;
   --text-table: 0.85rem;
   /* Standardized table font */
+  --text-table-title: 1.75rem;
+  /* Standardized table title font */
 
   /* Standardized Column Widths (reduced by 15% for better density) */
   --col-date: 60px;

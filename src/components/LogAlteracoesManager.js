@@ -245,7 +245,7 @@ export const LogAlteracoesManager = (project) => {
                     ${oldData ? `
                     <div style="margin-bottom: 25px;">
                         <h3 style="color: #60A5FA; margin: 0 0 10px 0; display: flex; align-items: center; gap: 8px;">
-                            <span style="font-size: 1.5rem;">📄</span> Dados ANTES (old_data)
+                            <span style="font-size: var(--text-table-title);">📄</span> Dados ANTES (old_data)
                         </h3>
                         <pre style="background: var(--color-bg-secondary); padding: 16px; border-radius: 8px; overflow-x: auto; border-left: 4px solid #60A5FA; margin: 0; color: var(--color-text-dark); font-size: 0.875rem; line-height: 1.5; border: 1px solid var(--color-border-light);">${JSON.stringify(oldData, null, 2)}</pre>
                     </div>
@@ -254,7 +254,7 @@ export const LogAlteracoesManager = (project) => {
                     ${newData ? `
                     <div>
                         <h3 style="color: #34D399; margin: 0 0 10px 0; display: flex; align-items: center; gap: 8px;">
-                            <span style="font-size: 1.5rem;">📝</span> Dados DEPOIS (new_data)
+                            <span style="font-size: var(--text-table-title);">📝</span> Dados DEPOIS (new_data)
                         </h3>
                         <pre style="background: var(--color-bg-secondary); padding: 16px; border-radius: 8px; overflow-x: auto; border-left: 4px solid #34D399; margin: 0; color: var(--color-text-dark); font-size: 0.875rem; line-height: 1.5; border: 1px solid var(--color-border-light);">${JSON.stringify(newData, null, 2)}</pre>
                     </div>
@@ -360,7 +360,7 @@ export const LogAlteracoesManager = (project) => {
                     <div class="modal-content" style="background: white; padding: 30px; border-radius: 12px; max-width: 600px; max-height: 90vh; overflow-y: auto; box-shadow: 0 20px 60px rgba(0,0,0,0.3);">
                         <div style="text-align: center; margin-bottom: 20px;">
                             <div style="font-size: 48px; margin-bottom: 10px;">⚠️</div>
-                            <h2 style="margin: 0; color: #DC2626; font-size: 1.5rem;">OPERAÇÃO DE ALTO RISCO</h2>
+                            <h2 style="margin: 0; color: #DC2626; font-size: var(--text-table-title);">OPERAÇÃO DE ALTO RISCO</h2>
                         </div>
                         
                         <div style="background: #FEF3C7; border-left: 4px solid #F59E0B; padding: 15px; margin-bottom: 20px; border-radius: 4px;">

@@ -85,7 +85,7 @@ export const BatchOperationDialog = {
                     }
                 </style>
 
-                <h2 style="margin: 0 0 0.5rem 0; color: var(--color-text, #1F2937); font-size: 1.5rem;">
+                <h2 style="margin: 0 0 0.5rem 0; color: var(--color-text, #1F2937); font-size: var(--text-table-title);">
                     ${operationText} de Parcelas
                 </h2>
                 <p style="margin: 0 0 1.5rem 0; color: var(--color-text-muted, #6B7280); font-size: 0.95rem;">

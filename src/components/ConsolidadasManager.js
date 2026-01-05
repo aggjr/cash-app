@@ -5,7 +5,7 @@ import { ExcelExporter } from '../utils/ExcelExporter.js';
 import { PrintHelper } from '../utils/printHelper.js';
 import { FlatMultiSelect } from './FlatMultiSelect.js';
 
-export const ConsolidadasManager = (project) => {
+export const ConsolidadasManager = (project, fixedViewType = null) => {
     const container = document.createElement('div');
     container.className = 'glass-panel';
     const API_BASE_URL = getApiBaseUrl();
@@ -19,8 +19,9 @@ export const ConsolidadasManager = (project) => {
 
     // --- State ---
     const today = new Date();
-    // User Request: Default to 'caixa'
-    let viewType = 'caixa';
+    // User Request: Default to 'caixa', but allow fixed viewType
+    let viewType = fixedViewType || 'caixa';
+    const isFixedView = fixedViewType !== null;
     let startMonth = localStorage.getItem('consolidadas_startMonth') || `${today.getFullYear()}-01`;
     let endMonth = localStorage.getItem('consolidadas_endMonth') || `${today.getFullYear()}-12`;
     let expandedNodes = new Set();
@@ -112,20 +113,26 @@ export const ConsolidadasManager = (project) => {
         const tablesWrapper = container.querySelector('#consolidadas-tables-wrapper');
         tablesWrapper.innerHTML = '';
 
-        const titleReal = 'Operações Finalizadas';
-        const titleProv = 'Operações Finalizadas e Previstas';
+        if (viewType === 'caixa') {
+            // Caixa: Show both tables
+            const titleReal = 'Operações Finalizadas';
+            const titleProv = 'Operações Finalizadas e Previstas';
 
-        // Table 1: Realized
-        tablesWrapper.appendChild(createTableHTML(currentData.realized, titleReal));
+            // Table 1: Realized
+            tablesWrapper.appendChild(createTableHTML(currentData.realized, titleReal));
 
-        // Spacer
-        const spacer = document.createElement('div');
-        spacer.style.height = '2rem';
-        tablesWrapper.appendChild(spacer);
+            // Spacer
+            const spacer = document.createElement('div');
+            spacer.style.height = '2rem';
+            tablesWrapper.appendChild(spacer);
 
-        // Table 2: Provisioned
-        // Table 2: Provisioned
-        tablesWrapper.appendChild(createTableHTML(currentData.provisioned, titleProv));
+            // Table 2: Provisioned
+            tablesWrapper.appendChild(createTableHTML(currentData.provisioned, titleProv));
+        } else {
+            // Competência: Show only provisioned table
+            const titleProv = 'DRE - Demonstrativo de Resultado';
+            tablesWrapper.appendChild(createTableHTML(currentData.provisioned, titleProv));
+        }
 
         // Adjust sticky columns dynamically
         setTimeout(adjustStickyColumns, 0);
@@ -288,7 +295,7 @@ export const ConsolidadasManager = (project) => {
         <table style="width: auto; border-collapse: separate; border-spacing: 0;">
             <thead style="position: sticky; top: 0; z-index: 10; background-color: #00425F; color: white;">
                 <tr>
-                    <th colspan="${months.length + 3}" style="padding: 0.4rem 0.5rem; text-align: center; border-bottom: 1px solid #ffffff33; background-color: #00425F; border-radius: 8px 8px 0 0; white-space: nowrap;">
+                    <th colspan="${months.length + 3}" style="padding: 0.4rem 0.5rem; text-align: center; font-size: var(--text-table-title); font-weight: 600; border-bottom: 1px solid #ffffff33; background-color: #00425F; border-radius: 8px 8px 0 0; white-space: nowrap;">
                         ${title}
                     </th>
                 </tr>
@@ -418,23 +425,31 @@ export const ConsolidadasManager = (project) => {
     const headerRow = document.createElement('div');
     headerRow.style.cssText = 'display:flex; justify-content:space-between; align-items:center; margin-bottom:0.5rem;';
 
-    // Radios (Moved to Top Left)
-    const radioGroup = document.createElement('div');
-    radioGroup.style.cssText = 'display:flex; gap:1.5rem; align-items:center; background:#f3f4f6; padding:0.25rem 1rem; border-radius:8px; min-height:40px; white-space:nowrap;';
+    // Only show radio toggle if NOT fixed view
+    if (!isFixedView) {
+        // Radios (Moved to Top Left)
+        const radioGroup = document.createElement('div');
+        radioGroup.style.cssText = 'display:flex; gap:1.5rem; align-items:center; background:#f3f4f6; padding:0.25rem 1rem; border-radius:8px; min-height:40px; white-space:nowrap;';
 
-    const createRadio = (lbl, val) => {
-        const d = document.createElement('label');
-        d.style.cssText = 'display:flex; align-items:center; gap:0.5rem; cursor:pointer; margin-bottom:0; white-space:nowrap;';
-        const inp = document.createElement('input');
-        inp.type = 'radio'; inp.name = 'viewType'; inp.value = val; inp.checked = (viewType === val); inp.style.accentColor = '#00425F';
-        inp.onchange = (e) => { if (e.target.checked) { viewType = val; loadData(); } };
-        const spn = document.createElement('span'); spn.textContent = lbl; spn.style.cssText = 'font-weight:500; color:#374151; font-size:0.95rem;';
-        d.append(inp, spn); return d;
-    };
-    radioGroup.append(createRadio('Visão de Caixa', 'caixa'), createRadio('Visão de Competência', 'competencia'));
+        const createRadio = (lbl, val) => {
+            const d = document.createElement('label');
+            d.style.cssText = 'display:flex; align-items:center; gap:0.5rem; cursor:pointer; margin-bottom:0; white-space:nowrap;';
+            const inp = document.createElement('input');
+            inp.type = 'radio'; inp.name = 'viewType'; inp.value = val; inp.checked = (viewType === val); inp.style.accentColor = '#00425F';
+            inp.onchange = (e) => { if (e.target.checked) { viewType = val; loadData(); } };
+            const spn = document.createElement('span'); spn.textContent = lbl; spn.style.cssText = 'font-weight:500; color:#374151; font-size:0.95rem;';
+            d.append(inp, spn); return d;
+        };
+        radioGroup.append(createRadio('Visão de Caixa', 'caixa'), createRadio('Visão de Competência', 'competencia'));
+        headerRow.appendChild(radioGroup);
+    }
 
-    headerRow.appendChild(radioGroup);
-    headerRow.insertAdjacentHTML('beforeend', '<div style="font-size:1.5rem; font-weight:bold; color:#00425F;">📑 Consolidadas</div>');
+    // Title - Dynamic based on viewType
+    const titleIcon = viewType === 'caixa' ? '💰' : '📊';
+    const titleText = viewType === 'caixa'
+        ? 'Consolidada<br/>Financeira'
+        : 'DRE<br/>(Competência)';
+    headerRow.insertAdjacentHTML('beforeend', `<div style="font-size: var(--text-table-title); font-weight:bold; color:#00425F; text-align:center; line-height:1.3;">${titleIcon} ${titleText}</div>`);
 
     // Controls
     const controlsRow = document.createElement('div');

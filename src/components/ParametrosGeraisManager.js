@@ -1243,7 +1243,7 @@ export const ParametrosGeraisManager = (project) => {
     const ivaTabContent = () => {
         const ivaContainer = document.createElement('div');
         ivaContainer.innerHTML = `
-            <h2 style="margin-bottom: 1.5rem; color: var(--color-text-dark); font-size: 1.5rem;">
+            <h2 style="margin-bottom: 1.5rem; color: var(--color-text-dark); font-size: var(--text-table-title);">
                 🤖 Configurações da IA IVA
             </h2>
             <p style="color: #6b7280; margin-bottom: 2rem;">

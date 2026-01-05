@@ -318,12 +318,21 @@ function initAppLogic() {
       } else {
         Dialogs.alert('Selecione um projeto primeiro', 'Aviso');
       }
-    } else if (itemId === 'consolidadas') {
+    } else if (itemId === 'consolidada-financeira') {
       const { currentProject } = checkAuth();
       if (currentProject) {
         const mainElement = document.querySelector('main');
         mainElement.innerHTML = '';
-        mainElement.appendChild(ConsolidadasManager(currentProject));
+        mainElement.appendChild(ConsolidadasManager(currentProject, 'caixa'));
+      } else {
+        Dialogs.alert('Selecione um projeto primeiro', 'Aviso');
+      }
+    } else if (itemId === 'dre-competencia') {
+      const { currentProject } = checkAuth();
+      if (currentProject) {
+        const mainElement = document.querySelector('main');
+        mainElement.innerHTML = '';
+        mainElement.appendChild(ConsolidadasManager(currentProject, 'competencia'));
       } else {
         Dialogs.alert('Selecione um projeto primeiro', 'Aviso');
       }

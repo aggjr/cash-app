@@ -373,18 +373,27 @@ export const FechamentoContasManager = (project) => {
         trTotal.style.fontWeight = '700';
         trTotal.style.backgroundColor = '#f0f9ff'; // Light highlight
 
-        // Fixed First Cell (Label TOTAL) - spans both company and account columns
+        // Hidden Empresa Cell for TOTAL row (maintains column structure)
+        const tdTotalEmpresa = document.createElement('td');
+        tdTotalEmpresa.style.position = 'sticky';
+        tdTotalEmpresa.style.left = '0';
+        tdTotalEmpresa.style.zIndex = '10';
+        tdTotalEmpresa.style.backgroundColor = '#00425F';
+        tdTotalEmpresa.style.borderTop = '2px solid #00425F';
+        trTotal.appendChild(tdTotalEmpresa);
+
+        // Visible Account Cell for TOTAL row
         const tdTotalLabel = document.createElement('td');
         tdTotalLabel.textContent = 'TOTAL';
-        tdTotalLabel.colSpan = 2; // Span both company and account columns
         tdTotalLabel.style.position = 'sticky';
         tdTotalLabel.style.left = '0';
         tdTotalLabel.style.backgroundColor = '#00425F';
         tdTotalLabel.style.color = 'white';
-        tdTotalLabel.style.zIndex = '10';
+        tdTotalLabel.style.zIndex = '11';
         tdTotalLabel.style.padding = 'var(--header-padding)';
-        tdTotalLabel.style.textAlign = 'center'; // Summary align
+        tdTotalLabel.style.textAlign = 'left';
         tdTotalLabel.style.borderTop = '2px solid #00425F';
+        tdTotalLabel.style.borderRight = '2px solid #00425F';
         tdTotalLabel.style.whiteSpace = 'nowrap';
         trTotal.appendChild(tdTotalLabel);
 

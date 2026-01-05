@@ -108,6 +108,7 @@ export const ExtratoContaManager = (project) => {
         placeholder.textContent = 'Selecione uma conta';
         accSelect.appendChild(placeholder);
 
+        console.log('[ExtratoContaManager] Populating account dropdown with', accounts.length, 'accounts:', accounts);
         accounts.forEach(acc => {
             const opt = document.createElement('option');
             opt.value = acc.id;
@@ -469,18 +470,24 @@ export const ExtratoContaManager = (project) => {
             const resp = await fetch(`${API_BASE_URL}/accounts?projectId=${project.id}`, { headers: getHeaders() });
             if (resp.ok) {
                 allAccounts = await resp.json();
+                console.log('[ExtratoContaManager] Total accounts fetched from API:', allAccounts.length, allAccounts);
 
                 // Auto-select first company if no company selected
                 if (!selectedCompanyId && companies.length > 0) {
                     selectedCompanyId = companies[0].id;
                     localStorage.setItem('extrato_companyId', selectedCompanyId);
+                    console.log('[ExtratoContaManager] Auto-selected first company:', selectedCompanyId);
+                } else {
+                    console.log('[ExtratoContaManager] Using stored/selected company:', selectedCompanyId);
                 }
 
                 // Filter accounts by selected company
                 if (selectedCompanyId) {
                     accounts = allAccounts.filter(acc => acc.company_id === selectedCompanyId);
+                    console.log('[ExtratoContaManager] Filtered accounts for company', selectedCompanyId, ':', accounts.length, accounts);
                 } else {
                     accounts = [...allAccounts];
+                    console.log('[ExtratoContaManager] No company filter, using all accounts:', accounts.length);
                 }
 
                 // Auto-select first account if available and none selected

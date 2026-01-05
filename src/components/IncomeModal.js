@@ -97,7 +97,7 @@ export const IncomeModal = {
                         ${isInstallment ? `
                             <div style="background: linear-gradient(135deg, #3B82F6 0%, #1E40AF 100%); color: white; padding: 1rem; border-radius: 8px; margin-bottom: 1rem; box-shadow: 0 2px 8px rgba(59, 130, 246, 0.3);">
                                 <div style="display: flex; align-items: center; gap: 0.75rem; margin-bottom: 0.5rem;">
-                                    <span style="font-size: 1.5rem;">📋</span>
+                                    <span style="font-size: var(--text-table-title);">📋</span>
                                     <div style="flex: 1;">
                                         <div style="font-weight: 700; font-size: 1.1rem;">Editando Parcela ${income.installment_number} de ${income.installment_total}</div>
                                         <div style="font-size: 0.9rem; opacity: 0.95; margin-top: 0.25rem;">Parcelamento - Valor Total: ${new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(totalInstallmentValue)}</div>

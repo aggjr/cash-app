@@ -9,8 +9,8 @@ const JWT_SECRET = process.env.JWT_SECRET || 'your_jwt_secret_key';
 exports.register = async (req, res, next) => {
     let connection;
     try {
-        const { name, email, password, projectName } = req.body;
-        console.log('=== REGISTER START ===', { name, email, projectName });
+        const { name, email, password, projectName, companyName } = req.body;
+        console.log('=== REGISTER START ===', { name, email, projectName, companyName });
 
         if (!name || !email || !password) {
             throw new AppError('VAL-002');
@@ -56,6 +56,17 @@ exports.register = async (req, res, next) => {
         const projectId = projectResult.insertId;
         console.log('Created project:', { projectId, name: finalProjectName });
 
+        // Create company for the project if companyName provided
+        let companyId = null;
+        if (companyName) {
+            const [companyResult] = await connection.query(
+                'INSERT INTO empresas (name, project_id) VALUES (?, ?)',
+                [companyName, projectId]
+            );
+            companyId = companyResult.insertId;
+            console.log('Created company:', { companyId, name: companyName });
+        }
+
         // Add user as master of the new project WITH PASSWORD
         await connection.query(
             'INSERT INTO project_users (project_id, user_id, password, role) VALUES (?, ?, ?, ?)',
@@ -63,26 +74,21 @@ exports.register = async (req, res, next) => {
         );
         console.log('Linked user to project:', { userId, projectId, role: 'master' });
 
+        // Link company to user if created
+        if (companyId) {
+            await connection.query(
+                'UPDATE users SET company_id = ? WHERE id = ?',
+                [companyId, userId]
+            );
+            console.log('Linked company to user:', { userId, companyId });
+        }
+
         await connection.commit();
         console.log('Transaction committed successfully');
-        console.log('=== REGISTER SUCCESS ===', { userId, projectId });
-        // Manually logging here since we don't have req.user populated typically in register, BUT wait...
-        // Register is public usually. If so, req.user is undefined.
-        // logAudit expects req.user.
-        // We CANNOT use logAudit helper blindly here if not authenticated.
-        // Does logAudit handle empty user?
-        // Let's check logAudit.
-
-        // Checking auditLogger.js:
-        // const userId = req.user?.id;
-        // const userName = req.user?.name || 'Sistema/Anonimo';
-
-        // So we can simulate a user object attached to req so logAudit works, 
-        // OR pass explicit values if logAudit allowed it (it doesn't seem to take overrides easily for user).
-        // Best approach: Attach constructed user to req object before calling logAudit.
+        console.log('=== REGISTER SUCCESS ===', { userId, projectId, companyId });
 
         req.user = { id: userId, name: name, projectId: projectId };
-        logAudit(req, 'CREATE', 'projects', projectId, { action: 'REGISTER_NEW_PROJECT', email });
+        logAudit(req, 'CREATE', 'projects', projectId, { action: 'REGISTER_NEW_PROJECT', email, companyName });
 
         res.status(201).json({ message: 'Project created successfully' });
     } catch (error) {

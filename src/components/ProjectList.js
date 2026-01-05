@@ -1,4 +1,5 @@
 import { Dialogs } from './Dialogs.js';
+import { ProjectDialog } from './ProjectDialog.js';
 import { getApiBaseUrl } from '../utils/apiConfig.js';
 
 export const ProjectList = (onProjectSelected) => {
@@ -31,23 +32,31 @@ export const ProjectList = (onProjectSelected) => {
     };
 
     const createProject = async () => {
-        const name = await Dialogs.prompt('Nome do Projeto', '', 'Novo Projeto');
-        if (!name) return;
+        const result = await ProjectDialog.show();
+        if (!result) return;
+
+        const { projectName, companyName, password } = result;
 
         try {
             const response = await fetch(`${API_BASE_URL}/auth/projects`, {
                 method: 'POST',
                 headers: getHeaders(),
-                body: JSON.stringify({ name })
+                body: JSON.stringify({
+                    name: projectName,
+                    companyName: companyName,
+                    password: password
+                })
             });
 
             if (response.ok) {
+                Dialogs.alert('Projeto criado com sucesso!', 'Sucesso');
                 loadProjects();
             } else {
                 const data = await response.json();
                 Dialogs.alert(data.error || 'Erro ao criar projeto', 'Erro');
             }
         } catch (error) {
+            console.error('Error creating project:', error);
             Dialogs.alert('Erro de conexão', 'Erro');
         }
     };
