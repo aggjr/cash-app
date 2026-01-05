@@ -101,7 +101,7 @@ export const AIConsultant = () => {
 
         // Load voice rate from user settings (IVA_voice_rate field in DB)
         // Load voice rate from user settings (IVA_voice_rate field in DB)
-        const rateAdjustment = user?.IVA_voice_rate !== undefined ? user.IVA_voice_rate : 75;
+        const rateAdjustment = user?.IVA_voice_rate !== undefined ? user.IVA_voice_rate : 60;
         window.IVAVoiceRateAdjustment = rateAdjustment; // Update global
 
         // Apply voice rate: Linear scale from 0.5 to 3.0
@@ -140,9 +140,10 @@ export const AIConsultant = () => {
                     // Play audio with dynamic delay to prevent first syllable cut
                     const audio = new Audio(`data: audio / mp3; base64, ${audioContent} `);
 
-                    // Calculate delay based on speech rate (faster = much longer delay needed)
+                    // Calculate delay based on speech rate (faster = longer delay needed)
                     // Base delay: 300ms minimum, scales with rate to prevent syllable cutting
-                    const delayMs = Math.max(300, Math.floor(200 * rate));
+                    // Formula: 300ms + (300 * rate) ensures proportional scaling with speed
+                    const delayMs = Math.max(300, Math.floor(300 * rate));
 
                     // Wait for audio to be ready
                     audio.addEventListener('canplaythrough', () => {
