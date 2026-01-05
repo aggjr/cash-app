@@ -104,9 +104,9 @@ export const AIConsultant = () => {
         const rateAdjustment = user?.IVA_voice_rate !== undefined ? user.IVA_voice_rate : 75;
         window.IVAVoiceRateAdjustment = rateAdjustment; // Update global
 
-        // Apply voice rate: Linear scale from 0.5 to 1.5 (Centering at 50 = 1.0)
-        // 0 -> 0.5x, 50 -> 1.0x, 100 -> 1.5x
-        utterance.rate = 0.5 + (rateAdjustment / 100);
+        // Apply voice rate: Linear scale from 0.5 to 2.0 (Centering at 50 = 1.0)
+        // 0 -> 0.5x, 50 -> 1.0x, 100 -> 2.0x
+        utterance.rate = 0.5 + (rateAdjustment * 1.5 / 100);
         console.log('[IVA Voice] Rate adjustment from DB:', rateAdjustment, '-> Final rate:', utterance.rate);
 
         const voices = window.speechSynthesis.getVoices();

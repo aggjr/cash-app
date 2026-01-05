@@ -634,9 +634,9 @@ export const ParametrosGeraisManager = (project) => {
                                     font-weight: 600;
                                     white-space: nowrap;
                                 "
-                            >1.30x</div>
+                            >1.25x</div>
                         </div>
-                        <span style="min-width: 40px; color: var(--color-text-muted); font-size: 0.875rem;">2.6x</span>
+                        <span style="min-width: 40px; color: var(--color-text-muted); font-size: 0.875rem;">2.0x</span>
                         <button 
                             id="test-voice-speed"
                             style="
@@ -660,7 +660,7 @@ export const ParametrosGeraisManager = (project) => {
                         >🔊</button>
                     </div>
                     <small style="display: block; margin-top: 0.5rem; color: var(--color-text-muted);">
-                        Ajuste a velocidade de fala da IVA (-100% a +100% da velocidade padrão de 1.30x)
+                        Ajuste a velocidade de fala da IVA (-100% a +100% da velocidade padrão de 1.0x)
                     </small>
                 </div>
 
@@ -943,8 +943,8 @@ export const ParametrosGeraisManager = (project) => {
         let voiceSaveTimer = null;
 
         const updateVoiceDisplay = (value) => {
-            // Formula: 0.5 + (value/100) -> 50 = 1.0x
-            const rate = 0.5 + (value / 100);
+            // Formula: 0.5 + (value * 1.5 / 100) -> -100 = 0.5x, 0 = 1.0x, 100 = 2.0x
+            const rate = 0.5 + ((value + 100) * 1.5 / 200);
             voiceDisplay.textContent = rate.toFixed(2) + 'x';
 
             // Move display above slider position
