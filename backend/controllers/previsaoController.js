@@ -16,11 +16,14 @@ function formatDateLocal(date) {
 
 exports.getDailyForecast = async (req, res, next) => {
     try {
-        const { projectId, startDate, endDate } = req.query;
+        const { projectId, startDate, endDate, companyIds } = req.query;
 
         if (!projectId || !startDate || !endDate) {
             throw new AppError('VAL-002', 'Project ID, Start Date, and End Date are required');
         }
+
+        // Parse companyIds if provided
+        const companyFilter = companyIds ? companyIds.split(',').map(id => parseInt(id, 10)) : null;
 
         // --- 1. Calculate Initial Balance (Baseline at start of valid history) ---
         // We need:
@@ -132,58 +135,72 @@ exports.getDailyForecast = async (req, res, next) => {
         const effectiveDateSql = (table) => getEffectiveDateSql(table);
         const validitySql = (table) => getValiditySql(table);
 
+        // Helper: Company Filter SQL
+        const companyFilterSql = () => companyFilter ? `AND company_id IN (?)` : '';
+        const companyFilterParams = () => companyFilter ? [companyFilter] : [];
+
         // 1.1 Calculate Historic Inflows (active=1)
+        const inflowParams = [projectId, ...(companyFilter ? [companyFilter] : []), startDate];
         const [inflowResult] = await db.query(`
             SELECT SUM(valor) as total 
             FROM entradas 
             WHERE project_id = ? 
             AND active = 1 
+            ${companyFilterSql()}
             AND ${validitySql('entradas')}
             AND ${effectiveDateSql('entradas')} < ?
-        `, [projectId, startDate]);
+        `, inflowParams);
         const historicInflow = parseFloat(inflowResult[0].total || 0);
 
         // 1.2 Calculate Historic Outflows
+        const saidasParams = [projectId, ...(companyFilter ? [companyFilter] : []), startDate];
         const [saidasResult] = await db.query(`
             SELECT SUM(valor) as total 
             FROM saidas 
             WHERE project_id = ? 
             AND active = 1 
+            ${companyFilterSql()}
             AND ${validitySql('saidas')}
             AND ${effectiveDateSql('saidas')} < ?
-        `, [projectId, startDate]);
+        `, saidasParams);
         const historicSaidas = parseFloat(saidasResult[0].total || 0);
 
+        const producaoParams = [projectId, ...(companyFilter ? [companyFilter] : []), startDate];
         const [producaoResult] = await db.query(`
             SELECT SUM(valor) as total 
             FROM producao_revenda 
             WHERE project_id = ? 
             AND active = 1 
+            ${companyFilterSql()}
             AND ${validitySql('producao_revenda')}
             AND ${effectiveDateSql('producao_revenda')} < ?
-        `, [projectId, startDate]);
+        `, producaoParams);
         const historicProducao = parseFloat(producaoResult[0].total || 0);
 
         // 1.3 Historic Aportes
+        const aportesParams = [projectId, ...(companyFilter ? [companyFilter] : []), startDate];
         const [aportesResult] = await db.query(`
             SELECT SUM(valor) as total 
             FROM aportes 
             WHERE project_id = ? 
             AND active = 1 
+            ${companyFilterSql()}
             AND ${validitySql('aportes')}
             AND ${effectiveDateSql('aportes')} < ?
-        `, [projectId, startDate]);
+        `, aportesParams);
         const historicAportes = parseFloat(aportesResult[0].total || 0);
 
         // 1.4 Historic Retiradas
+        const retiradasParams = [projectId, ...(companyFilter ? [companyFilter] : []), startDate];
         const [retiradasResult] = await db.query(`
             SELECT SUM(valor) as total 
             FROM retiradas 
             WHERE project_id = ? 
             AND active = 1 
+            ${companyFilterSql()}
             AND ${validitySql('retiradas')}
             AND ${effectiveDateSql('retiradas')} < ?
-        `, [projectId, startDate]);
+        `, retiradasParams);
         const historicRetiradas = parseFloat(retiradasResult[0].total || 0);
 
         // 1.5 Calculate Running Balance
@@ -226,11 +243,14 @@ exports.getDailyForecast = async (req, res, next) => {
                 FROM ${dataTable} d
                 WHERE d.project_id = ?
                 AND d.active = 1
+                ${companyFilterSql()}
                 AND ${validExpr}
                 AND ${dateExpr} >= ?
                 AND ${dateExpr} <= ?
                     `;
-            const [items] = await db.query(query, [projectId, startDate, endDate]);
+
+            const params = [projectId, ...(companyFilter ? [companyFilter] : []), startDate, endDate];
+            const [items] = await db.query(query, params);
 
             // Map & Aggregate
             const typeMap = new Map();
@@ -398,16 +418,20 @@ exports.getDailyForecast = async (req, res, next) => {
                 selectCols = 'valor, data_real, data_prevista';
             }
 
-            const [items] = await db.query(`
+            const query = `
             SELECT
                 ${selectCols},
                 ${dateExpr} as raw_date
                 FROM ${table}
                 WHERE project_id = ?
                 AND active = 1
+                ${companyFilterSql()}
                 AND ${validExpr}
                 AND ${dateExpr} >= ? AND ${dateExpr} <= ?
-                `, [projectId, startDate, endDate]);
+                `;
+
+            const params = [projectId, ...(companyFilter ? [companyFilter] : []), startDate, endDate];
+            const [items] = await db.query(query, params);
 
             const dailyTotals = {};
             const dailyOverdue = {};

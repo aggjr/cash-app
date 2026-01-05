@@ -2,6 +2,7 @@ import { showToast } from '../utils/toast.js';
 import { getApiBaseUrl } from '../utils/apiConfig.js';
 import { ExcelExporter } from '../utils/ExcelExporter.js';
 import { PrintHelper } from '../utils/printHelper.js';
+import { HierarchicalFilter } from './HierarchicalFilter.js';
 
 export const PrevisaoFluxoManager = (project) => {
     const container = document.createElement('div');
@@ -23,6 +24,9 @@ export const PrevisaoFluxoManager = (project) => {
 
     let expandedNodes = new Set();
     let forecastData = null; // { initialBalance: 0, data: [] }
+    let selectedCompanyIds = [];
+    let companies = [];
+    let accounts = [];
 
     // --- Helper: Format Currency ---
     const formatCurrency = (val) => {
@@ -50,6 +54,58 @@ export const PrevisaoFluxoManager = (project) => {
     // Pre-declare renderTable
     let renderTable;
 
+    // --- Load Metadata (Companies/Accounts) ---
+    const loadMetadata = async () => {
+        try {
+            const token = localStorage.getItem('token');
+
+            // Fetch companies
+            const compResp = await fetch(`${API_BASE_URL}/companies?projectId=${project.id}`, {
+                headers: { 'Authorization': `Bearer ${token}` }
+            });
+            if (compResp.ok) {
+                companies = await compResp.json();
+            }
+
+            // Fetch accounts
+            const accResp = await fetch(`${API_BASE_URL}/accounts?projectId=${project.id}`, {
+                headers: { 'Authorization': `Bearer ${token}` }
+            });
+            if (accResp.ok) {
+                accounts = await accResp.json();
+            }
+
+            // Initialize filter
+            const filterContainer = document.getElementById('previsao-filter-container');
+            if (filterContainer && companies.length > 0) {
+                // Build hierarchical tree
+                const treeData = companies.map(c => ({
+                    id: c.id,
+                    label: c.name,
+                    children: accounts.filter(a => a.company_id === c.id).map(a => ({ id: a.id, label: a.name }))
+                }));
+
+                new HierarchicalFilter({
+                    container: filterContainer,
+                    data: treeData,
+                    onChange: (ids) => {
+                        // Map Account IDs to Company IDs
+                        const relevantCompanyIds = new Set();
+                        ids.forEach(accId => {
+                            const acc = accounts.find(a => a.id == accId);
+                            if (acc) relevantCompanyIds.add(acc.company_id);
+                        });
+                        selectedCompanyIds = Array.from(relevantCompanyIds);
+                        loadData();
+                    },
+                    placeholder: 'Todas as Empresas'
+                });
+            }
+        } catch (e) {
+            console.error('Error loading metadata', e);
+        }
+    };
+
     // --- Fetch Data ---
     const loadData = async () => {
         const overlay = container.querySelector('.loading-overlay');
@@ -57,7 +113,11 @@ export const PrevisaoFluxoManager = (project) => {
             if (overlay) overlay.style.display = 'flex';
 
             const token = localStorage.getItem('token');
-            const url = `${API_BASE_URL}/previsao?projectId=${project.id}&startDate=${startStr}&endDate=${endStr}`;
+            let query = `projectId=${project.id}&startDate=${startStr}&endDate=${endStr}`;
+            if (selectedCompanyIds.length > 0) {
+                query += `&companyIds=${selectedCompanyIds.join(',')}`;
+            }
+            const url = `${API_BASE_URL}/previsao?${query}`;
 
             const response = await fetch(url, {
                 headers: { 'Authorization': `Bearer ${token}` }
@@ -364,6 +424,11 @@ export const PrevisaoFluxoManager = (project) => {
 
     controls.innerHTML = `
         <div style="display: flex; align-items: center; gap: 1.5rem;">
+             <!-- Company Filter -->
+             <div style="display: flex; align-items: center; gap: 0.5rem;">
+                <label style="font-size: 0.9rem; color: #4B5563; font-weight: 500;">Empresas:</label>
+                <div id="previsao-filter-container"></div>
+             </div>
              <!-- Date Range -->
              <div style="display: flex; align-items: center; gap: 0.5rem;">
                 <label style="font-size: 0.9rem; color: #4B5563;">De:</label>
@@ -551,6 +616,7 @@ export const PrevisaoFluxoManager = (project) => {
 
     // Init
     renderTable(); // Render empty structure immediately
+    loadMetadata(); // Load companies/accounts for filter
     loadData();
 
     return container;
