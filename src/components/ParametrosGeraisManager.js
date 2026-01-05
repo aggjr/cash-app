@@ -382,24 +382,29 @@ export const ParametrosGeraisManager = (project) => {
                 }
             </style>
             
-            <!-- Tab Navigation (Chrome Style) -->
-            <div class="chrome-tabs-wrapper">
+            <!-- Modern Tab Navigation -->
+            <div class="modern-tab-list" role="tablist">
                 <button 
                     id="tab-geral" 
-                    class="chrome-tab active"
+                    class="modern-tab active"
+                    role="tab"
+                    aria-selected="true"
                 >
                     ⚙️ Sistema
                 </button>
                 <button 
                     id="tab-IVA" 
-                    class="chrome-tab"
+                    class="modern-tab"
+                    role="tab"
+                    aria-selected="false"
                 >
                     🤖 IA IVA
                 </button>
+                <div class="modern-tab-indicator"></div>
             </div>
 
             <!-- Tab Content: Geral -->
-            <div id="content-geral" class="tab-content" style="display: block;">
+            <div id="content-geral" class="modern-tab-panel" role="tabpanel" style="display: block;">
                 <h2 style="margin-bottom: 1.5rem;">⚙️ Configurações do Sistema</h2>
                 <div style="background: var(--color-surface); padding: 2rem; border-radius: 12px; border: 1px solid var(--color-border-light);">
                     
@@ -523,7 +528,7 @@ export const ParametrosGeraisManager = (project) => {
             </div>
 
             <!-- Tab Content: IVA -->
-            <div id="content-IVA" class="tab-content" style="display: none;">
+            <div id="content-IVA" class="modern-tab-panel" role="tabpanel" style="display: none;">
                 <h2 style="margin-bottom: 1.5rem;">🤖 Configurações da IA IVA</h2>
                 <div style="background: var(--color-surface); padding: 2rem; border-radius: 12px; border: 1px solid var(--color-border-light);">
 
@@ -780,29 +785,32 @@ export const ParametrosGeraisManager = (project) => {
             </script>
         `;
 
-        // Wait for DOM
+        // Modern tab switching with animated indicator
         setTimeout(() => {
-            const tabs = container.querySelectorAll('.settings-tab');
-            const contents = container.querySelectorAll('.tab-content');
+            const tabs = container.querySelectorAll('.modern-tab');
+            const contents = container.querySelectorAll('.modern-tab-panel');
+            const indicator = container.querySelector('.modern-tab-indicator');
 
-            console.log('[Settings] Tabs found:', tabs.length);
+            // Function to update indicator position
+            const updateIndicator = (activeTab) => {
+                if (!indicator || !activeTab) return;
+                const { offsetLeft, offsetWidth } = activeTab;
+                indicator.style.width = `${offsetWidth}px`;
+                indicator.style.transform = `translateX(${offsetLeft}px)`;
+            };
+
+            // Initialize indicator
+            const activeTab = container.querySelector('.modern-tab.active');
+            if (activeTab) updateIndicator(activeTab);
 
             tabs.forEach(tab => {
                 tab.addEventListener('click', () => {
                     const targetId = tab.id.replace('tab-', 'content-');
-                    console.log('[Settings] Switching to:', targetId);
 
-                    // Reset all tabs
-                    tabs.forEach(t => {
-                        t.style.color = 'var(--color-text-muted)';
-                        t.style.borderBottom = '3px solid transparent';
-                    });
-
-                    // Reset all tabs
+                    // Update tabs
                     tabs.forEach(t => {
                         t.classList.remove('active');
-                        t.style.color = '';
-                        t.style.borderBottom = '';
+                        t.setAttribute('aria-selected', 'false');
                     });
 
                     // Hide all contents
@@ -812,6 +820,8 @@ export const ParametrosGeraisManager = (project) => {
 
                     // Activate clicked tab
                     tab.classList.add('active');
+                    tab.setAttribute('aria-selected', 'true');
+                    updateIndicator(tab);
 
                     // Show target content
                     const content = container.querySelector(`#${targetId}`);
@@ -821,9 +831,11 @@ export const ParametrosGeraisManager = (project) => {
                 });
             });
 
-            // Trigger click on active tab (default: Geral/Sistema)
-            const defaultTab = container.querySelector('#tab-geral');
-            if (defaultTab) defaultTab.click();
+            // Update indicator on window resize
+            window.addEventListener('resize', () => {
+                const active = container.querySelector('.modern-tab.active');
+                if (active) updateIndicator(active);
+            });
         }, 100);
 
         // Event listeners para inputs (exceto iva_timeout que agora é slider)
