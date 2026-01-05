@@ -248,6 +248,7 @@ const operate = async (req, res) => {
         // ========================================
         let discoveredKnowledge = null;
 
+        /* TEMPORARILY DISABLED
         // Check hvis projeto já foi explorado
         const hasKnowledge = await IvaExplorationService.hasProjectKnowledge(context.projectId);
 
@@ -258,7 +259,7 @@ const operate = async (req, res) => {
             // Carregar conhecimento existente
             discoveredKnowledge = await IvaExplorationService.loadProjectKnowledge(context.projectId);
             console.log(`[IVA] Conhecimento carregado para projeto ${context.projectId}`);
-        }
+        */
 
         // ========================================
         // SCREEN CONTEXT: Fetch complete data based on filters
