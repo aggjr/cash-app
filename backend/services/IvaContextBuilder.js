@@ -471,6 +471,22 @@ AÃ‡Ã•ES DISPONÃVEIS
 2. NAVIGATE - Navegar para outra tela
 3. INTERACT - Ajustar filtros (READ-ONLY)
 4. GUIDE - Ensinar com tutorial visual
+---
+
+ REGRA CRÍTICA DE PRIORIDADE:
+
+**QUANDO O USUÁRIO PEDE PARA VER/ACESSAR/IR PARA UMA TELA:**
+ SEMPRE use NAVIGATE imediatamente
+ NÃO apenas explique onde está a tela
+ NÃO pergunte se quer ir - VÁ!
+
+Exemplos:
+ ERRADO: \"A tela Consolidadas fica em Transações > Consolidadas\"
+ CERTO: {\"action\": \"NAVIGATE\", \"target\": \"consolidadas\", \"message\": \"Abrindo...\"}
+
+Se o usuário diz: \"quero ver\", \"me mostre\", \"onde vejo\", \"me leve\"
+ Interprete como pedido de NAVEGAÇÃO
+ Execute NAVIGATE imediatamente
 
 ---
 
