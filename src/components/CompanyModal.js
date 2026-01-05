@@ -26,33 +26,36 @@ export const CompanyModal = {
             };
 
             modal.innerHTML = `
-                <div class="account-modal-body" style="padding: 2rem;">
-                    <h3 style="margin: 0 0 1.5rem 0; color: var(--color-primary); font-size: 1.3rem;">${isEdit ? 'Editar Empresa' : 'Nova Empresa'}</h3>
+                <div class="account-modal-body" style="padding: 1.5rem;">
+                    <h3 style="margin: 0 0 1.25rem 0; color: var(--color-primary); font-size: 1.3rem;">${isEdit ? 'Editar Empresa' : 'Nova Empresa'}</h3>
                     <div class="form-grid">
-                        <div class="form-group full-width">
-                            <label for="company-name">Nome da Empresa <span class="required">*</span></label>
-                            <input 
-                                type="text" 
-                                id="company-name" 
-                                class="form-input" 
-                                placeholder="Ex: Gestão de Foco"
-                                value="${company?.name || ''}"
-                                required
-                            />
-                        </div>
+                        <!-- First Line: Name + CNPJ side by side -->
+                        <div style="display: flex; gap: 1rem; margin-bottom: 1rem;">
+                            <div class="form-group" style="flex: 1;">
+                                <label for="company-name">Nome da Empresa <span class="required">*</span></label>
+                                <input 
+                                    type="text" 
+                                    id="company-name" 
+                                    class="form-input" 
+                                    placeholder="Ex: Gestão de Foco"
+                                    value="${company?.name || ''}"
+                                    required
+                                />
+                            </div>
 
-                        <div class="form-group full-width">
-                            <label for="company-cnpj">CNPJ <span class="required">*</span></label>
-                            <input 
-                                type="text" 
-                                id="company-cnpj" 
-                                class="form-input" 
-                                placeholder="00.000.000/0000-00"
-                                value="${company?.cnpj || ''}"
-                                maxlength="18"
-                                required
-                            />
-                            <small style="color: var(--color-text-muted); font-size: 0.85rem;">Formato: 00.000.000/0000-00</small>
+                            <div class="form-group" style="flex: 1;">
+                                <label for="company-cnpj">CNPJ <span class="required">*</span></label>
+                                <input 
+                                    type="text" 
+                                    id="company-cnpj" 
+                                    class="form-input" 
+                                    placeholder="00.000.000/0000-00"
+                                    value="${company?.cnpj || ''}"
+                                    maxlength="18"
+                                    required
+                                />
+                                <small style="color: var(--color-text-muted); font-size: 0.85rem;">Formato: 00.000.000/0000-00</small>
+                            </div>
                         </div>
 
                         <div class="form-group full-width">
@@ -60,7 +63,7 @@ export const CompanyModal = {
                             <textarea 
                                 id="company-description" 
                                 class="form-input" 
-                                rows="3"
+                                rows="2"
                                 placeholder="Descrição opcional da empresa"
                             >${company?.description || ''}</textarea>
                         </div>
