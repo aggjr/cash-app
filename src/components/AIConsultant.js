@@ -152,6 +152,12 @@ export const AIConsultant = () => {
                         }, delayMs);
                     }, { once: true });
 
+                    // Clear highlights when speech ends
+                    audio.addEventListener('ended', () => {
+                        console.log('[IVA Voice] Speech ended, clearing highlights');
+                        IvaHighlighter.clearAll();
+                    }, { once: true });
+
                     // Start loading audio
                     audio.load();
 
@@ -242,6 +248,12 @@ export const AIConsultant = () => {
         } else {
             console.warn('[IVA Voice] No pt-BR voice found, using default');
         }
+
+        // Clear highlights when speech ends
+        utterance.onend = () => {
+            console.log('[IVA Voice] Browser speech ended, clearing highlights');
+            IvaHighlighter.clearAll();
+        };
 
         window.speechSynthesis.speak(utterance);
     };
