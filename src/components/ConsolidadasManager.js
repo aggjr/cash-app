@@ -177,8 +177,8 @@ export const ConsolidadasManager = (project) => {
 
                 let rowBg = level === 0 ? '#f0f9ff' : '#ffffff';
                 let fontWeight = level === 0 ? '700' : (hasChildren ? '600' : '400');
-                const baseSizeRem = 1;
-                const decreasePerLevel = 0.063;
+                const baseSizeRem = 0.85; // Standardized: reduced from 1rem
+                const decreasePerLevel = 0.03; // Standardized: reduced from 0.063
                 const fontSize = `${baseSizeRem - (level * decreasePerLevel)}rem`;
 
                 // Specific styling
@@ -217,7 +217,7 @@ export const ConsolidadasManager = (project) => {
                     if (Math.abs(val) > tolerance) {
                         displayVal = node.isPercentage ? formatPercent(val) : formatCurrency(val);
                     }
-                    monthCells += `<td style="padding: 0.5rem 1rem; text-align: right; border-bottom: 1px solid #f3f4f6; color: ${color}; font-weight: 600; font-size: ${fontSize}; white-space: nowrap;">${displayVal}</td>`;
+                    monthCells += `<td style="padding: 0.35rem 0.5rem; text-align: right; border-bottom: 1px solid #f3f4f6; color: ${color}; font-weight: 600; font-size: ${fontSize}; white-space: nowrap;">${displayVal}</td>`;
                 });
 
                 // Total
@@ -245,7 +245,7 @@ export const ConsolidadasManager = (project) => {
                 if (Math.abs(node.total) > totalTol) {
                     displayTotal = node.isPercentage ? formatPercent(node.total) : formatCurrency(node.total);
                 }
-                const totalCell = `<td style="padding: 0.5rem 1rem; text-align: right; border-bottom: 1px solid #d1d5db; font-weight: bold; color: ${totalColor}; font-size: ${fontSize}; position: sticky; left: var(--c3-left, 460px); background-color: #f3f4f6; z-index: 1; white-space: nowrap;">${displayTotal}</td>`;
+                const totalCell = `<td style="padding: 0.35rem 0.5rem; text-align: right; border-bottom: 1px solid #d1d5db; font-weight: bold; color: ${totalColor}; font-size: ${fontSize}; position: sticky; left: var(--c3-left, 460px); background-color: #f3f4f6; z-index: 1; white-space: nowrap;">${displayTotal}</td>`;
 
                 // Average
                 let average = 0;
@@ -260,11 +260,11 @@ export const ConsolidadasManager = (project) => {
                 if (Math.abs(average) > totalTol) {
                     displayAvg = node.isPercentage ? formatPercent(average) : formatCurrency(average);
                 }
-                const averageCell = `<td style="padding: 0.5rem 1rem; text-align: right; border-bottom: 1px solid #d1d5db; font-weight: bold; color: ${totalColor}; font-size: ${fontSize}; position: sticky; left: var(--c2-left, 320px); background-color: #f3f4f6; z-index: 1; white-space: nowrap;">${displayAvg}</td>`;
+                const averageCell = `<td style="padding: 0.35rem 0.5rem; text-align: right; border-bottom: 1px solid #d1d5db; font-weight: bold; color: ${totalColor}; font-size: ${fontSize}; position: sticky; left: var(--c2-left, 320px); background-color: #f3f4f6; z-index: 1; white-space: nowrap;">${displayAvg}</td>`;
 
                 rowsHtml += `
                     <tr class="${rowClass}" data-id="${node.id}" style="background-color: ${rowBg}; cursor: ${hasChildren ? 'pointer' : 'default'};">
-                        <td class="js-col-name" style="padding: 0.5rem 1rem 0.5rem ${paddingLeft}rem; border-bottom: 1px solid #f3f4f6; font-weight: ${fontWeight}; font-size: ${fontSize}; display: flex; align-items: center; gap: 0.5rem; position: sticky; left: 0; background-color: ${rowBg}; z-index: 1; width: auto; white-space: nowrap;" title="${node.name}">
+                        <td class="js-col-name" style="padding: 0.35rem 0.5rem 0.35rem ${paddingLeft}rem; border-bottom: 1px solid #f3f4f6; font-weight: ${fontWeight}; font-size: ${fontSize}; display: flex; align-items: center; gap: 0.5rem; position: sticky; left: 0; background-color: ${rowBg}; z-index: 1; width: auto; white-space: nowrap;" title="${node.name}">
                             ${hasChildren ? `<span style="font-size: 0.8rem; transform: rotate(${isExpanded ? '90deg' : '0deg'}); transition: transform 0.2s;">▶</span>` : ''}
                             ${node.name}
                         </td>
@@ -285,19 +285,19 @@ export const ConsolidadasManager = (project) => {
         <table style="width: auto; border-collapse: separate; border-spacing: 0;">
             <thead style="position: sticky; top: 0; z-index: 10; background-color: #00425F; color: white;">
                 <tr>
-                    <th colspan="${months.length + 3}" style="padding: 0.5rem 1rem; text-align: center; border-bottom: 1px solid #ffffff33; background-color: #00425F; border-radius: 8px 8px 0 0; white-space: nowrap;">
+                    <th colspan="${months.length + 3}" style="padding: 0.4rem 0.5rem; text-align: center; border-bottom: 1px solid #ffffff33; background-color: #00425F; border-radius: 8px 8px 0 0; white-space: nowrap;">
                         ${title}
                     </th>
                 </tr>
                 <tr>
-                    <th class="js-col-name" style="padding: 0.5rem; text-align: center; border-bottom: 2px solid #e5e7eb; width: auto; position: sticky; left: 0; z-index: 11; background-color: #00425F; white-space: nowrap;"></th>
-                    <th style="padding: 0.5rem; text-align: center; border-bottom: 2px solid #e5e7eb; width: 140px; min-width: 140px; position: sticky; left: var(--c2-left, 320px); z-index: 11; background-color: #4B5563; color: white; white-space: nowrap;">Média</th>
-                    <th style="padding: 0.5rem; text-align: center; border-bottom: 2px solid #e5e7eb; width: 140px; min-width: 140px; position: sticky; left: var(--c3-left, 460px); z-index: 11; background-color: #374151; color: white; white-space: nowrap;">Total</th>
+                    <th class="js-col-name" style="padding: 0.4rem 0.5rem; text-align: center; border-bottom: 2px solid #e5e7eb; width: auto; position: sticky; left: 0; z-index: 11; background-color: #00425F; white-space: nowrap;"></th>
+                    <th style="padding: 0.4rem 0.5rem; text-align: center; border-bottom: 2px solid #e5e7eb; width: 140px; min-width: 140px; position: sticky; left: var(--c2-left, 320px); z-index: 11; background-color: #4B5563; color: white; white-space: nowrap;">Média</th>
+                    <th style="padding: 0.4rem 0.5rem; text-align: center; border-bottom: 2px solid #e5e7eb; width: 140px; min-width: 140px; position: sticky; left: var(--c3-left, 460px); z-index: 11; background-color: #374151; color: white; white-space: nowrap;">Total</th>
                     ${months.map(m => {
             const [y, mo] = m.split('-');
             // User Request: Smallest possible width (fit content). Removed min-width: 120px.
             // Reduced padding to 0.5rem (all sides) to tighten height.
-            return `<th style="padding: 0.5rem; text-align: center; border-bottom: 2px solid #e5e7eb; white-space: nowrap;">${mo}/${y}</th>`;
+            return `<th style="padding: 0.4rem 0.5rem; text-align: center; border-bottom: 2px solid #e5e7eb; white-space: nowrap;">${mo}/${y}</th>`;
         }).join('')}
                 </tr>
             </thead>
