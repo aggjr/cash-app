@@ -177,9 +177,124 @@ export class SharedTable {
         return tr;
     }
 
+    applyClientSideFilter() {
+        if (!this.activeFilters || Object.keys(this.activeFilters).length === 0) return;
+
+        console.log('🔄 Applying Client-Side Filters:', JSON.stringify(this.activeFilters));
+
+        this.currentData = this.currentData.filter(item => {
+            return Object.entries(this.activeFilters).every(([key, filter]) => {
+                const cellVal = item[key];
+                const colDef = this.columns.find(c => c.key === key);
+                const type = colDef ? (colDef.type || 'text') : 'text';
+
+                // --- Number/Currency ---
+                if (type === 'number' || type === 'currency') {
+                    const num = parseFloat(cellVal);
+                    if (isNaN(num)) return false;
+
+                    // List Checkbox Filter
+                    if (filter.numIn && filter.numIn.length > 0 && !filter.numIn.includes(-999999)) {
+                        if (!filter.numIn.includes(num)) return false;
+                    }
+
+                    // Operator Filter
+                    if (filter.operator) {
+                        const v1 = parseFloat(filter.val1);
+                        const v2 = parseFloat(filter.val2);
+                        if (isNaN(v1)) return true; // Safety
+
+                        if (filter.operator === 'gt') return num > v1;
+                        if (filter.operator === 'gte') return num >= v1;
+                        if (filter.operator === 'lt') return num < v1;
+                        if (filter.operator === 'lte') return num <= v1;
+                        // Use tolerance for float equality
+                        if (filter.operator === 'eq') return Math.abs(num - v1) < 0.001;
+                        if (filter.operator === 'neq') return Math.abs(num - v1) > 0.001;
+                        if (filter.operator === 'between') {
+                            if (isNaN(v2)) return num >= v1;
+                            return num >= v1 && num <= v2;
+                        }
+                    }
+                    return true;
+                }
+
+                // --- Text ---
+                if (type === 'text') {
+                    const txt = String(cellVal || '').toLowerCase();
+
+                    // List Checkbox Filter
+                    if (filter.textIn && filter.textIn.length > 0 && !filter.textIn.includes('__NONE__')) {
+                        // Check against raw value provided in list
+                        if (!filter.textIn.includes(cellVal)) return false;
+                    }
+
+                    // Operator Filter
+                    if (filter.operator) {
+                        const v1 = String(filter.val1 || '').toLowerCase();
+                        if (filter.operator === 'contains') return txt.includes(v1);
+                        if (filter.operator === 'not_contains') return !txt.includes(v1);
+                        if (filter.operator === 'starts_with') return txt.startsWith(v1);
+                        if (filter.operator === 'ends_with') return txt.endsWith(v1);
+                        if (filter.operator === 'eq') return txt === v1;
+                        if (filter.operator === 'neq') return txt !== v1;
+                    }
+                    return true;
+                }
+
+                // --- Date ---
+                if (type === 'date') {
+                    let dateStr = '';
+                    if (!cellVal) return false;
+                    // Normalize to YYYY-MM-DD
+                    if (typeof cellVal === 'string' && cellVal.includes('T')) dateStr = cellVal.split('T')[0];
+                    else if (cellVal instanceof Date) dateStr = cellVal.toISOString().split('T')[0];
+                    else dateStr = String(cellVal);
+
+                    if (filter.dateIn && filter.dateIn.length > 0 && !filter.dateIn.includes('__NONE__')) {
+                        if (!filter.dateIn.includes(dateStr)) return false;
+                    }
+
+                    if (filter.operator) {
+                        const current = new Date(dateStr + 'T00:00:00').getTime();
+                        const v1Str = filter.val1 || filter.start;
+                        if (!v1Str) return true;
+
+                        const v1 = new Date(v1Str.includes('T') ? v1Str : v1Str + 'T00:00:00').getTime();
+
+                        if (filter.operator === 'eq') return current === v1;
+                        if (filter.operator === 'before') return current < v1;
+                        if (filter.operator === 'after') return current > v1;
+                        if (filter.operator === 'between') {
+                            const v2Str = filter.val2 || filter.end;
+                            if (!v2Str) return current >= v1;
+                            const v2 = new Date(v2Str.includes('T') ? v2Str : v2Str + 'T00:00:00').getTime();
+                            return current >= v1 && current <= v2;
+                        }
+                    }
+                    return true;
+                }
+
+                // --- Boolean ---
+                if (type === 'boolean' || type === 'link') {
+                    const val = filter.value;
+                    if (val === 'all') return true;
+                    const boolVal = !!cellVal;
+                    if (val === 'true') return boolVal === true;
+                    if (val === 'false') return boolVal === false;
+                }
+
+                return true;
+            });
+        });
+    }
+
     render(data) {
         // Sanitize data to remove any null/undefined entries which cause sort/render errors
         this.currentData = Array.isArray(data) ? data.filter(item => item != null) : [];
+
+        // Apply Client-Side Filtering
+        this.applyClientSideFilter();
 
         // Client Side Sort Fallback (if no server sort handler provided)
         if (!this.onSortChange && this.sortConfig.key) {
