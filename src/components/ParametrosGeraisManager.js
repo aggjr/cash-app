@@ -636,7 +636,7 @@ export const ParametrosGeraisManager = (project) => {
                                 "
                             >1.25x</div>
                         </div>
-                        <span style="min-width: 40px; color: var(--color-text-muted); font-size: 0.875rem;">2.0x</span>
+                        <span style="min-width: 40px; color: var(--color-text-muted); font-size: 0.875rem;">3.0x</span>
                         <button 
                             id="test-voice-speed"
                             style="
@@ -943,8 +943,8 @@ export const ParametrosGeraisManager = (project) => {
         let voiceSaveTimer = null;
 
         const updateVoiceDisplay = (value) => {
-            // Formula: 0.5 + (value * 1.5 / 100) -> -100 = 0.5x, 0 = 1.0x, 100 = 2.0x
-            const rate = 0.5 + ((value + 100) * 1.5 / 200);
+            // Formula: 0.5 + (value * 2.5 / 100) -> 0 = 0.5x, 50 = 1.75x, 100 = 3.0x
+            const rate = 0.5 + ((value + 100) * 2.5 / 200);
             voiceDisplay.textContent = rate.toFixed(2) + 'x';
 
             // Move display above slider position
