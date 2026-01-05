@@ -65,6 +65,8 @@ export const IvaService = {
                     context: requestContext, // CRITICAL: Nest under 'context' as backend expects
                     currentScreen: context.currentScreen,
                     availableScreens: context.availableScreens || [],
+                    menuStructure: context.menuStructure, // NEW: Complete menu for navigation
+                    menuNavigationState: context.menuNavigationState, // NEW: Track search position
                     screenContext, // Legacy/Fallback extraction (keep for backward compat)
                     activeScreenContext: context.currentScreenData, // NEW: Semantic Data (The Eyes)
                     userName: user?.name || '', // Full registered name for gender inference

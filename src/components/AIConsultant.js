@@ -1161,7 +1161,9 @@ Digite 1, 2 ou 3.`;
             const context = {
                 currentScreen: IvaKnowledge.activeScreen,
                 currentScreenData: IvaKnowledge.activeScreenData, // THE EYES: Send semantic data
-                availableScreens: IvaKnowledge.screens
+                availableScreens: IvaKnowledge.screens,
+                menuStructure: MenuNavigator.getMenuStructure(), // NEW: Complete menu for navigation
+                menuNavigationState: MenuNavigator.getNavigationState() // NEW: Track where IVA left off
             };
 
             console.log('[IVA] Context:', {
