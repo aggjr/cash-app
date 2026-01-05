@@ -635,6 +635,7 @@ export class SharedTable {
             listSearch.style.width = '100%';
             listSearch.onclick = e => e.stopPropagation();
             listSearch.onkeydown = (e) => {
+                if (listView.style.display === 'none') return; // Ignore if hidden
                 if (e.key === 'Enter') {
                     e.preventDefault(); e.stopPropagation();
                     // Smart Behavior: Treat as Equals filter if numeric
@@ -649,6 +650,8 @@ export class SharedTable {
                 }
             };
             listSearch.oninput = (e) => {
+                if (listView.style.display === 'none') return; // Ignore if hidden
+
                 const term = e.target.value.toLowerCase();
 
                 // Smart Behavior: Update draft state if it looks like a number
@@ -916,6 +919,7 @@ export class SharedTable {
             listSearch.value = extraDraft.text || extraDraft.val1 || ''; // Initialize with current filter value
             listSearch.onclick = e => e.stopPropagation();
             listSearch.onkeydown = (e) => {
+                if (listView.style.display === 'none') return; // Ignore if hidden
                 if (e.key === 'Enter') {
                     e.preventDefault(); e.stopPropagation();
                     // Smart Behavior: If user hits Enter in search box, treat as "Contains" filter
@@ -930,6 +934,7 @@ export class SharedTable {
                 }
             };
             listSearch.oninput = (e) => {
+                if (listView.style.display === 'none') return; // Ignore if hidden
                 const term = e.target.value;
                 // Update State (Smart 'Contains')
                 if (term.trim() !== '') {
