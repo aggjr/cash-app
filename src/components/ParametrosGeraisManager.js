@@ -674,44 +674,38 @@ export const ParametrosGeraisManager = (project) => {
                     </small>
                 </div>
 
-                <!-- Tipo de Voz -->
+                <!-- Voice Quality Selection -->
                 <div style="margin-bottom: 2rem;">
-                    <label style="display: block; font-weight: 500; margin-bottom: 1rem; color: var(--color-text); font-size: 1.1rem;">
+                    <label style="display: block; font-weight: 500; margin-bottom: 0.5rem; color: var(--color-text); font-size: 1.1rem;">
                         🎙️ Qualidade da Voz da IVA
                     </label>
-                    
-                    <!-- Free - Row 1 -->
-                    <label class="voice-type-option" style="display: flex; align-items: center; padding: 1rem; background: white; border: 2px solid #e5e7eb; border-radius: 8px; margin-bottom: 0.75rem; cursor: pointer; transition: all 0.3s;">
-                        <input type="radio" name="iva_voice_premium" value="0" style="margin-right: 1rem; width: 20px; height: 20px; cursor: pointer;">
-                        <div style="flex: 1;">
-                            <div style="font-weight: 600; color: #333; margin-bottom: 4px;">🆓 Voz Gratuita</div>
-                            <small style="color: #666;">Sintetizador do navegador (grátis)</small>
-                        </div>
-                    </label>
-                    
-                    <!-- Standard - Row 2 -->
-                    <label class="voice-type-option" style="display: flex; align-items: center; padding: 1rem; background: white; border: 2px solid #e5e7eb; border-radius: 8px; margin-bottom: 0.75rem; cursor: pointer; transition: all 0.3s;">
-                        <input type="radio" name="iva_voice_premium" value="1" style="margin-right: 1rem; width: 20px; height: 20px; cursor: pointer;">
-                        <div style="flex: 1;">
-                            <div style="font-weight: 600; color: #333; margin-bottom: 4px;">📢 Voz Standard</div>
-                            <small style="color: #666;">Google TTS Standard (sempre grátis - 4M chars/mês)</small>
-                        </div>
-                    </label>
-                    
-                    <!-- Premium - Row 3 -->
-                    <label class="voice-type-option" style="display: flex; align-items: center; padding: 1rem; background: white; border: 2px solid #e5e7eb; border-radius: 8px; margin-bottom: 1rem; cursor: pointer; transition: all 0.3s;">
-                        <input type="radio" name="iva_voice_premium" value="2" style="margin-right: 1rem; width: 20px; height: 20px; cursor: pointer;">
-                        <div style="flex: 1;">
-                            <div style="font-weight: 600; color: #333; margin-bottom: 4px;">🎤 Voz Premium</div>
-                            <small style="color: #666;">Google TTS Neural2 (qualidade máxima - grátis 1º ano)</small>
-                        </div>
-                    </label>
-
-
-
-                    <small style="display: block; margin-top: 0.75rem; color: var(--color-text-muted); line-height: 1.5;">
+                    <small style="display: block; margin-bottom: 1rem; color: var(--color-text-muted); line-height: 1.5;">
                         A voz Premium oferece qualidade superior e sotaque brasileiro autêntico.
                     </small>
+                    
+                    <!-- 3 Options Side by Side -->
+                    <div style="display: flex; gap: 1rem;">
+                        <!-- Free -->
+                        <label class="voice-type-option" style="flex: 1; display: flex; flex-direction: column; align-items: center; padding: 1rem; background: white; border: 2px solid #e5e7eb; border-radius: 8px; cursor: pointer; transition: all 0.3s; text-align: center;">
+                            <input type="radio" name="iva_voice_premium" value="0" style="margin-bottom: 0.5rem; width: 20px; height: 20px; cursor: pointer;">
+                            <div style="font-weight: 600; color: #333; margin-bottom: 0.25rem; font-size: 0.95rem;">🆓 Voz Gratuita</div>
+                            <small style="color: #666; font-size: 0.75rem;">Sintetizador do navegador (grátis)</small>
+                        </label>
+                        
+                        <!-- Standard -->
+                        <label class="voice-type-option" style="flex: 1; display: flex; flex-direction: column; align-items: center; padding: 1rem; background: white; border: 2px solid #e5e7eb; border-radius: 8px; cursor: pointer; transition: all 0.3s; text-align: center;">
+                            <input type="radio" name="iva_voice_premium" value="1" style="margin-bottom: 0.5rem; width: 20px; height: 20px; cursor: pointer;">
+                            <div style="font-weight: 600; color: #333; margin-bottom: 0.25rem; font-size: 0.95rem;">📢 Voz Standard</div>
+                            <small style="color: #666; font-size: 0.75rem;">Google TTS Standard (sempre grátis - 4M chars/mês)</small>
+                        </label>
+                        
+                        <!-- Premium -->
+                        <label class="voice-type-option" style="flex: 1; display: flex; flex-direction: column; align-items: center; padding: 1rem; background: white; border: 2px solid #e5e7eb; border-radius: 8px; cursor: pointer; transition: all 0.3s; text-align: center;">
+                            <input type="radio" name="iva_voice_premium" value="2" style="margin-bottom: 0.5rem; width: 20px; height: 20px; cursor: pointer;">
+                            <div style="font-weight: 600; color: #333; margin-bottom: 0.25rem; font-size: 0.95rem;">🎤 Voz Premium</div>
+                            <small style="color: #666; font-size: 0.75rem;">Google TTS Neural2 (qualidade máxima - grátis 1º ano)</small>
+                        </label>
+                    </div>
                 </div>
 
                 <!-- Separador -->
