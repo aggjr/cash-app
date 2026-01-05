@@ -165,7 +165,7 @@ exports.createAporte = async (req, res, next) => {
 
         // Validate dataReal if provided
         if (dataReal) {
-            const validation = await validateDateWithinRange(dataReal, projectId);
+            const validation = await validateDateWithinRange(dataReal, projectId, req.user.role);
             if (!validation.isValid) {
                 throw new AppError('VAL-DATE', validation.error);
             }
@@ -265,7 +265,7 @@ exports.updateAporte = async (req, res, next) => {
             if (newDate !== oldDate) {
                 shouldUpdateRealDate = true;
                 if (newDate) {
-                    const validation = await validateDateWithinRange(dataReal, req.user.projectId);
+                    const validation = await validateDateWithinRange(dataReal, req.user.projectId, req.user.role);
                     if (!validation.isValid) {
                         throw new AppError('VAL-DATE', validation.error);
                     }

@@ -332,7 +332,7 @@ exports.createIncome = async (req, res, next) => {
 
         // Validate dataRealRecebimento if provided
         if (dataRealRecebimento) {
-            const validation = await validateDateWithinRange(dataRealRecebimento, projectId);
+            const validation = await validateDateWithinRange(dataRealRecebimento, projectId, req.user.role);
             if (!validation.isValid) {
                 throw new AppError('VAL-DATE', validation.error);
             }
@@ -461,7 +461,7 @@ exports.updateIncome = async (req, res, next) => {
 
         // Validate dataRealRecebimento if provided
         if (dataRealRecebimento !== undefined && dataRealRecebimento !== null) {
-            const validation = await validateDateWithinRange(dataRealRecebimento, oldData.project_id || req.user.projectId);
+            const validation = await validateDateWithinRange(dataRealRecebimento, oldData.project_id || req.user.projectId, req.user.role);
             if (!validation.isValid) {
                 throw new AppError('VAL-DATE', validation.error);
             }
@@ -987,9 +987,8 @@ exports.batchUpdateIncome = async (req, res, next) => {
 
                         if (newDate) { // validates only if setting a date (clearing is usually allowed? actually clearing might be restricted too depending on rules, but typically "lock" prevents changing INTO or OUT OF lock period. Let's validate the NEW date. The old date lock check is implicitly: if I can't touch the record, I shouldn't be here? No, user wants to edit OTHER fields.)
                             const validation = await validateDateWithinRange(
-                                updateData.dataRealRecebimento,
-                                currentData.project_id
-                            );
+                                updateData.dataRealRecebimento, currentData.project_id
+                            , req.user.role);
 
                             if (!validation.isValid) {
                                 skippedCount++;
@@ -1158,7 +1157,7 @@ async function executeSingleUpdate(connection, id, updateData, projectId) {
         if (newDate !== oldDate) {
             shouldUpdateRealDate = true;
             if (newDate) {
-                const validation = await validateDateWithinRange(updateData.dataRealRecebimento, projectId);
+                const validation = await validateDateWithinRange(updateData.dataRealRecebimento, projectId, req.user.role);
                 if (!validation.isValid) {
                     throw new AppError('VAL-DATE', validation.error);
                 }

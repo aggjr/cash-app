@@ -313,7 +313,7 @@ exports.createProducaoRevenda = async (req, res, next) => {
 
         // Validate dataRealPagamento if provided
         if (dataRealPagamento) {
-            const validation = await validateDateWithinRange(dataRealPagamento, projectId);
+            const validation = await validateDateWithinRange(dataRealPagamento, projectId, req.user.role);
             if (!validation.isValid) {
                 throw new AppError('VAL-DATE', validation.error);
             }
@@ -443,7 +443,7 @@ exports.updateProducaoRevenda = async (req, res, next) => {
             if (newDate !== oldDate) {
                 shouldUpdateRealDate = true;
                 if (newDate) {
-                    const validation = await validateDateWithinRange(updates.dataRealPagamento, req.user.projectId);
+                    const validation = await validateDateWithinRange(updates.dataRealPagamento, req.user.projectId, req.user.role);
                     if (!validation.isValid) {
                         throw new AppError('VAL-DATE', validation.error);
                     }

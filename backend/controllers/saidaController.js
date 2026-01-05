@@ -308,7 +308,7 @@ exports.createSaida = async (req, res, next) => {
 
         // Validate dataRealPagamento if provided
         if (dataRealPagamento) {
-            const validation = await validateDateWithinRange(dataRealPagamento, projectId);
+            const validation = await validateDateWithinRange(dataRealPagamento, projectId, req.user.role);
             if (!validation.isValid) {
                 throw new AppError('VAL-DATE', validation.error);
             }
@@ -442,7 +442,7 @@ exports.updateSaida = async (req, res, next) => {
             if (newDate !== oldDate) {
                 shouldUpdateRealDate = true;
                 if (newDate) {
-                    const validation = await validateDateWithinRange(dataRealPagamento, req.user.projectId);
+                    const validation = await validateDateWithinRange(dataRealPagamento, req.user.projectId, req.user.role);
                     if (!validation.isValid) {
                         throw new AppError('VAL-DATE', validation.error);
                     }
@@ -605,7 +605,7 @@ async function executeSingleUpdate(connection, id, updateData, projectId) {
         if (newDate !== oldDate) {
             shouldUpdateRealDate = true;
             if (newDate) {
-                const validation = await validateDateWithinRange(updateData.dataRealPagamento, projectId);
+                const validation = await validateDateWithinRange(updateData.dataRealPagamento, projectId, req.user.role);
                 if (!validation.isValid) {
                     throw new AppError('VAL-DATE', validation.error);
                 }
@@ -849,7 +849,7 @@ exports.batchUpdateSaida = async (req, res, next) => {
                     if (newDate !== oldDate) {
                         shouldUpdateRealDate = true;
                         if (newDate) {
-                            const validation = await validateDateWithinRange(updateData.dataRealPagamento, currentData.project_id);
+                            const validation = await validateDateWithinRange(updateData.dataRealPagamento, currentData.project_id, req.user.role);
                             if (!validation.isValid) {
                                 skippedCount++;
                                 errors.push(`Parcela ${installmentNum}: ${validation.error}`);

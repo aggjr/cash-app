@@ -4,9 +4,10 @@ const db = require('../config/database');
  * Validates if a date is within the allowed range based on system settings
  * @param {Date|string} dateToValidate - The date to validate
  * @param {number} projectId - The project ID to get settings for
+ * @param {string} userRole - The user's role ('master' or 'user')
  * @returns {Promise<{isValid: boolean, error: string|null, details: object}>}
  */
-async function validateDateWithinRange(dateToValidate, projectId) {
+async function validateDateWithinRange(dateToValidate, projectId, userRole = 'user') {
     try {
         // Convert to Date object if string
         const date = typeof dateToValidate === 'string'
@@ -40,19 +41,23 @@ async function validateDateWithinRange(dateToValidate, projectId) {
         const now = new Date();
         now.setHours(0, 0, 0, 0); // Start of today
 
-        // Check if unlock is active
+        // Check if unlock is active - BUT ONLY FOR MASTER
         if (config.unlock_expires_at) {
             const unlockExpires = new Date(config.unlock_expires_at);
             if (unlockExpires > new Date()) {
-                // Unlock is active - allow any date
-                return {
-                    isValid: true,
-                    error: null,
-                    details: {
-                        unlocked: true,
-                        expiresAt: unlockExpires
-                    }
-                };
+                // Only MASTER can use unlock to modify old dates
+                if (userRole === 'master') {
+                    return {
+                        isValid: true,
+                        error: null,
+                        details: {
+                            unlocked: true,
+                            expiresAt: unlockExpires,
+                            masterUnlock: true
+                        }
+                    };
+                }
+                // For regular users, unlock has no effect - continue validation
             }
         }
 
