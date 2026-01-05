@@ -7,6 +7,7 @@ import ScreenContextExtractor from '../utils/screenContextExtractor.js';
 import IvaScreenActions from '../iva/IvaScreenActions.js';
 import IvaHighlighter from '../iva/IvaHighlighter.js';
 import { IvaNavigationIndicator } from '../iva/IvaNavigationIndicator.js';
+import { MenuNavigator } from '../iva/MenuNavigator.js';
 
 export const AIConsultant = () => {
     console.log('AIConsultant: Version 2.1 (Iva UI Interactions fixed)');
@@ -1157,14 +1158,25 @@ Digite 1, 2 ou 3.`;
             // --- PHASE 2: Operational Knowledge (LLM BASED) ---
             console.log('[IVA] No pending action, proceeding to LLM operation...');
 
+
             // 1. Gather Context
             const context = {
                 currentScreen: IvaKnowledge.activeScreen,
                 currentScreenData: IvaKnowledge.activeScreenData, // THE EYES: Send semantic data
                 availableScreens: IvaKnowledge.screens,
-                menuStructure: MenuNavigator.getMenuStructure(), // NEW: Complete menu for navigation
-                menuNavigationState: MenuNavigator.getNavigationState() // NEW: Track where IVA left off
+                menuStructure: typeof MenuNavigator !== 'undefined'
+                    ? MenuNavigator.getMenuStructure()
+                    : { categories: [], flatMenu: [], totalItems: 0 },
+                menuNavigationState: typeof MenuNavigator !== 'undefined'
+                    ? MenuNavigator.getNavigationState()
+                    : { lastSearchPosition: null, searchHistory: [], hasHistory: false }
             };
+
+            // Add warning if MenuNavigator is not available
+            if (typeof MenuNavigator === 'undefined') {
+                console.error('[IVA] MenuNavigator is not available! Menu navigation will be limited.');
+            }
+
 
             console.log('[IVA] Context:', {
                 currentScreenId: context.currentScreen?.id || 'none',

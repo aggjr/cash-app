@@ -4,6 +4,8 @@ const IvaContextBuilder = require('../services/IvaContextBuilder');
 const IvaIntentValidator = require('../utils/ivaIntentValidator');
 const IvaDataFetcher = require('../services/IvaDataFetcher');
 const IvaScreenCache = require('../services/IvaScreenCache');
+const IvaExplorationService = require('../services/IvaExplorationService');
+const IvaLearningCache = require('../services/IvaLearningCache');
 
 const openai = new OpenAI({
     apiKey: process.env.OPENAI_API_KEY
@@ -242,6 +244,23 @@ const operate = async (req, res) => {
         }));
 
         // ========================================
+        // DYNAMIC KNOWLEDGE DISCOVERY
+        // ========================================
+        let discoveredKnowledge = null;
+
+        // Check hvis projeto já foi explorado
+        const hasKnowledge = await IvaExplorationService.hasProjectKnowledge(context.projectId);
+
+        if (!hasKnowledge) {
+            console.log(`[IVA] Primeira vez no projeto ${context.projectId}. Explorando...`);
+            discoveredKnowledge = await IvaExplorationService.exploreProject(context.projectId, userData.id);
+        } else {
+            // Carregar conhecimento existente
+            discoveredKnowledge = await IvaExplorationService.loadProjectKnowledge(context.projectId);
+            console.log(`[IVA] Conhecimento carregado para projeto ${context.projectId}`);
+        }
+
+        // ========================================
         // SCREEN CONTEXT: Fetch complete data based on filters
         // ========================================
         let screenData = null;
@@ -284,7 +303,7 @@ const operate = async (req, res) => {
         // Build screen data context
         const screenDataContext = IvaContextBuilder.buildScreenDataContext(screenData, cachedScreens);
 
-        // Build operate system prompt
+        // Build operate system prompt WITH DISCOVERED KNOWLEDGE
         const systemPrompt = await IvaContextBuilder.buildOperateContext(
             userData,
             projectData,
@@ -295,7 +314,8 @@ const operate = async (req, res) => {
             dynamicProfile,
             req.body.activeScreenContext || null,
             db, // Pass db connection for unified context
-            screenDataContext // NEW: Screen data formatted for LLM
+            screenDataContext, // Screen data formatted for LLM
+            discoveredKnowledge // NEW: Discovered knowledge from exploration
         );
 
         const history = conversationHistory || [];
