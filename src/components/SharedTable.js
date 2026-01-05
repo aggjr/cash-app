@@ -290,8 +290,16 @@ export class SharedTable {
     }
 
     render(data) {
-        // Sanitize data to remove any null/undefined entries which cause sort/render errors
-        this.currentData = Array.isArray(data) ? data.filter(item => item != null) : [];
+        // Update original source only if new data provided
+        if (data) {
+            this.originalData = Array.isArray(data) ? data.filter(item => item != null) : [];
+        }
+
+        // Ensure initialized
+        if (!this.originalData) this.originalData = [];
+
+        // Clone for modifications (filtering/sorting)
+        this.currentData = [...this.originalData];
 
         // Apply Client-Side Filtering
         this.applyClientSideFilter();
@@ -649,6 +657,10 @@ export class SharedTable {
             console.groupEnd();
 
             if (this.onFilterChange) this.onFilterChange(this.activeFilters);
+
+            // Force re-render of local data (client-side filter application)
+            this.render();
+
             menu.remove();
         };
 
