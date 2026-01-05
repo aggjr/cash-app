@@ -350,47 +350,6 @@ export const ParametrosGeraisManager = (project) => {
         return `${mins}:${secs.toString().padStart(2, '0')}`;
     };
 
-    const updateUnlockButton = (isActive, remainingSeconds) => {
-        const button = container.querySelector('#btn-activate-unlock');
-        const timerDisplay = container.querySelector('#unlock-timer-display');
-
-        if (!button) return;
-
-        if (isActive) {
-            // Estado ATIVO (desbloqueado)
-            button.innerHTML = `🔓 Cancelar Liberação`;
-            button.style.background = 'linear-gradient(135deg, #DAB177 0%, #C9A366 100%)';
-            button.style.color = '#1F2937';
-            button.onmouseover = function () {
-                this.style.background = 'linear-gradient(135deg, #C9A366 0%, #B89355 100%)';
-            };
-            button.onmouseout = function () {
-                this.style.background = 'linear-gradient(135deg, #DAB177 0%, #C9A366 100%)';
-            };
-
-            if (timerDisplay) {
-                timerDisplay.textContent = `Tempo restante: ${formatTime(remainingSeconds)}`;
-                timerDisplay.style.display = 'block';
-                timerDisplay.style.color = '#DAB177';
-                timerDisplay.style.fontWeight = '600';
-            }
-        } else {
-            // Estado PADRÃO (bloqueado)
-            button.innerHTML = `<span style="color: #4B5563; font-size: 1.1rem;">🔒</span> Liberar Edições Temporariamente`;
-            button.style.background = '#E5E7EB';
-            button.style.color = '#1F2937';
-            button.onmouseover = function () {
-                this.style.background = '#D1D5DB';
-            };
-            button.onmouseout = function () {
-                this.style.background = '#E5E7EB';
-            };
-
-            if (timerDisplay) {
-                timerDisplay.style.display = 'none';
-            }
-        }
-    };
 
     const renderSettings = () => {
         container.innerHTML = `
