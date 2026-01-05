@@ -30,7 +30,7 @@ async function validateDateWithinRange(dateToValidate, projectId) {
         // If no settings found, initialize with defaults
         if (settings.length === 0) {
             await db.query(
-                'INSERT INTO system_settings (project_id, numero_dias, tempo_minutos_liberacao) VALUES (?, 3, 5)',
+                'INSERT INTO system_settings (project_id, numero_dias, tempo_minutos_liberacao) VALUES (?, 2, 15)',
                 [projectId]
             );
             return validateDateWithinRange(dateToValidate, projectId);

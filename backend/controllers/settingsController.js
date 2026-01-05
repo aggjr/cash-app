@@ -15,15 +15,15 @@ const getSettings = async (req, res) => {
         if (settings.length === 0) {
             // Initialize default settings if not exists
             await connection.query(
-                'INSERT INTO system_settings (project_id, numero_dias, tempo_minutos_liberacao, iva_timeout, iva_voice_premium, iva_voice_male) VALUES (?, 3, 5, 2, 2, 0)',
+                'INSERT INTO system_settings (project_id, numero_dias, tempo_minutos_liberacao, iva_timeout, iva_voice_premium, iva_voice_male) VALUES (?, 2, 15, 2, 2, 0)',
                 [projectId]
             );
 
             return res.json({
                 id: null,
                 project_id: projectId,
-                numero_dias: 3,
-                tempo_minutos_liberacao: 5,
+                numero_dias: 2,
+                tempo_minutos_liberacao: 15,
                 iva_timeout: 2,
                 iva_voice_premium: 2,  // Premium as default
                 iva_voice_male: 0,      // Female as default
