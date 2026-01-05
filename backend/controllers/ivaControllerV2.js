@@ -314,8 +314,8 @@ const operate = async (req, res) => {
             dynamicProfile,
             req.body.activeScreenContext || null,
             db, // Pass db connection for unified context
-            screenDataContext, // Screen data formatted for LLM
-            discoveredKnowledge // NEW: Discovered knowledge from exploration
+            screenDataContext // Screen data formatted for LLM
+            // Note: discoveredKnowledge will be integrated in future update to buildUnifiedContext
         );
 
         const history = conversationHistory || [];
