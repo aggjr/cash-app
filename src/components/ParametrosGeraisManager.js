@@ -676,9 +676,11 @@ export const ParametrosGeraisManager = (project) => {
                         Ajuste a velocidade de fala da IVA (-100% a +100% da velocidade padrão de 1.0x)
                     </small>
                 </div>
+            </div>
+            <!-- END OF SLIDERS FLEX CONTAINER -->
 
-                <!-- Voice Quality Selection -->
-                <div style="margin-bottom: 2rem;">
+            <!-- Voice Quality Selection Section -->
+            <div style="margin-bottom: 2rem;">
                     <label style="display: block; font-weight: 500; margin-bottom: 0.5rem; color: var(--color-text); font-size: 1.1rem;">
                         🎙️ Qualidade da Voz da IVA
                     </label>
