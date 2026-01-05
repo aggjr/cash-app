@@ -452,10 +452,19 @@ export const ConsolidadasManager = (project) => {
     leftControls.style.cssText = 'display:flex; align-items:center; gap:1.5rem;';
 
     // Company Filter (Replaces Radios)
+    const filterWrapper = document.createElement('div');
+    filterWrapper.style.cssText = 'display:flex; align-items:center; gap:0.5rem;';
+
+    const filterLabel = document.createElement('span');
+    filterLabel.textContent = 'Empresas:';
+    filterLabel.style.cssText = 'font-size:0.9rem; color:#4B5563; font-weight:500;';
+
     const filterContainer = document.createElement('div');
     filterContainer.id = 'consolidadas-filter-container';
     // Style it to match look
     filterContainer.style.marginRight = '1rem';
+
+    filterWrapper.append(filterLabel, filterContainer);
 
     // Dates
     const dateGroup = document.createElement('div'); dateGroup.style.cssText = 'display:flex; align-items:center; gap:0.5rem;';
@@ -466,7 +475,7 @@ export const ConsolidadasManager = (project) => {
         MonthPicker(endMonth, (v) => { endMonth = v; localStorage.setItem('consolidadas_endMonth', v); loadData(); })
     );
 
-    leftControls.append(filterContainer, dateGroup);
+    leftControls.append(filterWrapper, dateGroup);
 
     // Exports
     const exportDiv = document.createElement('div'); exportDiv.style.cssText = 'display:flex; gap:1rem; align-items:center;';
