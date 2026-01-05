@@ -198,10 +198,10 @@ export const PrevisaoFluxoManager = (project) => {
             <table style="width: auto; min-width: 50%; border-collapse: separate; border-spacing: 0;">
                 <thead style="position: sticky; top: 0; z-index: 20; background-color: #00425F; color: white;">
                     <tr>
-                        <th style="padding: 1rem; text-align: left; border-bottom: 2px solid #e5e7eb; min-width: 300px; position: sticky; left: 0; z-index: 21; background-color: #00425F;">TRANSAÇÕES</th>
+                        <th style="padding: 0.4rem 0.5rem; text-align: left; border-bottom: 2px solid #e5e7eb; min-width: 300px; position: sticky; left: 0; z-index: 21; background-color: #00425F;">TRANSAÇÕES</th>
                         ${days.map(d => {
             const [y, m, day] = d.split('-');
-            return `<th style="padding: 1rem; text-align: center; border-bottom: 2px solid #e5e7eb; min-width: 150px;">${day}/${m}</th>`;
+            return `<th style="padding: 0.4rem 0.5rem; text-align: center; border-bottom: 2px solid #e5e7eb; min-width: 120px;">${day}/${m}</th>`;
         }).join('')}
                     </tr>
                 </thead>
@@ -211,11 +211,11 @@ export const PrevisaoFluxoManager = (project) => {
         // 1. SALDO INICIAL ROW
         html += `
             <tr style="background-color: #e0f2fe;">
-                <td style="padding: 0.5rem 1rem; font-weight: 800; border-bottom: 2px solid #cbd5e1; position: sticky; left: 0; z-index: 5; background-color: #e0f2fe;">Saldo Inicial</td>
+                <td style="padding: 0.35rem 1rem; font-weight: 800; border-bottom: 2px solid #cbd5e1; position: sticky; left: 0; z-index: 5; background-color: #e0f2fe; font-size: 0.8rem;">Saldo Inicial</td>
                 ${days.map(d => {
             const val = dayBalances[d].initial;
             const color = val >= 0 ? '#10B981' : '#EF4444';
-            return `<td style="padding: 0.5rem 1rem; text-align: right; font-weight: 800; color: ${color}; border-bottom: 2px solid #cbd5e1;">${formatCurrency(val)}</td>`;
+            return `<td style="padding: 0.35rem 0.5rem; text-align: right; font-weight: 800; color: ${color}; border-bottom: 2px solid #cbd5e1; font-size: 0.8rem;">${formatCurrency(val)}</td>`;
         }).join('')}
             </tr>
         `;
@@ -234,9 +234,11 @@ export const PrevisaoFluxoManager = (project) => {
                 const fontWeight = level === 0 ? '700' : (hasChildren ? '600' : '400');
                 const rowClass = (hasChildren ? 'expandable-row' : '') + ' data-row';
 
-                // Calculate font size based on hierarchy level (smaller for deeper levels)
-                const baseFontSize = 16; // base size in pixels
-                const fontSize = Math.max(baseFontSize - (level * 2), 12); // reduce 2px per level, min 12px
+                // Standardized Font Size (Match Consolidadas)
+                const baseSizeRem = 0.85;
+                const decreasePerLevel = 0.03;
+                const fontSizeNum = baseSizeRem - (level * decreasePerLevel);
+                const fontSize = `${fontSizeNum}rem`;
 
 
                 let dayCells = '';
@@ -265,7 +267,7 @@ export const PrevisaoFluxoManager = (project) => {
                             ? (normalVal >= 0 ? '#10B981' : '#EF4444')
                             : (normalVal >= 0 ? '#EF4444' : '#10B981');
 
-                        cellContent += `<span style="color: ${color}; font-weight: 600; font-size: ${fontSize}px;">${formatCurrency(normalVal)}</span>`;
+                        cellContent += `<span style="color: ${color}; font-weight: 600; font-size: ${fontSize};">${formatCurrency(normalVal)}</span>`;
                     }
 
                     // Render delayed value (normal colors + warning icon ⚠)
@@ -274,25 +276,25 @@ export const PrevisaoFluxoManager = (project) => {
                         const color = isPositiveFlow
                             ? (delayedVal >= 0 ? '#10B981' : '#EF4444')
                             : (delayedVal >= 0 ? '#EF4444' : '#10B981');
-                        cellContent += `<span style="color: ${color}; font-weight: 600; font-size: ${fontSize}px;" title="Data prevista passou, mas adiado">⚠ ${formatCurrency(delayedVal)}</span>`;
+                        cellContent += `<span style="color: ${color}; font-weight: 600; font-size: ${fontSize};" title="Data prevista passou, mas adiado">⚠ ${formatCurrency(delayedVal)}</span>`;
                     }
 
                     // Render overdue value (gray, italic, informational)
                     if (Math.abs(overdueVal) > 0.001) {
                         if (cellContent) cellContent += '<br>';
-                        cellContent += `<span style="color: #999; font-style: italic; font-size: ${fontSize - 2}px;" title="Não efetivado - apenas informativo">⚠ ${formatCurrency(overdueVal)}</span>`;
+                        cellContent += `<span style="color: #999; font-style: italic; font-size: ${fontSizeNum - 0.05}rem;" title="Não efetivado - apenas informativo">⚠ ${formatCurrency(overdueVal)}</span>`;
                     }
 
                     // Default to '-' if all are zero
                     if (!cellContent) cellContent = '-';
 
-                    dayCells += `<td style="padding: 0.5rem 1rem; text-align: right; border-bottom: 1px solid #f3f4f6; position: relative; z-index: 1;">${cellContent}</td>`;
+                    dayCells += `<td style="padding: 0.35rem 0.5rem; text-align: right; border-bottom: 1px solid #f3f4f6; position: relative; z-index: 1;">${cellContent}</td>`;
                 });
 
                 html += `
                     <tr class="${rowClass}" data-id="${node.id}" style="background-color: ${bgColor}; cursor: ${hasChildren ? 'pointer' : 'default'}; transition: background-color 0.2s;">
                         <td class="sticky-col" style="padding: 0; border-bottom: 1px solid #f3f4f6; position: sticky; left: 0; z-index: 10; background-color: #ffffff; transition: background-color 0.2s;">
-                            <div style="display: flex; align-items: center; gap: 0.5rem; padding: 0.5rem 1rem 0.5rem ${paddingLeft}rem; font-weight: ${fontWeight}; font-size: ${fontSize}px; min-height: 100%;">
+                            <div style="display: flex; align-items: center; gap: 0.5rem; padding: 0.35rem 1rem 0.35rem ${paddingLeft}rem; font-weight: ${fontWeight}; font-size: ${fontSize}; min-height: 100%;">
                                 ${hasChildren ? `<span style="font-size: 0.8rem; transform: rotate(${isExpanded ? '90deg' : '0deg'}); transition: transform 0.2s;">▶</span>` : ''}
                                 ${node.name}
                             </div>
@@ -337,11 +339,11 @@ export const PrevisaoFluxoManager = (project) => {
         // 2. SALDO FINAL ROW
         html += `
             <tr style="background-color: #e0f2fe;">
-                <td style="padding: 0.5rem 1rem; font-weight: 800; border-top: 2px solid #cbd5e1; position: sticky; left: 0; z-index: 5; background-color: #e0f2fe;">Saldo Final</td>
+                <td style="padding: 0.35rem 1rem; font-weight: 800; border-top: 2px solid #cbd5e1; position: sticky; left: 0; z-index: 5; background-color: #e0f2fe; font-size: 0.8rem;">Saldo Final</td>
                 ${days.map(d => {
             const val = dayBalances[d].final;
             const color = val >= 0 ? '#10B981' : '#EF4444';
-            return `<td style="padding: 0.5rem 1rem; text-align: right; font-weight: 800; color: ${color}; border-top: 2px solid #cbd5e1;">${formatCurrency(val)}</td>`;
+            return `<td style="padding: 0.35rem 0.5rem; text-align: right; font-weight: 800; color: ${color}; border-top: 2px solid #cbd5e1; font-size: 0.8rem;">${formatCurrency(val)}</td>`;
         }).join('')}
             </tr>
         `;
@@ -352,7 +354,7 @@ export const PrevisaoFluxoManager = (project) => {
 
         html += `
             <tr style="background-color: #f9fafb;">
-                <td style="padding: 0.5rem 1rem; font-weight: 600; font-size: 0.8rem; color: #6B7280; border-top: 2px solid #cbd5e1; position: sticky; left: 0; z-index: 5; background-color: #f9fafb;">Dias Relativos</td>
+                <td style="padding: 0.35rem 1rem; font-weight: 600; font-size: 0.75rem; color: #6B7280; border-top: 2px solid #cbd5e1; position: sticky; left: 0; z-index: 5; background-color: #f9fafb;">Dias Relativos</td>
                 ${days.map(d => {
             const cellDate = new Date(d + 'T00:00:00');
             const diffTime = cellDate - todayDate;
@@ -362,7 +364,7 @@ export const PrevisaoFluxoManager = (project) => {
             let style = "color: #6B7280;";
             if (diffDays === 0) style = "color: #00425F; font-weight: bold; background-color: #e0f2fe;";
 
-            return `<td style="padding: 0.5rem 1rem; text-align: right; font-size: 0.8rem; ${style} border-top: 2px solid #cbd5e1;">${diffDays}</td>`;
+            return `<td style="padding: 0.35rem 0.5rem; text-align: right; font-size: 0.75rem; ${style} border-top: 2px solid #cbd5e1;">${diffDays}</td>`;
         }).join('')}
             </tr>
         `;
