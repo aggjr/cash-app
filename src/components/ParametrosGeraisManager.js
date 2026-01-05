@@ -201,6 +201,36 @@ export const ParametrosGeraisManager = (project) => {
     let unlockCountdownInterval = null;
     let unlockExpiresAt = null;
 
+    const updateUnlockButton = (isUnlocked, remainingSeconds = 0) => {
+        const btn = container.querySelector('#btn-activate-unlock');
+        const icon = container.querySelector('#unlock-icon');
+        const text = container.querySelector('#unlock-text');
+
+        if (!btn || !icon || !text) return;
+
+        if (isUnlocked) {
+            // Unlocked state - golden/orange
+            btn.style.background = '#f59e0b';
+            btn.dataset.unlocked = 'true';
+            btn.onmouseover = () => { btn.style.background = '#d97706'; };
+            btn.onmouseout = () => { btn.style.background = '#f59e0b'; };
+            icon.textContent = '🔓';
+
+            const minutes = Math.floor(remainingSeconds / 60);
+            const seconds = remainingSeconds % 60;
+            text.textContent = `Travar Sistema (${minutes}:${seconds.toString().padStart(2, '0')})`;
+        } else {
+            // Locked state - blue
+            btn.style.background = 'var(--color-primary)';
+            delete btn.dataset.unlocked;
+            btn.onmouseover = () => { btn.style.background = '#1D4ED8'; };
+            btn.onmouseout = () => { btn.style.background = 'var(--color-primary)'; };
+            icon.textContent = '🔒';
+            text.textContent = 'Liberar Edições Temporariamente';
+        }
+    };
+
+
     const activateUnlock = async () => {
         console.log('[ACTIVATE UNLOCK] Button clicked!');
         console.log('[ACTIVATE UNLOCK] unlockCountdownInterval:', unlockCountdownInterval);
@@ -517,14 +547,15 @@ export const ParametrosGeraisManager = (project) => {
                                 cursor: pointer;
                                 transition: all 0.2s;
                                 display: flex;
-                                alignItems: center;
-                                justifyContent: center;
+                                align-items: center;
+                                justify-content: center;
                                 gap: 0.5rem;
                             "
-                            onmouseover="this.style.background='#1D4ED8'"
-                            onmouseout="this.style.background='var(--color-primary)'"
+                            onmouseover="if(!this.dataset.unlocked) this.style.background='#1D4ED8'"
+                            onmouseout="if(!this.dataset.unlocked) this.style.background='var(--color-primary)'"
                         >
-                            <span style="color: white; font-size: 1.1rem;">🔓</span> Liberar Edições Temporariamente
+                            <span id="unlock-icon" style="font-size: 1.2rem;">🔒</span>
+                            <span id="unlock-text">Liberar Edições Temporariamente</span>
                         </button>
                         <div id="unlock-timer-display" style="display: none; margin-top: 0.75rem; text-align: center; font-size: 1.1rem;"></div>
                         <small style="display: block; margin-top: 0.75rem; color: var(--color-text-muted); text-align: center;">
