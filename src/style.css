@@ -617,7 +617,8 @@ button {
 .node-actions {
   display: flex;
   gap: 0.25rem;
-  opacity: 0;
+  opacity: 1;
+  /* Always visible */
   transition: opacity 0.2s ease;
 }
 

@@ -128,7 +128,10 @@ export const UserManager = (project) => {
                 container.style.gap = '0.5rem';
                 container.style.justifyContent = 'center';
 
-                // Edit button (master or self)
+                // MASTER: can edit anyone, can delete anyone except self and other masters
+                // REGULAR USER: can only edit themselves
+
+                // Edit button logic
                 if (isMaster || isCurrentUser) {
                     const editBtn = document.createElement('button');
                     editBtn.innerHTML = '✏️';
@@ -147,7 +150,7 @@ export const UserManager = (project) => {
                     container.appendChild(editBtn);
                 }
 
-                // Delete button (smart delete - master only, not on self or other masters)
+                // Delete button logic (MASTER only, not on self or other masters)
                 if (isMaster && !isCurrentUser && user.role !== 'master') {
                     const deleteBtn = document.createElement('button');
                     deleteBtn.innerHTML = '🗑️';
@@ -164,6 +167,7 @@ export const UserManager = (project) => {
                     container.appendChild(deleteBtn);
                 }
 
+                // If no buttons were added (regular user looking at other users), show dash
                 return container.childNodes.length > 0 ? container : document.createTextNode('-');
             }
         }
