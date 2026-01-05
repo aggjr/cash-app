@@ -69,6 +69,51 @@ export const UserModal = {
                             </div>
                         </div>
 
+                        <!-- Second Line: Empresa + Departamento side by side -->
+                        <div style="display: flex; gap: 1rem; margin-top: 5px;">
+                            <div class="form-group" style="flex: 1;">
+                                <label for="user-company">Empresa <span class="required">*</span></label>
+                                <select 
+                                    id="user-company" 
+                                    class="form-input"
+                                    required
+                                    ${isEdit ? 'disabled' : ''} 
+                                >
+                                    <option value="">Selecione uma empresa</option>
+                                    ${companies.map(company => `
+                                        <option value="${company.id}" ${user?.company_id == company.id ? 'selected' : ''}>
+                                            ${company.name} - ${company.cnpj}
+                                        </option>
+                                    `).join('')}
+                                </select>
+                                ${companies.length === 0 ? '<small style="color: #EF4444;">⚠️ Nenhuma empresa cadastrada. Cadastre uma empresa primeiro.</small>' : ''}
+                            </div>
+
+                            <div class="form-group" style="flex: 1;">
+                                <label for="user-department">Departamento (Opcional)</label>
+                                <input 
+                                    type="text" 
+                                    id="user-department" 
+                                    class="form-input" 
+                                    placeholder="Ex: Financeiro"
+                                    value="${user?.department || ''}"
+                                />
+                            </div>
+                        </div>
+
+                        <!-- Third Line: Cargo full width -->
+                        <div class="form-group full-width" style="margin-top: 5px;">
+                            <label for="user-job-title">Cargo / Função (Opcional)</label>
+                            <input 
+                                type="text" 
+                                id="user-job-title" 
+                                class="form-input" 
+                                placeholder="Ex: Gerente Financeiro"
+                                value="${user?.job_title || ''}"
+                            />
+                        </div>
+
+                        <!-- Fourth Line: Tipo de Usuário + Senha (only for new users) or just Tipo de Usuário (for edit) -->
                         ${!isEdit ? `
                             <div style="display: flex; gap: 1rem; margin-top: 5px;">
                                 <div class="form-group" style="flex: 1;">
