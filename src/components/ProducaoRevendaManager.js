@@ -69,7 +69,7 @@ export const ProducaoRevendaManager = (project) => {
                     };
                 } else {
                     btn.style.cursor = 'default';
-                    btn.style.opacity = '0.3';
+                    btn.style.opacity = '0.6';
                     btn.title = 'Sem boleto/nota';
                 }
                 return btn;
