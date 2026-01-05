@@ -145,8 +145,11 @@ export const ConsolidadasManager = (project) => {
                 const w1 = firstTh.getBoundingClientRect().width;
                 table.style.setProperty('--c1-width', `${w1}px`);
 
-                // Avg Col Width (fixed 140px)
-                const avgWidth = 140;
+                // Measure Média column (2nd th)
+                // We use nth-child(2) because first is Name, second is Media, third is Total
+                const mediaTh = table.querySelector('thead tr:nth-child(2) th:nth-child(2)');
+                const avgWidth = mediaTh ? mediaTh.getBoundingClientRect().width : 140;
+
                 table.style.setProperty('--c2-left', `${w1}px`);
                 table.style.setProperty('--c3-left', `${w1 + avgWidth}px`);
             }
@@ -291,8 +294,8 @@ export const ConsolidadasManager = (project) => {
                 </tr>
                 <tr>
                     <th class="js-col-name" style="padding: 0.4rem 0.5rem; text-align: center; border-bottom: 2px solid #e5e7eb; width: auto; position: sticky; left: 0; z-index: 11; background-color: #00425F; white-space: nowrap;"></th>
-                    <th style="padding: 0.4rem 0.5rem; text-align: center; border-bottom: 2px solid #e5e7eb; width: 140px; min-width: 140px; position: sticky; left: var(--c2-left, 320px); z-index: 11; background-color: #4B5563; color: white; white-space: nowrap;">Média</th>
-                    <th style="padding: 0.4rem 0.5rem; text-align: center; border-bottom: 2px solid #e5e7eb; width: 140px; min-width: 140px; position: sticky; left: var(--c3-left, 460px); z-index: 11; background-color: #374151; color: white; white-space: nowrap;">Total</th>
+                    <th style="padding: 0.4rem 0.5rem; text-align: center; border-bottom: 2px solid #e5e7eb; position: sticky; left: var(--c2-left, 320px); z-index: 11; background-color: #4B5563; color: white; white-space: nowrap;">Média</th>
+                    <th style="padding: 0.4rem 0.5rem; text-align: center; border-bottom: 2px solid #e5e7eb; position: sticky; left: var(--c3-left, 460px); z-index: 11; background-color: #374151; color: white; white-space: nowrap;">Total</th>
                     ${months.map(m => {
             const [y, mo] = m.split('-');
             // User Request: Smallest possible width (fit content). Removed min-width: 120px.
