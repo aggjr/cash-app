@@ -79,21 +79,6 @@ export const AccountManager = (project) => {
         },
         { key: 'description', label: 'Descrição', width: '200px', align: 'left', type: 'text' },
         {
-            key: 'current_balance',
-            label: 'Saldo',
-            width: '120px',
-            align: 'right',
-            type: 'currency',
-            colorLogic: 'balance',
-            render: (item) => {
-                const span = document.createElement('span');
-                span.textContent = formatCurrency(item.current_balance);
-                span.style.fontWeight = '600';
-                span.style.color = (item.current_balance || 0) >= 0 ? '#10B981' : '#EF4444';
-                return span;
-            }
-        },
-        {
             key: 'active',
             label: 'Status',
             width: '100px',
@@ -278,7 +263,6 @@ export const AccountManager = (project) => {
             { header: 'Nome', key: 'name', width: 30 },
             { header: 'Tipo', key: 'type_display', width: 20 },
             { header: 'Descrição', key: 'description', width: 30 },
-            { header: 'Saldo', key: 'balance_formatted', width: 20, type: 'currency' },
             { header: 'Empresa', key: 'company_name', width: 30 },
             { header: 'Status', key: 'active', width: 15, type: 'center' },
             { header: 'Criado em', key: 'created_at_formatted', width: 15, type: 'center' }
@@ -322,7 +306,6 @@ export const AccountManager = (project) => {
         
         <div id="footer-summary" style="margin-top: 1rem; display: flex; justify-content: space-between; align-items: center; font-size: 0.85rem; color: var(--color-text-muted);">
             <div>Total: <span id="total-count">0</span> conta(s)</div>
-            <div>Saldo Total: <span id="total-balance" style="font-weight: 600; color: var(--color-primary);">R$ 0,00</span></div>
         </div>
     `;
 
