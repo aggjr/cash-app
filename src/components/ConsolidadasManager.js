@@ -112,8 +112,8 @@ export const ConsolidadasManager = (project) => {
         const tablesWrapper = container.querySelector('#consolidadas-tables-wrapper');
         tablesWrapper.innerHTML = '';
 
-        const titleReal = 'OPERAÇÕES FINALIZADAS';
-        const titleProv = 'OPERAÇÕES FINALIZADAS E PREVISTAS';
+        const titleReal = 'Operações Finalizadas';
+        const titleProv = 'Operações Finalizadas e Previstas';
 
         // Table 1: Realized
         tablesWrapper.appendChild(createTableHTML(currentData.realized, titleReal));
@@ -291,8 +291,8 @@ export const ConsolidadasManager = (project) => {
                 </tr>
                 <tr>
                     <th class="js-col-name" style="padding: 0.5rem; text-align: center; border-bottom: 2px solid #e5e7eb; width: auto; position: sticky; left: 0; z-index: 11; background-color: #00425F; white-space: nowrap;"></th>
-                    <th style="padding: 0.5rem; text-align: center; border-bottom: 2px solid #e5e7eb; width: 140px; min-width: 140px; position: sticky; left: var(--c2-left, 320px); z-index: 11; background-color: #4B5563; color: white; white-space: nowrap;">MÉDIA</th>
-                    <th style="padding: 0.5rem; text-align: center; border-bottom: 2px solid #e5e7eb; width: 140px; min-width: 140px; position: sticky; left: var(--c3-left, 460px); z-index: 11; background-color: #374151; color: white; white-space: nowrap;">TOTAL</th>
+                    <th style="padding: 0.5rem; text-align: center; border-bottom: 2px solid #e5e7eb; width: 140px; min-width: 140px; position: sticky; left: var(--c2-left, 320px); z-index: 11; background-color: #4B5563; color: white; white-space: nowrap;">Média</th>
+                    <th style="padding: 0.5rem; text-align: center; border-bottom: 2px solid #e5e7eb; width: 140px; min-width: 140px; position: sticky; left: var(--c3-left, 460px); z-index: 11; background-color: #374151; color: white; white-space: nowrap;">Total</th>
                     ${months.map(m => {
             const [y, mo] = m.split('-');
             // User Request: Smallest possible width (fit content). Removed min-width: 120px.

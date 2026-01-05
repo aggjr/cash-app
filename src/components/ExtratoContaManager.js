@@ -254,7 +254,7 @@ export const ExtratoContaManager = (project) => {
                 // Define Columns (matching table structure)
                 const columns = [
                     { header: 'Data Execução', key: 'data', width: 18, type: 'date' },
-                    { header: 'TIPO DE MOVIMENTAÇÃO', key: 'tipo_formatado', width: 40 },
+                    { header: 'Tipo de Movimentação', key: 'tipo_formatado', width: 40 },
                     { header: 'Descrição', key: 'descricao', width: 40 },
                     { header: 'Fluxo', key: 'fluxo', width: 15, type: 'center' },
                     { header: 'Valor', key: 'valor', width: 18, type: 'currency' }
@@ -373,7 +373,7 @@ export const ExtratoContaManager = (project) => {
                 type: 'date',
                 render: (item) => formatDate(item.data)
             },
-            { label: 'TIPO DE MOVIMENTAÇÃO', key: 'tipo_formatado' },
+            { label: 'Tipo de Movimentação', key: 'tipo_formatado' },
             {
                 label: 'Descrição',
                 key: 'descricao',
