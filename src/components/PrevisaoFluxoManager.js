@@ -2,7 +2,7 @@ import { showToast } from '../utils/toast.js';
 import { getApiBaseUrl } from '../utils/apiConfig.js';
 import { ExcelExporter } from '../utils/ExcelExporter.js';
 import { PrintHelper } from '../utils/printHelper.js';
-import { HierarchicalFilter } from './HierarchicalFilter.js';
+import { FlatMultiSelect } from './FlatMultiSelect.js';
 
 export const PrevisaoFluxoManager = (project) => {
     const container = document.createElement('div');
@@ -67,35 +67,20 @@ export const PrevisaoFluxoManager = (project) => {
                 companies = await compResp.json();
             }
 
-            // Fetch accounts
-            const accResp = await fetch(`${API_BASE_URL}/accounts?projectId=${project.id}`, {
-                headers: { 'Authorization': `Bearer ${token}` }
-            });
-            if (accResp.ok) {
-                accounts = await accResp.json();
-            }
-
             // Initialize filter
             const filterContainer = document.getElementById('previsao-filter-container');
             if (filterContainer && companies.length > 0) {
-                // Build hierarchical tree
-                const treeData = companies.map(c => ({
+                // Map company data
+                const filterData = companies.map(c => ({
                     id: c.id,
-                    label: c.name,
-                    children: accounts.filter(a => a.company_id === c.id).map(a => ({ id: a.id, label: a.name }))
+                    label: c.name
                 }));
 
-                new HierarchicalFilter({
+                new FlatMultiSelect({
                     container: filterContainer,
-                    data: treeData,
+                    data: filterData,
                     onChange: (ids) => {
-                        // Map Account IDs to Company IDs
-                        const relevantCompanyIds = new Set();
-                        ids.forEach(accId => {
-                            const acc = accounts.find(a => a.id == accId);
-                            if (acc) relevantCompanyIds.add(acc.company_id);
-                        });
-                        selectedCompanyIds = Array.from(relevantCompanyIds);
+                        selectedCompanyIds = ids;
                         loadData();
                     },
                     placeholder: 'Todas as Empresas'

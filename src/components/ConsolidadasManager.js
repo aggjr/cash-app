@@ -3,7 +3,7 @@ import { getApiBaseUrl } from '../utils/apiConfig.js';
 import { MonthPicker } from './MonthPicker.js';
 import { ExcelExporter } from '../utils/ExcelExporter.js';
 import { PrintHelper } from '../utils/printHelper.js';
-import { HierarchicalFilter } from './HierarchicalFilter.js';
+import { FlatMultiSelect } from './FlatMultiSelect.js';
 
 export const ConsolidadasManager = (project) => {
     const container = document.createElement('div');
@@ -377,42 +377,32 @@ export const ConsolidadasManager = (project) => {
                 // HierarchicalFilter code: `parent.children.forEach`. It iterates children.
                 // So I MUST populate children.
                 // I will populate with accounts, but ignore specific account selection technically, 
-                // OR I simply pass the company ID if *any* or *all* accounts are selected?
-                // Simpler: Just allow Company selection (Parent). 
-                // Impl: Company -> [ "Selecionar" ]. 
-                // Or better: Just list Companies as parents, and give them 1 child "Selecionar".
-                // Wait, `FechamentoContas` filters specific accounts. 
-                // User asked for "seleção de EMPRESA".
-                // I will just use companies. I'll hack HierarchicalFilter to have 1 dummy child per company if needed, or modify it?
-                // No, I'll just use accounts as children. And if any account is selected, we include the company?
-                // Or better: Pass `companyIds` of completely selected companies.
-                // Let's try to pass all columns.
-                // FOR NOW: I will load companies and accounts, build the tree.
-                // If `selectedIds` contains accounts, I extract unique company IDs from those accounts.
-
-                const treeData = companies.map(c => ({
-                    id: `comp_${c.id}`,
-                    label: c.name,
-                    children: accounts.filter(a => a.company_id === c.id).map(a => ({ id: a.id, label: a.name }))
-                }));
-
-                new HierarchicalFilter({
-                    container: filterContainer,
-                    data: treeData,
-                    onChange: (ids) => {
-                        // IDs are Account IDs (integers).
-                        // We need Company IDs.
-                        // Map Account ID -> Company ID
-                        const relevantCompanyIds = new Set();
-                        ids.forEach(accId => {
-                            const acc = accounts.find(a => a.id == accId);
-                            if (acc) relevantCompanyIds.add(acc.company_id);
-                        });
-                        selectedCompanyIds = Array.from(relevantCompanyIds);
-                        loadData();
-                    },
-                    placeholder: 'Todas as Empresas'
+                // Fetch companies
+                const compResp = await fetch(`${API_BASE_URL}/companies?projectId=${project.id}`, {
+                    headers: { 'Authorization': `Bearer ${token}` }
                 });
+                if (compResp.ok) {
+                    companies = await compResp.json();
+                }
+
+                // Initialize filter
+                if (filterContainer && companies.length > 0) {
+                    // Map company data
+                    const filterData = companies.map(c => ({
+                        id: c.id,
+                        label: c.name
+                    }));
+
+                    new FlatMultiSelect({
+                        container: filterContainer,
+                        data: filterData,
+                        onChange: (ids) => {
+                            selectedCompanyIds = ids;
+                            loadData();
+                        },
+                        placeholder: 'Todas as Empresas'
+                    });
+                }
             }
         } catch (e) {
             console.error('Error loading metadata', e);
