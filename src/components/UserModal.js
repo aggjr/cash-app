@@ -70,74 +70,46 @@ export const UserModal = {
                         </div>
 
                         ${!isEdit ? `
-                            <div class="form-group full-width" style="margin-top: 5px;">
-                                <label for="user-password">Senha Inicial <span class="required">*</span></label>
-                                <input 
-                                    type="password" 
-                                    id="user-password" 
-                                    class="form-input" 
-                                    placeholder="Mínimo 8 caracteres"
-                                    required
-                                />
-                                <small style="color: var(--color-text-muted);">O usuário será obrigado a trocar a senha no primeiro login</small>
-                            </div>
-                        ` : ''}
+                            <div style="display: flex; gap: 1rem; margin-top: 5px;">
+                                <div class="form-group" style="flex: 1;">
+                                    <label for="user-role">Tipo de Usuário <span class="required">*</span></label>
+                                    <select 
+                                        id="user-role" 
+                                        class="form-input"
+                                        required
+                                    >
+                                        <option value="user" ${user?.role === 'user' ? 'selected' : ''}>Usuário</option>
+                                        <option value="master" ${user?.role === 'master' ? 'selected' : ''}>Master</option>
+                                    </select>
+                                    <small style="color: var(--color-text-muted);">Master pode convidar e remover usuários</small>
+                                </div>
 
-                        <!-- Second Line: Empresa + Departamento side by side -->
-                        <div style="display: flex; gap: 1rem; margin-top: 5px;">
-                            <div class="form-group" style="flex: 1;">
-                                <label for="user-company">Empresa <span class="required">*</span></label>
+                                <div class="form-group" style="flex: 1;">
+                                    <label for="user-password">Senha Inicial <span class="required">*</span></label>
+                                    <input 
+                                        type="password" 
+                                        id="user-password" 
+                                        class="form-input" 
+                                        placeholder="Mínimo 8 caracteres"
+                                        required
+                                    />
+                                    <small style="color: var(--color-text-muted);">O usuário será obrigado a trocar a senha no primeiro login</small>
+                                </div>
+                            </div>
+                        ` : `
+                            <div class="form-group full-width" style="margin-top: 5px;">
+                                <label for="user-role">Tipo de Usuário <span class="required">*</span></label>
                                 <select 
-                                    id="user-company" 
+                                    id="user-role" 
                                     class="form-input"
                                     required
-                                    ${isEdit ? 'disabled' : ''} 
                                 >
-                                    <option value="">Selecione uma empresa</option>
-                                    ${companies.map(company => `
-                                        <option value="${company.id}" ${user?.company_id == company.id ? 'selected' : ''}>
-                                            ${company.name} - ${company.cnpj}
-                                        </option>
-                                    `).join('')}
+                                    <option value="user" ${user?.role === 'user' ? 'selected' : ''}>Usuário</option>
+                                    <option value="master" ${user?.role === 'master' ? 'selected' : ''}>Master</option>
                                 </select>
-                                ${companies.length === 0 ? '<small style="color: #EF4444;">⚠️ Nenhuma empresa cadastrada. Cadastre uma empresa primeiro.</small>' : ''}
+                                <small style="color: var(--color-text-muted);">Master pode convidar e remover usuários</small>
                             </div>
-
-                            <div class="form-group" style="flex: 1;">
-                                <label for="user-department">Departamento (Opcional)</label>
-                                <input 
-                                    type="text" 
-                                    id="user-department" 
-                                    class="form-input" 
-                                    placeholder="Ex: Financeiro"
-                                    value="${user?.department || ''}"
-                                />
-                            </div>
-                        </div>
-
-                        <div class="form-group full-width" style="margin-top: 5px;">
-                            <label for="user-job-title">Cargo / Função (Opcional)</label>
-                            <input 
-                                type="text" 
-                                id="user-job-title" 
-                                class="form-input" 
-                                placeholder="Ex: Gerente Financeiro"
-                                value="${user?.job_title || ''}"
-                            />
-                        </div>
-
-                        <div class="form-group full-width" style="margin-top: 5px;">
-                            <label for="user-role">Função <span class="required">*</span></label>
-                            <select 
-                                id="user-role" 
-                                class="form-input"
-                                required
-                            >
-                                <option value="user" ${user?.role === 'user' ? 'selected' : ''}>Usuário</option>
-                                <option value="master" ${user?.role === 'master' ? 'selected' : ''}>Master</option>
-                            </select>
-                            <small style="color: var(--color-text-muted);">Master pode convidar e remover usuários</small>
-                        </div>
+                        `}
                     </div>
                 </div>
                 <div class="account-modal-footer">
