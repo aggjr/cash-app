@@ -447,9 +447,9 @@ export const ConsolidadasManager = (project, fixedViewType = null) => {
     // Title - Dynamic based on viewType
     const titleIcon = viewType === 'caixa' ? '💰' : '📊';
     const titleText = viewType === 'caixa'
-        ? 'Consolidada<br/>Financeira'
-        : 'DRE<br/>(Competência)';
-    headerRow.insertAdjacentHTML('beforeend', `<div style="font-size: var(--text-table-title); font-weight:bold; color:#00425F; text-align:center; line-height:1.3;">${titleIcon} ${titleText}</div>`);
+        ? 'Consolidada Financeira'
+        : 'DRE (Competência)';
+    headerRow.insertAdjacentHTML('beforeend', `<div style="font-size: var(--text-table-title); font-weight:bold; color:#00425F;">${titleIcon} ${titleText}</div>`);
 
     // Controls
     const controlsRow = document.createElement('div');
