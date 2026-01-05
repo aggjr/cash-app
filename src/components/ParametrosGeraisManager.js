@@ -387,25 +387,27 @@ export const ParametrosGeraisManager = (project) => {
                 }
             </style>
             
-            <!-- Modern Tab Navigation -->
-            <div class="modern-tab-list" role="tablist">
-                <button 
-                    id="tab-geral" 
-                    class="modern-tab active"
-                    role="tab"
-                    aria-selected="true"
-                >
-                    ⚙️ Sistema
-                </button>
-                <button 
-                    id="tab-IVA" 
-                    class="modern-tab"
-                    role="tab"
-                    aria-selected="false"
-                >
-                    🤖 IA IVA
-                </button>
-                <div class="modern-tab-indicator"></div>
+            <!-- Modern Tabs Container -->
+            <div class="modern-tabs-container">
+                <div class="modern-tab-list" role="tablist">
+                    <button 
+                        id="tab-geral" 
+                        class="modern-tab active"
+                        role="tab"
+                        aria-selected="true"
+                    >
+                        ⚙️ Sistema
+                    </button>
+                    <button 
+                        id="tab-IVA" 
+                        class="modern-tab"
+                        role="tab"
+                        aria-selected="false"
+                    >
+                        🤖 IA IVA
+                    </button>
+                    <div class="modern-tab-indicator"></div>
+                </div>
             </div>
 
             <!-- Tab Content: Geral -->
