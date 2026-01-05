@@ -47,6 +47,8 @@
   --text-lg: 2rem;
   --text-xl: 3.5rem;
   --text-xxl: 5rem;
+  --text-table: 0.85rem;
+  /* Standardized table font */
 
   /* Standardized Column Widths (reduced by 15% for better density) */
   --col-date: 60px;
@@ -72,12 +74,14 @@
   --col-xlarge: 340px;
   /* Previously 400px */
 
-  /* Standardized Row Padding (reduced by additional 10% for max density) */
-  --row-padding-vertical: 0.576rem;
-  /* Previously 0.64rem (orig 0.75rem) */
-  --row-padding-horizontal: 0.387rem;
-  /* Previously 0.43rem (orig 0.5rem) */
+  /* Standardized Row Padding (balanced for density and comfort) */
+  --row-padding-vertical: 0.46rem;
+  /* Previously 0.576rem (20% reduction for moderate density improvement) */
+  --row-padding-horizontal: 0.44rem;
+  /* Previously 0.387rem (14% increase for readability) */
   --row-padding: var(--row-padding-vertical) var(--row-padding-horizontal);
+  --header-padding: 0.5rem 0.75rem;
+  /* Headers need slightly more space */
 
   /* Effects */
   --shadow-sm: 0 1px 2px 0 rgba(0, 0, 0, 0.05);

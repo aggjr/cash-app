@@ -223,7 +223,7 @@ export const FechamentoContasManager = (project) => {
         thCompany.style.zIndex = '101';
         thCompany.style.backgroundColor = '#00425F';
         thCompany.style.color = 'white';
-        thCompany.style.padding = '0.5rem 0.75rem';
+        thCompany.style.padding = 'var(--header-padding)';
         thCompany.style.textAlign = 'left';
         thCompany.style.width = '1%';
         thCompany.style.whiteSpace = 'nowrap';
@@ -239,7 +239,7 @@ export const FechamentoContasManager = (project) => {
         thFixed.style.zIndex = '101';
         thFixed.style.backgroundColor = '#00425F';
         thFixed.style.color = 'white';
-        thFixed.style.padding = '0.5rem 0.75rem';
+        thFixed.style.padding = 'var(--header-padding)';
         thFixed.style.textAlign = 'left';
         thFixed.style.width = '1%';
         thFixed.style.whiteSpace = 'nowrap';
@@ -251,7 +251,7 @@ export const FechamentoContasManager = (project) => {
         months.forEach((m, index) => {
             const th = document.createElement('th');
             th.textContent = formatDateMonth(m);
-            th.style.padding = '0.5rem 0.25rem';
+            th.style.padding = 'var(--row-padding)';
             th.style.textAlign = 'right';
             th.style.minWidth = '120px'; // 150% of prev 80px
             th.style.width = '120px';
@@ -305,7 +305,7 @@ export const FechamentoContasManager = (project) => {
                     tdCompany.style.color = 'white';
                     tdCompany.style.fontWeight = '600';
                     tdCompany.style.zIndex = '10';
-                    tdCompany.style.padding = '0.5rem 0.75rem';
+                    tdCompany.style.padding = 'var(--header-padding)';
                     tdCompany.style.textAlign = 'left';
                     tdCompany.style.borderBottom = '2px solid white';
                     tdCompany.style.borderRight = '2px solid white';
@@ -323,7 +323,7 @@ export const FechamentoContasManager = (project) => {
                 tdFixed.style.color = 'white';
                 tdFixed.style.fontWeight = '500';
                 tdFixed.style.zIndex = '10';
-                tdFixed.style.padding = '0.5rem 0.75rem';
+                tdFixed.style.padding = 'var(--header-padding)';
                 tdFixed.style.textAlign = 'left';
                 tdFixed.style.borderBottom = '2px solid white';
                 tdFixed.style.borderRight = '2px solid #00425F';
@@ -348,7 +348,7 @@ export const FechamentoContasManager = (project) => {
 
                     td.textContent = formatCurrency(val);
                     td.style.backgroundColor = bgColor;
-                    td.style.padding = '0.5rem 0.25rem';
+                    td.style.padding = 'var(--row-padding)';
                     td.style.textAlign = 'right';
                     td.style.borderBottom = '1px solid #e2e8f0';
                     td.style.whiteSpace = 'nowrap';
@@ -382,7 +382,7 @@ export const FechamentoContasManager = (project) => {
         tdTotalLabel.style.backgroundColor = '#00425F';
         tdTotalLabel.style.color = 'white';
         tdTotalLabel.style.zIndex = '10';
-        tdTotalLabel.style.padding = '0.5rem 0.75rem';
+        tdTotalLabel.style.padding = 'var(--header-padding)';
         tdTotalLabel.style.textAlign = 'center'; // Summary align
         tdTotalLabel.style.borderTop = '2px solid #00425F';
         tdTotalLabel.style.whiteSpace = 'nowrap';
@@ -392,7 +392,7 @@ export const FechamentoContasManager = (project) => {
         monthTotals.forEach((val, index) => {
             const td = document.createElement('td');
             td.textContent = formatCurrency(val);
-            td.style.padding = '0.5rem 0.5rem';
+            td.style.padding = 'var(--row-padding)';
             td.style.textAlign = 'right';
             td.style.borderTop = '2px solid #cbd5e1';
             td.style.backgroundColor = '#e2e8f0'; // Slightly darker

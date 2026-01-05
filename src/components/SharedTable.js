@@ -352,7 +352,7 @@ export class SharedTable {
         const table = document.createElement('table');
         table.style.width = '100%';
         table.style.borderCollapse = 'collapse';
-        table.style.fontSize = '0.9rem';
+        table.style.fontSize = 'var(--text-table)';
 
         // Header
         const thead = document.createElement('thead');
@@ -532,7 +532,7 @@ export class SharedTable {
                      </div>
                    </div>`;
 
-            return `<th style="text-align: ${col.align || 'left'}; padding: var(--row-padding); font-size: 0.9rem; width: ${col.width || 'auto'}; vertical-align: middle; color: white;">${content}</th>`;
+            return `<th style="text-align: ${col.align || 'left'}; padding: var(--row-padding); font-size: var(--text-table); width: ${col.width || 'auto'}; vertical-align: middle; color: white;">${content}</th>`;
         }).join('');
 
         // Prepend Checkbox Header if enabled
