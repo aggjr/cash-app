@@ -825,8 +825,8 @@ export const ParametrosGeraisManager = (project) => {
             const defaultTab = container.querySelector('#tab-geral');
             if (defaultTab) defaultTab.click();
         }, 100);
-            </script >
-        </div >
+            </script>
+        </div>
     `;
 
         // Event listeners para inputs (exceto iva_timeout que agora é slider)
