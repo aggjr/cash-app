@@ -1798,8 +1798,60 @@ body.dark-mode .modern-tabs-container {
   background: #111827;
 }
 
+
 body.dark-mode .modern-tab-panel {
   background: #111827;
+}
+
+/* --- IVA Toggle Switch --- */
+.iva-toggle-switch {
+  position: relative;
+  display: inline-block;
+  width: 60px;
+  height: 34px;
+}
+
+.iva-toggle-switch input {
+  opacity: 0;
+  width: 0;
+  height: 0;
+}
+
+.iva-toggle-slider {
+  position: absolute;
+  cursor: pointer;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background-color: #9ca3af;
+  transition: all 0.3s ease;
+  border-radius: 34px;
+}
+
+.iva-toggle-slider:before {
+  position: absolute;
+  content: "";
+  height: 26px;
+  width: 26px;
+  left: 4px;
+  bottom: 4px;
+  background-color: white;
+  transition: all 0.3s ease;
+  border-radius: 50%;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
+}
+
+.iva-toggle-switch input:checked+.iva-toggle-slider {
+  background-color: var(--color-primary, #2563eb);
+}
+
+.iva-toggle-switch input:focus+.iva-toggle-slider {
+  box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.2);
+}
+
+.iva-toggle-switch input:checked+.iva-toggle-slider:before {
+  transform: translateX(26px);
 }
 
 

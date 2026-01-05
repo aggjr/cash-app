@@ -549,15 +549,9 @@ export const ParametrosGeraisManager = (project) => {
                             Se desativado, a IVA responderá apenas por texto.
                         </small>
                     </div>
-                    <label class="switch" style="position: relative; display: inline-block; width: 60px; height: 34px;">
+                    <label class="iva-toggle-switch">
                         <input type="checkbox" id="toggle-iva_voice_enabled" ${currentSettings.iva_voice_enabled ? 'checked' : ''}>
-                        <span class="slider round" style="position: absolute; cursor: pointer; top: 0; left: 0; right: 0; bottom: 0; background-color: #ccc; transition: .4s; border-radius: 34px;"></span>
-                        <style>
-                            .switch input:checked + .slider { background-color: var(--color-primary); }
-                            .switch input:focus + .slider { box-shadow: 0 0 1px var(--color-primary); }
-                            .switch input:checked + .slider:before { transform: translateX(26px); }
-                            .slider:before { position: absolute; content: ""; height: 26px; width: 26px; left: 4px; bottom: 4px; background-color: white; transition: .4s; border-radius: 50%; }
-                        </style>
+                        <span class="iva-toggle-slider"></span>
                     </label>
                 </div>
 
