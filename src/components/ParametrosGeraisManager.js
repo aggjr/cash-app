@@ -450,7 +450,7 @@ export const ParametrosGeraisManager = (project) => {
                         <!-- Tempo em Minutos - Right -->
                         <div style="flex: 1;">
                             <label style="display: block; font-weight: 500; margin-bottom: 0.5rem; color: var(--color-text);">
-                                ⏱️ Tempo em minutos para usar o sistema sem regras de datas
+                                ⏱️ Tempo para liberar o sistema da restrição de datas
                             </label>
                             <div style="display: flex; align-items: center; gap: 0.75rem; height: 45px;">
                                 <input 
