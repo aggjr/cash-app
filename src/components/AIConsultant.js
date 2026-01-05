@@ -1352,7 +1352,7 @@ Digite 1, 2 ou 3.`;
                         messagesContainer.scrollTop = messagesContainer.scrollHeight;
 
                         try {
-                            const analysisResponse = await fetch(`${API_BASE_URL}/api/IVA/operate`, {
+                            const analysisResponse = await fetch(`${API_BASE_URL}/IVA/operate`, {
                                 method: 'POST',
                                 headers: getHeaders(),
                                 body: JSON.stringify({
@@ -1426,7 +1426,7 @@ Digite 1, 2 ou 3.`;
 
                             // Track navigation for familiarity learning
                             try {
-                                await fetch(`${API_BASE_URL}/api/IVA/track-navigation`, {
+                                await fetch(`${API_BASE_URL}/IVA/track-navigation`, {
                                     method: 'POST',
                                     headers: getHeaders(),
                                     body: JSON.stringify({ screen: decision.target })
