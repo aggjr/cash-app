@@ -829,13 +829,13 @@ export const ParametrosGeraisManager = (project) => {
         // Event listeners para inputs (exceto iva_timeout que agora é slider)
         const fields = ['numero_dias', 'tempo_minutos_liberacao'];
         fields.forEach(field => {
-            const input = container.querySelector(`#input - ${field} `);
+            const input = container.querySelector(`#input-${field}`);
             input.addEventListener('input', () => {
                 currentSettings[field] = parseInt(input.value);
                 updateFieldState(field);
             });
 
-            const saveBtn = container.querySelector(`#save - ${field} `);
+            const saveBtn = container.querySelector(`#save-${field}`);
             saveBtn.addEventListener('click', () => saveSetting(field));
         });
 
