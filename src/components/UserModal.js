@@ -40,30 +40,33 @@ export const UserModal = {
                 <div class="account-modal-body" style="padding: 1.5rem; max-height: 85vh;">
                     <h3 style="margin: 0 0 1rem 0; color: var(--color-primary); font-size: 1.3rem;">${isEdit ? 'Editar Usuário' : 'Convidar Usuário'}</h3>
                     <div class="form-grid" style="gap: 0.5rem;">
-                        <div class="form-group full-width" style="margin-top: 5px;">
-                            <label for="user-name">Nome <span class="required">*</span></label>
-                            <input 
-                                type="text" 
-                                id="user-name" 
-                                class="form-input" 
-                                placeholder="Nome completo do usuário"
-                                value="${user?.name || ''}"
-                                required
-                                ${isEdit ? 'disabled' : ''}
-                            />
-                        </div>
+                        <!-- First Line: Name + Email side by side -->
+                        <div style="display: flex; gap: 1rem; margin-top: 5px;">
+                            <div class="form-group" style="flex: 1;">
+                                <label for="user-name">Nome <span class="required">*</span></label>
+                                <input 
+                                    type="text" 
+                                    id="user-name" 
+                                    class="form-input" 
+                                    placeholder="Nome completo do usuário"
+                                    value="${user?.name || ''}"
+                                    required
+                                    ${isEdit ? 'disabled' : ''}
+                                />
+                            </div>
 
-                        <div class="form-group full-width" style="margin-top: 5px;">
-                            <label for="user-email">E-mail <span class="required">*</span></label>
-                            <input 
-                                type="email" 
-                                id="user-email" 
-                                class="form-input" 
-                                placeholder="email@exemplo.com"
-                                value="${user?.email || ''}"
-                                required
-                                ${isEdit ? 'disabled' : ''}
-                            />
+                            <div class="form-group" style="flex: 1;">
+                                <label for="user-email">E-mail <span class="required">*</span></label>
+                                <input 
+                                    type="email" 
+                                    id="user-email" 
+                                    class="form-input" 
+                                    placeholder="email@exemplo.com"
+                                    value="${user?.email || ''}"
+                                    required
+                                    ${isEdit ? 'disabled' : ''}
+                                />
+                            </div>
                         </div>
 
                         ${!isEdit ? `
