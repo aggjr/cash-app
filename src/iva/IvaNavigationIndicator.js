@@ -248,6 +248,16 @@ export const IvaNavigationIndicator = {
      */
     init() {
         this.setupManualNavigationDetector();
+        // ADDITIONAL: Monitor hash changes for SPA navigation
+        let lastHash = window.location.hash;
+        setInterval(() => {
+            const currentHash = window.location.hash;
+            if (currentHash !== lastHash && !this.isEvaNavigating) {
+                console.log('[IVA Nav] Route change detected via hash, clearing indicators');
+                this.clearAll();
+                lastHash = currentHash;
+            }
+        }, 500);
         console.log('[IVA Nav] Indicator system initialized');
     }
 };
