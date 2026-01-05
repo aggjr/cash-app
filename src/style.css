@@ -1803,6 +1803,46 @@ body.dark-mode .modern-tab-panel {
   background: #111827;
 }
 
+/* --- File Link States --- */
+.file-link {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.25rem;
+  text-decoration: none;
+  font-size: 1.1rem;
+  transition: all 0.2s;
+  cursor: pointer;
+}
+
+.file-link-empty {
+  color: #d1d5db;
+  opacity: 0.4;
+  cursor: default;
+}
+
+.file-link-empty:hover {
+  opacity: 0.6;
+}
+
+.file-link-present {
+  color: var(--color-primary, #2563eb);
+  opacity: 1;
+}
+
+.file-link-present:hover {
+  color: #1d4ed8;
+  transform: scale(1.15);
+}
+
+body.dark-mode .file-link-empty {
+  color: #6b7280;
+}
+
+body.dark-mode .file-link-present {
+  color: #60a5fa;
+}
+
+
 /* --- IVA Toggle Switch --- */
 .iva-toggle-switch {
   position: relative;
