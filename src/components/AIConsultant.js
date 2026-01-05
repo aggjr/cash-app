@@ -141,9 +141,9 @@ export const AIConsultant = () => {
                     const audio = new Audio(`data: audio / mp3; base64, ${audioContent} `);
 
                     // Calculate delay based on speech rate (faster = longer delay needed)
-                    // Base delay: 300ms minimum, scales with rate to prevent syllable cutting
-                    // Formula: 300ms + (300 * rate) ensures proportional scaling with speed
-                    const delayMs = Math.max(300, Math.floor(300 * rate));
+                    // Base delay: 500ms minimum (increased from 300ms), scales aggressively with rate
+                    // Formula: 500ms + (500 * rate) ensures no word clipping even at 4.0x speed
+                    const delayMs = Math.max(500, Math.floor(500 * rate));
 
                     // Wait for audio to be ready
                     audio.addEventListener('canplaythrough', () => {
@@ -447,10 +447,11 @@ export const AIConsultant = () => {
                 // Show "warming up" state
                 input.placeholder = 'Aquecendo microfone...';
 
-                // Wait 400ms for mic to fully initialize, THEN indicate ready
+                // Reduced warmup time from 400ms to 100ms to prevent losing user's first words
+                // The first beep already provides feedback, no need for long delay
                 setTimeout(() => {
-                    // Second beep: Ready to record
-                    playBeep();
+                    // REMOVED second beep to avoid interfering with speech capture
+                    // playBeep(); 
 
                     // Set recording state and update UI to READY
                     isRecording = true;
