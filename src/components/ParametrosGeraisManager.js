@@ -649,7 +649,7 @@ export const ParametrosGeraisManager = (project) => {
                                 "
                             >1.25x</div>
                         </div>
-                        <span style="min-width: 40px; color: var(--color-text-muted); font-size: 0.875rem;">3.0x</span>
+                        <span style="min-width: 40px; color: var(--color-text-muted); font-size: 0.875rem;">4.0x</span>
                         <button 
                             id="test-voice-speed"
                             style="
