@@ -375,12 +375,12 @@ export class SharedTable {
             tbody.appendChild(trHeader);
         }
 
-        if (data.length === 0) {
+        if (this.currentData.length === 0) {
             const tr = document.createElement('tr');
             tr.innerHTML = `<td colspan="${this.columns.length}" style="text-align:center; padding: 2rem; color: var(--color-text-muted);">Nenhum registro encontrado.</td>`;
             tbody.appendChild(tr);
         } else {
-            data.forEach((item, index) => {
+            this.currentData.forEach((item, index) => {
                 const tr = document.createElement('tr');
                 tr.className = 'hoverable-row';
                 tr.style.borderBottom = '1px solid var(--color-border-light)';
