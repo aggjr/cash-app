@@ -1572,6 +1572,7 @@ export class SharedTable {
                 e.stopPropagation();
                 delete this.activeFilters[colKey];
                 if (this.onFilterChange) this.onFilterChange(this.activeFilters);
+                this.render(); // Force re-render
                 menu.classList.remove('animate-float-in');
                 menu.style.opacity = '0';
                 setTimeout(() => menu.remove(), 200);
