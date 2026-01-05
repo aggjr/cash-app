@@ -903,8 +903,8 @@ export const ParametrosGeraisManager = (project) => {
                 const enabled = e.target.checked ? 1 : 0;
                 currentSettings.iva_voice_enabled = enabled;
 
-                // Visual feedback update
-                const parentDiv = e.target.closest('div').parentElement;
+                // Visual feedback update - target only the voice toggle container
+                const parentDiv = e.target.closest('div[style*="margin-bottom: 2rem"]');
                 if (parentDiv) {
                     parentDiv.style.background = enabled ? 'rgba(16, 185, 129, 0.1)' : 'rgba(107, 114, 128, 0.05)';
                     parentDiv.style.borderColor = enabled ? 'rgba(16, 185, 129, 0.3)' : 'rgba(107, 114, 128, 0.2)';
