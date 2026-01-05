@@ -226,6 +226,21 @@ export const IvaNavigationIndicator = {
                 this.clearAll();
             }
         });
+
+        // Also listen for global navigation events
+        // Intercept the navigate function to detect ANY navigation
+        if (window.cashApp && window.cashApp.navigate) {
+            const originalNavigate = window.cashApp.navigate;
+            window.cashApp.navigate = (itemId) => {
+                // Clear highlights if navigating away from IVA-guided screen
+                if (this.isEvaNavigating) {
+                    console.log('[IVA Nav] Screen change detected, clearing indicators');
+                    this.clearAll();
+                }
+                // Call original navigate
+                return originalNavigate(itemId);
+            };
+        }
     },
 
     /**
