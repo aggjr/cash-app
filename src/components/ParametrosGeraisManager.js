@@ -890,8 +890,8 @@ export const ParametrosGeraisManager = (project) => {
         let voiceSaveTimer = null;
 
         const updateVoiceDisplay = (value) => {
-            // Formula: 0.5 + (value * 2.5 / 100) -> 0 = 0.5x, 50 = 1.75x, 100 = 3.0x
-            const rate = 0.5 + ((value + 100) * 2.5 / 200);
+            // Formula: 0.5 + (value * 3.5 / 100) -> 0 = 0.5x, 50 = 2.25x, 100 = 4.0x
+            const rate = 0.5 + ((value + 100) * 3.5 / 200);
             voiceDisplay.textContent = rate.toFixed(2) + 'x';
 
             // Move display above slider position
