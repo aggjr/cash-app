@@ -916,7 +916,7 @@ export const ParametrosGeraisManager = (project) => {
                     }
 
                     // Call API
-                    const response = await fetch(`${API_BASE_URL} /auth/update - preference`, {
+                    const response = await fetch(`${API_BASE_URL}/auth/update-preference`, {
                         method: 'PUT',
                         headers: getHeaders(),
                         body: JSON.stringify({ ivaVoiceEnabled: enabled })
@@ -969,14 +969,14 @@ export const ParametrosGeraisManager = (project) => {
                         }
 
                         // SYSTEM SETTING (Fallback/Global)
-                        const sysResponse = await fetch(`${API_BASE_URL} /settings/iva_voice_rate`, {
+                        const sysResponse = await fetch(`${API_BASE_URL}/settings/iva_voice_rate`, {
                             method: 'PUT',
                             headers: getHeaders(),
                             body: JSON.stringify({ value })
                         });
 
                         // USER PREFERENCE (Primary)
-                        const userResponse = await fetch(`${API_BASE_URL} /auth/update - preference`, {
+                        const userResponse = await fetch(`${API_BASE_URL}/auth/update-preference`, {
                             method: 'PUT',
                             headers: getHeaders(),
                             body: JSON.stringify({ ivaVoiceRate: value })
@@ -1051,7 +1051,7 @@ export const ParametrosGeraisManager = (project) => {
         // Check if Google Cloud TTS is available
         (async () => {
             try {
-                const response = await fetch(`${API_BASE_URL} /tts/status`, {
+                const response = await fetch(`${API_BASE_URL}/tts/status`, {
                     headers: getHeaders()
                 });
                 const data = await response.json();
