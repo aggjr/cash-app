@@ -51,6 +51,11 @@ export const ParametrosGeraisManager = (project) => {
         }, 3000);
     };
 
+    // Helper to get local user
+    const getUser = () => {
+        try { return JSON.parse(localStorage.getItem('user')); } catch (e) { return null; }
+    };
+
     const loadSettings = async () => {
         try {
             console.log('🔄 Loading settings from API...');
@@ -877,7 +882,7 @@ export const ParametrosGeraisManager = (project) => {
             // Auto-save after 800ms of inactivity
             timeoutSaveTimer = setTimeout(async () => {
                 try {
-                    const response = await fetch(`${API_BASE_URL} /settings/iva_timeout`, {
+                    const response = await fetch(`${API_BASE_URL}/settings/iva_timeout`, {
                         method: 'PUT',
                         headers: getHeaders(),
                         body: JSON.stringify({ value })
