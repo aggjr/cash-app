@@ -529,75 +529,85 @@ export const ParametrosGeraisManager = (project) => {
                 <h2 style="margin-bottom: 1.5rem;">🤖 Configurações da IA IVA</h2>
                 <div style="background: var(--color-surface); padding: 2rem; border-radius: 12px; border: 1px solid var(--color-border-light);">
 
-                <!-- Ativar Voz (Toggle) -->
-                <div style="margin-bottom: 2rem; display: flex; align-items: center; justify-content: space-between; padding: 1rem; background: ${currentSettings.iva_voice_enabled ? 'rgba(16, 185, 129, 0.1)' : 'rgba(107, 114, 128, 0.05)'}; border-radius: 8px; border: 1px solid ${currentSettings.iva_voice_enabled ? 'rgba(16, 185, 129, 0.3)' : 'rgba(107, 114, 128, 0.2)'};">
-                    <div>
-                        <label style="display: block; font-weight: 600; color: var(--color-text); font-size: 1.1rem; margin-bottom: 0.25rem;">
-                            🗣️ Ativar Voz da IVA
+                <!-- First Line: Voice Toggle + Gender Selection -->
+                <div style="margin-bottom: 2rem; display: flex; gap: 1.5rem;">
+                    <!-- Ativar Voz (Toggle) - Left Side -->
+                    <div style="flex: 1; display: flex; align-items: center; justify-content: space-between; padding: 1rem; background: ${currentSettings.iva_voice_enabled ? 'rgba(16, 185, 129, 0.1)' : 'rgba(107, 114, 128, 0.05)'}; border-radius: 8px; border: 1px solid ${currentSettings.iva_voice_enabled ? 'rgba(16, 185, 129, 0.3)' : 'rgba(107, 114, 128, 0.2)'};" id="voice-toggle-container">
+                        <div>
+                            <label style="display: block; font-weight: 600; color: var(--color-text); font-size: 1.1rem; margin-bottom: 0.25rem;">
+                                🗣️ Ativar Voz da IVA
+                            </label>
+                            <small style="color: var(--color-text-muted);">
+                                Se desativado, a IVA responderá apenas por texto.
+                            </small>
+                        </div>
+                        <label class="iva-toggle-switch">
+                            <input type="checkbox" id="toggle-iva_voice_enabled" ${currentSettings.iva_voice_enabled ? 'checked' : ''}>
+                            <span class="iva-toggle-slider"></span>
                         </label>
-                        <small style="color: var(--color-text-muted);">
-                            Se desativado, a IVA responderá apenas por texto.
+                    </div>
+
+                    <!-- Gender Selection - Right Side -->
+                    <div style="flex: 1; padding: 1rem; background: rgba(37, 99, 235, 0.05); border-radius: 8px; border: 1px solid rgba(37, 99, 235, 0.2);">
+                        <label style="display: block; font-weight: 600; color: var(--color-text); font-size: 1.1rem; margin-bottom: 0.75rem;">
+                            👤 Gênero da Voz
+                        </label>
+                        <div style="display: flex; gap: 1rem;">
+                            <label style="display: flex; align-items: center; gap: 0.5rem; cursor: pointer; padding: 0.5rem 1rem; border: 2px solid #e5e7eb; border-radius: 6px; transition: all 0.2s; flex: 1; justify-content: center;" class="voice-gender-option">
+                                <input 
+                                    type="radio" 
+                                    name="iva_voice_male" 
+                                    value="0"
+                                    checked
+                                    style="cursor: pointer;"
+                                />
+                                <span style="font-weight: 500;">♀️ Feminina</span>
+                            </label>
+                            <label style="display: flex; align-items: center; gap: 0.5rem; cursor: pointer; padding: 0.5rem 1rem; border: 2px solid #e5e7eb; border-radius: 6px; transition: all 0.2s; flex: 1; justify-content: center;" class="voice-gender-option">
+                                <input 
+                                    type="radio" 
+                                    name="iva_voice_male" 
+                                    value="1"
+                                    style="cursor: pointer;"
+                                />
+                                <span style="font-weight: 500;">♂️ Masculina</span>
+                            </label>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Sliders Side by Side: Timeout + Voice Speed -->
+                <div style="margin-bottom: 2rem; display: flex; gap: 1.5rem;">
+                    <!-- Tempo Resposta IVA - Left -->
+                    <div style="flex: 1;">
+                        <label style="display: block; font-weight: 500; margin-bottom: 0.5rem; color: var(--color-text);">
+                            ⏳ Tempo de Espera (segundos)
+                        </label>
+                        <div style="display: flex; align-items: center; gap: 0.5rem;">
+                            <span style="min-width: 25px; text-align: right; color: var(--color-text-muted); font-size: 0.8rem;">1s</span>
+                            <div style="flex: 1; position: relative;">
+                                <input 
+                                    type="range" 
+                                    id="slider-iva_timeout" 
+                                    min="1" 
+                                    max="10" 
+                                    value="${currentSettings.iva_timeout || 2}"
+                                    step="1"
+                                    style="width: 100%; height: 6px; -webkit-appearance: none; appearance: none; background: linear-gradient(to right, #EF4444 0%, #F59E0B 50%, #10B981 100%); border-radius: 4px; outline: none;"
+                                />
+                                <div id="timeout-display" style="position: absolute; top: -28px; left: 50%; transform: translateX(-50%); background: var(--color-primary); color: white; padding: 0.2rem 0.4rem; border-radius: 4px; font-size: 0.8rem; font-weight: 600; white-space: nowrap;">2s</div>
+                            </div>
+                            <span style="min-width: 30px; color: var(--color-text-muted); font-size: 0.8rem;">10s</span>
+                        </div>
+                        <small style="display: block; margin-top: 0.5rem; color: var(--color-text-muted); font-size: 0.75rem;">
+                            Tempo de silêncio para considerar que terminou de falar
                         </small>
                     </div>
-                    <label class="iva-toggle-switch">
-                        <input type="checkbox" id="toggle-iva_voice_enabled" ${currentSettings.iva_voice_enabled ? 'checked' : ''}>
-                        <span class="iva-toggle-slider"></span>
-                    </label>
-                </div>
 
-                <!-- Tempo Resposta IVA - SLIDER -->
-                <div style="margin-bottom: 2rem;">
-                    <label style="display: block; font-weight: 500; margin-bottom: 0.5rem; color: var(--color-text);">
-                        ⏳ Tempo de Espera (segundos)
-                    </label>
-                    <div style="display: flex; align-items: center; gap: 1rem;">
-                        <span style="min-width: 30px; text-align: right; color: var(--color-text-muted); font-size: 0.875rem;">1s</span>
-                        <div style="flex: 1; position: relative;">
-                            <input 
-                                type="range" 
-                                id="slider-iva_timeout" 
-                                min="1" 
-                                max="10" 
-                                value="${currentSettings.iva_timeout || 2}"
-                                step="1"
-                                style="
-                                    width: 100%;
-                                    height: 8px;
-                                    -webkit-appearance: none;
-                                    appearance: none;
-                                    background: linear-gradient(to right, #EF4444 0%, #F59E0B 50%, #10B981 100%);
-                                    border-radius: 4px;
-                                    outline: none;
-                                "
-                            />
-                            <div 
-                                id="timeout-display"
-                                style="
-                                    position: absolute;
-                                    top: -30px;
-                                    left: 50%;
-                                    transform: translateX(-50%);
-                                    background: var(--color-primary);
-                                    color: white;
-                                    padding: 0.25rem 0.5rem;
-                                    border-radius: 4px;
-                                    font-size: 0.875rem;
-                                    font-weight: 600;
-                                    white-space: nowrap;
-                                "
-                            >2s</div>
-                        </div>
-                        <span style="min-width: 30px; color: var(--color-text-muted); font-size: 0.875rem;">10s</span>
-                    </div>
-                    <small style="display: block; margin-top: 0.5rem; color: var(--color-text-muted);">
-                        Tempo de silêncio para a IVA considerar que você terminou de falar
-                    </small>
-                </div>
-
-                <!-- Voice Speed Slider -->
-                <div style="margin-bottom: 2rem;">
-                    <label style="display: block; font-weight: 500; margin-bottom: 0.5rem; color: var(--color-text);">
-                        🎤 Velocidade da Voz da IVA
+                    <!-- Voice Speed - Right -->
+                    <div style="flex: 1;">
+                        <label style="display: block; font-weight: 500; margin-bottom: 0.5rem; color: var(--color-text);">
+                            🎤 Velocidade da Voz da IVA
                     </label>
                     <div style="display: flex; align-items: center; gap: 1rem;">
                         <span style="min-width: 40px; text-align: right; color: var(--color-text-muted); font-size: 0.875rem;">0x</span>
@@ -697,33 +707,7 @@ export const ParametrosGeraisManager = (project) => {
                         </div>
                     </label>
 
-                    <!-- Gender selection -->
-                    <div style="margin-top: 1.5rem; padding: 1rem; background: rgba(37, 99, 235, 0.05); border-radius: 8px; border: 1px solid rgba(37, 99, 235, 0.2);">
-                        <label style="display: block; font-weight: 500; margin-bottom: 0.75rem; color: var(--color-text); font-size: 0.95rem;">
-                            👤 Gênero da Voz:
-                        </label>
-                        <div style="display: flex; gap: 1.5rem;">
-                            <label style="display: flex; align-items: center; gap: 0.5rem; cursor: pointer; padding: 0.5rem 1rem; border: 2px solid #e5e7eb; border-radius: 6px; transition: all 0.2s; flex: 1; justify-content: center;" class="voice-gender-option">
-                                <input 
-                                    type="radio" 
-                                    name="iva_voice_male" 
-                                    value="0"
-                                    checked
-                                    style="cursor: pointer;"
-                                />
-                                <span style="font-weight: 500;">♀️ Feminina</span>
-                            </label>
-                            <label style="display: flex; align-items: center; gap: 0.5rem; cursor: pointer; padding: 0.5rem 1rem; border: 2px solid #e5e7eb; border-radius: 6px; transition: all 0.2s; flex: 1; justify-content: center;" class="voice-gender-option">
-                                <input 
-                                    type="radio" 
-                                    name="iva_voice_male" 
-                                    value="1"
-                                    style="cursor: pointer;"
-                                />
-                                <span style="font-weight: 500;">♂️ Masculina</span>
-                            </label>
-                        </div>
-                    </div>
+
 
                     <small style="display: block; margin-top: 0.75rem; color: var(--color-text-muted); line-height: 1.5;">
                         A voz Premium oferece qualidade superior e sotaque brasileiro autêntico.
