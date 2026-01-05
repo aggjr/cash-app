@@ -248,6 +248,17 @@ class IvaHighlighter {
     }
 }
 
+// Auto-clear highlights when navigating to different screen
+let lastPath = window.location.pathname;
+setInterval(() => {
+    const currentPath = window.location.pathname;
+    if (currentPath !== lastPath) {
+        console.log('[ivaHighlighter] Route changed, clearing highlights');
+        IvaHighlighter.clearAll();
+        lastPath = currentPath;
+    }
+}, 500);
+
 export default IvaHighlighter;
 
 
