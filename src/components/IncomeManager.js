@@ -10,7 +10,7 @@ import { PrintHelper } from '../utils/printHelper.js';
 
 export const IncomeManager = (project) => {
     // --- EVA Knowledge Registration ---
-    EvaKnowledge.registerScreen('entrada', {
+    IvaKnowledge.registerScreen('entrada', {
         description: 'Tela para gerenciar entradas de receita.',
         actions: [
             { id: 'save', description: 'Salvar o registro atual', selector: '#btn-save' },
