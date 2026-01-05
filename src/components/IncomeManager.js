@@ -88,7 +88,7 @@ export const IncomeManager = (project) => {
         { key: 'valor', label: 'Valor', width: 'var(--col-value)', align: 'right', type: 'currency', colorLogic: 'inflow' },
         {
             key: 'boleto',
-            label: 'Boleto/Nota',
+            label: 'Boleto/<br/>Nota',
             width: 'var(--col-link)',
             align: 'center',
             type: 'link',
@@ -116,7 +116,7 @@ export const IncomeManager = (project) => {
         },
         {
             key: 'comprovante',
-            label: 'Comprovante',
+            label: 'Compr.',
             width: 'var(--col-link)',
             align: 'center',
             type: 'link',
