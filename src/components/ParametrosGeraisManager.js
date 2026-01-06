@@ -409,7 +409,7 @@ export const ParametrosGeraisManager = (project) => {
                         <!-- Número de Dias - Left -->
                         <div style="flex: 1;">
                             <label style="display: block; font-weight: 500; margin-bottom: 0.5rem; color: var(--color-text);">
-                                📅 Número de Dias
+                                📅 Número de Dias Úteis
                             </label>
                             <div style="display: flex; align-items: center; gap: 0.75rem; height: 45px;">
                                 <input 
@@ -443,7 +443,7 @@ export const ParametrosGeraisManager = (project) => {
                                 >✓</button>
                             </div>
                             <small style="display: block; margin-top: 0.5rem; color: var(--color-text-muted);">
-                                Número de dias padrão utilizado pelo sistema
+                                Número de <strong>dias úteis</strong> padrão utilizado pelo sistema (exclui sábados, domingos e feriados)
                             </small>
                         </div>
 
