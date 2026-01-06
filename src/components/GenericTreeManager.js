@@ -263,12 +263,23 @@ export const createTreeManager = (tableName, title, term = 'Categoria') => {
             if (node.children && node.children.length > 0) {
                 getVisibleLeaves(node.children, result);
             } else {
-                // If filtering enabled, check if checked. Otherwise always include (but we only call this if filtering enabled?)
-                // Actually, this function is specific for the "Hide Unchecked" mode which specifically wants to hide folders
-                // So we assume we only want Checked Leaves.
-                if (checkedNodes.has(node.id)) {
+                // Fix: checkedNodes might have mix of strings/numbers. 
+                // .has() is strict. We need loose check if we are unsure of types.
+                // However, iterating the Set for every node is O(N*M). 
+                // Better approach: ensure consistency or try converting node.id.
+
+                // Let's try direct check first, then fallback to type conversion check
+                let isChecked = checkedNodes.has(node.id) || checkedNodes.has(String(node.id)) || checkedNodes.has(Number(node.id));
+
+                if (isChecked) {
                     result.push(node);
+                } else {
+                    // DEBUG: Log if we are hiding something that *might* be intended to be shown?
+                    // No, invalid to log every unchecked item.
                 }
+
+                // If user reported items disappearing, lets add a debug log for the specific items they mentioned if known, 
+                // or just general stats.
             }
         });
         return result;
@@ -607,6 +618,14 @@ export const createTreeManager = (tableName, title, term = 'Categoria') => {
     const renderTree = () => {
         const container = document.getElementById('tree-container');
         if (!container) return;
+
+        // DEBUG: Logging to diagnose disappearing items
+        console.group(`Render Tree: ${tableName}`);
+        console.log('Total Nodes:', getAllNodeIds(treeData).length);
+        console.log('Checked Nodes Set Size:', checkedNodes.size);
+        console.log('Checked Nodes (Array):', Array.from(checkedNodes));
+        console.log('Hide Unchecked Mode:', hideUnchecked);
+        console.groupEnd();
 
         visibleRowIndex = 0; // Reset counter for new render
 
