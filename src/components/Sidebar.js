@@ -53,7 +53,7 @@ export const Sidebar = () => {
     {
       id: 'analise-financeira',
       label: 'Análise Financeira',
-      icon: '🔍',
+      icon: '🎯',
       children: [
         { id: 'fechamento', label: 'Fechamento Contas', icon: '🎚️' },
         { id: 'extrato-conta', label: 'Extrato de Conta', icon: '🧾' },

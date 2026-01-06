@@ -65,7 +65,7 @@ const getMenuStructure = () => {
         {
             id: 'analise-financeira',
             label: 'Análise Financeira',
-            icon: '🔍',
+            icon: '🎯',
             children: [
                 { id: 'fechamento', label: 'Fechamento Contas', icon: '🎚️', path: ['Análise Financeira', 'Fechamento Contas'], description: 'Ver saldos e fechamento de contas' },
                 { id: 'extrato-conta', label: 'Extrato de Conta', icon: '🧾', path: ['Análise Financeira', 'Extrato de Conta'], description: 'Ver extrato detalhado de uma conta' },
