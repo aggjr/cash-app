@@ -962,6 +962,8 @@ body.dark-mode .logo-light {
   pointer-events: auto;
   backdrop-filter: blur(2px);
   transition: opacity 0.2s ease;
+  z-index: 10000;
+  /* Ensure dialogs always appear on top of modals */
 }
 
 .dialog-box {
