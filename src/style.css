@@ -51,10 +51,20 @@
   /* Standardized table font */
   --text-table-title: 1.75rem;
   /* Standardized table title font */
+  --text-table-header: 1.125rem;
+  /* Standardized table header font (18px) */
 
   /* Standardized Column Widths (reduced by 15% for better density) */
   --col-date: 60px;
   /* Previously 70px */
+}
+
+/* Global Table Header Size */
+table th {
+  font-size: var(--text-table-header) !important;
+}
+
+:root {
   --col-date-short: 51px;
   /* Previously 60px */
   --col-icon: 43px;
