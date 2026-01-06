@@ -51,8 +51,8 @@
   /* Standardized table font */
   --text-table-title: 1.75rem;
   /* Standardized table title font */
-  --text-table-header: 1.0625rem;
-  /* Standardized table header font (17px) */
+  --text-table-header: 1rem;
+  /* Standardized table header font (16px) */
 
   /* Standardized Column Widths (reduced by 15% for better density) */
   --col-date: 60px;
