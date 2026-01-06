@@ -25,6 +25,9 @@ router.put('/:id/batch', saidaController.batchUpdateSaida);
 router.delete('/:id/batch', saidaController.batchDeleteSaida);
 
 // POST /api/saidas/bulk-delete - Delete multiple items by IDs
-router.post('/bulk-delete', saidaController.bulkDeleteSaidas);
+router.post('/bulk-delete', authMiddleware, saidaController.bulkDeleteSaidas);
+
+// POST /api/saidas/bulk-edit - Edit multiple items by IDs
+router.post('/bulk-edit', authMiddleware, saidaController.bulkEditSaidas);
 
 module.exports = router;

@@ -4,6 +4,7 @@ import { showToast } from '../utils/toast.js';
 import { getApiBaseUrl } from '../utils/apiConfig.js';
 import { ExcelExporter } from '../utils/ExcelExporter.js';
 import { BatchOperationDialog } from './BatchOperationDialog.js';
+import BulkEditModal from './BulkEditModal.js';
 import { PrintHelper } from '../utils/printHelper.js';
 
 export const SaidaManager = (project) => {
@@ -384,6 +385,43 @@ export const SaidaManager = (project) => {
         }
     };
 
+    const handleBulkEdit = async () => {
+        if (selectedItems.size === 0) return;
+
+        await BulkEditModal.show({
+            items: selectedItemsData,
+            ids: Array.from(selectedItems),
+            projectId: project.id,
+            type: 'saida',
+            onSave: async (editData) => {
+                try {
+                    const response = await fetch(`${API_BASE_URL}/saidas/bulk-edit`, {
+                        method: 'POST',
+                        headers: getHeaders(),
+                        body: JSON.stringify({
+                            ids: Array.from(selectedItems),
+                            updates: editData
+                        })
+                    });
+
+                    const result = await response.json();
+                    if (response.ok) {
+                        showToast(result.message || 'Itens atualizados com sucesso!', 'success');
+                        selectedItems.clear();
+                        selectedItemsData = [];
+                        sharedTable.clearSelection();
+                        loadSaidas();
+                    } else {
+                        showToast(result.error || 'Erro ao atualizar itens', 'error');
+                    }
+                } catch (error) {
+                    console.error(error);
+                    showToast('Erro de conexão', 'error');
+                }
+            }
+        });
+    };
+
     const renderPagination = () => {
         const pagContainer = container.querySelector('.pagination-controls');
         if (!pagContainer) return;
@@ -432,9 +470,14 @@ export const SaidaManager = (project) => {
                         <span style="font-weight: 700; font-size: 1.1rem; color: #4338ca;">
                             ${new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(selectionTotal)}
                         </span>
+                        <button id="btn-bulk-edit" style="
+                            background: #3B82F6; color: white; border: none; padding: 4px 8px; 
+                            border-radius: 4px; cursor: pointer; font-size: 0.9rem; display: flex; align-items: center; gap: 4px; margin-left: 8px;">
+                            ✏️ Editar
+                        </button>
                         <button id="btn-bulk-delete" style="
                             background: #EF4444; color: white; border: none; padding: 4px 8px; 
-                            border-radius: 4px; cursor: pointer; font-size: 0.9rem; display: flex; align-items: center; gap: 4px;">
+                            border-radius: 4px; cursor: pointer; font-size: 0.9rem; display: flex; align-items: center; gap: 4px; margin-left: 8px;">
                             🗑️ Excluir
                         </button>
                     </div>
@@ -443,6 +486,9 @@ export const SaidaManager = (project) => {
             `;
 
             if (hasSelection) {
+                const btnEdit = totalContainer.querySelector('#btn-bulk-edit');
+                if (btnEdit) btnEdit.onclick = handleBulkEdit;
+
                 const btnBulk = totalContainer.querySelector('#btn-bulk-delete');
                 if (btnBulk) btnBulk.onclick = handleBulkDelete;
             }

@@ -988,7 +988,7 @@ exports.batchUpdateIncome = async (req, res, next) => {
                         if (newDate) { // validates only if setting a date (clearing is usually allowed? actually clearing might be restricted too depending on rules, but typically "lock" prevents changing INTO or OUT OF lock period. Let's validate the NEW date. The old date lock check is implicitly: if I can't touch the record, I shouldn't be here? No, user wants to edit OTHER fields.)
                             const validation = await validateDateWithinRange(
                                 updateData.dataRealRecebimento, currentData.project_id
-                            , req.user.role);
+                                , req.user.role);
 
                             if (!validation.isValid) {
                                 skippedCount++;
@@ -1424,6 +1424,93 @@ exports.bulkDeleteIncomes = async (req, res, next) => {
         if (connection) connection.release();
     }
 };
+
+// Bulk Edit - Update multiple IDs with same changes
+exports.bulkEditIncomes = async (req, res, next) => {
+    let connection;
+    try {
+        const { ids, updates } = req.body;
+
+        if (!ids || !Array.isArray(ids) || ids.length === 0) {
+            throw new AppError('VAL-002', 'Lista de IDs inválida ou vazia');
+        }
+
+        if (!updates || Object.keys(updates).length === 0) {
+            throw new AppError('VAL-002', 'Nenhuma atualização fornecida');
+        }
+
+        connection = await db.getConnection();
+        await connection.beginTransaction();
+
+        const setClauses = [];
+        const values = [];
+
+        if (updates.tipo_id) {
+            setClauses.push('tipo_entrada_id = ?');
+            values.push(updates.tipo_id);
+        }
+
+        if (updates.company_id) {
+            setClauses.push('company_id = ?');
+            values.push(updates.company_id);
+        }
+
+        if (updates.account_id) {
+            setClauses.push('account_id = ?');
+            values.push(updates.account_id);
+        }
+
+        if (updates.description_mode && updates.description_value) {
+            if (updates.description_mode === 'replace') {
+                setClauses.push('descricao = ?');
+                values.push(updates.description_value);
+            } else if (updates.description_mode === 'prefix') {
+                setClauses.push('descricao = CONCAT(?, descricao)');
+                values.push(updates.description_value + ' ');
+            } else if (updates.description_mode === 'suffix') {
+                setClauses.push('descricao = CONCAT(descricao, ?)');
+                values.push(' ' + updates.description_value);
+            }
+        }
+
+        if (setClauses.length === 0) {
+            throw new AppError('VAL-002', 'Nenhuma atualização válida');
+        }
+
+        // Add WHERE clause values
+        values.push(req.user.projectId);
+        ids.forEach(id => values.push(id));
+
+        const placeholders = ids.map(() => '?').join(',');
+        const query = `
+            UPDATE entradas 
+            SET ${setClauses.join(', ')}
+            WHERE project_id = ? AND id IN (${placeholders}) AND active = 1
+        `;
+
+        const [result] = await connection.query(query, values);
+
+        await connection.commit();
+        logAudit(req, 'BULK_UPDATE', 'entradas', null, { ids, updates, affectedRows: result.affectedRows });
+
+        res.json({
+            success: true,
+            message: `${result.affectedRows} ${result.affectedRows === 1 ? 'item atualizado' : 'itens atualizados'} com sucesso!`,
+            updated: result.affectedRows
+        });
+
+    } catch (error) {
+        if (connection) await connection.rollback();
+        next(error);
+    } finally {
+        if (connection) connection.release();
+    }
+};
+
+
+
+
+
 
 
 
