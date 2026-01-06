@@ -77,7 +77,6 @@ export const UserModal = {
                                     id="user-company" 
                                     class="form-input"
                                     required
-                                    ${isEdit ? 'disabled' : ''} 
                                 >
                                     <option value="">Selecione uma empresa</option>
                                     ${companies.map(company => `
