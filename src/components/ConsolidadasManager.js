@@ -51,6 +51,38 @@ export const ConsolidadasManager = (project, fixedViewType = null) => {
         return months;
     };
 
+    // --- Data Processing (Frontend Injection) ---
+    const processDataForLoanPayments = (dataObj) => {
+        ['realized', 'provisioned'].forEach(key => {
+            const rootList = dataObj[key];
+            if (!rootList) return;
+
+            // 1. Find Emprestimos index
+            const empIndex = rootList.findIndex(n => n.id === 'emprestimos_root');
+            if (empIndex === -1) return;
+
+            // 2. Check if already exists
+            if (rootList.find(n => n.id === 'pagamentos_emprestimos_root')) return;
+
+            // 3. Create new node
+            const months = getMonthKeys();
+            const monthlyTotals = {};
+            months.forEach(m => monthlyTotals[m] = 0);
+
+            const newNode = {
+                id: 'pagamentos_emprestimos_root',
+                name: '- Pg Empréstimos',
+                total: 0,
+                monthlyTotals: monthlyTotals,
+                children: [],
+                isPercentage: false
+            };
+
+            // 4. Insert after Emprestimos
+            rootList.splice(empIndex + 1, 0, newNode);
+        });
+    };
+
     // --- Data Loading ---
     const loadData = async () => {
         const overlay = container.querySelector('.loading-overlay');
@@ -68,6 +100,9 @@ export const ConsolidadasManager = (project, fixedViewType = null) => {
             if (!resp.ok) throw new Error('Falha ao carregar dados consolidados');
 
             currentData = await resp.json(); // Expect { realized: [], provisioned: [] }
+
+            // Inject Custom Rows
+            processDataForLoanPayments(currentData);
 
             renderAllTables();
 
@@ -175,7 +210,7 @@ export const ConsolidadasManager = (project, fixedViewType = null) => {
         const renderRows = (nodes, level = 0) => {
             let rowsHtml = '';
             nodes.forEach(node => {
-                const rootIds = ['saidas_root', 'producao_root', 'entradas_root', 'resultado_operacional_root', 'aportes_root', 'retiradas_root', 'emprestimos_root', 'fluxo_financeiro_root', 'lucro_bruto_root', 'margem_bruta_root', 'margem_operacional_root'];
+                const rootIds = ['saidas_root', 'producao_root', 'entradas_root', 'resultado_operacional_root', 'aportes_root', 'retiradas_root', 'emprestimos_root', 'pagamentos_emprestimos_root', 'fluxo_financeiro_root', 'lucro_bruto_root', 'margem_bruta_root', 'margem_operacional_root'];
                 const isRoot = rootIds.includes(node.id);
 
                 // Hide rows with effectively zero total, unless it's a root
