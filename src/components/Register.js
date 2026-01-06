@@ -14,25 +14,31 @@ export const Register = (onRegisterSuccess) => {
             <h2>Cadastro</h2>
             <form id="register-form">
                 <div class="form-group">
-                    <label>Nome</label>
+                    <label>Nome <span class="required">*</span></label>
                     <input type="text" id="name" required />
                 </div>
                 <div class="form-group">
-                    <label>Email</label>
+                    <label>Email <span class="required">*</span></label>
                     <input type="email" id="email" required />
                 </div>
                 <div class="form-group">
-                    <label>Senha</label>
-                    <div class="password-wrapper">
-                        <input type="password" id="password" required />
-                        <button type="button" class="toggle-password" tabindex="-1">🙈</button>
-                    </div>
+                    <label>Empresa <span class="required">*</span></label>
+                    <input type="text" id="company" required />
                 </div>
-                <div class="form-group">
-                    <label>Confirmar Senha</label>
-                    <div class="password-wrapper">
-                        <input type="password" id="confirm-password" required />
-                        <button type="button" class="toggle-password" tabindex="-1">🙈</button>
+                <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 0.75rem;">
+                    <div class="form-group">
+                        <label>Senha <span class="required">*</span></label>
+                        <div class="password-wrapper">
+                            <input type="password" id="password" required />
+                            <button type="button" class="toggle-password" tabindex="-1">🙈</button>
+                        </div>
+                    </div>
+                    <div class="form-group">
+                        <label>Confirmar Senha <span class="required">*</span></label>
+                        <div class="password-wrapper">
+                            <input type="password" id="confirm-password" required />
+                            <button type="button" class="toggle-password" tabindex="-1">🙈</button>
+                        </div>
                     </div>
                 </div>
                 <button type="submit" class="btn-primary full-width">Cadastrar</button>
@@ -88,10 +94,60 @@ export const Register = (onRegisterSuccess) => {
         e.preventDefault();
         const name = container.querySelector('#name').value.trim();
         const email = container.querySelector('#email').value.trim();
+        const company = container.querySelector('#company').value.trim();
         const password = container.querySelector('#password').value;
         const confirmPassword = container.querySelector('#confirm-password').value;
 
+        // Validate all required fields
+        let isValid = true;
+        const nameInput = container.querySelector('#name');
+        const emailInput = container.querySelector('#email');
+        const companyInput = container.querySelector('#company');
+        const passwordInput = container.querySelector('#password');
+        const confirmPasswordInput = container.querySelector('#confirm-password');
+
+        if (!name) {
+            nameInput.classList.add('input-error');
+            isValid = false;
+        } else {
+            nameInput.classList.remove('input-error');
+        }
+
+        if (!email) {
+            emailInput.classList.add('input-error');
+            isValid = false;
+        } else {
+            emailInput.classList.remove('input-error');
+        }
+
+        if (!company) {
+            companyInput.classList.add('input-error');
+            isValid = false;
+        } else {
+            companyInput.classList.remove('input-error');
+        }
+
+        if (!password) {
+            passwordInput.classList.add('input-error');
+            isValid = false;
+        } else {
+            passwordInput.classList.remove('input-error');
+        }
+
+        if (!confirmPassword) {
+            confirmPasswordInput.classList.add('input-error');
+            isValid = false;
+        } else {
+            confirmPasswordInput.classList.remove('input-error');
+        }
+
+        if (!isValid) {
+            Dialogs.alert('Por favor, preencha todos os campos obrigatórios.', 'Erro');
+            return;
+        }
+
         if (password !== confirmPassword) {
+            confirmPasswordInput.classList.add('input-error');
             Dialogs.alert('As senhas não coincidem!', 'Erro');
             return;
         }
@@ -100,7 +156,7 @@ export const Register = (onRegisterSuccess) => {
             const response = await fetch(`${API_BASE_URL}/auth/register`, {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ name, email, password })
+                body: JSON.stringify({ name, email, password, companyName: company })
             });
 
             const data = await response.json();
