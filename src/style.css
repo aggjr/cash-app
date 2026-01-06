@@ -670,6 +670,26 @@ button {
   color: var(--color-text-muted);
 }
 
+/* Checkbox styles */
+.node-checkbox {
+  width: 18px;
+  height: 18px;
+  margin-right: 0.5rem;
+  cursor: pointer;
+  flex-shrink: 0;
+}
+
+/* Search highlight */
+.tree-node-content.search-highlight {
+  background: rgba(218, 177, 119, 0.3) !important;
+  border-color: var(--color-gold) !important;
+}
+
+.tree-node-content.search-highlight .node-label {
+  font-weight: 600;
+  color: var(--color-navy);
+}
+
 .tree-children {
   display: flex;
   flex-direction: column;

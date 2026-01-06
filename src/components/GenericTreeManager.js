@@ -18,6 +18,11 @@ export const createTreeManager = (tableName, title, term = 'Categoria') => {
     let treeData = [];
     let draggedNodeId = null;
 
+    // Filtering and search state
+    let checkedNodes = new Set();
+    let hideUnchecked = false;
+    let searchQuery = '';
+
     // Helper to get Auth Headers
     const getHeaders = () => {
         const token = localStorage.getItem('token');
@@ -119,6 +124,78 @@ export const createTreeManager = (tableName, title, term = 'Categoria') => {
             }
         }
         return null;
+    };
+
+    // Helper functions for filtering and search
+    const getAllNodeIds = (nodes) => {
+        let ids = [];
+        nodes.forEach(node => {
+            ids.push(node.id);
+            if (node.children && node.children.length > 0) {
+                ids = ids.concat(getAllNodeIds(node.children));
+            }
+        });
+        return ids;
+    };
+
+    const toggleCheckbox = (id, checked) => {
+        if (checked) {
+            checkedNodes.add(id);
+        } else {
+            checkedNodes.delete(id);
+        }
+        renderTree();
+    };
+
+    const toggleAllCheckboxes = (checked) => {
+        if (checked) {
+            const allIds = getAllNodeIds(treeData);
+            checkedNodes = new Set(allIds);
+        } else {
+            checkedNodes.clear();
+        }
+        renderTree();
+    };
+
+    const toggleHideUnchecked = () => {
+        hideUnchecked = !hideUnchecked;
+        renderTree();
+    };
+
+    const updateSearchQuery = (query) => {
+        searchQuery = query.toLowerCase();
+        renderTree();
+    };
+
+    const nodeMatchesSearch = (node) => {
+        if (!searchQuery) return true;
+        return node.label.toLowerCase().includes(searchQuery);
+    };
+
+    const hasMatchingDescendant = (node) => {
+        if (nodeMatchesSearch(node)) return true;
+        if (node.children && node.children.length > 0) {
+            return node.children.some(child => hasMatchingDescendant(child));
+        }
+        return false;
+    };
+
+    const shouldShowNode = (node) => {
+        // First check search filter
+        if (searchQuery && !hasMatchingDescendant(node)) {
+            return false;
+        }
+
+        // Then check checkbox filter
+        if (hideUnchecked && !checkedNodes.has(node.id)) {
+            // Show if any descendant is checked
+            if (node.children && node.children.length > 0) {
+                return node.children.some(child => checkedNodes.has(child.id) || shouldShowNode(child));
+            }
+            return false;
+        }
+
+        return true;
     };
 
     // CRUD Operations
@@ -379,9 +456,17 @@ export const createTreeManager = (tableName, title, term = 'Categoria') => {
     let visibleRowIndex = 0;
 
     const renderNode = (node, level = 0) => {
+        // Check if node should be visible based on filters
+        if (!shouldShowNode(node)) {
+            return '';
+        }
+
         const hasChildren = node.children && node.children.length > 0;
         const isActive = node.active !== 0 && node.active !== false;
         const inactiveClass = !isActive ? 'inactive' : '';
+        const isChecked = checkedNodes.has(node.id);
+        const matchesSearch = nodeMatchesSearch(node);
+        const highlightClass = searchQuery && matchesSearch ? 'search-highlight' : '';
 
         const isEven = visibleRowIndex % 2 === 0;
         visibleRowIndex++;
@@ -389,7 +474,13 @@ export const createTreeManager = (tableName, title, term = 'Categoria') => {
 
         return `
     <div class="tree-node" data-id="${node.id}" style="margin-left: ${level * 20}px">
-      <div class="tree-node-content ${inactiveClass} ${rowClass}" draggable="${isActive}">
+      <div class="tree-node-content ${inactiveClass} ${rowClass} ${highlightClass}" draggable="${isActive}">
+        <input type="checkbox" 
+               class="node-checkbox" 
+               ${isChecked ? 'checked' : ''} 
+               onchange="window.treeActions_${tableName}.toggleCheckbox(${node.id}, this.checked)"
+               onclick="event.stopPropagation()"
+        />
         <span class="node-toggle" onclick="window.treeActions_${tableName}.toggle(${node.id})">
           ${hasChildren ? (node.expanded ? '▼' : '▶') : '•'}
         </span>
@@ -427,6 +518,10 @@ export const createTreeManager = (tableName, title, term = 'Categoria') => {
 
         visibleRowIndex = 0; // Reset counter for new render
 
+        const totalNodes = getAllNodeIds(treeData).length;
+        const visibleNodes = treeData.filter(node => shouldShowNode(node)).length;
+        const allChecked = totalNodes > 0 && checkedNodes.size === totalNodes;
+
         container.innerHTML = `
     <div class="tree-header">
       <h2>${title}</h2>
@@ -436,6 +531,45 @@ export const createTreeManager = (tableName, title, term = 'Categoria') => {
         <button class="btn-primary" onclick="window.treeActions_${tableName}.addRoot()">+ Nova ${term}</button>
       </div>
     </div>
+    
+    <div class="tree-controls" style="display: flex; gap: 1rem; align-items: center; padding: 1rem; background: var(--color-bg-secondary); border-radius: 8px; margin-bottom: 1rem;">
+      <div style="display: flex; align-items: center; gap: 0.5rem;">
+        <input type="checkbox" 
+               id="master-checkbox-${tableName}" 
+               ${allChecked ? 'checked' : ''}
+               onchange="window.treeActions_${tableName}.toggleAll(this.checked)"
+               style="cursor: pointer; width: 18px; height: 18px;"
+        />
+        <label for="master-checkbox-${tableName}" style="cursor: pointer; font-weight: 500; margin: 0;">Selecionar Todos</label>
+      </div>
+      
+      <div style="flex: 1; display: flex; align-items: center; gap: 0.5rem; position: relative;">
+        <span style="font-size: 1.2rem;">🔍</span>
+        <input type="text" 
+               id="search-input-${tableName}" 
+               placeholder="Buscar..."
+               value="${searchQuery}"
+               oninput="window.treeActions_${tableName}.search(this.value)"
+               style="flex: 1; padding: 0.5rem; border: 1px solid var(--color-border-light); border-radius: 6px; font-size: 0.9rem;"
+        />
+        ${searchQuery ? `
+          <button onclick="window.treeActions_${tableName}.search('')" 
+                  style="position: absolute; right: 8px; background: none; border: none; cursor: pointer; font-size: 1.2rem; color: var(--color-text-muted);" 
+                  title="Limpar busca">✕</button>
+        ` : ''}
+      </div>
+      
+      <button class="btn-secondary" 
+              onclick="window.treeActions_${tableName}.toggleHide()"
+              style="white-space: nowrap; ${hideUnchecked ? 'background: var(--color-primary); color: white;' : ''}">
+        ${hideUnchecked ? '👁️ Mostrar Todos' : '🚫 Ocultar Desmarcados'}
+      </button>
+      
+      <div style="font-size: 0.85rem; color: var(--color-text-muted); white-space: nowrap;">
+        ${visibleNodes} de ${totalNodes} itens
+      </div>
+    </div>
+    
     <div class="tree-wrapper" id="tree-root-dropzone">
       ${treeData.map(node => renderNode(node)).join('')}
       ${treeData.length === 0 ? '<div class="empty-state">Nenhum item cadastrado</div>' : ''}
@@ -515,6 +649,10 @@ export const createTreeManager = (tableName, title, term = 'Categoria') => {
                 toggle: toggleNode,
                 indent: indentNode,
                 outdent: outdentNode,
+                toggleCheckbox: toggleCheckbox,
+                toggleAll: toggleAllCheckboxes,
+                search: updateSearchQuery,
+                toggleHide: toggleHideUnchecked,
                 print: () => {
                     PrintHelper.autoConfigureOrientation('#tree-container');
                     window.print();
