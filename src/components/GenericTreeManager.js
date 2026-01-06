@@ -164,6 +164,28 @@ export const createTreeManager = (tableName, title, term = 'Categoria') => {
 
     const updateSearchQuery = (query) => {
         searchQuery = query.toLowerCase();
+
+        if (searchQuery) {
+            // Auto-expand ancestors of matching nodes
+            const expandMatchingAncestors = (nodes) => {
+                let hasMatch = false;
+                nodes.forEach(node => {
+                    const match = node.label.toLowerCase().includes(searchQuery);
+                    let childMatch = false;
+                    if (node.children && node.children.length > 0) {
+                        childMatch = expandMatchingAncestors(node.children);
+                    }
+
+                    if (match || childMatch) {
+                        node.expanded = true; // Temporary expansion for search
+                        hasMatch = true;
+                    }
+                });
+                return hasMatch;
+            };
+            expandMatchingAncestors(treeData);
+        }
+
         renderTree();
     };
 
@@ -181,10 +203,11 @@ export const createTreeManager = (tableName, title, term = 'Categoria') => {
     };
 
     const shouldShowNode = (node) => {
-        // First check search filter
-        if (searchQuery && !hasMatchingDescendant(node)) {
-            return false;
-        }
+        // Search filter only highlights, does not hide
+        // But if filtering by checked, we still respect that
+        // if (searchQuery && !hasMatchingDescendant(node)) {
+        //    return false;
+        // }
 
         // Then check checkbox filter
         if (hideUnchecked && !checkedNodes.has(node.id)) {
@@ -608,7 +631,7 @@ export const createTreeManager = (tableName, title, term = 'Categoria') => {
     return {
         render: () => {
             return `
-    <div id="tree-manager" class="glass-panel" style="margin: var(--space-md); padding: var(--space-md); height: calc(100vh - 150px); overflow: hidden; display: flex; flex-direction: column;">
+    <div id="tree-manager" class="glass-panel" style="margin: var(--space-md); padding: var(--space-md); height: calc(100vh - 80px); overflow: hidden; display: flex; flex-direction: column;">
       <div id="tree-loading" style="display: none; text-align: center; padding: 2rem;">
         <p>Carregando...</p>
       </div>
