@@ -116,11 +116,8 @@ export const createTreeManager = (tableName, title, term = 'Categoria') => {
                         const restoredSet = new Set();
 
                         savedIds.forEach(savedId => {
-                            // loose equality (==) handles potential string/number mismatch
-                            const match = allRealIds.find(realId => realId == savedId);
-                            if (match !== undefined) {
-                                restoredSet.add(match);
-                            }
+                            // Convert all to string for consistency
+                            restoredSet.add(String(savedId));
                         });
 
                         checkedNodes = restoredSet;
@@ -173,17 +170,18 @@ export const createTreeManager = (tableName, title, term = 'Categoria') => {
     };
 
     const toggleCheckbox = (id, checked) => {
+        const idStr = String(id);
         if (checked) {
-            checkedNodes.add(id);
+            checkedNodes.add(idStr);
         } else {
-            checkedNodes.delete(id);
+            checkedNodes.delete(idStr);
         }
         renderTree();
     };
 
     const toggleAllCheckboxes = (checked) => {
         if (checked) {
-            const allIds = getAllNodeIds(treeData);
+            const allIds = getAllNodeIds(treeData).map(id => String(id));
             checkedNodes = new Set(allIds);
         } else {
             checkedNodes.clear();
@@ -239,51 +237,24 @@ export const createTreeManager = (tableName, title, term = 'Categoria') => {
         return false;
     };
 
+    const isNodeChecked = (nodeId) => {
+        return checkedNodes.has(String(nodeId));
+    };
+
+    const hasCheckedDescendant = (node) => {
+        if (!node.children || node.children.length === 0) return false;
+        return node.children.some(child => isNodeChecked(child.id) || hasCheckedDescendant(child));
+    };
+
     const shouldShowNode = (node) => {
-        // Search filter only highlights, does not hide
-        // But if filtering by checked, we still respect that
-        // if (searchQuery && !hasMatchingDescendant(node)) {
-        //    return false;
-        // }
+        if (!hideUnchecked) return true;
 
-        // Then check checkbox filter
-        if (hideUnchecked && !checkedNodes.has(node.id)) {
-            // Show if any descendant is checked
-            if (node.children && node.children.length > 0) {
-                return node.children.some(child => checkedNodes.has(child.id) || shouldShowNode(child));
-            }
-            return false;
-        }
-
-        return true;
+        // Show if checked OR has any checked descendant
+        if (isNodeChecked(node.id)) return true;
+        return hasCheckedDescendant(node);
     };
 
-    const getVisibleLeaves = (nodes, result = []) => {
-        nodes.forEach(node => {
-            if (node.children && node.children.length > 0) {
-                getVisibleLeaves(node.children, result);
-            } else {
-                // Fix: checkedNodes might have mix of strings/numbers. 
-                // .has() is strict. We need loose check if we are unsure of types.
-                // However, iterating the Set for every node is O(N*M). 
-                // Better approach: ensure consistency or try converting node.id.
-
-                // Let's try direct check first, then fallback to type conversion check
-                let isChecked = checkedNodes.has(node.id) || checkedNodes.has(String(node.id)) || checkedNodes.has(Number(node.id));
-
-                if (isChecked) {
-                    result.push(node);
-                } else {
-                    // DEBUG: Log if we are hiding something that *might* be intended to be shown?
-                    // No, invalid to log every unchecked item.
-                }
-
-                // If user reported items disappearing, lets add a debug log for the specific items they mentioned if known, 
-                // or just general stats.
-            }
-        });
-        return result;
-    };
+    // deleted getVisibleLeaves
 
     // CRUD Operations
     const addNode = async (parentId, label) => {
@@ -558,16 +529,16 @@ export const createTreeManager = (tableName, title, term = 'Categoria') => {
         const hasChildren = node.children && node.children.length > 0;
         const isActive = node.active !== 0 && node.active !== false;
         const inactiveClass = !isActive ? 'inactive' : '';
-        const isChecked = checkedNodes.has(node.id);
+        const isChecked = isNodeChecked(node.id);
         const matchesSearch = nodeMatchesSearch(node);
         const highlightClass = searchQuery && matchesSearch ? 'search-highlight' : '';
+
+        // Auto-expand if hideUnchecked is on and node has checked descendants
+        const isActuallyExpanded = node.expanded || (hideUnchecked && hasCheckedDescendant(node));
 
         const isEven = visibleRowIndex % 2 === 0;
         visibleRowIndex++;
         const rowClass = isEven ? 'row-even' : 'row-odd';
-
-        // Checkbox is ALWAYS on the far left. Content is indented.
-        // We removed margin-left from parent and will add padding-left to content wrapper.
 
         return `
     <div class="tree-node" data-id="${node.id}">
@@ -584,7 +555,7 @@ export const createTreeManager = (tableName, title, term = 'Categoria') => {
         
         <div style="flex: 1; display: flex; align-items: center; padding-left: ${level * 20}px;">
             <span class="node-toggle" onclick="window.treeActions_${tableName}.toggle(${node.id})">
-              ${hasChildren ? (node.expanded ? '▼' : '▶') : '•'}
+              ${hasChildren ? (isActuallyExpanded ? '▼' : '▶') : '•'}
             </span>
             <span class="node-icon">${hasChildren ? '📁' : '📄'}</span>
             <span class="node-label" onclick="${isActive ? `window.treeActions_${tableName}.edit(${node.id})` : ''}">${node.label} ${!isActive ? '(Inativo)' : ''}</span>
@@ -602,7 +573,7 @@ export const createTreeManager = (tableName, title, term = 'Categoria') => {
             </div>
         </div>
       </div>
-      ${node.expanded && hasChildren ? `
+      ${isActuallyExpanded && hasChildren ? `
         <div class="tree-children">
           ${node.children.map(child => renderNode(child, level + 1)).join('')}
         </div>
@@ -629,8 +600,21 @@ export const createTreeManager = (tableName, title, term = 'Categoria') => {
 
         visibleRowIndex = 0; // Reset counter for new render
 
-        const totalNodes = getAllNodeIds(treeData).length;
-        const visibleNodes = treeData.filter(node => shouldShowNode(node)).length;
+        const allNodeIds = getAllNodeIds(treeData);
+        const totalNodes = allNodeIds.length;
+
+        // Count how many are visible with current filter
+        let visibleCount = 0;
+        const countVisible = (nodes) => {
+            nodes.forEach(node => {
+                if (shouldShowNode(node)) {
+                    visibleCount++;
+                    if (node.children) countVisible(node.children);
+                }
+            });
+        };
+        countVisible(treeData);
+
         const allChecked = totalNodes > 0 && checkedNodes.size === totalNodes;
 
         container.innerHTML = `
@@ -700,17 +684,13 @@ export const createTreeManager = (tableName, title, term = 'Categoria') => {
       </div>
       
       <div style="flex: 1; text-align: right; font-size: 0.85rem; color: var(--color-text-muted); white-space: nowrap;">
-        ${visibleNodes} de ${totalNodes} itens
+        ${visibleCount} de ${totalNodes} itens
       </div>
     </div>
     
     <div class="tree-wrapper" id="tree-root-dropzone">
-      ${hideUnchecked
-                // If filtering unchecked, show flattened list of selected leaves (no folders)
-                ? getVisibleLeaves(treeData).map(node => renderNode(node, 0)).join('')
-                // Otherwise normal hierarchical tree
-                : treeData.map(node => renderNode(node)).join('')}
-      ${(hideUnchecked ? getVisibleLeaves(treeData).length : treeData.length) === 0 ? 'Nenhum item cadastrado' : ''}
+      ${treeData.map(node => renderNode(node)).join('')}
+      ${(treeData.filter(node => shouldShowNode(node)).length === 0) ? '<div style="padding:1rem; color:var(--color-text-muted);">Nenhum item encontrado.</div>' : ''}
     </div>
   `;
 
