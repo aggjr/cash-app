@@ -175,6 +175,19 @@ export const createTreeManager = (tableName, title, term = 'Categoria', onClose 
         const idStr = String(id);
         if (checked) {
             checkedNodes.add(idStr);
+
+            // Auto-check all descendants
+            const checkDescendants = (nodeId) => {
+                const node = findNode(treeData, nodeId);
+                if (node && node.children && node.children.length > 0) {
+                    node.children.forEach(child => {
+                        checkedNodes.add(String(child.id));
+                        checkDescendants(child.id);
+                    });
+                }
+            };
+            checkDescendants(id);
+
             // Auto-check all ancestors
             const checkAncestors = (nodeId) => {
                 const node = findNode(treeData, nodeId);
@@ -186,6 +199,19 @@ export const createTreeManager = (tableName, title, term = 'Categoria', onClose 
             checkAncestors(id);
         } else {
             checkedNodes.delete(idStr);
+
+            // Auto-uncheck all descendants
+            const uncheckDescendants = (nodeId) => {
+                const node = findNode(treeData, nodeId);
+                if (node && node.children && node.children.length > 0) {
+                    node.children.forEach(child => {
+                        checkedNodes.delete(String(child.id));
+                        uncheckDescendants(child.id);
+                    });
+                }
+            };
+            uncheckDescendants(id);
+
             // Auto-uncheck parent if all siblings are unchecked
             const uncheckParentIfNeeded = (nodeId) => {
                 const node = findNode(treeData, nodeId);
