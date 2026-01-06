@@ -3,9 +3,19 @@ const db = require('../config/database');
 // Get all tipo_entrada nodes
 exports.getAll = async (req, res) => {
     try {
-        const [rows] = await db.query(
-            'SELECT * FROM tipo_entrada ORDER BY parent_id, ordem'
-        );
+        const { projectId } = req.query;
+
+        let query = 'SELECT * FROM tipo_entrada';
+        const params = [];
+
+        if (projectId) {
+            query += ' WHERE project_id = ?';
+            params.push(projectId);
+        }
+
+        query += ' ORDER BY parent_id, ordem';
+
+        const [rows] = await db.query(query, params);
         res.json(rows);
     } catch (error) {
         console.error('Error fetching tipo_entrada:', error);

@@ -81,18 +81,32 @@ const BulkEditModal = {
                     // Load tipos
                     const tipoEndpoint = type === 'income' ? '/tipo-entrada' : '/tipo-saida';
                     const tiposRes = await fetch(`${API_BASE_URL}${tipoEndpoint}?projectId=${projectId}`, { headers });
-                    const tipos = await tiposRes.json();
+
+                    if (!tiposRes.ok) {
+                        throw new Error(`Failed to load tipos: ${tiposRes.status}`);
+                    }
+
+                    const tiposData = await tiposRes.json();
+                    const tipos = Array.isArray(tiposData) ? tiposData : [];
+
                     const tipoSelect = modal.querySelector('#bulk-tipo');
                     tipos.forEach(t => {
                         const opt = document.createElement('option');
                         opt.value = t.id;
-                        opt.textContent = t.name;
+                        opt.textContent = t.label || t.name;
                         tipoSelect.appendChild(opt);
                     });
 
                     // Load empresas
                     const empresasRes = await fetch(`${API_BASE_URL}/companies?projectId=${projectId}`, { headers });
-                    const empresas = await empresasRes.json();
+
+                    if (!empresasRes.ok) {
+                        throw new Error(`Failed to load companies: ${empresasRes.status}`);
+                    }
+
+                    const empresasData = await empresasRes.json();
+                    const empresas = Array.isArray(empresasData) ? empresasData : [];
+
                     const empresaSelect = modal.querySelector('#bulk-empresa');
                     empresas.forEach(e => {
                         const opt = document.createElement('option');
@@ -103,7 +117,14 @@ const BulkEditModal = {
 
                     // Load contas
                     const contasRes = await fetch(`${API_BASE_URL}/accounts?projectId=${projectId}`, { headers });
-                    const contas = await contasRes.json();
+
+                    if (!contasRes.ok) {
+                        throw new Error(`Failed to load accounts: ${contasRes.status}`);
+                    }
+
+                    const contasData = await contasRes.json();
+                    const contas = Array.isArray(contasData) ? contasData : [];
+
                     const contaSelect = modal.querySelector('#bulk-conta');
                     contas.forEach(c => {
                         const opt = document.createElement('option');
@@ -114,7 +135,7 @@ const BulkEditModal = {
 
                 } catch (error) {
                     console.error('Error loading options:', error);
-                    showToast('Erro ao carregar opções', 'error');
+                    showToast('Erro ao carregar opções: ' + error.message, 'error');
                 }
             };
 
