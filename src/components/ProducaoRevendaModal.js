@@ -303,17 +303,11 @@ export const ProducaoRevendaModal = {
                     if (!dataPrevistaInput.value) { dataPrevistaInput.classList.add('input-error'); isValid = false; } else dataPrevistaInput.classList.remove('input-error');
                     if (!valorInput.value) { valorInput.classList.add('input-error'); isValid = false; } else valorInput.classList.remove('input-error');
                     if (!tipoProducaoRevendaIdInput.value) {
-                        // Apply ONLY to inner element to avoid double border/background issues
-                        treeContainer.style.border = '';
-                        treeContainer.classList.remove('input-error');
-
-                        const innerTree = treeContainer.querySelector('.tree-selector');
+                        const innerTree = treeContainer.querySelector('.tree-selector-wrapper');
                         if (innerTree) innerTree.classList.add('input-error');
                         isValid = false;
                     } else {
-                        treeContainer.classList.remove('input-error');
-                        treeContainer.style.border = '';
-                        const innerTree = treeContainer.querySelector('.tree-selector');
+                        const innerTree = treeContainer.querySelector('.tree-selector-wrapper');
                         if (innerTree) innerTree.classList.remove('input-error');
                     }
                     if (!companySelect.value) { companySelect.classList.add('input-error'); isValid = false; } else companySelect.classList.remove('input-error');
@@ -384,26 +378,10 @@ export const ProducaoRevendaModal = {
                         tipoProducaoRevendaIdInput.value = selectedId;
                         validate();
                     }, allowedIds);
-
-                    // Force inner height for symmetry
-                    const treeEl = treeContainer.querySelector('.tree-selector');
-                    if (treeEl) {
-                        treeEl.style.height = '100%';
-                        treeEl.style.maxHeight = 'none';
-                        treeEl.style.boxSizing = 'border-box';
-                    }
                 };
 
                 // Initialize Tree Selector
                 renderTree();
-
-                // Force inner height for symmetry
-                const treeEl = treeContainer.querySelector('.tree-selector');
-                if (treeEl) {
-                    treeEl.style.height = '100%';
-                    treeEl.style.maxHeight = 'none'; // Override internal max-height
-                    treeEl.style.boxSizing = 'border-box';
-                }
 
                 // Currency formatting strategies
                 const formatFloat = (num) => {
