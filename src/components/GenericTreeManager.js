@@ -548,7 +548,7 @@ export const createTreeManager = (tableName, title, term = 'Categoria') => {
         <div style="width: 20px; display: flex; justify-content: center; margin-right: 0.5rem; flex-shrink: 0;">
             <input type="checkbox" 
                    class="node-checkbox" 
-                   style="margin: 0;"
+                   style="margin: 0; width: 14px; height: 14px;"
                    ${isChecked ? 'checked' : ''} 
                    onchange="window.treeActions_${tableName}.toggleCheckbox(${node.id}, this.checked)"
                    onclick="event.stopPropagation()"
@@ -636,7 +636,7 @@ export const createTreeManager = (tableName, title, term = 'Categoria') => {
                    id="master-checkbox-${tableName}" 
                    ${allChecked ? 'checked' : ''}
                    onchange="window.treeActions_${tableName}.toggleAll(this.checked)"
-                   style="cursor: pointer; width: 18px; height: 18px; margin: 0;"
+                   style="cursor: pointer; width: 14px; height: 14px; margin: 0;"
             />
         </div>
         <label for="master-checkbox-${tableName}" style="cursor: pointer; font-weight: 500; margin: 0;">Selecionar Todos</label>
