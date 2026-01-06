@@ -74,6 +74,13 @@ export const CompanyManager = (project) => {
             }
         },
         {
+            key: 'created_at',
+            label: 'Criado em',
+            width: '120px',
+            align: 'center',
+            type: 'date'
+        },
+        {
             key: 'actions',
             label: 'Ações',
             width: '80px',
@@ -243,7 +250,8 @@ export const CompanyManager = (project) => {
             { header: 'Nome', key: 'name', width: 30 },
             { header: 'CNPJ', key: 'cnpj_formatted', width: 20 },
             { header: 'Descrição', key: 'description', width: 40 },
-            { header: 'Status', key: 'active', width: 15, type: 'center' }
+            { header: 'Status', key: 'active', width: 15, type: 'center' },
+            { header: 'Criado em', key: 'created_at_formatted', width: 15, type: 'center' }
         ];
 
         // Prepare data for export
