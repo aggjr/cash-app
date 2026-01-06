@@ -230,6 +230,22 @@ export const createTreeManager = (tableName, title, term = 'Categoria') => {
         return true;
     };
 
+    const getVisibleLeaves = (nodes, result = []) => {
+        nodes.forEach(node => {
+            if (node.children && node.children.length > 0) {
+                getVisibleLeaves(node.children, result);
+            } else {
+                // If filtering enabled, check if checked. Otherwise always include (but we only call this if filtering enabled?)
+                // Actually, this function is specific for the "Hide Unchecked" mode which specifically wants to hide folders
+                // So we assume we only want Checked Leaves.
+                if (checkedNodes.has(node.id)) {
+                    result.push(node);
+                }
+            }
+        });
+        return result;
+    };
+
     // CRUD Operations
     const addNode = async (parentId, label) => {
         try {
@@ -619,8 +635,10 @@ export const createTreeManager = (tableName, title, term = 'Categoria') => {
     </div>
     
     <div class="tree-wrapper" id="tree-root-dropzone">
-      ${treeData.map(node => renderNode(node)).join('')}
-      ${treeData.length === 0 ? '<div class="empty-state">Nenhum item cadastrado</div>' : ''}
+      ${hideUnchecked
+                ? getVisibleLeaves(treeData).map(node => renderNode(node, 0)).join('')
+                : treeData.map(node => renderNode(node)).join('')}
+      ${(hideUnchecked ? getVisibleLeaves(treeData).length : treeData.length) === 0 ? 'Nenhum item cadastrado' : ''}
     </div>
   `;
 
