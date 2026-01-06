@@ -92,7 +92,7 @@ export const IncomeModal = {
                 };
 
                 modal.innerHTML = `
-                    <div class="account-modal-body" style="padding: 1rem; overflow-y: auto; max-height: 85vh;">
+                    <div class="account-modal-body" style="padding: 1rem; overflow-y: auto; max-height: 90vh;">
                         <h3 style="margin: 0 0 1rem 0; color: var(--color-primary); font-size: 1.1rem;">${isEdit ? 'Editar Entrada' : 'Nova Entrada'}</h3>
                         
                         ${isInstallment ? `
