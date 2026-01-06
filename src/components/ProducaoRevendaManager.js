@@ -48,7 +48,7 @@ export const ProducaoRevendaManager = (project) => {
         { key: 'valor', label: 'Valor', width: 'var(--col-value)', align: 'right', type: 'currency', colorLogic: 'outflow' },
         {
             key: 'boleto',
-            label: 'Boleto/<br/>Nota',
+            label: 'Bol/Not',
             width: 'var(--col-link)',
             align: 'center',
             type: 'link',
