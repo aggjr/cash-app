@@ -81,7 +81,7 @@ export const UserModal = {
                                     <option value="">Selecione uma empresa</option>
                                     ${companies.map(company => `
                                         <option value="${company.id}" ${user?.company_id == company.id ? 'selected' : ''}>
-                                            ${company.name} - ${company.cnpj}
+                                            ${company.name}${company.cnpj ? ' - ' + company.cnpj : ''}
                                         </option>
                                     `).join('')}
                                 </select>
