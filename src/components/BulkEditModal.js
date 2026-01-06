@@ -17,6 +17,9 @@ const BulkEditModal = {
             modal.style.maxWidth = '600px';
             modal.style.width = '90%';
 
+            // Convert ids to array to handle both Set and Array types
+            const idsArray = Array.isArray(ids) ? ids : Array.from(ids);
+
             modal.innerHTML = `
                 <div class="modal-header">
                     <h3>✏️ Edição em Lote</h3>
@@ -24,7 +27,7 @@ const BulkEditModal = {
                 </div>
                 <div class="modal-body">
                     <p style="margin-bottom: 1rem; color: #6B7280;">
-                        Editando <strong>${ids.length}</strong> ${ids.length === 1 ? 'item' : 'itens'} selecionados.
+                        Editando <strong>${idsArray.length}</strong> ${idsArray.length === 1 ? 'item' : 'itens'} selecionados.
                         Apenas os campos preenchidos serão atualizados.
                     </p>
 

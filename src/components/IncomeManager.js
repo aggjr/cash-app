@@ -848,10 +848,10 @@ export const IncomeManager = (project) => {
         },
         enableSelection: true,
         onSelectionChange: (items, ids) => {
-            selectedItems = ids;
+            selectedItems = Array.isArray(ids) ? new Set(ids) : ids;
             selectedItemsData = items;
             renderPagination();
-        }
+        },
     });
 
     const renderIncomes = () => {
