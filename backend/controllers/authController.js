@@ -67,21 +67,14 @@ exports.register = async (req, res, next) => {
             console.log('Created company:', { companyId, name: companyName });
         }
 
-        // Add user as master of the new project WITH PASSWORD
+        // Add user as master of the new project WITH PASSWORD AND COMPANY
         await connection.query(
-            'INSERT INTO project_users (project_id, user_id, password, role) VALUES (?, ?, ?, ?)',
-            [projectId, userId, hashedPassword, 'master']
+            'INSERT INTO project_users (project_id, user_id, password, role, company_id) VALUES (?, ?, ?, ?, ?)',
+            [projectId, userId, hashedPassword, 'master', companyId]
         );
-        console.log('Linked user to project:', { userId, projectId, role: 'master' });
+        console.log('Linked user to project:', { userId, projectId, role: 'master', companyId });
 
-        // Link company to user if created
-        if (companyId) {
-            await connection.query(
-                'UPDATE users SET company_id = ? WHERE id = ?',
-                [companyId, userId]
-            );
-            console.log('Linked company to user:', { userId, companyId });
-        }
+
 
         await connection.commit();
         console.log('Transaction committed successfully');
