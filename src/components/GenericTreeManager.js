@@ -12,7 +12,7 @@ import { PrintHelper } from '../utils/printHelper.js';
  * @param {string} title - Display title (e.g., 'Tipo Entrada')
  * @param {string} term - Specific term for items (e.g., 'Entrada')
  */
-export const createTreeManager = (tableName, title, term = 'Categoria') => {
+export const createTreeManager = (tableName, title, term = 'Categoria', onClose = null) => {
     const api = new GenericTreeApi(tableName);
     const API_BASE_URL = getApiBaseUrl();
     let treeData = [];
@@ -620,12 +620,21 @@ export const createTreeManager = (tableName, title, term = 'Categoria') => {
         const allChecked = totalNodes > 0 && checkedNodes.size === totalNodes;
 
         container.innerHTML = `
-    <div class="tree-header">
-      <h2>${title}</h2>
-      <div class="header-actions">
-        <button class="btn-secondary" onclick="window.treeActions_${tableName}.print()" title="Imprimir / Salvar PDF">🖨️ PDF</button>
-        <button class="btn-secondary" onclick="window.treeActions_${tableName}.export()" title="Exportar para Excel">📊 Excel</button>
-        <button class="btn-primary" onclick="window.treeActions_${tableName}.addRoot()">+ Nova ${term}</button>
+    <div class="tree-header" style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1.5rem;">
+      <h2 style="margin: 0;">${title}</h2>
+      <div style="display: flex; gap: 0.75rem; align-items: center;">
+        <div class="header-actions" style="display: flex; gap: 0.5rem;">
+          <button class="btn-secondary" onclick="window.treeActions_${tableName}.print()" title="Imprimir / Salvar PDF">🖨️ PDF</button>
+          <button class="btn-secondary" onclick="window.treeActions_${tableName}.export()" title="Exportar para Excel">📊 Excel</button>
+          <button class="btn-primary" onclick="window.treeActions_${tableName}.addRoot()">+ Nova ${term}</button>
+        </div>
+        ${onClose ? `
+          <button onclick="window.treeActions_${tableName}.close()" 
+                  style="background: none; border: none; font-size: 1.5rem; cursor: pointer; color: var(--color-text-muted); padding: 0.25rem; display: flex; align-items: center; justify-content: center; margin-left: 0.5rem;" 
+                  title="Fechar">
+            ✕
+          </button>
+        ` : ''}
       </div>
     </div>
     
@@ -726,7 +735,20 @@ export const createTreeManager = (tableName, title, term = 'Categoria') => {
 
     // Public API
     return {
-        render: () => {
+        render: (isModal = false) => {
+            if (isModal) {
+                return `
+                    <div id="tree-manager" class="glass-panel" style="margin: 0; padding: var(--space-md); height: 90vh; max-height: 800px; width: 95vw; max-width: 1000px; overflow: hidden; display: flex; flex-direction: column; position: relative; z-index: 100001; background: white;">
+                        <div id="tree-loading" style="display: none; text-align: center; padding: 2rem;">
+                            <p>Carregando...</p>
+                        </div>
+                        <div id="tree-error" style="display: none; text-align: center; padding: 2rem; color: #ef4444;">
+                            <p>Erro ao carregar dados.</p>
+                        </div>
+                        <div id="tree-container" style="flex: 1; overflow-y: auto;"></div>
+                    </div>
+                `;
+            }
             return `
     <div id="tree-manager" class="glass-panel" style="margin: var(--space-md); padding: var(--space-md); height: calc(100vh - 80px); overflow: hidden; display: flex; flex-direction: column;">
       <div id="tree-loading" style="display: none; text-align: center; padding: 2rem;">
@@ -742,6 +764,9 @@ export const createTreeManager = (tableName, title, term = 'Categoria') => {
 
         init: () => {
             window[`treeActions_${tableName}`] = {
+                close: () => {
+                    if (onClose) onClose();
+                },
                 addRoot: async () => {
                     const label = await Dialogs.prompt('', '', `Nova ${term}`);
                     if (label) addNode(null, label);

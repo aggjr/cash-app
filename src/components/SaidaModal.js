@@ -1,5 +1,6 @@
 ﻿import { TreeSelector } from './TreeSelector.js';
 import { getApiBaseUrl } from '../utils/apiConfig.js';
+import { createTreeManager } from './GenericTreeManager.js';
 
 export const SaidaModal = {
     show({ saida = null, projectId, onSave, onCancel }) {
@@ -241,7 +242,16 @@ export const SaidaModal = {
                             </div>
 
                             <div class="form-group" style="grid-column: span 4; display: flex; flex-direction: column; min-height: 150px;">
-                                <label>Tipo de Saída <span class="required">*</span></label>
+                                <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 0.25rem;">
+                                    <label style="margin: 0;">Tipo de Saída <span class="required">*</span></label>
+                                    <button id="btn-manage-tipo-saida" type="button" 
+                                            style="background: none; border: none; cursor: pointer; font-size: 1.1rem; padding: 2px; display: flex; align-items: center; justify-content: center; color: var(--color-primary); transition: transform 0.2s;" 
+                                            title="Gerenciar Tipos de Saída"
+                                            onmouseover="this.style.transform='rotate(45deg)'"
+                                            onmouseout="this.style.transform='rotate(0deg)'">
+                                        ⚙️
+                                    </button>
+                                </div>
                                 <div id="tree-selector-container" style="flex: 1;"></div>
                                 <input type="hidden" id="saida-tipo-saida-id" value="${saida?.tipo_saida_id || ''}" />
                             </div>
@@ -318,16 +328,74 @@ export const SaidaModal = {
                     return isValid;
                 };
 
-                // Initialize Tree Selector
-                const initialTipoId = parseInt(tipoSaidaIdInput.value);
-                // Safe check ensures tipoSaidas is array
-                TreeSelector.render(treeContainer, tipoSaidas, initialTipoId, (selectedId) => {
-                    if (initialTipoId !== selectedId) {
-                        hasChanges = true;
+                // Helper to open management sub-modal
+                const openManagementSubModal = () => {
+                    const subOverlay = document.createElement('div');
+                    subOverlay.className = 'dialog-overlay';
+                    subOverlay.style.zIndex = '100000';
+                    subOverlay.style.display = 'flex';
+                    subOverlay.style.alignItems = 'center';
+                    subOverlay.style.justifyContent = 'center';
+
+                    const closeSubModal = async () => {
+                        if (container.contains(subOverlay)) container.removeChild(subOverlay);
+                        // Refresh tree data after closing
+                        try {
+                            const res = await fetch(`${API_BASE_URL}/tipo_saida?projectId=${projectId}`, {
+                                headers: { 'Authorization': `Bearer ${token}` }
+                            });
+                            if (res.ok) {
+                                tipoSaidas = await res.json();
+                                renderTree();
+                            }
+                        } catch (err) {
+                            console.error('Error refreshing types:', err);
+                        }
+                    };
+
+                    const manager = createTreeManager('tipo_saida', 'Gerenciar Tipos de Saída', 'Saída', closeSubModal);
+                    subOverlay.innerHTML = manager.render(true);
+                    container.appendChild(subOverlay);
+                    manager.init();
+                };
+
+                const manageBtn = modal.querySelector('#btn-manage-tipo-saida');
+                if (manageBtn) manageBtn.onclick = openManagementSubModal;
+
+                // Load saved filter for TreeSelector
+                let allowedIds = null;
+                const savedView = localStorage.getItem('saved_tree_selection_tipo_saida');
+                if (savedView) {
+                    try {
+                        const parsed = JSON.parse(savedView);
+                        allowedIds = parsed.checkedNodes || null;
+                    } catch (e) {
+                        console.error('Error parsing saved view for selector', e);
                     }
-                    tipoSaidaIdInput.value = selectedId;
-                    validate();
-                });
+                }
+
+                const renderTree = () => {
+                    treeContainer.innerHTML = '';
+                    const initialTipoId = parseInt(tipoSaidaIdInput.value);
+                    TreeSelector.render(treeContainer, tipoSaidas, initialTipoId, (selectedId) => {
+                        if (initialTipoId !== selectedId) {
+                            hasChanges = true;
+                        }
+                        tipoSaidaIdInput.value = selectedId;
+                        validate();
+                    }, allowedIds);
+
+                    // Force inner height for symmetry
+                    const treeEl = treeContainer.querySelector('.tree-selector');
+                    if (treeEl) {
+                        treeEl.style.height = '100%';
+                        treeEl.style.maxHeight = 'none';
+                        treeEl.style.boxSizing = 'border-box';
+                    }
+                };
+
+                // Initialize Tree Selector
+                renderTree();
 
                 // Force inner height for symmetry
                 const treeEl = treeContainer.querySelector('.tree-selector');

@@ -1,5 +1,6 @@
 import { TreeSelector } from './TreeSelector.js';
 import { getApiBaseUrl } from '../utils/apiConfig.js';
+import { createTreeManager } from './GenericTreeManager.js';
 
 export const IncomeModal = {
     show({ income = null, projectId, onSave, onCancel }) {
@@ -282,7 +283,16 @@ export const IncomeModal = {
                             </div>
 
                             <div class="form-group" style="grid-column: span 4; display: flex; flex-direction: column; min-height: 150px;">
-                                <label>Tipo de Entrada <span class="required">*</span></label>
+                                <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 0.25rem;">
+                                    <label style="margin: 0;">Tipo de Entrada <span class="required">*</span></label>
+                                    <button id="btn-manage-tipo-entrada" type="button" 
+                                            style="background: none; border: none; cursor: pointer; font-size: 1.1rem; padding: 2px; display: flex; align-items: center; justify-content: center; color: var(--color-primary); transition: transform 0.2s;" 
+                                            title="Gerenciar Tipos de Entrada"
+                                            onmouseover="this.style.transform='rotate(45deg)'"
+                                            onmouseout="this.style.transform='rotate(0deg)'">
+                                        ⚙️
+                                    </button>
+                                </div>
                                 <div id="tree-selector-container" style="flex: 1;"></div>
                                 <input type="hidden" id="income-tipo-entrada-id" value="${income?.tipo_entrada_id || ''}" />
                             </div>
@@ -359,24 +369,74 @@ export const IncomeModal = {
                     return isValid;
                 };
 
-                // Initialize Tree Selector
-                const initialTipoId = parseInt(tipoEntradaIdInput.value);
-                // Safe check ensures tipoEntradas is array
-                TreeSelector.render(treeContainer, tipoEntradas, initialTipoId, (selectedId) => {
-                    if (initialTipoId !== selectedId) {
-                        hasChanges = true;
-                    }
-                    tipoEntradaIdInput.value = selectedId;
-                    validate();
-                });
+                // Helper to open management sub-modal
+                const openManagementSubModal = () => {
+                    const subOverlay = document.createElement('div');
+                    subOverlay.className = 'dialog-overlay';
+                    subOverlay.style.zIndex = '100000';
+                    subOverlay.style.display = 'flex';
+                    subOverlay.style.alignItems = 'center';
+                    subOverlay.style.justifyContent = 'center';
 
-                // Force inner height for symmetry
-                const treeEl = treeContainer.querySelector('.tree-selector');
-                if (treeEl) {
-                    treeEl.style.height = '100%';
-                    treeEl.style.maxHeight = 'none'; // Override internal max-height
-                    treeEl.style.boxSizing = 'border-box';
+                    const closeSubModal = async () => {
+                        if (container.contains(subOverlay)) container.removeChild(subOverlay);
+                        // Refresh tree data after closing
+                        try {
+                            const res = await fetch(`${API_BASE_URL}/tipo_entrada?projectId=${projectId}`, {
+                                headers: { 'Authorization': `Bearer ${token}` }
+                            });
+                            if (res.ok) {
+                                tipoEntradas = await res.json();
+                                renderTree();
+                            }
+                        } catch (err) {
+                            console.error('Error refreshing types:', err);
+                        }
+                    };
+
+                    const manager = createTreeManager('tipo_entrada', 'Gerenciar Tipos de Entrada', 'Entrada', closeSubModal);
+                    subOverlay.innerHTML = manager.render(true);
+                    container.appendChild(subOverlay);
+                    manager.init();
+                };
+
+                const manageBtn = modal.querySelector('#btn-manage-tipo-entrada');
+                if (manageBtn) manageBtn.onclick = openManagementSubModal;
+
+                // Load saved filter for TreeSelector
+                let allowedIds = null;
+                const savedView = localStorage.getItem('saved_tree_selection_tipo_entrada');
+                if (savedView) {
+                    try {
+                        const parsed = JSON.parse(savedView);
+                        allowedIds = parsed.checkedNodes || null;
+                    } catch (e) {
+                        console.error('Error parsing saved view for selector', e);
+                    }
                 }
+
+                const renderTree = () => {
+                    treeContainer.innerHTML = '';
+                    const initialTipoId = parseInt(tipoEntradaIdInput.value);
+                    TreeSelector.render(treeContainer, tipoEntradas, initialTipoId, (selectedId) => {
+                        if (initialTipoId !== selectedId) {
+                            hasChanges = true;
+                        }
+                        tipoEntradaIdInput.value = selectedId;
+                        validate();
+                    }, allowedIds);
+
+                    // Force inner height for symmetry
+                    const treeEl = treeContainer.querySelector('.tree-selector');
+                    if (treeEl) {
+                        treeEl.style.height = '100%';
+                        treeEl.style.maxHeight = 'none';
+                        treeEl.style.boxSizing = 'border-box';
+                    }
+                };
+
+                // Initialize Tree Selector
+                renderTree();
 
                 // Currency formatting strategies
                 const formatFloat = (num) => {

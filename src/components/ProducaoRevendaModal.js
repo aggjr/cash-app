@@ -1,5 +1,6 @@
 ﻿import { TreeSelector } from './TreeSelector.js';
 import { getApiBaseUrl } from '../utils/apiConfig.js';
+import { createTreeManager } from './GenericTreeManager.js';
 
 export const ProducaoRevendaModal = {
     show({ producaoRevenda = null, projectId, onSave, onCancel }) {
@@ -66,7 +67,7 @@ export const ProducaoRevendaModal = {
 
                 modal.innerHTML = `
                     <div class="account-modal-body" style="padding: 1rem; overflow-y: auto; max-height: 85vh;">
-                        <h3 style="margin: 0 0 1rem 0; color: var(--color-primary); font-size: 1.1rem;">${isEdit ? 'Editar Produção/Revenda' : 'Nova Produção/Revenda'}</h3>
+                        <h3 style="margin: 0 0 1rem 0; color: var(--color-primary); font-size: 1.1rem;">${isEdit ? 'Editar Compras' : 'Nova Compras'}</h3>
                         
                         <div class="form-grid" style="display: grid; grid-template-columns: repeat(8, 1fr); gap: 0.75rem;">
                             
@@ -241,7 +242,16 @@ export const ProducaoRevendaModal = {
                             </div>
 
                             <div class="form-group" style="grid-column: span 4; display: flex; flex-direction: column; min-height: 150px;">
-                                <label>Tipo de Produção/Revenda <span class="required">*</span></label>
+                                <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 0.25rem;">
+                                    <label style="margin: 0;">Tipo de Compras <span class="required">*</span></label>
+                                    <button id="btn-manage-tipo-compras" type="button" 
+                                            style="background: none; border: none; cursor: pointer; font-size: 1.1rem; padding: 2px; display: flex; align-items: center; justify-content: center; color: var(--color-primary); transition: transform 0.2s;" 
+                                            title="Gerenciar Tipos de Compras"
+                                            onmouseover="this.style.transform='rotate(45deg)'"
+                                            onmouseout="this.style.transform='rotate(0deg)'">
+                                        ⚙️
+                                    </button>
+                                </div>
                                 <div id="tree-selector-container" style="flex: 1;"></div>
                                 <input type="hidden" id="producao-revenda-tipo-entrada-id" value="${producaoRevenda?.tipo_entrada_id || ''}" />
                             </div>
@@ -318,16 +328,74 @@ export const ProducaoRevendaModal = {
                     return isValid;
                 };
 
-                // Initialize Tree Selector
-                const initialTipoId = parseInt(tipoProducaoRevendaIdInput.value);
-                // Safe check ensures tipoProducaoRevenda is array
-                TreeSelector.render(treeContainer, tipoProducaoRevenda, initialTipoId, (selectedId) => {
-                    if (initialTipoId !== selectedId) {
-                        hasChanges = true;
+                // Helper to open management sub-modal
+                const openManagementSubModal = () => {
+                    const subOverlay = document.createElement('div');
+                    subOverlay.className = 'dialog-overlay';
+                    subOverlay.style.zIndex = '100000';
+                    subOverlay.style.display = 'flex';
+                    subOverlay.style.alignItems = 'center';
+                    subOverlay.style.justifyContent = 'center';
+
+                    const closeSubModal = async () => {
+                        if (container.contains(subOverlay)) container.removeChild(subOverlay);
+                        // Refresh tree data after closing
+                        try {
+                            const res = await fetch(`${API_BASE_URL}/tipo_producao_revenda?projectId=${projectId}`, {
+                                headers: { 'Authorization': `Bearer ${token}` }
+                            });
+                            if (res.ok) {
+                                tipoProducaoRevenda = await res.json();
+                                renderTree();
+                            }
+                        } catch (err) {
+                            console.error('Error refreshing types:', err);
+                        }
+                    };
+
+                    const manager = createTreeManager('tipo_producao_revenda', 'Gerenciar Tipos de Compras', 'Compras', closeSubModal);
+                    subOverlay.innerHTML = manager.render(true);
+                    container.appendChild(subOverlay);
+                    manager.init();
+                };
+
+                const manageBtn = modal.querySelector('#btn-manage-tipo-compras');
+                if (manageBtn) manageBtn.onclick = openManagementSubModal;
+
+                // Load saved filter for TreeSelector
+                let allowedIds = null;
+                const savedView = localStorage.getItem('saved_tree_selection_tipo_producao_revenda');
+                if (savedView) {
+                    try {
+                        const parsed = JSON.parse(savedView);
+                        allowedIds = parsed.checkedNodes || null;
+                    } catch (e) {
+                        console.error('Error parsing saved view for selector', e);
                     }
-                    tipoProducaoRevendaIdInput.value = selectedId;
-                    validate();
-                });
+                }
+
+                const renderTree = () => {
+                    treeContainer.innerHTML = '';
+                    const initialTipoId = parseInt(tipoProducaoRevendaIdInput.value);
+                    TreeSelector.render(treeContainer, tipoProducaoRevenda, initialTipoId, (selectedId) => {
+                        if (initialTipoId !== selectedId) {
+                            hasChanges = true;
+                        }
+                        tipoProducaoRevendaIdInput.value = selectedId;
+                        validate();
+                    }, allowedIds);
+
+                    // Force inner height for symmetry
+                    const treeEl = treeContainer.querySelector('.tree-selector');
+                    if (treeEl) {
+                        treeEl.style.height = '100%';
+                        treeEl.style.maxHeight = 'none';
+                        treeEl.style.boxSizing = 'border-box';
+                    }
+                };
+
+                // Initialize Tree Selector
+                renderTree();
 
                 // Force inner height for symmetry
                 const treeEl = treeContainer.querySelector('.tree-selector');

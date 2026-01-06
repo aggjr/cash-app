@@ -1,5 +1,8 @@
 export const TreeSelector = {
-    render(container, data, selectedId, onSelect) {
+    render(container, data, selectedId, onSelect, allowedIds = null) {
+        // Convert allowedIds to a Set for faster lookup if it's an array
+        const allowedSet = allowedIds ? (allowedIds instanceof Set ? allowedIds : new Set(allowedIds.map(String))) : null;
+
         // Build Tree Structure
         const buildTree = (flatData) => {
             const map = {};
@@ -32,6 +35,16 @@ export const TreeSelector = {
         };
 
         const treeRoots = buildTree(data);
+
+        // Helper to check if a node or any of its descendants should be shown
+        const shouldShowNode = (node) => {
+            if (!allowedSet) return true;
+            if (allowedSet.has(String(node.id))) return true;
+            if (node.children && node.children.length > 0) {
+                return node.children.some(child => shouldShowNode(child));
+            }
+            return false;
+        };
 
         // Styling
         const style = document.createElement('style');
@@ -102,16 +115,14 @@ export const TreeSelector = {
         treeContainer.className = 'tree-selector';
 
         const renderNode = (node) => {
+            if (!shouldShowNode(node)) return null;
+
             const hasChildren = node.children && node.children.length > 0;
             const isLeaf = !hasChildren;
-            const isSelected = node.id === selectedId;
+            const isSelected = String(node.id) === String(selectedId);
 
             const nodeEl = document.createElement('div');
             nodeEl.className = `ts-node ${node.parent_id === null ? 'ts-root' : ''}`;
-
-            // Check expansion state (defaults to expanded)
-            // Use a dataset or internal state if we want to persist toggle over re-renders, 
-            // but for simple selector, default expanded is usually fine.
 
             const content = document.createElement('div');
             content.className = `ts-content ${isLeaf ? 'selectable' : ''} ${isSelected ? 'selected' : ''}`;
@@ -125,7 +136,7 @@ export const TreeSelector = {
             if (isLeaf) {
                 content.addEventListener('click', () => {
                     // Deselect previous
-                    container.querySelectorAll('.ts-content.selected').forEach(el => el.classList.remove('selected'));
+                    treeContainer.querySelectorAll('.ts-content.selected').forEach(el => el.classList.remove('selected'));
                     content.classList.add('selected');
                     onSelect(node.id);
                 });
@@ -149,7 +160,8 @@ export const TreeSelector = {
                 const childrenContainer = document.createElement('div');
                 childrenContainer.className = 'ts-children';
                 node.children.forEach(child => {
-                    childrenContainer.appendChild(renderNode(child));
+                    const childEl = renderNode(child);
+                    if (childEl) childrenContainer.appendChild(childEl);
                 });
                 nodeEl.appendChild(childrenContainer);
             }
@@ -160,9 +172,18 @@ export const TreeSelector = {
         if (treeRoots.length === 0) {
             treeContainer.innerHTML = '<div style="padding:1rem; text-align:center; color:#999;">Nenhum tipo cadastrado</div>';
         } else {
+            let renderedCount = 0;
             treeRoots.forEach(root => {
-                treeContainer.appendChild(renderNode(root));
+                const rootEl = renderNode(root);
+                if (rootEl) {
+                    treeContainer.appendChild(rootEl);
+                    renderedCount++;
+                }
             });
+
+            if (renderedCount === 0 && allowedSet) {
+                treeContainer.innerHTML = '<div style="padding:1rem; text-align:center; color:#999; font-style:italic;">Nenhum item da sua seleção salva está disponível. Gerencie os tipos para habilitar mais itens.</div>';
+            }
         }
 
         container.appendChild(treeContainer);
