@@ -138,11 +138,11 @@ export const CostCenterManager = (project) => {
                 <table style="width: 100%; border-collapse: collapse;">
                     <thead class="sticky-header">
                         <tr>
-                            <th style="text-align: left; padding: var(--table-row-padding); font-size: 1rem;">Nome</th>
-                            <th style="text-align: left; padding: var(--table-row-padding); font-size: 1rem;">Descrição</th>
-                            <th style="text-align: center; padding: var(--table-row-padding); font-size: 1rem;">Status</th>
-                            <th style="text-align: center; padding: var(--table-row-padding); font-size: 1rem;">Criado em</th>
-                            <th style="text-align: center; padding: var(--table-row-padding); font-size: 1rem;">Ações</th>
+                            <th style="text-align: left; padding: var(--table-row-padding); font-size: var(--text-table-header);">Nome</th>
+                            <th style="text-align: left; padding: var(--table-row-padding); font-size: var(--text-table-header);">Descrição</th>
+                            <th style="text-align: center; padding: var(--table-row-padding); font-size: var(--text-table-header);">Status</th>
+                            <th style="text-align: center; padding: var(--table-row-padding); font-size: var(--text-table-header);">Criado em</th>
+                            <th style="text-align: center; padding: var(--table-row-padding); font-size: var(--text-table-header);">Ações</th>
                         </tr>
                     </thead>
                     <tbody>
