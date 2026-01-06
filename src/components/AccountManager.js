@@ -92,13 +92,6 @@ export const AccountManager = (project) => {
             }
         },
         {
-            key: 'created_at',
-            label: 'Criado em',
-            width: '120px',
-            align: 'center',
-            type: 'date'
-        },
-        {
             key: 'actions',
             label: 'Ações',
             width: '80px',
@@ -264,8 +257,7 @@ export const AccountManager = (project) => {
             { header: 'Tipo', key: 'type_display', width: 20 },
             { header: 'Descrição', key: 'description', width: 30 },
             { header: 'Empresa', key: 'company_name', width: 30 },
-            { header: 'Status', key: 'active', width: 15, type: 'center' },
-            { header: 'Criado em', key: 'created_at_formatted', width: 15, type: 'center' }
+            { header: 'Status', key: 'active', width: 15, type: 'center' }
         ];
 
         // Prepare data
