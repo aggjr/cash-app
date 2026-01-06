@@ -2,6 +2,8 @@ const OpenAI = require('openai');
 const db = require('../config/database');
 const IvaContextBuilder = require('../services/IvaContextBuilder');
 const IvaIntentValidator = require('../utils/ivaIntentValidator');
+const IntentClassifier = require('../utils/ivaIntentClassifier');
+const ContextualPrompts = require('../config/iva-contextual-prompts');
 const IvaDataFetcher = require('../services/IvaDataFetcher');
 const IvaScreenCache = require('../services/IvaScreenCache');
 // TEMPORARILY DISABLED - Tables not in production yet
@@ -75,8 +77,52 @@ const chat = async (req, res, next) => {
         // Build dynamic profile
         const dynamicProfile = await IvaContextBuilder.buildDynamicBusinessProfile(db, context.projectId);
 
-        // Build system prompt
-        const systemPrompt = await IvaContextBuilder.buildChatContext(userData, projectData, dynamicProfile, { isIntroduction });
+        // ========================================
+        // INTENT CLASSIFICATION
+        // ========================================
+        const intent = IntentClassifier.classify(message, conversationHistory || []);
+        console.log('[IVA Chat] Intent classified:', intent.type, '- Priority:', intent.priority);
+
+        // Get time context
+        const now = new Date();
+        const hour = now.getHours();
+        const timeOfDay = hour >= 5 && hour < 12 ? 'manhã' : hour >= 12 && hour < 19 ? 'tarde' : 'noite';
+
+        // Build contextual system prompt based on intent
+        let systemPrompt;
+        const lastAssistantMessage = conversationHistory
+            ?.filter(m => m.sender === 'assistant')
+            .slice(-1)[0]?.text || '';
+
+        switch (intent.type) {
+            case 'GREETING':
+                systemPrompt = ContextualPrompts.greeting(userData, timeOfDay);
+                break;
+            case 'FAREWELL':
+                systemPrompt = ContextualPrompts.farewell(userData);
+                break;
+            case 'IDENTITY':
+            case 'CORRECTION':
+                systemPrompt = intent.type === 'IDENTITY'
+                    ? ContextualPrompts.identity(userData, lastAssistantMessage)
+                    : ContextualPrompts.correction(userData, lastAssistantMessage);
+                break;
+            case 'GRATITUDE':
+                systemPrompt = ContextualPrompts.gratitude(userData);
+                break;
+            default:
+                // Use enhanced base prompt with intent context
+                systemPrompt = ContextualPrompts.baseChatImproved(
+                    userData,
+                    projectData,
+                    timeOfDay,
+                    hour,
+                    intent,
+                    conversationHistory || []
+                );
+        }
+
+        console.log('[IVA Chat] Using contextual prompt for:', intent.type);
 
         console.log('[IVA Chat] Step 4 - System Prompt Length:', systemPrompt?.length);
         console.log('[IVA Chat] Step 4 - Prompt contains name?', systemPrompt?.includes(userData?.name || 'NOTFOUND'));
@@ -99,13 +145,19 @@ const chat = async (req, res, next) => {
         // Add current message
         messages.push({ role: "user", content: message });
 
+        // Get dynamic parameters based on intent
+        const temperature = IntentClassifier.getTemperature(intent);
+        const maxTokens = IntentClassifier.getMaxTokens(intent);
+
+        console.log('[IVA Chat] LLM Parameters:', { temperature, maxTokens, intent: intent.type });
+
         // Call OpenAI API with 60-second timeout
         const response = await Promise.race([
             openai.chat.completions.create({
                 model: "gpt-4o-mini",
                 messages,
-                temperature: 0.7,
-                max_tokens: 500,
+                temperature: temperature,
+                max_tokens: maxTokens,
                 presence_penalty: 0.1,
                 frequency_penalty: 0.1
             }),
