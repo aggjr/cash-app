@@ -341,17 +341,25 @@ export const ProducaoRevendaModal = {
                             if (res.ok) {
                                 tipoProducaoRevenda = await res.json();
 
-                                // Reload allowedIds from localStorage after management modal closes
-                                const savedView = localStorage.getItem('saved_tree_selection_tipo_producao_revenda');
-                                if (savedView) {
-                                    try {
-                                        const parsed = JSON.parse(savedView);
-                                        allowedIds = parsed.checkedNodes || null;
-                                    } catch (e) {
-                                        console.error('Error parsing saved view for selector', e);
+                                // Reload allowedIds from server after management modal closes
+                                try {
+                                    const prefKey = 'tree_selection_tipo_producao_revenda';
+                                    const prefResponse = await fetch(`${API_BASE_URL}/user-preferences/${prefKey}`, {
+                                        headers: { 'Authorization': `Bearer ${token}` }
+                                    });
+                                    if (prefResponse.ok) {
+                                        const prefData = await prefResponse.json();
+                                        if (prefData.value) {
+                                            const parsed = prefData.value;
+                                            allowedIds = parsed.checkedNodes || null;
+                                        } else {
+                                            allowedIds = null;
+                                        }
+                                    } else {
                                         allowedIds = null;
                                     }
-                                } else {
+                                } catch (e) {
+                                    console.error('Error loading tree preferences from server', e);
                                     allowedIds = null;
                                 }
 
@@ -371,16 +379,22 @@ export const ProducaoRevendaModal = {
                 const manageBtn = modal.querySelector('#btn-manage-tipo-compras');
                 if (manageBtn) manageBtn.onclick = openManagementSubModal;
 
-                // Load saved filter for TreeSelector
+                // Load saved filter for TreeSelector from server
                 let allowedIds = null;
-                const savedView = localStorage.getItem('saved_tree_selection_tipo_producao_revenda');
-                if (savedView) {
-                    try {
-                        const parsed = JSON.parse(savedView);
-                        allowedIds = parsed.checkedNodes || null;
-                    } catch (e) {
-                        console.error('Error parsing saved view for selector', e);
+                try {
+                    const prefKey = 'tree_selection_tipo_producao_revenda';
+                    const prefResponse = await fetch(`${API_BASE_URL}/user-preferences/${prefKey}`, {
+                        headers: { 'Authorization': `Bearer ${token}` }
+                    });
+                    if (prefResponse.ok) {
+                        const prefData = await prefResponse.json();
+                        if (prefData.value) {
+                            const parsed = prefData.value;
+                            allowedIds = parsed.checkedNodes || null;
+                        }
                     }
+                } catch (e) {
+                    console.error('Error loading tree preferences from server', e);
                 }
 
                 const renderTree = () => {

@@ -106,33 +106,73 @@ export const createTreeManager = (tableName, title, term = 'Categoria', onClose 
             const flatData = await response.json();
             treeData = buildTree(flatData);
 
-            const savedView = localStorage.getItem(`saved_tree_selection_${tableName}`);
-            if (savedView) {
-                try {
-                    const parsed = JSON.parse(savedView);
-                    let savedIds = [];
+            // Try to load from server first
+            try {
+                const prefKey = `tree_selection_${tableName}`;
+                const prefResponse = await fetch(`${API_BASE_URL}/user-preferences/${prefKey}`, {
+                    headers: getHeaders()
+                });
 
-                    if (Array.isArray(parsed)) {
-                        savedIds = parsed;
-                    } else if (parsed && typeof parsed === 'object') {
-                        savedIds = parsed.checkedNodes || [];
-                        hideUnchecked = !!parsed.hideUnchecked;
-                    }
+                if (prefResponse.ok) {
+                    const prefData = await prefResponse.json();
+                    if (prefData.value) {
+                        const parsed = prefData.value;
+                        let savedIds = [];
 
-                    if (savedIds.length > 0) {
-                        const restoredSet = new Set();
-                        savedIds.forEach(id => restoredSet.add(String(id)));
-                        checkedNodes = restoredSet;
-                        console.log(`Loaded ${checkedNodes.size} saved items for ${tableName} (Filter: ${hideUnchecked})`);
+                        if (Array.isArray(parsed)) {
+                            savedIds = parsed;
+                        } else if (parsed && typeof parsed === 'object') {
+                            savedIds = parsed.checkedNodes || [];
+                            hideUnchecked = !!parsed.hideUnchecked;
+                        }
+
+                        if (savedIds.length > 0) {
+                            const restoredSet = new Set();
+                            savedIds.forEach(id => restoredSet.add(String(id)));
+                            checkedNodes = restoredSet;
+                            console.log(`Loaded ${checkedNodes.size} saved items for ${tableName} from server (Filter: ${hideUnchecked})`);
+                        } else {
+                            toggleAllCheckboxes(true);
+                        }
                     } else {
-                        toggleAllCheckboxes(true);
+                        // No server preference, try localStorage migration
+                        const localView = localStorage.getItem(`saved_tree_selection_${tableName}`);
+                        if (localView) {
+                            console.log(`Migrating ${tableName} preferences from localStorage to server...`);
+                            const parsed = JSON.parse(localView);
+                            // Save to server
+                            await fetch(`${API_BASE_URL}/user-preferences/${prefKey}`, {
+                                method: 'POST',
+                                headers: getHeaders(),
+                                body: JSON.stringify({ value: parsed })
+                            });
+                            // Apply the migrated data
+                            let savedIds = [];
+                            if (Array.isArray(parsed)) {
+                                savedIds = parsed;
+                            } else if (parsed && typeof parsed === 'object') {
+                                savedIds = parsed.checkedNodes || [];
+                                hideUnchecked = !!parsed.hideUnchecked;
+                            }
+                            if (savedIds.length > 0) {
+                                const restoredSet = new Set();
+                                savedIds.forEach(id => restoredSet.add(String(id)));
+                                checkedNodes = restoredSet;
+                                console.log(`Migrated and loaded ${checkedNodes.size} items for ${tableName}`);
+                            } else {
+                                toggleAllCheckboxes(true);
+                            }
+                        } else {
+                            toggleAllCheckboxes(true);
+                        }
                     }
-                } catch (e) {
-                    console.error("Error parsing saved selection", e);
+                } else {
+                    // Fallback to default
                     toggleAllCheckboxes(true);
                 }
-            } else {
-                // Default: Select all nodes if no save exists
+            } catch (prefError) {
+                console.error('Error loading preferences from server:', prefError);
+                // Fallback to default
                 toggleAllCheckboxes(true);
             }
 
@@ -853,23 +893,37 @@ export const createTreeManager = (tableName, title, term = 'Categoria', onClose 
                     window.print();
                 },
                 export: exportToCSV,
-                // Save current view (selection) to localStorage
-                saveView: () => {
+                // Save current view (selection) to server
+                saveView: async () => {
                     try {
                         const dataToSave = {
                             checkedNodes: Array.from(checkedNodes),
                             hideUnchecked: hideUnchecked
                         };
-                        localStorage.setItem(`saved_tree_selection_${tableName}`, JSON.stringify(dataToSave));
+
+                        const prefKey = `tree_selection_${tableName}`;
+                        const response = await fetch(`${API_BASE_URL}/user-preferences/${prefKey}`, {
+                            method: 'POST',
+                            headers: getHeaders(),
+                            body: JSON.stringify({ value: dataToSave })
+                        });
+
+                        if (!response.ok) {
+                            throw new Error('Failed to save preference');
+                        }
 
                         if (typeof Dialogs !== 'undefined' && Dialogs.alert) {
-                            Dialogs.alert('A visualização atual (seleção e filtros) foi salva e será usada como padrão.', 'Visualização Salva');
+                            Dialogs.alert('A visualização atual (seleção e filtros) foi salva e será usada como padrão em todos os seus dispositivos.', 'Visualização Salva');
                         } else {
                             alert('Visualização salva com sucesso!');
                         }
                     } catch (error) {
                         console.error('Erro ao salvar visualização:', error);
-                        Dialogs.alert('Erro ao salvar visualização.', 'Erro');
+                        if (typeof Dialogs !== 'undefined' && Dialogs.alert) {
+                            Dialogs.alert('Erro ao salvar visualização no servidor.', 'Erro');
+                        } else {
+                            alert('Erro ao salvar visualização.');
+                        }
                     }
                 }
             };

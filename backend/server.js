@@ -66,6 +66,7 @@ apiRouter.use('/audit-logs', auditRoutes);
 apiRouter.use('/loans', require('./routes/loans'));
 apiRouter.use('/iva', require('./routes/iva'));
 apiRouter.use('/tts', ttsRoutes); // Google Cloud TTS
+apiRouter.use('/user-preferences', require('./routes/userPreferences'));
 
 // Static Uploads Serving
 // Static Uploads Serving
@@ -188,6 +189,7 @@ loadErrorCatalog()
     .then(() => migrateAccountCompanyRequired()) // NEW: Enforce company_id NOT NULL
     .then(() => migrateRemoveAccountType()) // NEW: Remove account_type column
     .then(() => migrateAddUserCompany()) // NEW: Add company_id to project_users
+    .then(() => require('./migrate_add_user_preferences')()) // NEW: User preferences table
     .then(() => {
         startServer();
     })
