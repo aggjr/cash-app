@@ -27,7 +27,8 @@ export const CompanyModal = {
 
             modal.innerHTML = `
                 <div class="account-modal-body" style="padding: 1.5rem;">
-                    <h3 style="margin: 0 0 1.25rem 0; color: var(--color-primary); font-size: 1.3rem;">${isEdit ? 'Editar Empresa' : 'Nova Empresa'}</h3>
+                    <h3 style="margin: 0 0 0.5rem 0; color: var(--color-primary); font-size: 1.3rem;">${isEdit ? 'Editar Empresa' : 'Nova Empresa'}</h3>
+                    <p style="margin: 0 0 1.25rem 0; font-style: italic; color: #9CA3AF; font-size: 0.9rem;">Coloque informações como área de atuação, principais produtos, etc</p>
                     <div class="form-grid">
                         <!-- First Line: Name + CNPJ side by side -->
                         <div style="display: flex; gap: 1rem; margin-bottom: 1rem;">
@@ -59,12 +60,13 @@ export const CompanyModal = {
                         </div>
 
                         <div class="form-group full-width">
-                            <label for="company-description">Descrição</label>
+                            <label for="company-description">Descrição <span class="required">*</span></label>
                             <textarea 
                                 id="company-description" 
                                 class="form-input" 
                                 rows="2"
-                                placeholder="Descrição opcional da empresa"
+                                placeholder="Ex: Consultoria em gestão empresarial, treinamentos corporativos"
+                                required
                             >${company?.description || ''}</textarea>
                         </div>
 
@@ -132,11 +134,20 @@ export const CompanyModal = {
                     cnpjInput.classList.remove('input-error');
                 }
 
+                const description = descriptionInput.value.trim();
+                if (!description) {
+                    descriptionInput.classList.add('input-error');
+                    isValid = false;
+                } else {
+                    descriptionInput.classList.remove('input-error');
+                }
+
                 return isValid;
             };
 
             nameInput.addEventListener('input', validate);
             cnpjInput.addEventListener('input', validate);
+            descriptionInput.addEventListener('input', validate);
 
             // Close modal
             const close = (result) => {
