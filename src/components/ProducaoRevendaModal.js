@@ -326,7 +326,7 @@ export const ProducaoRevendaModal = {
                 const openManagementSubModal = () => {
                     const subOverlay = document.createElement('div');
                     subOverlay.className = 'dialog-overlay';
-                    subOverlay.style.zIndex = '9000'; // Lower than dialog overlay (10000)
+                    subOverlay.style.zIndex = '5000'; // Above main modal (1000) but below dialogs (10000)
                     subOverlay.style.display = 'flex';
                     subOverlay.style.alignItems = 'center';
                     subOverlay.style.justifyContent = 'center';
