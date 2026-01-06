@@ -106,28 +106,30 @@ export const createTreeManager = (tableName, title, term = 'Categoria') => {
             const flatData = await response.json();
             treeData = buildTree(flatData);
 
-            const savedSelection = localStorage.getItem(`checkedNodes-${tableName}`);
-            if (savedSelection) {
+            const savedView = localStorage.getItem(`saved_tree_selection_${tableName}`);
+            if (savedView) {
                 try {
-                    const savedIds = JSON.parse(savedSelection);
-                    if (Array.isArray(savedIds)) {
-                        // Fix: Match saved IDs against actual tree IDs to ensure correct type (string vs number)
-                        const allRealIds = getAllNodeIds(treeData);
+                    const parsed = JSON.parse(savedView);
+                    let savedIds = [];
+
+                    if (Array.isArray(parsed)) {
+                        savedIds = parsed;
+                    } else if (parsed && typeof parsed === 'object') {
+                        savedIds = parsed.checkedNodes || [];
+                        hideUnchecked = !!parsed.hideUnchecked;
+                    }
+
+                    if (savedIds.length > 0) {
                         const restoredSet = new Set();
-
-                        savedIds.forEach(savedId => {
-                            // Convert all to string for consistency
-                            restoredSet.add(String(savedId));
-                        });
-
+                        savedIds.forEach(id => restoredSet.add(String(id)));
                         checkedNodes = restoredSet;
-                        console.log(`Loaded ${checkedNodes.size} saved items for ${tableName}`);
+                        console.log(`Loaded ${checkedNodes.size} saved items for ${tableName} (Filter: ${hideUnchecked})`);
                     } else {
-                        toggleAllCheckboxes(true); // Fallback if invalid format
+                        toggleAllCheckboxes(true);
                     }
                 } catch (e) {
                     console.error("Error parsing saved selection", e);
-                    toggleAllCheckboxes(true); // Fallback on error
+                    toggleAllCheckboxes(true);
                 }
             } else {
                 // Default: Select all nodes if no save exists
@@ -779,16 +781,20 @@ export const createTreeManager = (tableName, title, term = 'Categoria') => {
                 // Save current view (selection) to localStorage
                 saveView: () => {
                     try {
-                        const selection = Array.from(checkedNodes);
-                        localStorage.setItem(`saved_tree_selection_${tableName}`, JSON.stringify(selection));
+                        const dataToSave = {
+                            checkedNodes: Array.from(checkedNodes),
+                            hideUnchecked: hideUnchecked
+                        };
+                        localStorage.setItem(`saved_tree_selection_${tableName}`, JSON.stringify(dataToSave));
+
                         if (typeof Dialogs !== 'undefined' && Dialogs.alert) {
-                            Dialogs.alert('A visualização atual foi salva e será usada como padrão na próxima vez que você abrir esta tela.', 'Visualização Padrão Atualizada');
+                            Dialogs.alert('A visualização atual (seleção e filtros) foi salva e será usada como padrão.', 'Visualização Salva');
                         } else {
                             alert('Visualização salva com sucesso!');
                         }
                     } catch (error) {
                         console.error('Erro ao salvar visualização:', error);
-                        alert('Erro ao salvar visualização. Verifique o console.');
+                        Dialogs.alert('Erro ao salvar visualização.', 'Erro');
                     }
                 }
             };
