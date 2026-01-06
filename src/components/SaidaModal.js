@@ -84,7 +84,7 @@ export const SaidaModal = {
                             </div>
 
                             <div class="form-group" style="grid-column: span 2;">
-                                <label for="saida-data-atraso">Data Atraso</label>
+                                <label for="saida-data-atraso">Data Atraso <span style="font-style: italic; color: #9CA3AF; font-weight: normal;">(só se atrasar)</span></label>
                                 <input type="date" id="saida-data-atraso" class="form-input" 
                                     value="${formatDateForInput(saida?.data_atraso)}" />
                             </div>

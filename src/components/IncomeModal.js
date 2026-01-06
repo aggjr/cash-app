@@ -125,7 +125,7 @@ export const IncomeModal = {
                             </div>
 
                             <div class="form-group" style="grid-column: span 2;">
-                                <label for="income-data-atraso">Data Atraso</label>
+                                <label for="income-data-atraso">Data Atraso <span style="font-style: italic; color: #9CA3AF; font-weight: normal;">(só se atrasar)</span></label>
                                 <input type="date" id="income-data-atraso" class="form-input" 
                                     value="${formatDateForInput(income?.data_atraso)}" />
                             </div>
