@@ -78,7 +78,12 @@ export const CompanyManager = (project) => {
             label: 'Criado em',
             width: '120px',
             align: 'center',
-            type: 'date'
+            type: 'date',
+            render: (item) => {
+                const span = document.createElement('span');
+                span.textContent = formatDate(item.created_at);
+                return span;
+            }
         },
         {
             key: 'actions',
