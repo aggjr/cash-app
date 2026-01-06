@@ -225,7 +225,9 @@ export const FechamentoContasManager = (project) => {
         thCompany.style.color = 'white';
         thCompany.style.padding = 'var(--header-padding)';
         thCompany.style.textAlign = 'left';
-        thCompany.style.width = '1%';
+        thCompany.style.width = '140px';
+        thCompany.style.minWidth = '140px';
+        thCompany.style.maxWidth = '140px';
         thCompany.style.whiteSpace = 'nowrap';
         thCompany.style.borderBottom = '2px solid white';
         thCompany.style.borderRight = '2px solid white';
@@ -235,7 +237,7 @@ export const FechamentoContasManager = (project) => {
         const thFixed = document.createElement('th');
         thFixed.textContent = 'Conta Bancária';
         thFixed.style.position = 'sticky';
-        thFixed.style.left = '0'; // Will be calculated dynamically
+        thFixed.style.left = '140px'; // Offset by Empresa column width
         thFixed.style.zIndex = '101';
         thFixed.style.backgroundColor = '#00425F';
         thFixed.style.color = 'white';
@@ -318,7 +320,7 @@ export const FechamentoContasManager = (project) => {
                 const tdFixed = document.createElement('td');
                 tdFixed.textContent = acc.name;
                 tdFixed.style.position = 'sticky';
-                tdFixed.style.left = '0'; // Will overlap company column
+                tdFixed.style.left = '140px'; // Offset by company column width
                 tdFixed.style.backgroundColor = '#00425F';
                 tdFixed.style.color = 'white';
                 tdFixed.style.fontWeight = '500';
@@ -386,7 +388,7 @@ export const FechamentoContasManager = (project) => {
         const tdTotalLabel = document.createElement('td');
         tdTotalLabel.textContent = 'TOTAL';
         tdTotalLabel.style.position = 'sticky';
-        tdTotalLabel.style.left = '0';
+        tdTotalLabel.style.left = '140px';
         tdTotalLabel.style.backgroundColor = '#00425F';
         tdTotalLabel.style.color = 'white';
         tdTotalLabel.style.zIndex = '11';
