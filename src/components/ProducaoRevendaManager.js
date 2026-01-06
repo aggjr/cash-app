@@ -22,6 +22,8 @@ export const ProducaoRevendaManager = (project) => {
     let pagination = { page: 1, limit: 50, total: 0, pages: 1 };
     let activeFilters = {};
     let sortConfig = { key: 'data_fato', direction: 'desc' };
+    let selectedItems = new Set();
+    let selectedItemsData = [];
 
     // Define Columns for SharedTable
     const columns = [
@@ -350,12 +352,28 @@ export const ProducaoRevendaManager = (project) => {
         // Update Total
         const totalContainer = container.querySelector('#total-display');
         if (totalContainer) {
-            const totalVal = items.reduce((sum, inc) => sum + parseFloat(inc.valor || 0), 0);
+            const pageTotal = items.reduce((sum, inc) => sum + parseFloat(inc.valor || 0), 0);
+            const selectionTotal = selectedItemsData.reduce((sum, inc) => sum + parseFloat(inc.valor || 0), 0);
+
+            const hasSelection = selectedItems.size > 0;
+
             totalContainer.innerHTML = `
-                <span style="font-size: 1.1rem; margin-right: 0.5rem;">Total (Página):</span>
-                <span style="font-weight: 700; font-size: 1.1rem; color: #EF4444;">
-                    ${new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(totalVal)}
-                </span>
+                <div style="display: flex; gap: 2rem; align-items: center;">
+                    <div>
+                        <span style="font-size: 1.1rem; margin-right: 0.5rem;">Total (Página):</span>
+                        <span style="font-weight: 700; font-size: 1.1rem; color: #EF4444;">
+                            ${new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(pageTotal)}
+                        </span>
+                    </div>
+                    ${hasSelection ? `
+                    <div class="animate-fade-in" style="display: flex; align-items: center; gap: 1rem; background: #eef2ff; padding: 4px 12px; border-radius: 6px; border: 1px solid #c7d2fe;">
+                        <span style="font-size: 1.1rem; margin-right: 0.5rem; color: #4338ca;">Total Selecionados (${selectedItems.size}):</span>
+                        <span style="font-weight: 700; font-size: 1.1rem; color: #4338ca;">
+                            ${new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(selectionTotal)}
+                        </span>
+                    </div>
+                    ` : ''}
+                </div>
             `;
         }
     };
@@ -560,6 +578,12 @@ export const ProducaoRevendaManager = (project) => {
         onSortChange: (sort) => {
             sortConfig = sort;
             loadItems(1);
+        },
+        enableSelection: true,
+        onSelectionChange: (items, ids) => {
+            selectedItems = ids;
+            selectedItemsData = items;
+            renderPagination();
         }
     });
 

@@ -528,17 +528,59 @@ export const ConsolidadasManager = (project, fixedViewType = null) => {
     btnExcel.innerHTML = '<span style="margin-right:0.25rem">📊</span> Excel';
     btnExcel.style.cssText = 'border:none; background:transparent; padding:0.25rem 0.5rem; font-weight:600; color:#374151;';
     btnExcel.onclick = () => {
-        if (!currentData.realized.length) { showToast('Sem dados.', 'info'); return; }
+        if (!currentData.realized.length && !currentData.provisioned.length) {
+            showToast('Sem dados.', 'info');
+            return;
+        }
         try {
-            // Export logic needs update for dual. Just exporting realized for now or flattening both.
-            // Simplest: Export Realized as main
-            const exporter = new ExcelExporter();
-            const mapData = (arr) => arr.map(node => ({ Nome: node.name, Total: node.total, ...node.monthlyTotals }));
+            const months = getMonthKeys();
+            const columns = [
+                { header: 'Categoria', key: 'name', width: 40 },
+                { header: 'Média', key: 'average', width: 18, type: 'currency' },
+                { header: 'Total', key: 'total', width: 18, type: 'currency' },
+                ...months.map(m => {
+                    const [y, mo] = m.split('-');
+                    return { header: `${mo}/${y}`, key: m, width: 15, type: 'currency' };
+                })
+            ];
 
-            // Maybe export 2 sheets? ExcelExporter might not support multple sheets easily. 
-            // Just export Realized
-            exporter.exportJsonToExcel(mapData(currentData.realized), `consolidadas_${viewType}_realizado`);
-        } catch (e) { console.error(e); }
+            // Flatten data for export
+            const flatten = (nodes, result = []) => {
+                nodes.forEach(node => {
+                    // Skip zero rows if not root (mirroring UI)
+                    const rootIds = ['saidas_root', 'producao_root', 'entradas_root', 'resultado_operacional_root', 'aportes_root', 'retiradas_root', 'emprestimos_root', 'pagamentos_emprestimos_root', 'fluxo_financeiro_root', 'lucro_bruto_root', 'margem_bruta_root', 'margem_operacional_root'];
+                    const isRoot = rootIds.includes(node.id);
+                    if (!isRoot && !node.isPercentage && Math.abs(node.total) < 0.01) return;
+
+                    const row = {
+                        name: node.name,
+                        total: node.total,
+                        average: node.isPercentage ? node.total : (months.length > 0 ? node.total / months.length : 0),
+                        ...node.monthlyTotals
+                    };
+                    result.push(row);
+                    if (node.children && node.children.length > 0) {
+                        flatten(node.children, result);
+                    }
+                });
+                return result;
+            };
+
+            const exportData = viewType === 'caixa'
+                ? flatten(currentData.realized)
+                : flatten(currentData.provisioned);
+
+            ExcelExporter.exportTable(
+                exportData,
+                columns,
+                `Excel ${viewType === 'caixa' ? 'Fluxo de Caixa' : 'DRE'}`,
+                `consolidadas_${viewType}`,
+                { freezeHeader: true }
+            );
+        } catch (e) {
+            console.error(e);
+            showToast('Erro ao exportar Excel', 'error');
+        }
     };
 
     const btnPdf = document.createElement('button');

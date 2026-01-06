@@ -17,7 +17,7 @@ export const ExcelExporter = {
         const HEADER_FILL = {
             type: 'pattern',
             pattern: 'solid',
-            fgColor: { argb: 'FF0F172A' } // Dark slate
+            fgColor: { argb: 'FF00425F' } // FOCCUS Primary Blue
         };
         const HEADER_FONT = {
             name: 'Arial',
@@ -147,7 +147,7 @@ export const ExcelExporter = {
         const HEADER_FILL = {
             type: 'pattern',
             pattern: 'solid',
-            fgColor: { argb: 'FF0F172A' } // Dark slate
+            fgColor: { argb: 'FF00425F' } // FOCCUS Primary Blue
         };
         const HEADER_FONT = {
             name: 'Arial',
@@ -237,8 +237,8 @@ export const ExcelExporter = {
             to: `${lastColChar}1`,
         };
 
-        // Freeze Header if requested
-        if (options.freezeHeader) {
+        // Freeze Header by default (unless explicitly false)
+        if (options.freezeHeader !== false) { // Changed to default true
             sheet.views = [
                 { state: 'frozen', ySplit: 1 }
             ];
@@ -362,10 +362,11 @@ export const ExcelExporter = {
 
             const row = sheet.addRow(rowData);
 
-            // Style Row
-            const rowStyle = index % 2 === 0 ? ROW_COLOR_EVEN : ROW_COLOR_ODD; // Alternating colors
+            // Style Row - Apply to all cells in column definition to ensure zebra works on empty cells
+            const rowStyle = index % 2 === 0 ? ROW_COLOR_EVEN : ROW_COLOR_ODD;
 
-            row.eachCell((cell, colNumber) => {
+            columns.forEach((columnDef, colIdx) => {
+                const cell = row.getCell(colIdx + 1);
                 cell.fill = rowStyle;
                 cell.border = BORDER_STYLE;
                 cell.font = {
@@ -373,26 +374,11 @@ export const ExcelExporter = {
                     color: { argb: 'FF1E293B' }
                 };
 
-                const columnDef = columns[colNumber - 1];
-
-                // TEST MODE: Apply formats to test columns
-                if (TEST_MODE && colNumber > columns.length) {
-                    const testColIdx = colNumber - columns.length - 1;
-                    if (testColIdx >= 0 && testColIdx < currencyFormats.length) {
-                        cell.numFmt = currencyFormats[testColIdx].pattern;
-                        cell.alignment = { vertical: 'middle', horizontal: 'right' };
-                        return; // Skip regular formatting for test columns
-                    }
-                }
-
-                // Apply number format based on type
+                // Alignment & Format logic
                 if (columnDef && columnDef.type === 'date') {
-                    // Brazilian date format: DD/MM/AAAA
                     cell.numFmt = 'dd/mm/yyyy';
                     cell.alignment = { vertical: 'middle', horizontal: 'center' };
                 } else if (columnDef && columnDef.type === 'currency') {
-                    // Brazilian currency format - F2: With space (tested and approved in production)
-                    // Format: "R$ " with space between symbol and value
                     cell.numFmt = '"R$ "* #,##0.00';
                     cell.alignment = { vertical: 'middle', horizontal: 'right' };
                 } else if (columnDef && (columnDef.key === 'active' || columnDef.type === 'center')) {

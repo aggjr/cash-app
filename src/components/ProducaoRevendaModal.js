@@ -14,7 +14,7 @@ export const ProducaoRevendaModal = {
                     document.body.appendChild(container);
                 }
 
-                const isEdit = income !== null;
+                const isEdit = producaoRevenda !== null;
                 let hasChanges = false;
 
                 // Mark as dirty helper
@@ -176,9 +176,9 @@ export const ProducaoRevendaModal = {
                                         <span id="boleto-placeholder-text" style="color: #9CA3AF; font-style: italic; font-size: 0.9rem;">
                                             ${producaoRevenda?.boleto_url ? '' : 'Clique no clipe para anexar...'}
                                         </span>
-                                        <a id="boleto-link" href="${producaoRevenda?.boleto_url ? API_BASE_URL + income.boleto_url : '#'}" target="_blank" 
+                                        <a id="boleto-link" href="${producaoRevenda?.boleto_url ? API_BASE_URL + producaoRevenda.boleto_url : '#'}" target="_blank" 
                                            style="display: ${producaoRevenda?.boleto_url ? 'block' : 'none'}; color: var(--color-primary); text-decoration: underline; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; font-size: 0.9rem;">
-                                           ${producaoRevenda?.boleto_url ? income.boleto_url.split('/').pop().split('-').slice(1).join('-') : ''}
+                                           ${producaoRevenda?.boleto_url ? producaoRevenda.boleto_url.split('/').pop().split('-').slice(1).join('-') : ''}
                                         </a>
                                     </div>
 
@@ -206,9 +206,9 @@ export const ProducaoRevendaModal = {
                                         <span id="placeholder-text" style="color: #9CA3AF; font-style: italic; font-size: 0.9rem;">
                                             ${producaoRevenda?.comprovante_url ? '' : 'Clique no clipe para anexar...'}
                                         </span>
-                                        <a id="file-link" href="${producaoRevenda?.comprovante_url ? API_BASE_URL + income.comprovante_url : '#'}" target="_blank" 
+                                        <a id="file-link" href="${producaoRevenda?.comprovante_url ? API_BASE_URL + producaoRevenda.comprovante_url : '#'}" target="_blank" 
                                            style="display: ${producaoRevenda?.comprovante_url ? 'block' : 'none'}; color: var(--color-primary); text-decoration: underline; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; font-size: 0.9rem;">
-                                           ${producaoRevenda?.comprovante_url ? income.comprovante_url.split('/').pop().split('-').slice(1).join('-') : ''}
+                                           ${producaoRevenda?.comprovante_url ? producaoRevenda.comprovante_url.split('/').pop().split('-').slice(1).join('-') : ''}
                                         </a>
                                     </div>
 
@@ -421,7 +421,7 @@ export const ProducaoRevendaModal = {
                 };
 
                 if (producaoRevenda?.valor !== undefined && producaoRevenda?.valor !== null) {
-                    valorInput.value = formatFloat(Number(income.valor));
+                    valorInput.value = formatFloat(Number(producaoRevenda.valor));
                 }
 
                 // On Focus: Show raw value for easy editing
