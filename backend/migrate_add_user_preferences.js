@@ -31,12 +31,11 @@ async function migrate() {
         }
 
         connection.release();
-        console.log('Migration completed successfully.');
-        process.exit(0);
+        console.log('✅ Migration completed: user_preferences');
     } catch (error) {
-        console.error('Migration failed:', error);
-        process.exit(1);
+        console.error('❌ Migration failed:', error);
+        throw error;
     }
 }
 
-migrate();
+module.exports = migrate;
