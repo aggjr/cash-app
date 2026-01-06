@@ -113,6 +113,7 @@ exports.listProjectUsers = async (req, res) => {
                 pu.status,
                 pu.invited_at,
                 pu.joined_at,
+                pu.company_id,
                 inviter.name as invited_by_name,
                 e.name as company_name,
                 e.cnpj as company_cnpj
