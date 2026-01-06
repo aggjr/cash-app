@@ -21,7 +21,10 @@ export const createTreeManager = (tableName, title, term = 'Categoria') => {
     // Filtering and search state
     let checkedNodes = new Set();
     let hideUnchecked = false;
+
     let searchQuery = '';
+
+    // screenSearchValue removed to prevent live state tracking issues
 
     // Helper to get Auth Headers
     const getHeaders = () => {
@@ -106,6 +109,9 @@ export const createTreeManager = (tableName, title, term = 'Categoria') => {
             if (loadingEl) loadingEl.style.display = 'none';
             if (containerEl) containerEl.style.display = 'block';
 
+            // Default: Select all nodes
+            toggleAllCheckboxes(true);
+
             renderTree();
         } catch (error) {
             console.error('Error loading tree data:', error);
@@ -162,8 +168,11 @@ export const createTreeManager = (tableName, title, term = 'Categoria') => {
         renderTree();
     };
 
-    const updateSearchQuery = (query) => {
-        searchQuery = query.toLowerCase();
+    const triggerSearch = () => {
+        const inputEl = document.getElementById(`search-input-${tableName}`);
+        if (inputEl) {
+            searchQuery = inputEl.value.toLowerCase();
+        }
 
         if (searchQuery) {
             // Auto-expand ancestors of matching nodes
@@ -495,31 +504,40 @@ export const createTreeManager = (tableName, title, term = 'Categoria') => {
         visibleRowIndex++;
         const rowClass = isEven ? 'row-even' : 'row-odd';
 
+        // Checkbox is ALWAYS on the far left. Content is indented.
+        // We removed margin-left from parent and will add padding-left to content wrapper.
+
         return `
-    <div class="tree-node" data-id="${node.id}" style="margin-left: ${level * 20}px">
+    <div class="tree-node" data-id="${node.id}">
       <div class="tree-node-content ${inactiveClass} ${rowClass} ${highlightClass}" draggable="${isActive}">
-        <input type="checkbox" 
-               class="node-checkbox" 
-               ${isChecked ? 'checked' : ''} 
-               onchange="window.treeActions_${tableName}.toggleCheckbox(${node.id}, this.checked)"
-               onclick="event.stopPropagation()"
-        />
-        <span class="node-toggle" onclick="window.treeActions_${tableName}.toggle(${node.id})">
-          ${hasChildren ? (node.expanded ? '▼' : '▶') : '•'}
-        </span>
-        <span class="node-icon">${hasChildren ? '📁' : '📄'}</span>
-        <span class="node-label" onclick="${isActive ? `window.treeActions_${tableName}.edit(${node.id})` : ''}">${node.label} ${!isActive ? '(Inativo)' : ''}</span>
-        <div class="node-actions">
-          ${isActive ? `
-            <button onclick="window.treeActions_${tableName}.outdent(${node.id})" title="Outdent (Left)" class="btn-arrow">⬅️</button>
-            <button onclick="window.treeActions_${tableName}.indent(${node.id})" title="Indent (Right)" class="btn-arrow">➡️</button>
-            <button onclick="window.treeActions_${tableName}.addChild(${node.id})" title="Add Sub-item">➕</button>
-            <button onclick="window.treeActions_${tableName}.edit(${node.id})" title="Edit">✏️</button>
-            <button onclick="window.treeActions_${tableName}.delete(${node.id})" title="Delete" class="btn-delete">🗑️</button>
-          ` : `
-            <button onclick="window.treeActions_${tableName}.reactivate(${node.id})" title="Reactivate" class="btn-reactivate">♻️</button>
-            <button onclick="window.treeActions_${tableName}.delete(${node.id})" title="Force Delete" class="btn-delete">🗑️</button>
-          `}
+        <div style="width: 20px; display: flex; justify-content: center; margin-right: 0.5rem; flex-shrink: 0;">
+            <input type="checkbox" 
+                   class="node-checkbox" 
+                   style="margin: 0;"
+                   ${isChecked ? 'checked' : ''} 
+                   onchange="window.treeActions_${tableName}.toggleCheckbox(${node.id}, this.checked)"
+                   onclick="event.stopPropagation()"
+            />
+        </div>
+        
+        <div style="flex: 1; display: flex; align-items: center; padding-left: ${level * 20}px;">
+            <span class="node-toggle" onclick="window.treeActions_${tableName}.toggle(${node.id})">
+              ${hasChildren ? (node.expanded ? '▼' : '▶') : '•'}
+            </span>
+            <span class="node-icon">${hasChildren ? '📁' : '📄'}</span>
+            <span class="node-label" onclick="${isActive ? `window.treeActions_${tableName}.edit(${node.id})` : ''}">${node.label} ${!isActive ? '(Inativo)' : ''}</span>
+            <div class="node-actions">
+              ${isActive ? `
+                <button onclick="window.treeActions_${tableName}.outdent(${node.id})" title="Outdent (Left)" class="btn-arrow">⬅️</button>
+                <button onclick="window.treeActions_${tableName}.indent(${node.id})" title="Indent (Right)" class="btn-arrow">➡️</button>
+                <button onclick="window.treeActions_${tableName}.addChild(${node.id})" title="Add Sub-item">➕</button>
+                <button onclick="window.treeActions_${tableName}.edit(${node.id})" title="Edit">✏️</button>
+                <button onclick="window.treeActions_${tableName}.delete(${node.id})" title="Delete" class="btn-delete">🗑️</button>
+              ` : `
+                <button onclick="window.treeActions_${tableName}.reactivate(${node.id})" title="Reactivate" class="btn-reactivate">♻️</button>
+                <button onclick="window.treeActions_${tableName}.delete(${node.id})" title="Force Delete" class="btn-delete">🗑️</button>
+              `}
+            </div>
         </div>
       </div>
       ${node.expanded && hasChildren ? `
@@ -555,38 +573,45 @@ export const createTreeManager = (tableName, title, term = 'Categoria') => {
       </div>
     </div>
     
-    <div class="tree-controls" style="display: flex; gap: 1rem; align-items: center; padding: 1rem; background: var(--color-bg-secondary); border-radius: 8px; margin-bottom: 1rem;">
+    <div class="tree-controls" style="display: flex; gap: 1rem; align-items: center; padding: 0.5rem var(--row-padding-horizontal); background: var(--color-bg-secondary); border-radius: 8px; margin-bottom: 1rem;">
       <div style="display: flex; align-items: center; gap: 0.5rem;">
-        <input type="checkbox" 
-               id="master-checkbox-${tableName}" 
-               ${allChecked ? 'checked' : ''}
-               onchange="window.treeActions_${tableName}.toggleAll(this.checked)"
-               style="cursor: pointer; width: 18px; height: 18px;"
-        />
+        <div style="width: 20px; display: flex; justify-content: center; flex-shrink: 0;">
+            <input type="checkbox" 
+                   id="master-checkbox-${tableName}" 
+                   ${allChecked ? 'checked' : ''}
+                   onchange="window.treeActions_${tableName}.toggleAll(this.checked)"
+                   style="cursor: pointer; width: 18px; height: 18px; margin: 0;"
+            />
+        </div>
         <label for="master-checkbox-${tableName}" style="cursor: pointer; font-weight: 500; margin: 0;">Selecionar Todos</label>
       </div>
-      
-      <div style="flex: 1; display: flex; align-items: center; gap: 0.5rem; position: relative;">
-        <span style="font-size: 1.2rem;">🔍</span>
+
+      <button class="btn-secondary" 
+              onclick="window.treeActions_${tableName}.toggleHide()"
+              title="Ocultar itens desmarcados da visualização"
+              style="white-space: nowrap; ${hideUnchecked ? 'background: var(--color-primary); color: white;' : ''}">
+        ${hideUnchecked ? '👁️ Mostrar Todos' : '🚫 Ocultar Desmarcados'}
+      </button>
+
+      <div style="flex: 1; display: flex; align-items: center; gap: 0.5rem; position: relative; border-left: 1px solid var(--color-border-light); padding-left: 1rem;">
+        <button onclick="window.treeActions_${tableName}.triggerSearch()" 
+                style="background: none; border: none; cursor: pointer; font-size: 1.2rem; padding: 0;"
+                title="Buscar">
+            🔍
+        </button>
         <input type="text" 
                id="search-input-${tableName}" 
                placeholder="Buscar..."
                value="${searchQuery}"
-               oninput="window.treeActions_${tableName}.search(this.value)"
+               onkeydown="if(event.key === 'Enter') window.treeActions_${tableName}.triggerSearch()"
                style="flex: 1; padding: 0.5rem; border: 1px solid var(--color-border-light); border-radius: 6px; font-size: 0.9rem;"
         />
         ${searchQuery ? `
-          <button onclick="window.treeActions_${tableName}.search('')" 
+          <button onclick="document.getElementById('search-input-${tableName}').value = ''; window.treeActions_${tableName}.triggerSearch();" 
                   style="position: absolute; right: 8px; background: none; border: none; cursor: pointer; font-size: 1.2rem; color: var(--color-text-muted);" 
                   title="Limpar busca">✕</button>
         ` : ''}
       </div>
-      
-      <button class="btn-secondary" 
-              onclick="window.treeActions_${tableName}.toggleHide()"
-              style="white-space: nowrap; ${hideUnchecked ? 'background: var(--color-primary); color: white;' : ''}">
-        ${hideUnchecked ? '👁️ Mostrar Todos' : '🚫 Ocultar Desmarcados'}
-      </button>
       
       <div style="font-size: 0.85rem; color: var(--color-text-muted); white-space: nowrap;">
         ${visibleNodes} de ${totalNodes} itens
@@ -674,7 +699,7 @@ export const createTreeManager = (tableName, title, term = 'Categoria') => {
                 outdent: outdentNode,
                 toggleCheckbox: toggleCheckbox,
                 toggleAll: toggleAllCheckboxes,
-                search: updateSearchQuery,
+                triggerSearch: triggerSearch,
                 toggleHide: toggleHideUnchecked,
                 print: () => {
                     PrintHelper.autoConfigureOrientation('#tree-container');

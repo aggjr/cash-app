@@ -695,10 +695,10 @@ button {
   flex-direction: column;
   gap: 0.25rem;
   margin-top: 0.25rem;
-  border-left: 1px solid var(--color-border-light);
-  margin-left: 11px !important;
+  /* border-left: 1px solid var(--color-border-light); */
+  margin-left: 0 !important;
   /* Align with toggle center */
-  padding-left: 0.5rem;
+  padding-left: 0;
 }
 
 .empty-state {
