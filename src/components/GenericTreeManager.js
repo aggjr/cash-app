@@ -106,11 +106,39 @@ export const createTreeManager = (tableName, title, term = 'Categoria') => {
             const flatData = await response.json();
             treeData = buildTree(flatData);
 
+            const savedSelection = localStorage.getItem(`checkedNodes-${tableName}`);
+            if (savedSelection) {
+                try {
+                    const savedIds = JSON.parse(savedSelection);
+                    if (Array.isArray(savedIds)) {
+                        // Fix: Match saved IDs against actual tree IDs to ensure correct type (string vs number)
+                        const allRealIds = getAllNodeIds(treeData);
+                        const restoredSet = new Set();
+
+                        savedIds.forEach(savedId => {
+                            // loose equality (==) handles potential string/number mismatch
+                            const match = allRealIds.find(realId => realId == savedId);
+                            if (match !== undefined) {
+                                restoredSet.add(match);
+                            }
+                        });
+
+                        checkedNodes = restoredSet;
+                        console.log(`Loaded ${checkedNodes.size} saved items for ${tableName}`);
+                    } else {
+                        toggleAllCheckboxes(true); // Fallback if invalid format
+                    }
+                } catch (e) {
+                    console.error("Error parsing saved selection", e);
+                    toggleAllCheckboxes(true); // Fallback on error
+                }
+            } else {
+                // Default: Select all nodes if no save exists
+                toggleAllCheckboxes(true);
+            }
+
             if (loadingEl) loadingEl.style.display = 'none';
             if (containerEl) containerEl.style.display = 'block';
-
-            // Default: Select all nodes
-            toggleAllCheckboxes(true);
 
             renderTree();
         } catch (error) {
@@ -617,16 +645,25 @@ export const createTreeManager = (tableName, title, term = 'Categoria') => {
       </button>
 
       <!-- Search Section: Fixed Width + Save View Button -->
-      <!-- Order: Input -> Mag -> Clear -> Save -->
+      <!-- Order: [Input + X] -> Mag -> Save -->
       <div style="display: flex; align-items: center; gap: 0.5rem; position: relative; border-left: 1px solid var(--color-border-light); padding-left: 1rem;">
         
-        <input type="text" 
-               id="search-input-${tableName}" 
-               placeholder="Buscar..."
-               value="${searchQuery}"
-               onkeydown="if(event.key === 'Enter') window.treeActions_${tableName}.triggerSearch()"
-               style="width: 350px; padding: 0.5rem; border: 1px solid var(--color-border-light); border-radius: 6px; font-size: 0.9rem;"
-        />
+        <div style="position: relative; display: flex; align-items: center;">
+            <input type="text" 
+                   id="search-input-${tableName}" 
+                   placeholder="Buscar..."
+                   value="${searchQuery}"
+                   onkeydown="if(event.key === 'Enter') window.treeActions_${tableName}.triggerSearch()"
+                   style="width: 350px; padding: 0.5rem 2.5rem 0.5rem 0.5rem; border: 1px solid var(--color-border-light); border-radius: 6px; font-size: 0.9rem;"
+            />
+            ${searchQuery ? `
+              <button onclick="document.getElementById('search-input-${tableName}').value = ''; window.treeActions_${tableName}.triggerSearch();" 
+                      style="position: absolute; right: 5px; top: 50%; transform: translateY(-50%); background: none; border: none; cursor: pointer; color: var(--color-text-muted); font-size: 1rem; display: flex; align-items: center; justify-content: center; width: 24px; height: 24px;" 
+                      title="Limpar busca">
+                  ✕
+              </button>
+            ` : ''}
+        </div>
 
         <button onclick="window.treeActions_${tableName}.triggerSearch()" 
                 class="btn-secondary"
@@ -634,15 +671,6 @@ export const createTreeManager = (tableName, title, term = 'Categoria') => {
                 title="Buscar">
             🔍
         </button>
-
-        ${searchQuery ? `
-          <button onclick="document.getElementById('search-input-${tableName}').value = ''; window.treeActions_${tableName}.triggerSearch();" 
-                  class="btn-secondary"
-                  style="padding: 0.5rem; min-width: 36px; color: var(--color-text-muted); display: flex; justify-content: center; align-items: center;" 
-                  title="Limpar busca">
-              ✕
-          </button>
-        ` : ''}
 
         <button onclick="window.treeActions_${tableName}.saveView()" 
                 class="btn-secondary"
