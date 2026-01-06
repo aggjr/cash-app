@@ -79,6 +79,7 @@ export const IncomeModal = {
 
                 const overlay = document.createElement('div');
                 overlay.className = 'dialog-overlay';
+                overlay.style.zIndex = '1000'; // Main modal - lowest layer
 
                 const modal = document.createElement('div');
                 modal.className = 'account-modal animate-float-in';
