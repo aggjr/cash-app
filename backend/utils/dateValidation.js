@@ -1,4 +1,5 @@
 const db = require('../config/database');
+const { getBusinessDaysDifference, addBusinessDays } = require('./businessDaysUtils');
 
 /**
  * Validates if a date is within the allowed range based on system settings
@@ -77,20 +78,35 @@ async function validateDateWithinRange(dateToValidate, projectId, userRole = 'us
             };
         }
 
-        // Rule 2: Cannot be older than (today - numero_dias)
-        const minDate = new Date(now);
-        minDate.setDate(minDate.getDate() - config.numero_dias);
+        // Rule 2: Cannot be older than (today - numero_dias BUSINESS DAYS)
+        // Calculate business days difference between provided date and today
+        const businessDaysDiff = getBusinessDaysDifference(dateOnly, now);
 
-        if (dateOnly < minDate) {
-            const minDateStr = minDate.toLocaleDateString('pt-BR');
+        // If the difference is greater than allowed business days, reject
+        if (businessDaysDiff > config.numero_dias) {
+            // Calculate the minimum allowed date (going back N business days from today)
+            const minDate = new Date(now);
+            // Go back to find the date that is exactly numero_dias business days ago
+            let daysBack = 0;
+            let tempDate = new Date(now);
+            while (daysBack < config.numero_dias) {
+                tempDate.setDate(tempDate.getDate() - 1);
+                const { isBusinessDay } = require('./businessDaysUtils');
+                if (isBusinessDay(tempDate)) {
+                    daysBack++;
+                }
+            }
+
+            const minDateStr = tempDate.toLocaleDateString('pt-BR');
             return {
                 isValid: false,
-                error: `Data fora do período permitido. Permitido: de ${minDateStr} até hoje`,
+                error: `Data fora do período permitido. Permitido: de ${minDateStr} até hoje (${config.numero_dias} dias úteis)`,
                 details: {
-                    minDate: minDate,
+                    minDate: tempDate,
                     maxDate: now,
                     providedDate: dateOnly,
-                    numeroDias: config.numero_dias
+                    numeroDiasUteis: config.numero_dias,
+                    businessDaysDiff: businessDaysDiff
                 }
             };
         }
@@ -100,9 +116,9 @@ async function validateDateWithinRange(dateToValidate, projectId, userRole = 'us
             isValid: true,
             error: null,
             details: {
-                minDate: minDate,
                 maxDate: now,
-                unlocked: false
+                unlocked: false,
+                businessDaysDiff: businessDaysDiff
             }
         };
 
