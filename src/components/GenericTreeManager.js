@@ -394,6 +394,13 @@ export const createTreeManager = (tableName, title, term = 'Categoria') => {
         }
     };
 
+    // This object is likely window.treeActions_${tableName}
+    // Adding saveView here as per the instruction's context.
+    // The instruction implies this function is part of an existing object,
+    // and the snippet shows it being defined before outdentNode.
+    // Assuming it's part of the global treeActions object.
+
+
     const outdentNode = async (id) => {
         try {
             const findParentAndIndex = (nodes, targetId, parent = null, grandparent = null) => {
@@ -610,29 +617,37 @@ export const createTreeManager = (tableName, title, term = 'Categoria') => {
       </button>
 
       <!-- Search Section: Fixed Width + Save View Button -->
+      <!-- Order: Input -> Mag -> Clear -> Save -->
       <div style="display: flex; align-items: center; gap: 0.5rem; position: relative; border-left: 1px solid var(--color-border-light); padding-left: 1rem;">
-        <button onclick="window.treeActions_${tableName}.triggerSearch()" 
-                style="background: none; border: none; cursor: pointer; font-size: 1.2rem; padding: 0;"
-                title="Buscar">
-            🔍
-        </button>
+        
         <input type="text" 
                id="search-input-${tableName}" 
                placeholder="Buscar..."
                value="${searchQuery}"
                onkeydown="if(event.key === 'Enter') window.treeActions_${tableName}.triggerSearch()"
-               style="width: 250px; padding: 0.5rem; border: 1px solid var(--color-border-light); border-radius: 6px; font-size: 0.9rem;"
+               style="width: 350px; padding: 0.5rem; border: 1px solid var(--color-border-light); border-radius: 6px; font-size: 0.9rem;"
         />
+
+        <button onclick="window.treeActions_${tableName}.triggerSearch()" 
+                class="btn-secondary"
+                style="padding: 0.5rem; min-width: 36px; display: flex; justify-content: center; align-items: center;"
+                title="Buscar">
+            🔍
+        </button>
+
         ${searchQuery ? `
           <button onclick="document.getElementById('search-input-${tableName}').value = ''; window.treeActions_${tableName}.triggerSearch();" 
-                  style="position: absolute; right: 45px; background: none; border: none; cursor: pointer; font-size: 1.2rem; color: var(--color-text-muted);" 
-                  title="Limpar busca">✕</button>
+                  class="btn-secondary"
+                  style="padding: 0.5rem; min-width: 36px; color: var(--color-text-muted); display: flex; justify-content: center; align-items: center;" 
+                  title="Limpar busca">
+              ✕
+          </button>
         ` : ''}
 
         <button onclick="window.treeActions_${tableName}.saveView()" 
                 class="btn-secondary"
-                style="padding: 0.5rem 0.5rem; margin-left: 5px;"
-                title="Salvar Visualização Atual">
+                style="padding: 0.5rem; min-width: 36px; margin-left: 5px; display: flex; justify-content: center; align-items: center;"
+                title="Salvar Visualização Padrão">
           💾
         </button>
       </div>
@@ -733,7 +748,22 @@ export const createTreeManager = (tableName, title, term = 'Categoria') => {
                     PrintHelper.autoConfigureOrientation('#tree-container');
                     window.print();
                 },
-                export: exportToCSV
+                export: exportToCSV,
+                // Save current view (selection) to localStorage
+                saveView: () => {
+                    try {
+                        const selection = Array.from(checkedNodes);
+                        localStorage.setItem(`saved_tree_selection_${tableName}`, JSON.stringify(selection));
+                        if (typeof Dialogs !== 'undefined' && Dialogs.alert) {
+                            Dialogs.alert('A visualização atual foi salva e será usada como padrão na próxima vez que você abrir esta tela.', 'Visualização Padrão Atualizada');
+                        } else {
+                            alert('Visualização salva com sucesso!');
+                        }
+                    } catch (error) {
+                        console.error('Erro ao salvar visualização:', error);
+                        alert('Erro ao salvar visualização. Verifique o console.');
+                    }
+                }
             };
 
             loadTreeData();
