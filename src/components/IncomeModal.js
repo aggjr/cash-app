@@ -381,6 +381,21 @@ export const IncomeModal = {
                             });
                             if (res.ok) {
                                 tipoEntradas = await res.json();
+
+                                // Reload allowedIds from localStorage after management modal closes
+                                const savedView = localStorage.getItem('saved_tree_selection_tipo_entrada');
+                                if (savedView) {
+                                    try {
+                                        const parsed = JSON.parse(savedView);
+                                        allowedIds = parsed.checkedNodes || null;
+                                    } catch (e) {
+                                        console.error('Error parsing saved view for selector', e);
+                                        allowedIds = null;
+                                    }
+                                } else {
+                                    allowedIds = null;
+                                }
+
                                 renderTree();
                             }
                         } catch (err) {
