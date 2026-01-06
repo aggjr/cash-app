@@ -609,7 +609,8 @@ export const createTreeManager = (tableName, title, term = 'Categoria') => {
         ${hideUnchecked ? '👁️ Mostrar Todos' : '🚫 Ocultar Desmarcados'}
       </button>
 
-      <div style="flex: 1; display: flex; align-items: center; gap: 0.5rem; position: relative; border-left: 1px solid var(--color-border-light); padding-left: 1rem;">
+      <!-- Search Section: Fixed Width + Save View Button -->
+      <div style="display: flex; align-items: center; gap: 0.5rem; position: relative; border-left: 1px solid var(--color-border-light); padding-left: 1rem;">
         <button onclick="window.treeActions_${tableName}.triggerSearch()" 
                 style="background: none; border: none; cursor: pointer; font-size: 1.2rem; padding: 0;"
                 title="Buscar">
@@ -620,23 +621,32 @@ export const createTreeManager = (tableName, title, term = 'Categoria') => {
                placeholder="Buscar..."
                value="${searchQuery}"
                onkeydown="if(event.key === 'Enter') window.treeActions_${tableName}.triggerSearch()"
-               style="flex: 1; padding: 0.5rem; border: 1px solid var(--color-border-light); border-radius: 6px; font-size: 0.9rem;"
+               style="width: 250px; padding: 0.5rem; border: 1px solid var(--color-border-light); border-radius: 6px; font-size: 0.9rem;"
         />
         ${searchQuery ? `
           <button onclick="document.getElementById('search-input-${tableName}').value = ''; window.treeActions_${tableName}.triggerSearch();" 
-                  style="position: absolute; right: 8px; background: none; border: none; cursor: pointer; font-size: 1.2rem; color: var(--color-text-muted);" 
+                  style="position: absolute; right: 45px; background: none; border: none; cursor: pointer; font-size: 1.2rem; color: var(--color-text-muted);" 
                   title="Limpar busca">✕</button>
         ` : ''}
+
+        <button onclick="window.treeActions_${tableName}.saveView()" 
+                class="btn-secondary"
+                style="padding: 0.5rem 0.5rem; margin-left: 5px;"
+                title="Salvar Visualização Atual">
+          💾
+        </button>
       </div>
       
-      <div style="font-size: 0.85rem; color: var(--color-text-muted); white-space: nowrap;">
+      <div style="flex: 1; text-align: right; font-size: 0.85rem; color: var(--color-text-muted); white-space: nowrap;">
         ${visibleNodes} de ${totalNodes} itens
       </div>
     </div>
     
     <div class="tree-wrapper" id="tree-root-dropzone">
       ${hideUnchecked
+                // If filtering unchecked, show flattened list of selected leaves (no folders)
                 ? getVisibleLeaves(treeData).map(node => renderNode(node, 0)).join('')
+                // Otherwise normal hierarchical tree
                 : treeData.map(node => renderNode(node)).join('')}
       ${(hideUnchecked ? getVisibleLeaves(treeData).length : treeData.length) === 0 ? 'Nenhum item cadastrado' : ''}
     </div>
