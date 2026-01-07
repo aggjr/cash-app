@@ -1791,6 +1791,15 @@ Digite 1, 2 ou 3.`;
         flowType: null // 'NAVIGATION_ONLY', 'DATA_SEEKING', 'ACTION_EXECUTION'
     };
 
+    // --- Conversational Learning State (Phase 4) ---
+    const learningState = {
+        active: false,
+        step: null, // 'SCREEN_CONFIRMATION' | 'DATA_LOCATION' | 'EXTRACTION_METHOD'
+        context: null,
+        awaitingResponse: false,
+        attemptedActions: []
+    };
+
     const stopAutonomousLoop = () => {
         if (loopState.active) {
             console.log('[IVA Loop] 🛑 STOPPING AUTONOMOUS LOOP (User control assumed)');
@@ -2124,8 +2133,46 @@ Digite 1, 2 ou 3.`;
                 { discoveredActions: actionsForLLM }
             );
 
+
             if (actionDecision.action === 'NO_SUITABLE_ACTION') {
                 console.log(`[IVA Extract/Act] ⚠️ LLM found no suitable action`);
+
+                // PHASE 4: Enter Conversational Learning Mode
+                if (!learningState.active) {
+                    console.log('[IVA Learning] 🎓 Entering conversational learning mode');
+
+                    learningState.active = true;
+                    learningState.step = 'DATA_LOCATION';
+                    learningState.context = {
+                        query: userQuery,
+                        screen: screenId,
+                        attemptedActions: discoveredActions.map(a => ({
+                            id: a.id,
+                            type: a.type,
+                            label: a.label
+                        }))
+                    };
+                    learningState.awaitingResponse = true;
+
+                    // Stop autonomous loop
+                    loopState.active = false;
+
+                    // Ask user for guidance
+                    const question = `Estou na tela "${screenId}" procurando por "${userQuery}", mas não encontrei uma ação adequada.
+                    
+Você pode me ajudar? Onde exatamente está essa informação?
+
+Por exemplo:
+• "Na tabela, coluna X, linha Y"
+• "No card de resumo no topo"
+• "Precisa aplicar filtro primeiro"`;
+
+                    addMessage('ai', question);
+                    speak(question);
+
+                    return { success: false, reason: 'LEARNING_MODE_ACTIVATED' };
+                }
+
                 return { success: false, reason: 'NO_SUITABLE_ACTION' };
             }
 
