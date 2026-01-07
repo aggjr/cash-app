@@ -48,12 +48,21 @@ const IntentClassifier = {
             };
         }
 
-        // 3. GRATITUDE & CASUAL (Low Priority)
-        if (/(obrigad|valeu|legal|show|massa|top|bacana|ótimo|otimo|perfeito|maravilha)/i.test(msg)) {
+        // 3. CONFIRMATIONS (High Priority - "sim", "ok", etc)
+        if (/^(sim|s|ok|beleza|show|ótimo|otimo|perfeito|maravilha|isso|exato|correto|certo)(\s|$|,|!)/i.test(msg)) {
+            return {
+                type: 'CONFIRMATION',
+                priority: 'HIGH',
+                context: 'User is confirming or agreeing'
+            };
+        }
+
+        // 4. GRATITUDE & CASUAL (Low Priority)
+        if (/(obrigad|valeu|legal|bacana)/i.test(msg)) {
             return {
                 type: 'GRATITUDE',
                 priority: 'LOW',
-                context: 'User is expressing gratitude or approval'
+                context: 'User is expressing gratitude or appreciation'
             };
         }
 
@@ -119,6 +128,7 @@ const IntentClassifier = {
             'GREETING': 0.9,      // More creative for greetings
             'FAREWELL': 0.9,      // More creative for farewells
             'GRATITUDE': 0.9,     // More creative for casual
+            'CONFIRMATION': 0.3,  // Focused for confirmations
             'IDENTITY': 0.7,      // Moderate for identity
             'CORRECTION': 0.5,    // More focused for corrections
             'LEARNING': 0.8,      // Creative but focused
@@ -139,6 +149,7 @@ const IntentClassifier = {
             'GREETING': 50,       // Very short
             'FAREWELL': 50,       // Very short
             'GRATITUDE': 50,      // Very short
+            'CONFIRMATION': 50,   // Very short
             'IDENTITY': 100,      // Short
             'CORRECTION': 100,    // Short
             'LEARNING': 300,      // Response for learning confirmation

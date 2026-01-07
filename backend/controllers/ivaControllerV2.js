@@ -112,6 +112,9 @@ Confirme de forma clara e natural que você aprendeu.
             case 'GREETING':
                 systemPrompt = ContextualPrompts.greeting(userData, timeOfDay);
                 break;
+            case 'CONFIRMATION':
+                systemPrompt = ContextualPrompts.confirmation(userData);
+                break;
             case 'FAREWELL':
                 systemPrompt = ContextualPrompts.farewell(userData);
                 break;
@@ -399,6 +402,11 @@ const operate = async (req, res) => {
             screenDataContext // Screen data formatted for LLM
             // Note: discoveredKnowledge will be integrated in future update to buildUnifiedContext
         );
+
+        // Append greeting frequency info
+        if (req.body.isFirstGreetingOfDay === false) {
+            systemPrompt += "\nRESTRIÇÃO DE HOJE: Você já cumprimentou o usuário hoje. EVITE o uso de 'Olá' ou a palavra 'hoje' nesta mensagem.\n";
+        }
 
         // ADD INTENT CLASSIFICATION INSTRUCTION
         systemPrompt += `

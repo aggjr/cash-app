@@ -75,7 +75,8 @@ export const IvaService = {
                         ivaVoiceRate: user?.iva_voice_rate || 70,
                         ivaVoiceMale: user?.iva_voice_male || 0,
                         ivaVoiceEnabled: user?.iva_voice_enabled !== 0
-                    }
+                    },
+                    isFirstGreetingOfDay: context.isFirstGreetingOfDay // Pass greeting frequency flag
                 })
             });
 

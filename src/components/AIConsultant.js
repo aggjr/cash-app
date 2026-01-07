@@ -1040,8 +1040,13 @@ Digite 1, 2 ou 3.`;
 
             // Auto-greeting logic
             const hasGreetedKey = 'IVA_has_greeted_session_' + (user?.id || 'anon');
+            const lastGreetingDateKey = 'IVA_last_greeting_date_' + (user?.id || 'anon');
             const lastLoginKey = 'IVA_last_login_' + (user?.id || 'anon');
+
             const hasGreeted = sessionStorage.getItem(hasGreetedKey);
+            const today = new Date().toISOString().split('T')[0];
+            const lastGreetingDate = localStorage.getItem(lastGreetingDateKey);
+            const isFirstGreetingOfDay = lastGreetingDate !== today;
 
             // Always greet when opening chat, but style differs
             const isFirstSessionInteraction = !hasGreeted && messages.length === 0;
@@ -1052,6 +1057,7 @@ Digite 1, 2 ou 3.`;
                 if (isFirstSessionInteraction) {
                     console.log('[IVA] First open in session - full welcome');
                     sessionStorage.setItem(hasGreetedKey, 'true');
+                    localStorage.setItem(lastGreetingDateKey, today);
                 } else {
                     console.log('[IVA] Chat reopened - short greeting');
                 }
@@ -1116,7 +1122,10 @@ Digite 1, 2 ou 3.`;
                     };
 
                     try {
-                        const decision = await IvaService.decideOperation('IVA_AUTO_GREETING', context);
+                        const decision = await IvaService.decideOperation('IVA_AUTO_GREETING', {
+                            ...context,
+                            isFirstGreetingOfDay
+                        });
 
                         if (thinkingMsg.parentNode) thinkingMsg.parentNode.removeChild(thinkingMsg);
 
@@ -1594,6 +1603,26 @@ Digite 1, 2 ou 3.`;
         setTimeout(async () => {
             loadingDiv.remove();
 
+            // Handle Navigation Confirmation
+            if (pendingAction === 'nav_confirm') {
+                const isPositive = IvaConversation.isPositiveResponse(text);
+                if (isPositive) {
+                    const msg = "Ótimo! Fico feliz que encontrei o que você procurava. O que você gostaria de analisar ou fazer nesta tela?";
+                    addMessage('ai', msg);
+                    speak(msg);
+                    pendingAction = null;
+                    return;
+                } else if (IvaConversation.isNegativeResponse(text)) {
+                    const msg = "Entendi. Desculpe por não ser o que você esperava. O que você gostaria de ver então? Posso tentar buscar de outra forma.";
+                    addMessage('ai', msg);
+                    speak(msg);
+                    pendingAction = null;
+                    return;
+                }
+                // If not clearly positive/negative, let LLM handle it but clear lock
+                pendingAction = null;
+            }
+
             // Handle Tour Offer
             if (pendingAction === 'tour_offer') {
                 const choice = text.trim();
@@ -1862,6 +1891,8 @@ Digite 1, 2 ou 3.`;
         addMessage('ai', confirmMsg);
         speak(confirmMsg);
 
+        pendingAction = 'nav_confirm';
+
         // RECORD LEARNING
         await IvaLearning.recordMenuKnowledge(
             userQuery,
@@ -2029,6 +2060,7 @@ Digite 1, 2 ou 3.`;
                 speak(dataDecision.message);
 
                 addMessage('ai', 'Isso responde sua pergunta?');
+                pendingAction = 'nav_confirm';
                 loopState.awaitingUserResponse = true;
 
                 // RECORD DATA LEARNING

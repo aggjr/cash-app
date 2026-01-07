@@ -66,6 +66,7 @@ Sua função é entender a necessidade do usuário e transformá-la em AÇÕES (
         language: 'português brasileiro formal',
         response_length: 'Máximo 2-3 parágrafos para respostas normais',
         uncertainty: 'Se não souber algo, seja honesta e sugira consultar documentação ou administrador',
-        formatting: 'Use formatação clara com quebras de linha quando apropriado'
+        formatting: 'Use formatação clara com quebras de linha quando apropriado',
+        greeting_frequency: 'Interjeições como "Olá" e palavras temporais como "hoje" devem ser usadas apenas uma vez por dia por usuário. Se não for o primeiro contato do dia, evite saudações repetitivas.'
     }
 };
