@@ -1,35 +1,28 @@
-const mysql = require('mysql2/promise');
-const dbConfig = require('./config/database');
+const db = require('./config/db');
 
 async function migrate() {
-    const connection = await mysql.createConnection(dbConfig);
-
     try {
         console.log('Creating iva_usage_tracking table...');
 
-        await connection.query(`
+        await db.query(`
       CREATE TABLE IF NOT EXISTS iva_usage_tracking (
         id INT PRIMARY KEY AUTO_INCREMENT,
         user_id INT NOT NULL,
         project_id INT NOT NULL,
         interaction_type ENUM('chat', 'operate', 'learn') NOT NULL,
         
-        -- Token usage
         prompt_tokens INT NOT NULL,
         completion_tokens INT NOT NULL,
         total_tokens INT NOT NULL,
         
-        -- Cost calculation
         prompt_cost DECIMAL(10, 6) NOT NULL,
         completion_cost DECIMAL(10, 6) NOT NULL,
         total_cost DECIMAL(10, 6) NOT NULL,
         
-        -- Context
         model VARCHAR(50) DEFAULT 'gpt-4o-mini',
         has_knowledge BOOLEAN DEFAULT false,
         knowledge_size INT DEFAULT 0,
         
-        -- Metadata
         created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
         
         INDEX idx_user (user_id),
@@ -43,22 +36,14 @@ async function migrate() {
       ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci
     `);
 
-        console.log('✅ Table created successfully!');
+        console.log('✅ Table iva_usage_tracking created successfully!');
 
     } catch (error) {
-        console.error('❌ Migration failed:', error);
+        console.error('❌ Migration failed:', error.message);
         throw error;
     } finally {
-        await connection.end();
+        process.exit(0);
     }
 }
 
-migrate()
-    .then(() => {
-        console.log('Migration completed!');
-        process.exit(0);
-    })
-    .catch(err => {
-        console.error('Migration error:', err);
-        process.exit(1);
-    });
+migrate();
