@@ -1,5 +1,6 @@
 const fs = require('fs').promises;
 const path = require('path');
+const vectorService = require('./VectorSearchService');
 
 /**
  * IVA Global Knowledge Manager
@@ -148,7 +149,39 @@ class IvaGlobalKnowledge {
         knowledge.total_interactions++;
         await this.save(knowledge);
 
+        // Sync with Qdrant in background
+        this.syncWithQdrant(type, newItem || existing, userId).catch(err =>
+            console.error('[IVA Knowledge] Qdrant sync failed:', err.message)
+        );
+
         return { success: true };
+    }
+
+    /**
+     * Sync knowledge item with Qdrant
+     */
+    static async syncWithQdrant(type, item, userId) {
+        let textToEmbed = '';
+        if (type === 'menus') {
+            textToEmbed = `Menu/Tela ${item.screen_id}: ${this.getAllKeywords(item.keywords).join(', ')}. Objetivo: ${item.purpose || ''}`;
+        } else if (type === 'actions') {
+            textToEmbed = `Ação [${item.screen_id}] ${item.action_type}: ${this.getAllKeywords(item.keywords).join(', ')}. Descrição: ${item.description || ''}`;
+        } else if (type === 'custom_rules') {
+            textToEmbed = `Regra Aprendida: ${item.description}`;
+        }
+
+        if (!textToEmbed) return;
+
+        const metadata = {
+            source: 'json_global',
+            category: type,
+            screen_id: item.screen_id,
+            action_id: item.action_id,
+            user_id: userId
+        };
+
+        const qdrantId = `global_${type}_${item.screen_id || item.action_id || Math.random().toString(36).substring(7)}`;
+        await vectorService.upsertKnowledge(qdrantId, textToEmbed, metadata);
     }
 
     /**

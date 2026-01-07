@@ -1,6 +1,7 @@
 {
   "name": "cash-backend",
   "version": "1.0.0",
+  "type": "commonjs",
   "description": "Backend API for CASH Application",
   "main": "server.js",
   "scripts": {

@@ -8,6 +8,7 @@
  */
 
 const db = require('../config/database');
+const vectorService = require('./VectorSearchService');
 
 class IvaKnowledgeManager {
 
@@ -68,6 +69,11 @@ class IvaKnowledgeManager {
         // Registrar auditoria
         await this.logAudit(result.insertId, 'LEARN', null, knowledge_value, userId);
 
+        // Sync with Qdrant
+        this.syncWithQdrant({ ...knowledgeData, id: result.insertId }).catch(err =>
+            console.error('[IVA Knowledge] Qdrant sync failed:', err.message)
+        );
+
         console.log(`[IVA Knowledge] LEARNED: ${knowledge_key} at ${layer_type}/${knowledge_type}`);
 
         return {
@@ -112,6 +118,11 @@ class IvaKnowledgeManager {
 
         // Registrar auditoria
         await this.logAudit(knowledgeId, 'RELEARN', oldValue, newValue, userId, reason);
+
+        // Sync with Qdrant
+        this.syncWithQdrant({ ...current, knowledge_value: newValue }).catch(err =>
+            console.error('[IVA Knowledge] Qdrant sync failed:', err.message)
+        );
 
         console.log(`[IVA Knowledge] RELEARNED: ${current.knowledge_key} (v${current.version + 1})`);
 
@@ -169,6 +180,11 @@ class IvaKnowledgeManager {
             reason
         );
 
+        // Delete from Qdrant
+        vectorService.deleteKnowledge(`layer_${knowledgeId}`).catch(err =>
+            console.error('[IVA Knowledge] Qdrant delete failed:', err.message)
+        );
+
         console.log(`[IVA Knowledge] UNLEARNED: ${knowledge.knowledge_key}`);
 
         return {
@@ -183,7 +199,40 @@ class IvaKnowledgeManager {
     async resolve(query, context) {
         const { userId, companyId, sectorId, moduleCode, knowledgeType } = context;
 
-        // Busca em cascata (do mais específico ao mais geral)
+        // 1. Tentar busca semântica no Qdrant primeiro (mais inteligente)
+        try {
+            const semanticResults = await vectorService.search(query, {
+                knowledge_type: knowledgeType,
+                // Filtros de hierarquia seriam complexos aqui, vamos filtrar no código
+            }, 10);
+
+            // Filtrar resultados semânticos pela hierarquia permitida
+            for (const result of semanticResults) {
+                if (result.source === 'mysql_layers') {
+                    const isGlobal = result.layer_type === 'GLOBAL';
+                    const isModule = result.layer_type === 'MODULE' && result.module_code === moduleCode;
+                    const isCompany = result.layer_type === 'COMPANY' && result.company_id === companyId;
+                    const isSector = result.layer_type === 'SECTOR' && result.company_id === companyId && result.sector_id === sectorId;
+                    const isUser = result.layer_type === 'USER' && result.user_id === userId;
+
+                    if (isGlobal || isModule || isCompany || isSector || isUser) {
+                        console.log(`[IVA Knowledge] Resolved semanticly from ${result.layer_type}/${result.knowledge_type}`);
+                        return {
+                            ...result,
+                            knowledge_value: JSON.parse(result.text.split(': ')[1]) // Recuperar valor do texto (simplificado)
+                        };
+                    }
+                } else if (result.source === 'json_global') {
+                    // Global JSON knowledge is always accessible
+                    console.log(`[IVA Knowledge] Resolved semanticly from JSON/${result.category}`);
+                    return result;
+                }
+            }
+        } catch (err) {
+            console.error('[IVA Knowledge] Semantic search failed, falling back to MySQL:', err.message);
+        }
+
+        // 2. Busca em cascata tradicional (fallback ou exata)
         const searchPaths = [
             { layer: 'USER', filters: { user_id: userId } },
             { layer: 'SECTOR', filters: { company_id: companyId, sector_id: sectorId } },
@@ -315,6 +364,25 @@ class IvaKnowledgeManager {
                 last_used_at = NOW()
             WHERE id = ?
         `, [knowledgeId]);
+    }
+
+    /**
+     * Sincronizar com Qdrant
+     */
+    async syncWithQdrant(item) {
+        const textToEmbed = `${item.knowledge_key}: ${JSON.stringify(item.knowledge_value)}`;
+        const metadata = {
+            source: 'mysql_layers',
+            original_id: item.id,
+            layer_type: item.layer_type,
+            knowledge_type: item.knowledge_type,
+            user_id: item.user_id,
+            company_id: item.company_id,
+            module_code: item.module_code
+        };
+
+        const qdrantId = `layer_${item.id}`;
+        await vectorService.upsertKnowledge(qdrantId, textToEmbed, metadata);
     }
 }
 
