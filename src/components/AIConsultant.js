@@ -1973,11 +1973,11 @@ Digite 1, 2 ou 3.`;
         });
         console.log('[IVA Data Flow] ====================================');
 
-        // Try each screen until we find data (LIMITED TO 2 SCREENS MAX)
-        const screensToTry = rankedScreens.slice(0, 2); // LIMIT: Only try top 2 most relevant screens
-        console.log(`[IVA Data Flow] Will try ${screensToTry.length} screens (max 2)`);
+        // Try screens by relevance (interactive approach)
+        // IVA will try the most relevant screen first, then ask user before trying next
+        console.log(`[IVA Data Flow] Found ${rankedScreens.length} relevant screens (>30% relevance)`);
 
-        for (const screen of screensToTry) {
+        for (const screen of rankedScreens) {
             if (!loopState.active) {
                 console.log('[IVA Data Flow] 🛑 Loop cancelled, stopping search.');
                 return;
