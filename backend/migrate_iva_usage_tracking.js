@@ -29,10 +29,7 @@ async function migrate() {
         INDEX idx_project (project_id),
         INDEX idx_user_project (user_id, project_id),
         INDEX idx_date (created_at),
-        INDEX idx_type (interaction_type),
-        
-        FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE,
-        FOREIGN KEY (project_id) REFERENCES projects(id) ON DELETE CASCADE
+        INDEX idx_type (interaction_type)
       ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci
     `);
 
