@@ -4,14 +4,14 @@
  * Used for GUIDE action to teach users how to perform tasks
  */
 
-class IvaHighlighter {
-    static activeHighlights = [];
-    static stylesInitialized = false;
+export const IvaHighlighter = {
+    activeHighlights: [],
+    stylesInitialized: false,
 
     /**
      * Initialize CSS styles for highlights
      */
-    static initStyles() {
+    initStyles() {
         if (this.stylesInitialized) return;
 
         const style = document.createElement('style');
@@ -91,12 +91,12 @@ class IvaHighlighter {
         `;
         document.head.appendChild(style);
         this.stylesInitialized = true;
-    }
+    },
 
     /**
      * Highlight multiple elements with step numbers
      */
-    static highlightSteps(highlights) {
+    highlightSteps(highlights) {
         console.log('[IvaHighlighter] Highlighting', highlights.length, 'steps');
         this.initStyles();
         this.clearAll();
@@ -113,12 +113,12 @@ class IvaHighlighter {
             document.body.appendChild(overlay);
             this.activeHighlights.push(overlay);
         });
-    }
+    },
 
     /**
      * Create highlight overlay
      */
-    static createOverlay(rect, stepNumber, tooltip) {
+    createOverlay(rect, stepNumber, tooltip) {
         const overlay = document.createElement('div');
         overlay.className = 'IVA-highlight-overlay';
         overlay.style.top = `${rect.top + window.scrollY}px`;
@@ -143,13 +143,13 @@ class IvaHighlighter {
         }
 
         return overlay;
-    }
+    },
 
     /**
      * Clear all active highlights
      */
-    static clearAll() {
-        console.log('[ivaHighlighter] Clearing', this.activeHighlights.length, 'highlights');
+    clearAll() {
+        console.log('[IvaHighlighter] Clearing', this.activeHighlights.length, 'highlights');
 
         this.activeHighlights.forEach(overlay => {
             if (overlay && overlay.parentNode) {
@@ -159,9 +159,9 @@ class IvaHighlighter {
 
         this.activeHighlights = [];
     }
-}
+};
 
-// Expose globally for manual menu clicks
+// Expose globally
 window.IvaHighlighter = IvaHighlighter;
 
 export default IvaHighlighter;
