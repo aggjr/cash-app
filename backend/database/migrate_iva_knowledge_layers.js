@@ -91,9 +91,11 @@ async function migrate() {
                 INDEX idx_knowledge (knowledge_id),
                 INDEX idx_operation (operation),
                 INDEX idx_changed_at (changed_at),
+                INDEX idx_changed_by (changed_by)
                 
-                FOREIGN KEY (knowledge_id) REFERENCES iva_knowledge_layers(id) ON DELETE CASCADE,
-                FOREIGN KEY (changed_by) REFERENCES users(id)
+                -- FK removidas
+                -- FOREIGN KEY (knowledge_id) REFERENCES iva_knowledge_layers(id) ON DELETE CASCADE,
+                -- FOREIGN KEY (changed_by) REFERENCES users(id)
             ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci
             COMMENT='Auditoria de mudanças no conhecimento da IVA'
         `);
@@ -137,9 +139,10 @@ async function migrate() {
                 total_interactions INT DEFAULT 1,
                 
                 INDEX idx_user_date (user_id, access_date),
-                UNIQUE KEY uk_user_date (user_id, access_date),
+                UNIQUE KEY uk_user_date (user_id, access_date)
                 
-                FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE
+                -- FK removida
+                -- FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE
             ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci
             COMMENT='Controle de primeiro acesso diário para cumprimentos'
         `);
