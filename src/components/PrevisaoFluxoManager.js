@@ -177,8 +177,8 @@ export const PrevisaoFluxoManager = (project) => {
             });
 
             window.IVA.updateScreenContext({
-                screenId: 'cash_flow_daily',
-                title: 'Fluxo de Caixa Diário',
+                screenId: 'previsao-fluxo', // FIXED: Match actual screen ID
+                title: 'Previsão de Fluxo de Caixa',
                 summary: {
                     startDate: startStr,
                     endDate: endStr,
@@ -186,10 +186,18 @@ export const PrevisaoFluxoManager = (project) => {
                     finalBalance: runningBalance,
                     lowestBalance,
                     lowestDate,
-                    negativeDaysCount: negativeDays.length
+                    negativeDaysCount: negativeDays.length,
+                    totalDays: days.length
                 },
                 critical_risks: negativeDays.length > 0 ? negativeDays : null,
-                raw_data_sample: days.slice(0, 5).map(d => ({ date: d, balance: dayBalances[d].final }))
+                // FIXED: Send ALL days data, not just 5
+                forecast_data: days.map(d => ({
+                    date: d,
+                    initial_balance: dayBalances[d].initial,
+                    final_balance: dayBalances[d].final,
+                    income: dayBalances[d].income,
+                    expense: dayBalances[d].expense
+                }))
             });
         }
 
