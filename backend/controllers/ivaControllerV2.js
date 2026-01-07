@@ -358,7 +358,7 @@ const operate = async (req, res) => {
         const screenDataContext = IvaContextBuilder.buildScreenDataContext(screenData, cachedScreens);
 
         // Build operate system prompt WITH DISCOVERED KNOWLEDGE
-        const systemPrompt = await IvaContextBuilder.buildOperateContext(
+        let systemPrompt = await IvaContextBuilder.buildOperateContext(
             userData,
             projectData,
             screenContext,
@@ -371,6 +371,27 @@ const operate = async (req, res) => {
             screenDataContext // Screen data formatted for LLM
             // Note: discoveredKnowledge will be integrated in future update to buildUnifiedContext
         );
+
+        // ADD INTENT CLASSIFICATION INSTRUCTION
+        systemPrompt += `
+
+CLASSIFICAÇÃO DE INTENÇÃO (OBRIGATÓRIO):
+Antes de retornar a ação, classifique a intenção do usuário:
+
+1. NAVIGATION_ONLY - Usuário quer apenas encontrar/ver uma tela
+   Exemplos: "Onde cadastro usuários?", "Como acesso relatórios?", "Onde fica configurações?"
+   Retorne: { "intent": "NAVIGATION_ONLY", "action": "NAVIGATE", "target": "screen-id", "message": "..." }
+
+2. DATA_SEEKING - Usuário quer informação específica/dados
+   Exemplos: "Quanto recebi em dezembro?", "Qual o saldo?", "Quantas entradas tenho?"
+   Retorne: { "intent": "DATA_SEEKING", "action": "NAVIGATE", "target": "screen-id", "message": "..." }
+
+3. ACTION_EXECUTION - Usuário quer executar uma ação específica
+   Exemplos: "Criar entrada de R$ 1000", "Exportar relatório", "Filtrar por empresa X"
+   Retorne: { "intent": "ACTION_EXECUTION", "action": "NAVIGATE", "target": "screen-id", "message": "..." }
+
+IMPORTANTE: SEMPRE inclua o campo "intent" na sua resposta JSON!
+`;
 
         const history = conversationHistory || [];
         const messages = [
