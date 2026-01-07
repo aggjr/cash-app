@@ -302,13 +302,27 @@ const operate = async (req, res) => {
         const userData = userResult[0][0] || user;
         const projectData = projectResult[0][0] || {};
 
-        console.log('[IVA Operate] Step 3 - Final userData:', JSON.stringify({
-            id: userData?.id,
-            name: userData?.name,
-            preferred_name: userData?.preferred_name,
-            job_title: userData?.job_title,
-            department: userData?.department
-        }));
+        // ========================================
+        // INTENT CLASSIFICATION (EARLY CHECK)
+        // ========================================
+        const intent = IntentClassifier.classify(message, conversationHistory || []);
+
+        if (intent.type === 'LEARNING') {
+            console.log('[IVA Operate] 🧠 Learning intent detected, bypassing normal loop');
+
+            // Trigger learning in background
+            const IvaGlobalKnowledge = require('../services/IvaGlobalKnowledge');
+            await IvaGlobalKnowledge.contribute('custom_rules', {
+                description: message.replace(/(iva|aprenda|guarde|memorize|grave|registre|ensinar|conhecimento|que|pergunta|original|:|"|')/gi, '').trim(),
+                keywords: IntentClassifier.extractKeywords ? IntentClassifier.extractKeywords(message) : IvaGlobalKnowledge.extractKeywords(message)
+            }, user.id).catch(e => console.error('[IVA Learning] Error:', e));
+
+            return res.json({
+                intent: 'LEARNING',
+                action: 'REPLY',
+                message: 'Entendido! Guardei esse novo conhecimento e vou usá-lo quando você me perguntar.'
+            });
+        }
 
         // ========================================
         // DYNAMIC KNOWLEDGE DISCOVERY
