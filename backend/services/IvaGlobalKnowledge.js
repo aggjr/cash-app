@@ -109,7 +109,8 @@ class IvaGlobalKnowledge {
 
         // Custom Rules
         if (knowledge.knowledge.custom_rules && knowledge.knowledge.custom_rules.length > 0) {
-            prompt += '🧠 REGRAS APRENDIDAS (PERSONALIZADAS):\n';
+            prompt += '🧠 REGRAS APRENDIDAS (OBRIGATÓRIO SEGUIR):\n';
+            prompt += 'Estas regras foram ensinadas pelo usuário e têm prioridade sobre qualquer outra lógica:\n';
             knowledge.knowledge.custom_rules
                 .sort((a, b) => b.usage_count - a.usage_count)
                 .forEach(rule => {
@@ -119,7 +120,7 @@ class IvaGlobalKnowledge {
         }
 
         prompt += '╚═════════════════════════════════════╝\n';
-        prompt += 'IMPORTANTE: Consulte este conhecimento PRIMEIRO!\n\n';
+        prompt += 'IMPORTANTE: Siga as REGRAS APRENDIDAS rigorosamente para encontrar dados!\n\n';
 
         return prompt;
     }
