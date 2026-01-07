@@ -217,6 +217,12 @@ function initAppLogic() {
   window.cashApp.navigate = (itemId) => {
     console.log(`[Navigate] Switching to screen: ${itemId}`);
 
+    // Clear IVA highlights on any navigation
+    if (window.IvaHighlighter) {
+      window.IvaHighlighter.clearAll();
+      console.log('[Navigate] Cleared IVA highlights');
+    }
+
     // Update UI active state
     document.querySelectorAll('.menu-item').forEach(el => el.classList.remove('active'));
     const activeItem = document.querySelector(`.menu-item[data-id="${itemId}"]`);
@@ -371,6 +377,15 @@ function initAppLogic() {
         const mainElement = document.querySelector('main');
         mainElement.innerHTML = '';
         mainElement.appendChild(LogAlteracoesManager(currentProject));
+      } else {
+        Dialogs.alert('Selecione um projeto primeiro', 'Aviso');
+      }
+    } else if (itemId === 'iva-analytics') {
+      const { currentProject } = checkAuth();
+      if (currentProject) {
+        const mainElement = document.querySelector('main');
+        mainElement.innerHTML = '';
+        mainElement.appendChild(IvaAnalytics());
       } else {
         Dialogs.alert('Selecione um projeto primeiro', 'Aviso');
       }
