@@ -116,6 +116,61 @@ class IvaKnowledgeOptimizer {
 
         return stats;
     }
+
+    /**
+     * Cleanup obsolete knowledge
+     */
+    static async cleanupObsolete() {
+        console.log('[IVA Optimizer] Starting obsolete cleanup...');
+
+        const knowledge = await IvaGlobalKnowledge.load();
+        let removed = 0;
+
+        for (const type of ['menus', 'actions', 'data_structures']) {
+            const before = knowledge.knowledge[type].length;
+
+            knowledge.knowledge[type] = knowledge.knowledge[type].filter(item => {
+                // Never remove protected items
+                if (item.never_delete === true) return true;
+
+                // Remove if 5+ consecutive failures
+                if (item.consecutive_failures >= 5) {
+                    console.log(`[IVA Optimizer] Removing (failures): ${item.screen_id || item.action_id}`);
+                    return false;
+                }
+
+                // Remove if success rate < 30% and usage > 10
+                if (item.success_rate < 0.3 && item.usage_count > 10) {
+                    console.log(`[IVA Optimizer] Removing (low success): ${item.screen_id || item.action_id}`);
+                    return false;
+                }
+
+                // Remove if not used in 90 days and low usage
+                const daysSinceUse = this.getDaysSince(item.last_success || item.created_at);
+                if (daysSinceUse > 90 && item.usage_count < 5) {
+                    console.log(`[IVA Optimizer] Removing (stale): ${item.screen_id || item.action_id}`);
+                    return false;
+                }
+
+                return true;
+            });
+
+            removed += before - knowledge.knowledge[type].length;
+        }
+
+        await IvaGlobalKnowledge.save(knowledge);
+
+        console.log(`[IVA Optimizer] Cleanup complete. Removed ${removed} items.`);
+
+        return { removed };
+    }
+
+    static getDaysSince(dateString) {
+        if (!dateString) return 999;
+        const date = new Date(dateString);
+        const now = new Date();
+        return Math.floor((now - date) / (1000 * 60 * 60 * 24));
+    }
 }
 
 module.exports = IvaKnowledgeOptimizer;

@@ -206,7 +206,8 @@ class IvaGlobalKnowledge {
             success_rate: data.success !== undefined ? (data.success ? 1.0 : 0.5) : 0.8,
             contributed_by: 1,
             contributor_ids: userId ? [userId] : [],
-            never_delete: true,
+            consecutive_failures: 0,
+            never_delete: false,
             created_at: new Date().toISOString()
         };
 
@@ -292,6 +293,56 @@ class IvaGlobalKnowledge {
             .split(/\s+/)
             .filter(word => word.length > 2 && !stopWords.includes(word))
             .slice(0, 10);
+    }
+
+    /**
+     * Record failure (for self-healing)
+     */
+    static async recordFailure(type, itemId) {
+        const knowledge = await this.load();
+        const item = knowledge.knowledge[type].find(i =>
+            i.screen_id === itemId || i.action_id === itemId
+        );
+
+        if (!item) return;
+
+        // Increment failure counter
+        item.consecutive_failures = (item.consecutive_failures || 0) + 1;
+        item.last_failure = new Date().toISOString();
+
+        // Update success rate
+        item.usage_count++;
+        const oldSum = (item.usage_count - 1) * item.success_rate;
+        item.success_rate = oldSum / item.usage_count;
+
+        console.log(`[IVA Knowledge] ❌ Failure ${item.consecutive_failures}/5 for ${itemId}`);
+
+        // Auto-remove if 5 consecutive failures
+        if (item.consecutive_failures >= 5) {
+            console.log(`[IVA Knowledge] 🗑️ Removing obsolete: ${itemId}`);
+            knowledge.knowledge[type] = knowledge.knowledge[type].filter(i =>
+                i.screen_id !== itemId && i.action_id !== itemId
+            );
+        }
+
+        await this.save(knowledge);
+    }
+
+    /**
+     * Record success (resets failure counter)
+     */
+    static async recordSuccess(type, itemId) {
+        const knowledge = await this.load();
+        const item = knowledge.knowledge[type].find(i =>
+            i.screen_id === itemId || i.action_id === itemId
+        );
+
+        if (!item) return;
+
+        item.consecutive_failures = 0;
+        item.last_success = new Date().toISOString();
+
+        await this.save(knowledge);
     }
 }
 

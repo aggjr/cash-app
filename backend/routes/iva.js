@@ -106,9 +106,36 @@ router.post('/knowledge/optimize', auth, async (req, res) => {
     }
 });
 
+// POST /api/IVA/record-failure - Record failure for self-healing
+router.post('/record-failure', auth, async (req, res) => {
+    try {
+        const { type, item_id } = req.body;
+        await IvaGlobalKnowledge.recordFailure(type, item_id);
+        res.json({ success: true });
+    } catch (error) {
+        console.error('[IVA Failure] Error:', error);
+        res.status(500).json({ error: 'Erro ao registrar falha' });
+    }
+});
+
+// POST /api/IVA/record-success - Record success (resets failures)
+router.post('/record-success', auth, async (req, res) => {
+    try {
+        const { type, item_id } = req.body;
+        await IvaGlobalKnowledge.recordSuccess(type, item_id);
+        res.json({ success: true });
+    } catch (error) {
+        console.error('[IVA Success] Error:', error);
+        res.status(500).json({ error: 'Erro ao registrar sucesso' });
+    }
+});
+
+// Include analytics routes
+const ivaAnalytics = require('./ivaAnalytics');
+router.use('/', ivaAnalytics);
+
 // Include tracking routes
 const ivaTracking = require('./ivaTracking');
 router.use('/', ivaTracking);
 
 module.exports = router;
-
