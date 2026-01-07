@@ -1,6 +1,7 @@
 import { Dialogs } from './Dialogs.js';
 import { getApiBaseUrl } from '../utils/apiConfig.js';
 import { TabPanel } from './TabPanel.js';
+import { IvaAnalytics } from './IvaAnalytics.js';
 
 export const ParametrosGeraisManager = (project) => {
     // Create main wrapper for tabs
@@ -1260,9 +1261,14 @@ export const ParametrosGeraisManager = (project) => {
 
     // Create TabPanel - REMOVED TO FIX DOUBLE TABS
     // The container already implements its own tabs (Geral / IA IVA) via renderSettings
-    // Wrapping it in TabPanel caused duplication and layout issues
+    // Create tabs
+    const tabPanel = TabPanel.create([
+        { id: 'geral', label: 'Geral', content: container },
+        { id: 'iva', label: 'Uso da IVA', content: IvaAnalytics() }
+    ]);
 
-    wrapper.appendChild(container);
+    wrapper.appendChild(tabPanel);
+
     return wrapper;
 };
-
+```
