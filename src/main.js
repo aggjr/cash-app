@@ -225,7 +225,9 @@ function initAppLogic() {
     }
 
     // 2. Stop IVA Autonomous Loop (Emergency Stop)
-    if (window.IVAConsultant && typeof window.IVAConsultant.stopAutonomousLoop === 'function') {
+    // ONLY stop if NOT an IVA-triggered navigation
+    const isEvaNavigating = window.IvaNavigationIndicator && window.IvaNavigationIndicator.isEvaNavigating;
+    if (!isEvaNavigating && window.IVAConsultant && typeof window.IVAConsultant.stopAutonomousLoop === 'function') {
       window.IVAConsultant.stopAutonomousLoop();
     }
 
