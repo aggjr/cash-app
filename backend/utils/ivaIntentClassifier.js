@@ -67,7 +67,16 @@ const IntentClassifier = {
             };
         }
 
-        // 5. DATA QUERIES (Medium Priority)
+        // 5. LEARNING (High Priority - Synonyms supported)
+        if (/(aprenda|guarde|memorize|grave|registre|ensinar|conhecimento|entenda|lembre)/i.test(msg)) {
+            return {
+                type: 'LEARNING',
+                priority: 'HIGH',
+                context: 'User is teaching a new rule or knowledge'
+            };
+        }
+
+        // 6. DATA QUERIES (Medium Priority)
         if (/(quanto|quantos|qual|quais|como está|mostre|liste|ver|mostrar|exibir)/i.test(msg)) {
             return {
                 type: 'DATA_QUERY',
@@ -112,6 +121,7 @@ const IntentClassifier = {
             'GRATITUDE': 0.9,     // More creative for casual
             'IDENTITY': 0.7,      // Moderate for identity
             'CORRECTION': 0.5,    // More focused for corrections
+            'LEARNING': 0.8,      // Creative but focused
             'DATA_QUERY': 0.3,    // Deterministic for data
             'COMMAND': 0.2,       // Very deterministic for commands
             'QUESTION': 0.6,      // Moderate for questions
@@ -131,6 +141,7 @@ const IntentClassifier = {
             'GRATITUDE': 50,      // Very short
             'IDENTITY': 100,      // Short
             'CORRECTION': 100,    // Short
+            'LEARNING': 300,      // Response for learning confirmation
             'DATA_QUERY': 300,    // Medium
             'COMMAND': 200,       // Medium
             'QUESTION': 400,      // Longer

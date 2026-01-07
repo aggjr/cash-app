@@ -214,14 +214,45 @@ function initAppLogic() {
 
   // Global Navigation Function (Accessble by IVA)
   window.cashApp = window.cashApp || {};
+
+  // Centralized IVA cleanup
+  window.ivaClearAllHighlights = () => {
+    console.log('[IVA] Centralized cleanup: clearing all highlights and indicators');
+
+    // 1. Clear IvaHighlighter (overlays, numbers)
+    if (window.IvaHighlighter && typeof window.IvaHighlighter.clearAll === 'function') {
+      window.IvaHighlighter.clearAll();
+    }
+
+    // 2. Clear IvaNavigationIndicator (arrows, borders, golden glow)
+    const navArrows = document.querySelectorAll('.IVA-nav-arrow');
+    navArrows.forEach(el => el.remove());
+
+    const borderHighlights = document.querySelectorAll('[data-iva-original-border]');
+    borderHighlights.forEach(el => {
+      try {
+        const original = JSON.parse(el.dataset.ivaOriginalBorder);
+        el.style.border = original.border;
+        el.style.boxShadow = original.boxShadow;
+        el.style.position = original.position;
+        el.style.zIndex = original.zIndex;
+        el.style.animation = '';
+        delete el.dataset.ivaOriginalBorder;
+      } catch (e) { }
+    });
+
+    const bgHighlights = document.querySelectorAll('[data-iva-original-bg]');
+    bgHighlights.forEach(el => {
+      el.style.backgroundColor = el.dataset.ivaOriginalBg;
+      delete el.dataset.ivaOriginalBg;
+    });
+  };
+
   window.cashApp.navigate = (itemId) => {
     console.log(`[Navigate] Switching to screen: ${itemId}`);
 
-    // Clear IVA highlights on any navigation
-    if (window.IvaHighlighter) {
-      window.IvaHighlighter.clearAll();
-      console.log('[Navigate] Cleared IVA highlights');
-    }
+    // Clear EVERYTHING IVA-related before moving
+    window.ivaClearAllHighlights();
 
     // Update UI active state
     document.querySelectorAll('.menu-item').forEach(el => el.classList.remove('active'));
