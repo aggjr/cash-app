@@ -12,7 +12,7 @@ async function migrate() {
     const connection = await mysql.createConnection(dbConfig);
 
     try {
-        console.log('[Migration] Creating iva_knowledge_layers table...');
+        console.log('[Migration] Creating iva_knowledge_layers table... (v2.0 - NO FK)');
 
         // Tabela principal de conhecimento hierárquico
         await connection.query(`
