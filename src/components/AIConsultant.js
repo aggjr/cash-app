@@ -1844,6 +1844,11 @@ Digite 1, 2 ou 3.`;
             return;
         }
 
+        if (!loopState.active) {
+            console.log('[IVA Navigation Flow] 🛑 Loop cancelled before navigation.');
+            return;
+        }
+
         // Navigate
         console.log('[IVA Navigation Flow] Navigating to screen:', decision.target);
         await IvaActions.navigate(decision.target);
@@ -2150,6 +2155,11 @@ Digite 1, 2 ou 3.`;
             { menuStructure }
         );
 
+        if (!loopState.active) {
+            console.log('[IVA Action Flow] 🛑 Loop cancelled before navigation.');
+            return;
+        }
+
         await IvaActions.navigate(navDecision.target);
         await new Promise(r => setTimeout(r, 1500));
 
@@ -2166,6 +2176,11 @@ Digite 1, 2 ou 3.`;
              Retorne: { action: "EXECUTE", actionId: "...", params: {...} }`,
             { discoveredActions: actionsForLLM }
         );
+
+        if (!loopState.active) {
+            console.log('[IVA Action Flow] 🛑 Loop cancelled before action execution.');
+            return;
+        }
 
         if (actionDecision.action !== 'EXECUTE') {
             addMessage('ai', 'Desculpe, não encontrei uma ação apropriada para isso.');
