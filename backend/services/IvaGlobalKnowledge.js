@@ -51,7 +51,8 @@ class IvaGlobalKnowledge {
                 menus: [],
                 actions: [],
                 data_structures: [],
-                common_queries: []
+                common_queries: [],
+                custom_rules: []
             }
         };
     }
@@ -102,6 +103,17 @@ class IvaGlobalKnowledge {
                 .forEach(action => {
                     const primary = action.keywords.primary?.join(', ') || '';
                     prompt += `• [${action.screen_id}] ${action.action_type}: ${primary}\n`;
+                });
+            prompt += '\n';
+        }
+
+        // Custom Rules
+        if (knowledge.knowledge.custom_rules && knowledge.knowledge.custom_rules.length > 0) {
+            prompt += '🧠 REGRAS APRENDIDAS (PERSONALIZADAS):\n';
+            knowledge.knowledge.custom_rules
+                .sort((a, b) => b.usage_count - a.usage_count)
+                .forEach(rule => {
+                    prompt += `• ${rule.description}\n`;
                 });
             prompt += '\n';
         }

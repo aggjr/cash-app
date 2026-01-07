@@ -95,6 +95,20 @@ const chat = async (req, res, next) => {
             .slice(-1)[0]?.text || '';
 
         switch (intent.type) {
+            case 'LEARNING':
+                systemPrompt = `
+Você está em modo de aprendizado ativo. O usuário quer te ensinar uma nova regra ou conhecimento.
+Extraia a essência do que está sendo ensinado.
+Se for uma regra de onde encontrar dados (como na tela de previsão), formalize-a.
+Confirme de forma clara e natural que você aprendeu.
+`;
+                // Trigger learning process in background
+                IvaGlobalKnowledge.contribute('custom_rules', {
+                    description: message.replace(/(iva|aprenda|guarde|memorize|grave|registre|ensinar|conhecimento|que)/gi, '').trim(),
+                    keywords: IntentClassifier.extractKeywords ? IntentClassifier.extractKeywords(message) : IvaGlobalKnowledge.extractKeywords(message)
+                }, user.id).catch(e => console.error('[IVA Learning] Error:', e));
+                break;
+
             case 'GREETING':
                 systemPrompt = ContextualPrompts.greeting(userData, timeOfDay);
                 break;
