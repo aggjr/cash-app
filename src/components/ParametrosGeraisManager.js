@@ -1271,4 +1271,3 @@ export const ParametrosGeraisManager = (project) => {
 
     return wrapper;
 };
-```
