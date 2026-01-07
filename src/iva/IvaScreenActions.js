@@ -189,14 +189,42 @@ class IvaScreenActions {
                     }
                 }
             ]
+        },
+
+        // ========================================
+        // USUÁRIOS (USERS)
+        // ========================================
+        usuarios: {
+            actions: [
+                {
+                    id: 'openNewUserModal',
+                    type: 'CLICK_BUTTON',
+                    description: 'Abrir modal para criar novo usuário',
+                    params: [],
+                    execute: async () => {
+                        // Find the "Novo" button
+                        const novoBtn = document.querySelector('button[data-action="new"], button.btn-new, .action-btn-new');
+
+                        if (novoBtn) {
+                            console.log('[IVA] Clicking Novo button to open user modal');
+                            novoBtn.click();
+                            await new Promise(r => setTimeout(r, 500));
+                            return true;
+                        }
+                        return false;
+                    }
+                }
+            ]
         }
     };
 
     /**
-     * Validate action is READ-ONLY (security check)
+     * Validate action is SAFE (security check)
+     * IVA can: navigate, filter, read, guide, click safe buttons (Novo, Editar, Cancelar)
+     * IVA cannot: click save, confirm, delete buttons
      */
     static isReadOnly(actionType) {
-        const ALLOWED_TYPES = ['SET_FILTER', 'NAVIGATE', 'READ'];
+        const ALLOWED_TYPES = ['SET_FILTER', 'NAVIGATE', 'READ', 'GUIDE', 'CLICK_BUTTON', 'FILL_FORM'];
         return ALLOWED_TYPES.includes(actionType);
     }
 
