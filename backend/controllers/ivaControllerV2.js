@@ -6,6 +6,8 @@ const IntentClassifier = require('../utils/ivaIntentClassifier');
 const ContextualPrompts = require('../config/iva-contextual-prompts');
 const IvaDataFetcher = require('../services/IvaDataFetcher');
 const IvaScreenCache = require('../services/IvaScreenCache');
+const IvaKnowledgeManager = require('../services/IvaKnowledgeManager');
+const LearningCommandClassifier = require('../utils/LearningCommandClassifier');
 // TEMPORARILY DISABLED - Tables not in production yet
 // const IvaExplorationService = require('../services/IvaExplorationService');
 // const IvaLearningCache = require('../services/IvaLearningCache');
@@ -70,7 +72,6 @@ const chat = async (req, res, next) => {
         const projectData = projectResult[0][0] || {};
 
         // Load USER-level knowledge (preferred_name, etc)
-        const IvaKnowledgeManager = require('../services/IvaKnowledgeManager');
         const preferredNameKnowledge = await IvaKnowledgeManager.resolve({
             layer_type: 'USER',
             user_id: user.id,
@@ -100,8 +101,6 @@ const chat = async (req, res, next) => {
         // ========================================
         // LEARNING COMMAND DETECTION
         // ========================================
-        const LearningCommandClassifier = require('../utils/LearningCommandClassifier');
-        const IvaKnowledgeManager = require('../services/IvaKnowledgeManager');
         const learningCommand = LearningCommandClassifier.classify(message);
 
         if (learningCommand.type !== 'NONE') {
