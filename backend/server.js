@@ -65,6 +65,7 @@ apiRouter.use('/settings', settingsRoutes);
 apiRouter.use('/audit-logs', auditRoutes);
 apiRouter.use('/loans', require('./routes/loans'));
 apiRouter.use('/iva', require('./routes/iva'));
+apiRouter.use('/iva', require('./routes/ivaCollectiveRoutes')); // Collective knowledge
 apiRouter.use('/tts', ttsRoutes); // Google Cloud TTS
 apiRouter.use('/user-preferences', require('./routes/userPreferences'));
 
@@ -190,6 +191,7 @@ loadErrorCatalog()
     .then(() => migrateRemoveAccountType()) // NEW: Remove account_type column
     .then(() => migrateAddUserCompany()) // NEW: Add company_id to project_users
     .then(() => require('./migrate_add_user_preferences')()) // NEW: User preferences table
+    .then(() => require('./database/migrate_iva_knowledge_layers')()) // NEW: IVA knowledge architecture
     .then(() => {
         startServer();
     })

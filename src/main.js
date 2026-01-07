@@ -27,6 +27,7 @@ import { ParametrosGeraisManager } from './components/ParametrosGeraisManager.js
 import { LogAlteracoesManager } from './components/LogAlteracoesManager.js'
 import { DividasEmprestimosManager } from './components/DividasEmprestimosManager.js'
 import { IvaAnalytics } from './components/IvaAnalytics.js'
+import './iva/IvaCollectiveObserver.js' // Observador passivo de uso coletivo
 
 console.log('═══════════════════════════════════════');
 console.log('💰 CASH Frontend Starting');

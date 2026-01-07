@@ -59,7 +59,8 @@ export const Sidebar = () => {
         { id: 'extrato-conta', label: 'Extrato de Conta', icon: '🧾' },
         { id: 'consolidada-financeira', label: 'Consolidada Financeira', icon: '💰' },
         { id: 'dre-competencia', label: 'DRE (Competência)', icon: '📊' },
-        { id: 'previsao', label: 'Previsão Fluxo', icon: '📈' }
+        { id: 'previsao', label: 'Previsão Fluxo', icon: '📈' },
+        { id: 'iva-analytics', label: 'Analytics da IVA', icon: '🤖', masterOnly: true }
       ]
     }
   ];

@@ -158,8 +158,8 @@ export const PrevisaoFluxoManager = (project) => {
             runningBalance = final;
         });
 
-        // --- EVA Context Broadcast (The Eyes) ---
-        if (window.EVA && window.EVA.updateScreenContext) {
+        // --- IVA Context Broadcast (The Eyes) ---
+        if (window.IVA && window.IVA.updateScreenContext) {
             // Calculate metrics for EVA
             let lowestBalance = Infinity;
             let lowestDate = null;
@@ -176,7 +176,7 @@ export const PrevisaoFluxoManager = (project) => {
                 }
             });
 
-            window.EVA.updateScreenContext({
+            window.IVA.updateScreenContext({
                 screenId: 'cash_flow_daily',
                 title: 'Fluxo de Caixa Diário',
                 summary: {

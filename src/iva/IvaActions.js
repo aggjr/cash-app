@@ -18,6 +18,10 @@ export const IvaActions = {
         switch (action) {
             case 'NAVIGATE':
                 if (window.cashApp && window.cashApp.navigate) {
+                    // Set flag BEFORE navigation to prevent loop cancellation in main.js
+                    if (!window.IvaNavigationIndicator) window.IvaNavigationIndicator = {};
+                    window.IvaNavigationIndicator.isEvaNavigating = true;
+
                     window.cashApp.navigate(payload.target);
 
                     // Use persistent navigation indicators

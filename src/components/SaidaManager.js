@@ -325,9 +325,9 @@ export const SaidaManager = (project) => {
             renderSaidas();
             renderPagination();
 
-            // --- EVA Context Broadcast (The Eyes) ---
-            if (window.EVA && window.EVA.updateScreenContext) {
-                window.EVA.updateScreenContext({
+            // --- IVA Context Broadcast (The Eyes) ---
+            if (window.IVA && window.IVA.updateScreenContext) {
+                window.IVA.updateScreenContext({
                     screenId: 'expenses',
                     title: 'Saídas (Despesas)',
                     pagination: pagination,

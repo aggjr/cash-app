@@ -1163,6 +1163,14 @@ Digite 1, 2 ou 3.`;
         addMessage('user', text);
         input.value = '';
 
+        // Clear navigation indicator flag on new user input
+        if (window.IvaNavigationIndicator) {
+            window.IvaNavigationIndicator.isEvaNavigating = false;
+            if (typeof window.ivaClearAllHighlights === 'function') {
+                window.ivaClearAllHighlights();
+            }
+        }
+
         // Check if we're in a pending flow (intro, loan, etc)
         if (pendingAction) {
             console.log('[IVA] Pending action active, skipping operation logic:', pendingAction);
@@ -1198,7 +1206,7 @@ Digite 1, 2 ou 3.`;
             });
 
             // Extract screen context (filters + visual summary)
-            const screenContext = ScreenContextExtractor.extract();
+            let screenContext = ScreenContextExtractor.extract();
             if (screenContext) {
                 console.log('[IVA] Screen Context:', screenContext);
 
@@ -1838,6 +1846,10 @@ Digite 1, 2 ou 3.`;
             addMessage('ai', 'Desculpe, ocorreu um erro ao processar sua solicitação.');
         } finally {
             loopState.active = false;
+            // Mark navigation as finished so manual navigation can be detected correctly
+            if (window.IvaNavigationIndicator) {
+                window.IvaNavigationIndicator.isEvaNavigating = false;
+            }
         }
     };
 
@@ -2304,7 +2316,8 @@ Digite 1, 2 ou 3.`;
         stopAutonomousLoop
     };
 
-    // Alias for backward compatibility if needed, temporary
+    // Alias for backward compatibility during transition from EVA to IVA
+    window.EVA = window.IVA;
     window.FOCCUS = window.IVA;
 
     return container;

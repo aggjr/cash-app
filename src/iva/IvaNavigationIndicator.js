@@ -8,7 +8,8 @@ const INDICATOR_COLOR = '#00425F'; // System Primary Blue (Dark Teal)
 
 export const IvaNavigationIndicator = {
     activeIndicators: [],
-    isEvaNavigating: false,
+    // Preserve existing global flag if set by IvaActions.js before this module loaded
+    isEvaNavigating: (window.IvaNavigationIndicator && window.IvaNavigationIndicator.isEvaNavigating) || false,
 
     /**
      * Add persistent arrow indicator next to menu item
@@ -202,7 +203,9 @@ export const IvaNavigationIndicator = {
         });
 
         this.activeIndicators = [];
-        this.isEvaNavigating = false;
+        // Removed this.isEvaNavigating = false from here. 
+        // Logic: clearAll should only clear VISUALS. 
+        // The flag should only be reset on manual navigation or task completion.
     },
 
     /**
@@ -215,6 +218,7 @@ export const IvaNavigationIndicator = {
 
             if (isMenuClick && !isEvaClick && this.isEvaNavigating) {
                 console.log('[IVA Nav] Manual navigation detected, clearing indicators');
+                this.isEvaNavigating = false; // Reset flag on MANUAL navigation
                 this.clearAll();
             }
         });

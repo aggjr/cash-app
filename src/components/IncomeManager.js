@@ -359,6 +359,24 @@ export const IncomeManager = (project) => {
             renderIncomes(); // Now calls SharedTable render
             renderPagination();
 
+            // --- IVA Context Broadcast (The Eyes) ---
+            if (window.IVA && window.IVA.updateScreenContext) {
+                window.IVA.updateScreenContext({
+                    screenId: 'income',
+                    title: 'Entradas (Receitas)',
+                    pagination: pagination,
+                    filters: activeFilters,
+                    visible_rows: incomes.slice(0, 10).map(row => ({
+                        date_fato: row.data_fato,
+                        description: row.descricao,
+                        value: row.valor,
+                        category: row.tipo_entrada_name
+                    })),
+                    total_records: pagination.total,
+                    summary_text: `Visualizando ${incomes.length} de ${pagination.total} registros.`
+                });
+            }
+
         } catch (error) {
             console.error('Error loading incomes:', error);
             showToast(error.message, 'error');

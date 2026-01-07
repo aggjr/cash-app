@@ -418,8 +418,8 @@ Antes de retornar a ação, classifique a intenção do usuário:
    Exemplos: "Onde cadastro usuários?", "Como acesso relatórios?", "Onde fica configurações?"
    Retorne: { "intent": "NAVIGATION_ONLY", "action": "NAVIGATE", "target": "screen-id", "message": "..." }
 
-2. DATA_SEEKING - Usuário quer informação específica/dados
-   Exemplos: "Quanto recebi em dezembro?", "Qual o saldo?", "Quantas entradas tenho?"
+2. DATA_SEEKING - Usuário quer informação específica/dados ou análise de valores
+   Exemplos: "Quanto recebi em dezembro?", "Qual o saldo?", "Qual será meu fluxo de caixa daqui a 10 dias?", "Ver previsão de fechamento"
    Retorne: { "intent": "DATA_SEEKING", "action": "NAVIGATE", "target": "screen-id", "message": "..." }
 
 3. ACTION_EXECUTION - Usuário quer executar uma ação específica

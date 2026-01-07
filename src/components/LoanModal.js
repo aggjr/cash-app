@@ -459,13 +459,13 @@ export const LoanModal = {
 
                     // EVA INTERCEPTION
                     if (fees > 0 || realMonthlyRate > 0) {
-                        if (window.EVA && window.EVA.startLoanCategorization) {
+                        if (window.IVA && window.IVA.startLoanCategorization) {
                             try {
                                 // Hide modal temporarily to give EVA focus
                                 modal.style.display = 'none';
                                 overlay.style.display = 'none';
 
-                                const result = await window.EVA.startLoanCategorization({
+                                const result = await window.IVA.startLoanCategorization({
                                     projectId,
                                     nominal,
                                     net,
