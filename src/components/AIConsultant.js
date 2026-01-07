@@ -1874,12 +1874,25 @@ Digite 1, 2 ou 3.`;
      * Data-seeking flow: Navigate, extract, filter, present
      */
     const executeDataSeekingFlow = async (userQuery) => {
-        console.log('[IVA Data Flow] Starting data-seeking flow');
-        console.log('[IVA Data Flow] Query:', userQuery);
-
+        console.log('[IVA Data Flow] Starting autonomous data-seeking loop');
         // Get all screens and rank by relevance
         const menuStructure = MenuNavigator.getMenuStructure();
         const allScreens = menuStructure.flatMenu || [];
+        console.log('[IVA Data Flow] Max screens to try:', allScreens.length);
+        console.log('[IVA Data Flow] Iteration:', loopState.iteration);
+
+        // SAFETY: Max global iterations
+        if (loopState.iteration >= 15) {
+            console.log('[IVA Data Flow] ❌ Max global iterations reached (15)');
+            const failMsg = 'Desculpe, tentei em várias telas mas não consegui encontrar essa informação. Poderia reformular sua pergunta ou me dizer em qual tela específica você quer que eu procure?';
+            addMessage('ai', failMsg);
+            speak(failMsg);
+            loopState.active = false;
+            loopState.awaitingUserResponse = true;
+            return;
+        }
+
+        loopState.iteration++;
 
         console.log('[IVA Data Flow] Total screens available:', allScreens.length);
 
