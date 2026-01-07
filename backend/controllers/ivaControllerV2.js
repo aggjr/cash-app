@@ -69,10 +69,21 @@ const chat = async (req, res, next) => {
         const userData = userResult[0][0] || user;
         const projectData = projectResult[0][0] || {};
 
+        // Load USER-level knowledge (preferred_name, etc)
+        const IvaKnowledgeManager = require('../services/IvaKnowledgeManager');
+        const preferredNameKnowledge = await IvaKnowledgeManager.resolve({
+            layer_type: 'USER',
+            user_id: user.id,
+            knowledge_type: 'RULE',
+            knowledge_key: 'preferred_name'
+        });
+
+        const preferredName = preferredNameKnowledge?.knowledge_value?.name || userData?.preferred_name || userData?.name;
+
         console.log('[IVA Chat] Step 3 - Final userData:', JSON.stringify({
             id: userData?.id,
             name: userData?.name,
-            preferred_name: userData?.preferred_name,
+            preferred_name: preferredName,
             job_title: userData?.job_title,
             department: userData?.department
         }));
@@ -85,6 +96,54 @@ const chat = async (req, res, next) => {
         // ========================================
         const intent = IntentClassifier.classify(message, conversationHistory || []);
         console.log('[IVA Chat] Intent classified:', intent.type, '- Priority:', intent.priority);
+
+        // ========================================
+        // LEARNING COMMAND DETECTION
+        // ========================================
+        const LearningCommandClassifier = require('../utils/LearningCommandClassifier');
+        const IvaKnowledgeManager = require('../services/IvaKnowledgeManager');
+        const learningCommand = LearningCommandClassifier.classify(message);
+
+        if (learningCommand.type !== 'NONE') {
+            console.log('[IVA Learning] Command detected:', learningCommand.type);
+
+            // Handle preferred name change (USER-level RULE in knowledge layers)
+            if (message.toLowerCase().includes('me chame') ||
+                message.toLowerCase().includes('me trate') ||
+                message.toLowerCase().includes('prefiro que')) {
+
+                // Extract new preferred name
+                const nameMatch = message.match(/(?:me chame|me trate|prefiro que.*?me (?:chame|trate)).*?(?:de|como)\s+([^.,!?]+)/i);
+
+                if (nameMatch) {
+                    const newPreferredName = nameMatch[1].trim();
+
+                    // Save as USER-level RULE in iva_knowledge_layers
+                    const result = await IvaKnowledgeManager.learn({
+                        layer_type: 'USER',
+                        user_id: user.id,
+                        knowledge_type: 'RULE',
+                        knowledge_key: 'preferred_name',
+                        knowledge_value: {
+                            name: newPreferredName,
+                            updated_at: new Date().toISOString()
+                        },
+                        source: 'EXPLICIT'
+                    }, user.id);
+
+                    console.log(`[IVA Learning] Saved preferred_name as USER knowledge: "${newPreferredName}"`);
+
+                    return res.json({
+                        reply: `Perfeito! A partir de agora vou te chamar de ${newPreferredName}. 😊`,
+                        metadata: {
+                            learning: true,
+                            type: 'PREFERRED_NAME_UPDATE',
+                            value: newPreferredName
+                        }
+                    });
+                }
+            }
+        }
 
         // Get time context
         const now = new Date();
