@@ -1216,6 +1216,14 @@ Digite 1, 2 ou 3.`;
 
                 console.log('[IVA Decision]', decision);
 
+                // Check if decision includes intent classification for autonomous loop
+                if (decision.intent && ['NAVIGATION_ONLY', 'DATA_SEEKING', 'ACTION_EXECUTION'].includes(decision.intent)) {
+                    console.log('[IVA] Autonomous loop triggered with intent:', decision.intent);
+                    await executeAutonomousLoop(text, decision.intent);
+                    return; // Loop handles everything
+                }
+
+                // Legacy action handlers (fallback if no intent classification)
                 if (decision.action === 'REPLY') {
                     const msg = decision.message;
                     addMessage('ai', msg);
