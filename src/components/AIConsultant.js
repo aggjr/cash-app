@@ -1859,6 +1859,13 @@ Digite 1, 2 ou 3.`;
     };
 
     /**
+     * Get menu path from screen ID
+     */
+    const getMenuPath = (screenId) => {
+        return screenId; // Simple implementation for now
+    };
+
+    /**
      * Data-seeking flow: Navigate, extract, filter, present
      */
     const executeDataSeekingFlow = async (userQuery) => {
