@@ -12,6 +12,7 @@ import { IvaActionDiscovery } from '../iva/IvaActionDiscovery.js';
 import { IvaActionExecutor } from '../iva/IvaActionExecutor.js';
 import { IvaActionFormatter } from '../iva/IvaActionFormatter.js';
 import { IvaLearning } from '../iva/IvaLearning.js';
+import { IvaConversation } from '../iva/IvaConversation.js';
 
 export const AIConsultant = () => {
     console.log('AIConsultant: Version 2.1 (Iva UI Interactions fixed)');
@@ -1841,8 +1842,9 @@ Digite 1, 2 ou 3.`;
         await new Promise(r => setTimeout(r, 1500));
         console.log('[IVA Navigation Flow] Render complete');
 
-        // Confirm with user
-        const confirmMsg = decision.message || `Esta é a tela que você procurava?`;
+        // CONVERSATIONAL CONFIRMATION
+        const screenName = IvaConversation.getScreenName(decision.target);
+        const confirmMsg = IvaConversation.getNavigationConfirmation(screenName);
         addMessage('ai', confirmMsg);
         speak(confirmMsg);
 
@@ -1854,6 +1856,9 @@ Digite 1, 2 ou 3.`;
             true
         );
 
+        // Wait for user confirmation
+        loopState.awaitingConfirmation = true;
+        loopState.confirmedScreen = decision.target;
         loopState.awaitingUserResponse = true;
         loopState.active = false;
     };
