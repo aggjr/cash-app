@@ -1761,7 +1761,12 @@ Digite 1, 2 ou 3.`;
         loopState.flowType = intentType;
         loopState.iteration = 0;
 
-        console.log(`[IVA Loop] Starting ${intentType} flow for: "${userQuery}"`);
+        console.log('========================================');
+        console.log('[IVA Loop] AUTONOMOUS LOOP STARTED');
+        console.log('[IVA Loop] Intent Type:', intentType);
+        console.log('[IVA Loop] User Query:', userQuery);
+        console.log('[IVA Loop] Timestamp:', new Date().toISOString());
+        console.log('========================================');
 
         try {
             switch (intentType) {
@@ -1782,7 +1787,15 @@ Digite 1, 2 ou 3.`;
                     await executeDataSeekingFlow(userQuery);
             }
         } catch (error) {
-            console.error('[IVA Loop] Error:', error);
+            console.error('========================================');
+            console.error('[IVA Loop] CRITICAL ERROR');
+            console.error('[IVA Loop] Error Type:', error.name);
+            console.error('[IVA Loop] Error Message:', error.message);
+            console.error('[IVA Loop] Stack Trace:', error.stack);
+            console.error('[IVA Loop] User Query:', userQuery);
+            console.error('[IVA Loop] Intent Type:', intentType);
+            console.error('[IVA Loop] Loop State:', JSON.stringify(loopState));
+            console.error('========================================');
             addMessage('ai', 'Desculpe, ocorreu um erro ao processar sua solicitação.');
             loopState.active = false;
         }
@@ -1792,9 +1805,14 @@ Digite 1, 2 ou 3.`;
      * Navigation-only flow: Find and show screen
      */
     const executeNavigationFlow = async (userQuery) => {
+        console.log('[IVA Navigation Flow] Starting navigation-only flow');
+
         // Get all menu items
         const menuStructure = MenuNavigator.getMenuStructure();
         const allScreens = menuStructure.flatMenu || [];
+
+        console.log('[IVA Navigation Flow] Available screens:', allScreens.length);
+        console.log('[IVA Navigation Flow] Screens:', allScreens.map(s => s.id || s.name).join(', '));
 
         // Ask LLM to find appropriate screen
         const decision = await IvaService.decideOperation(
@@ -1808,14 +1826,19 @@ Digite 1, 2 ou 3.`;
         );
 
         if (decision.action === 'NO_SCREEN') {
+            console.log('[IVA Navigation Flow] No appropriate screen found');
+            console.log('[IVA Navigation Flow] LLM Response:', JSON.stringify(decision));
             addMessage('ai', decision.message || 'Desculpe, não encontrei uma tela apropriada para isso.');
             loopState.active = false;
             return;
         }
 
         // Navigate
+        console.log('[IVA Navigation Flow] Navigating to screen:', decision.target);
         await IvaActions.navigate(decision.target);
+        console.log('[IVA Navigation Flow] Navigation complete, waiting for render...');
         await new Promise(r => setTimeout(r, 1500));
+        console.log('[IVA Navigation Flow] Render complete');
 
         // Confirm with user
         const confirmMsg = decision.message || `Esta é a tela que você procurava?`;
@@ -1830,9 +1853,14 @@ Digite 1, 2 ou 3.`;
      * Data-seeking flow: Navigate, extract, filter, present
      */
     const executeDataSeekingFlow = async (userQuery) => {
+        console.log('[IVA Data Flow] Starting data-seeking flow');
+        console.log('[IVA Data Flow] Query:', userQuery);
+
         // Get all screens and rank by relevance
         const menuStructure = MenuNavigator.getMenuStructure();
         const allScreens = menuStructure.flatMenu || [];
+
+        console.log('[IVA Data Flow] Total screens available:', allScreens.length);
 
         const rankingDecision = await IvaService.decideOperation(
             `PERGUNTA: "${userQuery}"
@@ -1847,14 +1875,24 @@ Digite 1, 2 ou 3.`;
             .sort((a, b) => b.relevance - a.relevance)
             .filter(s => s.relevance >= 0.3); // Only try screens with >30% relevance
 
-        console.log('[IVA Loop] Ranked screens:', rankedScreens.map(s => `${s.id} (${s.relevance})`));
+        console.log('[IVA Data Flow] ========== SCREEN RANKING ==========');
+        console.log('[IVA Data Flow] Screens ranked:', rankedScreens.length);
+        rankedScreens.forEach((s, i) => {
+            console.log(`[IVA Data Flow] ${i + 1}. ${s.id} - Relevance: ${(s.relevance * 100).toFixed(1)}%`);
+        });
+        console.log('[IVA Data Flow] ====================================');
 
         // Try each screen until we find data
         for (const screen of rankedScreens) {
-            console.log(`[IVA Loop] Trying screen: ${screen.id} (relevance: ${screen.relevance})`);
+            console.log('----------------------------------------');
+            console.log(`[IVA Data Flow] Attempting screen ${rankedScreens.indexOf(screen) + 1}/${rankedScreens.length}`);
+            console.log(`[IVA Data Flow] Screen ID: ${screen.id}`);
+            console.log(`[IVA Data Flow] Relevance: ${(screen.relevance * 100).toFixed(1)}%`);
 
             await IvaActions.navigate(screen.id);
+            console.log(`[IVA Data Flow] Navigation to ${screen.id} complete`);
             await new Promise(r => setTimeout(r, 1500));
+            console.log(`[IVA Data Flow] Screen ${screen.id} rendered`);
 
             loopState.currentScreen = screen.id;
 
@@ -1862,15 +1900,23 @@ Digite 1, 2 ou 3.`;
             const result = await tryExtractOrAct(userQuery, screen.id);
 
             if (result.success) {
+                console.log(`[IVA Data Flow] ✅ SUCCESS on screen: ${screen.id}`);
+                console.log(`[IVA Data Flow] Result type: ${result.type}`);
                 loopState.active = false;
                 return;
             }
 
             // No data/actions on this screen, try next
-            console.log(`[IVA Loop] No data/actions on ${screen.id}, trying next...`);
+            console.log(`[IVA Data Flow] ❌ No data/actions on ${screen.id}`);
+            console.log(`[IVA Data Flow] Reason: ${result.reason}`);
+            console.log(`[IVA Data Flow] Moving to next screen...`);
         }
 
         // Exhausted all screens
+        console.log('[IVA Data Flow] ========== SEARCH EXHAUSTED ==========');
+        console.log('[IVA Data Flow] Searched screens:', rankedScreens.length);
+        console.log('[IVA Data Flow] No data found in any screen');
+        console.log('[IVA Data Flow] ======================================');
         addMessage('ai', 'Pesquisei em todas as telas relevantes mas não encontrei o que você precisa. Pode reformular a pergunta?');
         loopState.active = false;
     };
@@ -1879,12 +1925,23 @@ Digite 1, 2 ou 3.`;
      * Try to extract data or execute actions on current screen
      */
     const tryExtractOrAct = async (userQuery, screenId) => {
+        console.log(`[IVA Extract/Act] ========== SCREEN: ${screenId} ==========`);
+        console.log(`[IVA Extract/Act] Max actions per screen: ${loopState.maxActionsPerScreen}`);
+
         let actionIterations = 0;
 
         while (actionIterations < loopState.maxActionsPerScreen) {
+            console.log(`[IVA Extract/Act] --- Iteration ${actionIterations + 1}/${loopState.maxActionsPerScreen} ---`);
+
             // Extract screen data
             const screenContext = ScreenContextExtractor.extract();
             loopState.extractedData = screenContext;
+
+            console.log(`[IVA Extract/Act] Screen context extracted:`, {
+                screenId: screenContext?.screenId,
+                hasVisibleData: !!screenContext?.visibleData,
+                dataKeys: screenContext?.visibleData ? Object.keys(screenContext.visibleData) : []
+            });
 
             // Ask LLM if data answers question
             const dataDecision = await IvaService.decideOperation(
@@ -1899,6 +1956,10 @@ Digite 1, 2 ou 3.`;
 
             if (dataDecision.hasData) {
                 // SUCCESS! Found data
+                console.log(`[IVA Extract/Act] ✅ DATA FOUND!`);
+                console.log(`[IVA Extract/Act] LLM confirmed data answers question`);
+                console.log(`[IVA Extract/Act] Response length: ${dataDecision.message?.length} chars`);
+
                 addMessage('ai', dataDecision.message);
                 speak(dataDecision.message);
 
@@ -1908,10 +1969,24 @@ Digite 1, 2 ou 3.`;
                 return { success: true, type: 'DATA_FOUND' };
             }
 
+            console.log(`[IVA Extract/Act] ❌ No data found, reason: ${dataDecision.reason || 'not specified'}`);
+            console.log(`[IVA Extract/Act] Discovering available actions...`);
+
             // No data, discover actions
             const discoveredActions = IvaActionDiscovery.discoverAllActions();
 
+            console.log(`[IVA Extract/Act] Actions discovered: ${discoveredActions.length}`);
+            if (discoveredActions.length > 0) {
+                console.log(`[IVA Extract/Act] Action types:`,
+                    discoveredActions.reduce((acc, a) => {
+                        acc[a.type] = (acc[a.type] || 0) + 1;
+                        return acc;
+                    }, {})
+                );
+            }
+
             if (discoveredActions.length === 0) {
+                console.log(`[IVA Extract/Act] ⚠️ No actions available on this screen`);
                 return { success: false, reason: 'NO_ACTIONS' };
             }
 
@@ -1929,34 +2004,51 @@ Digite 1, 2 ou 3.`;
             );
 
             if (actionDecision.action === 'NO_SUITABLE_ACTION') {
+                console.log(`[IVA Extract/Act] ⚠️ LLM found no suitable action`);
                 return { success: false, reason: 'NO_SUITABLE_ACTION' };
             }
 
             // Execute action
             actionIterations++;
+            console.log(`[IVA Extract/Act] 🎯 Executing action: ${actionDecision.actionId}`);
+            console.log(`[IVA Extract/Act] Action params:`, actionDecision.params);
+
             const actionToExecute = discoveredActions.find(a => a.id === actionDecision.actionId);
 
             if (!actionToExecute) {
-                console.error('[IVA Loop] Action not found:', actionDecision.actionId);
+                console.error(`[IVA Extract/Act] ❌ Action not found in discovered actions: ${actionDecision.actionId}`);
+                console.error(`[IVA Extract/Act] Available actions:`, discoveredActions.map(a => a.id));
                 continue;
             }
+
+            console.log(`[IVA Extract/Act] Action details:`, {
+                id: actionToExecute.id,
+                type: actionToExecute.type,
+                label: actionToExecute.label
+            });
 
             addMessage('ai', actionDecision.message || 'Executando ação...');
 
             const result = await IvaActionExecutor.executeAction(actionToExecute, actionDecision.params);
 
             if (!result.success) {
-                console.error('[IVA Loop] Action failed:', result.error);
+                console.error(`[IVA Extract/Act] ❌ Action execution failed: ${result.error}`);
                 continue;
             }
 
+            console.log(`[IVA Extract/Act] ✅ Action executed successfully`);
+            console.log(`[IVA Extract/Act] Waiting for UI update...`);
+
             // Wait for UI to update
             await new Promise(r => setTimeout(r, 1000));
+
+            console.log(`[IVA Extract/Act] UI updated, re-extracting data...`);
 
             // Loop continues to extract data again
         }
 
         // Max actions reached
+        console.log(`[IVA Extract/Act] ⚠️ Max actions (${loopState.maxActionsPerScreen}) reached`);
         return { success: false, reason: 'MAX_ACTIONS_REACHED' };
     };
 
@@ -1964,8 +2056,13 @@ Digite 1, 2 ou 3.`;
      * Action execution flow: Navigate and execute specific action
      */
     const executeActionFlow = async (userQuery) => {
+        console.log('[IVA Action Flow] Starting action execution flow');
+        console.log('[IVA Action Flow] Objective:', userQuery);
+
         // Find appropriate screen
         const menuStructure = MenuNavigator.getMenuStructure();
+
+        console.log('[IVA Action Flow] Finding appropriate screen...');
 
         const navDecision = await IvaService.decideOperation(
             `OBJETIVO: ${userQuery}

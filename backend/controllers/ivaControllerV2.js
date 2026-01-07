@@ -403,8 +403,16 @@ IMPORTANTE: SEMPRE inclua o campo "intent" na sua resposta JSON!
             { role: 'user', content: message }
         ];
 
+        console.log('[IVA Backend] ========== LLM REQUEST ==========');
+        console.log('[IVA Backend] User message:', message);
+        console.log('[IVA Backend] Current screen:', context?.screenContext?.screenId || 'none');
+        console.log('[IVA Backend] History messages:', history.length);
+        console.log('[IVA Backend] System prompt length:', systemPrompt.length, 'chars');
+        console.log('[IVA Backend] Calling OpenAI...');
+
         // Call LLM with 60-second timeout protection
         const completion = await Promise.race([
+
             openai.chat.completions.create({
                 model: "gpt-4o-mini",
                 messages: messages,
@@ -417,14 +425,30 @@ IMPORTANTE: SEMPRE inclua o campo "intent" na sua resposta JSON!
         ]);
 
         const responseContent = completion.choices[0].message.content;
-        console.log('IVA Operate Response:', responseContent);
+
+        console.log('[IVA Backend] ========== LLM RESPONSE ==========');
+        console.log('[IVA Backend] Response length:', responseContent?.length, 'chars');
+        console.log('[IVA Backend] Raw response:', responseContent?.substring(0, 200) + '...');
+        console.log('[IVA Backend] Tokens used:', {
+            prompt: completion.usage?.prompt_tokens,
+            completion: completion.usage?.completion_tokens,
+            total: completion.usage?.total_tokens
+        });
 
         if (!responseContent) {
+            console.error('[IVA Backend] ❌ OpenAI returned empty response');
             throw new Error('OpenAI returned empty response');
         }
 
         try {
             let action = JSON.parse(responseContent);
+
+            console.log('[IVA Backend] ========== PARSED ACTION ==========');
+            console.log('[IVA Backend] Action type:', action.action);
+            console.log('[IVA Backend] Intent:', action.intent || 'NOT CLASSIFIED');
+            console.log('[IVA Backend] Target:', action.target || action.screen || 'none');
+            console.log('[IVA Backend] Has message:', !!action.message);
+            console.log('[IVA Backend] =======================================');
 
             // NORMALIZE LLM OUTPUT
             // Handle { REPLY: "message" } format
