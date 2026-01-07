@@ -117,9 +117,6 @@ export const IvaNavigationIndicator = {
                     // Structure: .menu-item-wrapper > .submenu > .menu-item-wrapper > .menu-item
                     let parentSubmenu = activeItem.closest('.submenu');
                     while (parentSubmenu) {
-                        // The submenu is inside a wrapper. The previous sibling of the submenu in the wrapper is NOT the item.
-                        // Wait, Sidebar.js structure: wrapper > menu-item, submenu.
-                        // So submenu sibling is menu-item.
                         const parentWrapper = parentSubmenu.closest('.menu-item-wrapper');
                         const parentItem = parentWrapper ? parentWrapper.querySelector('.menu-item') : null;
 
@@ -129,7 +126,6 @@ export const IvaNavigationIndicator = {
                             parentItem.dataset.ivaOriginalBg = parentItem.style.backgroundColor || '';
                             parentItem.style.backgroundColor = `${INDICATOR_COLOR}15`;
                             this.activeIndicators.push({ element: parentItem, type: 'background' });
-                            // Expand submenu if needed? usually handled by click but we just highlight
                             parentSubmenu.style.display = 'block';
                         }
 
@@ -140,18 +136,15 @@ export const IvaNavigationIndicator = {
                 }
 
                 // Highlight modal or main content area (EXCLUDING FOOTER)
-                // Priority: .modal > .settings-panel > content within #main-content
                 let targetContainer = document.querySelector('.modal.show, .modal.visible, [role="dialog"]');
 
                 if (!targetContainer) {
                     targetContainer = document.querySelector('.settings-panel');
                 }
 
-                // CRITICAL: Search ONLY inside #main-content to avoid highlighting footer
                 if (!targetContainer) {
                     const mainContent = document.querySelector('#main-content');
                     if (mainContent) {
-                        // Look for content containers INSIDE main-content only
                         targetContainer = mainContent.querySelector('.glass-panel, .card, .panel, .dashboard-container, main > div:first-child');
                     }
                 }
@@ -166,7 +159,7 @@ export const IvaNavigationIndicator = {
             } catch (error) {
                 console.error('[IVA Nav] Error marking path:', error);
             }
-        }, 800); // Increased wait time for modals to render
+        }, 800);
     },
 
     /**
@@ -199,7 +192,7 @@ export const IvaNavigationIndicator = {
                     delete element.dataset.ivaOriginalBg;
                 }
 
-                // Legacy cleanup for any remaining colored backgrounds
+                // Legacy cleanup
                 if (element.style.backgroundColor?.includes(INDICATOR_COLOR)) {
                     element.style.backgroundColor = '';
                 }
@@ -213,10 +206,9 @@ export const IvaNavigationIndicator = {
     },
 
     /**
-     * Auto-clear when user navigates manually (not via IVA)
+     * Auto-clear when user navigates manually
      */
     setupManualNavigationDetector() {
-        // Clear on manual menu clicks
         document.addEventListener('click', (e) => {
             const isMenuClick = e.target.closest('.menu-item');
             const isEvaClick = e.target.closest('.IVA-chat, #IVA-icon');
@@ -227,17 +219,13 @@ export const IvaNavigationIndicator = {
             }
         });
 
-        // Also listen for global navigation events
-        // Intercept the navigate function to detect ANY navigation
         if (window.cashApp && window.cashApp.navigate) {
             const originalNavigate = window.cashApp.navigate;
             window.cashApp.navigate = (itemId) => {
-                // Clear highlights if navigating away from IVA-guided screen
                 if (this.isEvaNavigating) {
                     console.log('[IVA Nav] Screen change detected, clearing indicators');
                     this.clearAll();
                 }
-                // Call original navigate
                 return originalNavigate(itemId);
             };
         }
@@ -248,7 +236,6 @@ export const IvaNavigationIndicator = {
      */
     init() {
         this.setupManualNavigationDetector();
-        // ADDITIONAL: Monitor hash changes for SPA navigation
         let lastHash = window.location.hash;
         setInterval(() => {
             const currentHash = window.location.hash;
@@ -271,7 +258,7 @@ style.textContent = `
             opacity: 0.8;
         }
         50% {
-            transform: translateX(-5px); /* Move Left towards text */
+            transform: translateX(-5px);
             opacity: 1;
         }
     }
@@ -295,7 +282,7 @@ document.head.appendChild(style);
 // Expose globally
 window.IvaNavigationIndicator = IvaNavigationIndicator;
 
+// Auto-initialize
+IvaNavigationIndicator.init();
+
 export default IvaNavigationIndicator;
-
-
-
