@@ -62,9 +62,9 @@ export const IvaHighlighter = {
         box- shadow: 0 0 0 0 rgba(76, 175, 80, 0.7);
 }
 50 % {
-    box- shadow: 0 0 0 15px rgba(76, 175, 80, 0); 
-                }
-            }
+    box- shadow: 0 0 0 15px rgba(76, 175, 80, 0);
+    }
+}
 
 /* Fade in animation */
 @keyframes IVA - fade -in {
