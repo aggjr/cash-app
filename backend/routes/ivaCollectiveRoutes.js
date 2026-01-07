@@ -7,7 +7,6 @@
 
 const express = require('express');
 const router = express.Router();
-const IvaKnowledgeManager = require('../services/IvaKnowledgeManager');
 const db = require('../config/database');
 
 /**

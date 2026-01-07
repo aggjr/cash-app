@@ -14,6 +14,9 @@ const openai = new OpenAI({
     apiKey: process.env.OPENAI_API_KEY
 });
 
+// Limitador de iterações para evitar loops infinitos
+const MAX_ITERATIONS = 5; // Máximo de tentativas autônomas
+
 console.log('✅ IVA Controller loaded successfully');
 
 const chat = async (req, res, next) => {

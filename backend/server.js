@@ -65,7 +65,7 @@ apiRouter.use('/settings', settingsRoutes);
 apiRouter.use('/audit-logs', auditRoutes);
 apiRouter.use('/loans', require('./routes/loans'));
 apiRouter.use('/iva', require('./routes/iva'));
-// apiRouter.use('/iva', require('./routes/ivaCollectiveRoutes')); // Collective knowledge - DISABLED TEMPORARILY
+apiRouter.use('/iva', require('./routes/ivaCollectiveRoutes')); // Collective knowledge - FIXED
 apiRouter.use('/tts', ttsRoutes); // Google Cloud TTS
 apiRouter.use('/user-preferences', require('./routes/userPreferences'));
 
