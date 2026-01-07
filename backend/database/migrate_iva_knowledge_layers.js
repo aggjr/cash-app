@@ -62,10 +62,12 @@ async function migrate() {
                 INDEX idx_key (knowledge_key),
                 INDEX idx_usage (usage_count DESC, last_used_at DESC),
                 INDEX idx_source (source),
+                INDEX idx_company (company_id),
+                INDEX idx_user (user_id)
                 
-                -- Foreign Keys
-                FOREIGN KEY (company_id) REFERENCES companies(id) ON DELETE CASCADE,
-                FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE
+                -- Foreign Keys removidas temporariamente (companies table não existe)
+                -- FOREIGN KEY (company_id) REFERENCES companies(id) ON DELETE CASCADE,
+                -- FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE
             ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci
             COMMENT='Sistema hierárquico de conhecimento da IVA com aprendizado coletivo'
         `);
@@ -111,10 +113,11 @@ async function migrate() {
                 created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
                 
                 INDEX idx_company (company_id),
-                UNIQUE KEY uk_company_code (company_id, code),
+                UNIQUE KEY uk_company_code (company_id, code)
                 
-                FOREIGN KEY (company_id) REFERENCES companies(id) ON DELETE CASCADE,
-                FOREIGN KEY (parent_sector_id) REFERENCES sectors(id) ON DELETE SET NULL
+                -- Foreign Keys removidas (companies table não existe)
+                -- FOREIGN KEY (company_id) REFERENCES companies(id) ON DELETE CASCADE,
+                -- FOREIGN KEY (parent_sector_id) REFERENCES sectors(id) ON DELETE SET NULL
             ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci
             COMMENT='Setores/Departamentos para conhecimento hierárquico'
         `);
