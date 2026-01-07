@@ -1,4 +1,4 @@
-import { API_BASE_URL, getHeaders } from './IvaService';
+import { getApiBaseUrl } from '../utils/apiConfig.js';
 
 /**
  * IVA Passive Observer
@@ -129,9 +129,12 @@ export class IvaPassiveObserver {
         try {
             // Send each observation
             for (const obs of observations) {
-                await fetch(`${API_BASE_URL}/IVA/observe`, {
+                await fetch(`${getApiBaseUrl()}/IVA/observe`, {
                     method: 'POST',
-                    headers: getHeaders(),
+                    headers: {
+                        'Authorization': `Bearer ${localStorage.getItem('token')}`,
+                        'Content-Type': 'application/json'
+                    },
                     body: JSON.stringify(obs)
                 });
             }

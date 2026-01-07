@@ -1,4 +1,4 @@
-import { API_BASE_URL, getHeaders } from './IvaService';
+import { getApiBaseUrl } from '../utils/apiConfig.js';
 
 /**
  * IVA Learning - Active Learning System
@@ -13,9 +13,12 @@ export class IvaLearning {
         try {
             const keywords = this.extractKeywords(userQuery);
 
-            await fetch(`${API_BASE_URL}/IVA/learn`, {
+            await fetch(`${getApiBaseUrl()}/IVA/learn`, {
                 method: 'POST',
-                headers: getHeaders(),
+                headers: {
+                    'Authorization': `Bearer ${localStorage.getItem('token')}`,
+                    'Content-Type': 'application/json'
+                },
                 body: JSON.stringify({
                     type: 'menus',
                     data: {
@@ -41,9 +44,12 @@ export class IvaLearning {
         try {
             const keywords = this.extractKeywords(userQuery);
 
-            await fetch(`${API_BASE_URL}/IVA/learn`, {
+            await fetch(`${getApiBaseUrl()}/IVA/learn`, {
                 method: 'POST',
-                headers: getHeaders(),
+                headers: {
+                    'Authorization': `Bearer ${localStorage.getItem('token')}`,
+                    'Content-Type': 'application/json'
+                },
                 body: JSON.stringify({
                     type: 'actions',
                     data: {
@@ -72,9 +78,12 @@ export class IvaLearning {
         try {
             const keywords = this.extractKeywords(userQuery);
 
-            await fetch(`${API_BASE_URL}/IVA/learn`, {
+            await fetch(`${getApiBaseUrl()}/IVA/learn`, {
                 method: 'POST',
-                headers: getHeaders(),
+                headers: {
+                    'Authorization': `Bearer ${localStorage.getItem('token')}`,
+                    'Content-Type': 'application/json'
+                },
                 body: JSON.stringify({
                     type: 'data_structures',
                     data: {
