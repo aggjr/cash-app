@@ -159,13 +159,5 @@ async function migrate() {
     }
 }
 
-// Executar migration
-migrate()
-    .then(() => {
-        console.log('[Migration] Migration completed successfully');
-        process.exit(0);
-    })
-    .catch((error) => {
-        console.error('[Migration] Migration failed:', error);
-        process.exit(1);
-    });
+// Exportar função para ser chamada pelo server.js
+module.exports = migrate;
