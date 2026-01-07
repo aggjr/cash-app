@@ -149,15 +149,30 @@ export const IvaHighlighter = {
      * Clear all active highlights
      */
     clearAll() {
-        console.log('[IvaHighlighter] Clearing', this.activeHighlights.length, 'highlights');
+        console.log('[IvaHighlighter] clearAll() called. Active highlights:', this.activeHighlights.length);
 
-        this.activeHighlights.forEach(overlay => {
+        // Method 1: Remove tracked overlays
+        this.activeHighlights.forEach((overlay, index) => {
             if (overlay && overlay.parentNode) {
+                console.log(`[IvaHighlighter] Removing overlay ${index}:`, overlay);
                 overlay.parentNode.removeChild(overlay);
+            } else {
+                console.warn(`[IvaHighlighter] Overlay ${index} has no parent or is null`);
+            }
+        });
+
+        // Method 2: Force remove ALL highlights by class (in case tracking failed)
+        const allHighlights = document.querySelectorAll('.IVA-highlight-overlay');
+        console.log('[IvaHighlighter] Found', allHighlights.length, 'highlights by class selector');
+        allHighlights.forEach((highlight, index) => {
+            console.log(`[IvaHighlighter] Force removing highlight ${index} by class`);
+            if (highlight.parentNode) {
+                highlight.parentNode.removeChild(highlight);
             }
         });
 
         this.activeHighlights = [];
+        console.log('[IvaHighlighter] clearAll() complete. Remaining highlights:', document.querySelectorAll('.IVA-highlight-overlay').length);
     }
 };
 
