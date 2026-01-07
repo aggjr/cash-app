@@ -11,8 +11,7 @@ export const Sidebar = () => {
       masterOnly: true, // Only MASTER users can see this
       children: [
         { id: 'parametros-gerais', label: 'Parâmetros Gerais', icon: '📝' },
-        { id: 'log-alteracoes', label: 'Log de Alterações', icon: '📜' },
-        { id: 'iva-analytics', label: 'Analytics IVA', icon: '📊' }
+        { id: 'log-alteracoes', label: 'Log de Alterações', icon: '📜' }
       ]
     },
     {
