@@ -259,6 +259,9 @@ setInterval(() => {
     }
 }, 500);
 
+// Expose globally for manual menu clicks
+window.IvaHighlighter = IvaHighlighter;
+
 export default IvaHighlighter;
 
 

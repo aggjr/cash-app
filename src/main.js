@@ -409,6 +409,12 @@ function initAppLogic() {
       e.stopPropagation();
       const itemId = item.dataset.id;
 
+      // Clear IVA highlights when user manually clicks menu
+      if (window.IvaHighlighter) {
+        window.IvaHighlighter.clearAll();
+        console.log('[Menu] Manual click detected, clearing IVA highlights');
+      }
+
       // Use the global navigation function
       if (window.cashApp && window.cashApp.navigate) {
         window.cashApp.navigate(itemId);
