@@ -1,4 +1,5 @@
 import './style.css'
+import './styles/iva-analytics.css'
 import { Sidebar } from './components/Sidebar.js'
 import { Hero } from './components/Hero.js'
 import { Footer } from './components/Footer.js'
@@ -25,6 +26,7 @@ import { AIConsultant } from './components/AIConsultant.js'
 import { ParametrosGeraisManager } from './components/ParametrosGeraisManager.js'
 import { LogAlteracoesManager } from './components/LogAlteracoesManager.js'
 import { DividasEmprestimosManager } from './components/DividasEmprestimosManager.js'
+import { IvaAnalytics } from './components/IvaAnalytics.js'
 
 console.log('═══════════════════════════════════════');
 console.log('💰 CASH Frontend Starting');

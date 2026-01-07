@@ -15,6 +15,12 @@ export const Sidebar = () => {
       ]
     },
     {
+      id: 'iva-analytics',
+      label: 'Analytics IVA',
+      icon: '📊',
+      masterOnly: true
+    },
+    {
       id: 'cadastros',
       label: 'Cadastros',
       icon: '📋',
