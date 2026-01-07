@@ -393,6 +393,14 @@ Antes de retornar a ação, classifique a intenção do usuário:
 IMPORTANTE: SEMPRE inclua o campo "intent" na sua resposta JSON!
 `;
 
+        // INJECT GLOBAL KNOWLEDGE
+        const IvaGlobalKnowledge = require('../services/IvaGlobalKnowledge');
+        const globalKnowledge = await IvaGlobalKnowledge.load();
+        const knowledgePrompt = IvaGlobalKnowledge.formatForPrompt(globalKnowledge);
+
+        // Prepend knowledge to system prompt
+        systemPrompt = knowledgePrompt + systemPrompt;
+
         const history = conversationHistory || [];
         const messages = [
             { role: 'system', content: systemPrompt },

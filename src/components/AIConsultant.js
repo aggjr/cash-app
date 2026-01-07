@@ -11,6 +11,7 @@ import { MenuNavigator } from '../iva/MenuNavigator.js';
 import { IvaActionDiscovery } from '../iva/IvaActionDiscovery.js';
 import { IvaActionExecutor } from '../iva/IvaActionExecutor.js';
 import { IvaActionFormatter } from '../iva/IvaActionFormatter.js';
+import { IvaLearning } from '../iva/IvaLearning.js';
 
 export const AIConsultant = () => {
     console.log('AIConsultant: Version 2.1 (Iva UI Interactions fixed)');
@@ -1845,6 +1846,14 @@ Digite 1, 2 ou 3.`;
         addMessage('ai', confirmMsg);
         speak(confirmMsg);
 
+        // RECORD LEARNING
+        await IvaLearning.recordMenuKnowledge(
+            userQuery,
+            decision.target,
+            getMenuPath(decision.target),
+            true
+        );
+
         loopState.awaitingUserResponse = true;
         loopState.active = false;
     };
@@ -1902,6 +1911,15 @@ Digite 1, 2 ou 3.`;
             if (result.success) {
                 console.log(`[IVA Data Flow] ✅ SUCCESS on screen: ${screen.id}`);
                 console.log(`[IVA Data Flow] Result type: ${result.type}`);
+
+                // RECORD LEARNING
+                await IvaLearning.recordMenuKnowledge(
+                    userQuery,
+                    screen.id,
+                    getMenuPath(screen.id),
+                    true
+                );
+
                 loopState.active = false;
                 return;
             }
@@ -1965,6 +1983,15 @@ Digite 1, 2 ou 3.`;
 
                 addMessage('ai', 'Isso responde sua pergunta?');
                 loopState.awaitingUserResponse = true;
+
+                // RECORD DATA LEARNING
+                await IvaLearning.recordDataKnowledge(
+                    userQuery,
+                    screenId,
+                    'visibleData',
+                    'extracted',
+                    true
+                );
 
                 return { success: true, type: 'DATA_FOUND' };
             }
@@ -2038,6 +2065,14 @@ Digite 1, 2 ou 3.`;
 
             console.log(`[IVA Extract/Act] ✅ Action executed successfully`);
             console.log(`[IVA Extract/Act] Waiting for UI update...`);
+
+            // RECORD ACTION LEARNING
+            await IvaLearning.recordActionKnowledge(
+                userQuery,
+                screenId,
+                actionToExecute,
+                true
+            );
 
             // Wait for UI to update
             await new Promise(r => setTimeout(r, 1000));
