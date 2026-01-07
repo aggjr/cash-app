@@ -8,6 +8,9 @@ import IvaScreenActions from '../iva/IvaScreenActions.js';
 import IvaHighlighter from '../iva/IvaHighlighter.js';
 import { IvaNavigationIndicator } from '../iva/IvaNavigationIndicator.js';
 import { MenuNavigator } from '../iva/MenuNavigator.js';
+import { IvaActionDiscovery } from '../iva/IvaActionDiscovery.js';
+import { IvaActionExecutor } from '../iva/IvaActionExecutor.js';
+import { IvaActionFormatter } from '../iva/IvaActionFormatter.js';
 
 export const AIConsultant = () => {
     console.log('AIConsultant: Version 2.1 (Iva UI Interactions fixed)');
@@ -1727,6 +1730,279 @@ Digite 1, 2 ou 3.`;
 
             // Old fallback chat logic removed - now handled by IvaService above
         }, 800);
+    };
+
+    // --- Autonomous Loop State ---
+    const loopState = {
+        active: false,
+        iteration: 0,
+        maxActionsPerScreen: 5, // Max actions to try on same screen
+        originalQuery: '',
+        currentScreen: null,
+        extractedData: null,
+        awaitingUserResponse: false,
+        flowType: null // 'NAVIGATION_ONLY', 'DATA_SEEKING', 'ACTION_EXECUTION'
+    };
+
+    /**
+     * Executes autonomous loop based on user query
+     */
+    const executeAutonomousLoop = async (userQuery, intentType) => {
+        loopState.active = true;
+        loopState.originalQuery = userQuery;
+        loopState.flowType = intentType;
+        loopState.iteration = 0;
+
+        console.log(`[IVA Loop] Starting ${intentType} flow for: "${userQuery}"`);
+
+        try {
+            switch (intentType) {
+                case 'NAVIGATION_ONLY':
+                    await executeNavigationFlow(userQuery);
+                    break;
+
+                case 'DATA_SEEKING':
+                    await executeDataSeekingFlow(userQuery);
+                    break;
+
+                case 'ACTION_EXECUTION':
+                    await executeActionFlow(userQuery);
+                    break;
+
+                default:
+                    // Fallback to data seeking (most complete)
+                    await executeDataSeekingFlow(userQuery);
+            }
+        } catch (error) {
+            console.error('[IVA Loop] Error:', error);
+            addMessage('ai', 'Desculpe, ocorreu um erro ao processar sua solicitação.');
+            loopState.active = false;
+        }
+    };
+
+    /**
+     * Navigation-only flow: Find and show screen
+     */
+    const executeNavigationFlow = async (userQuery) => {
+        // Get all menu items
+        const menuStructure = MenuNavigator.getMenuStructure();
+        const allScreens = menuStructure.flatMenu || [];
+
+        // Ask LLM to find appropriate screen
+        const decision = await IvaService.decideOperation(
+            `PERGUNTA: "${userQuery}"
+             TELAS DISPONÍVEIS: ${JSON.stringify(allScreens)}
+             
+             Qual tela é apropriada para esta pergunta?
+             Retorne: { action: "NAVIGATE", target: "screen-id", message: "..." }
+             Se não encontrar: { action: "NO_SCREEN", message: "..." }`,
+            { menuStructure }
+        );
+
+        if (decision.action === 'NO_SCREEN') {
+            addMessage('ai', decision.message || 'Desculpe, não encontrei uma tela apropriada para isso.');
+            loopState.active = false;
+            return;
+        }
+
+        // Navigate
+        await IvaActions.navigate(decision.target);
+        await new Promise(r => setTimeout(r, 1500));
+
+        // Confirm with user
+        const confirmMsg = decision.message || `Esta é a tela que você procurava?`;
+        addMessage('ai', confirmMsg);
+        speak(confirmMsg);
+
+        loopState.awaitingUserResponse = true;
+        loopState.active = false;
+    };
+
+    /**
+     * Data-seeking flow: Navigate, extract, filter, present
+     */
+    const executeDataSeekingFlow = async (userQuery) => {
+        // Get all screens and rank by relevance
+        const menuStructure = MenuNavigator.getMenuStructure();
+        const allScreens = menuStructure.flatMenu || [];
+
+        const rankingDecision = await IvaService.decideOperation(
+            `PERGUNTA: "${userQuery}"
+             TELAS DISPONÍVEIS: ${JSON.stringify(allScreens)}
+             
+             Ranqueie TODAS as telas por relevância (0-1).
+             Retorne: { screens: [{ id: "...", relevance: 0.95 }, ...] }`,
+            { menuStructure }
+        );
+
+        const rankedScreens = (rankingDecision.screens || [])
+            .sort((a, b) => b.relevance - a.relevance)
+            .filter(s => s.relevance >= 0.3); // Only try screens with >30% relevance
+
+        console.log('[IVA Loop] Ranked screens:', rankedScreens.map(s => `${s.id} (${s.relevance})`));
+
+        // Try each screen until we find data
+        for (const screen of rankedScreens) {
+            console.log(`[IVA Loop] Trying screen: ${screen.id} (relevance: ${screen.relevance})`);
+
+            await IvaActions.navigate(screen.id);
+            await new Promise(r => setTimeout(r, 1500));
+
+            loopState.currentScreen = screen.id;
+
+            // Try to extract data or execute actions
+            const result = await tryExtractOrAct(userQuery, screen.id);
+
+            if (result.success) {
+                loopState.active = false;
+                return;
+            }
+
+            // No data/actions on this screen, try next
+            console.log(`[IVA Loop] No data/actions on ${screen.id}, trying next...`);
+        }
+
+        // Exhausted all screens
+        addMessage('ai', 'Pesquisei em todas as telas relevantes mas não encontrei o que você precisa. Pode reformular a pergunta?');
+        loopState.active = false;
+    };
+
+    /**
+     * Try to extract data or execute actions on current screen
+     */
+    const tryExtractOrAct = async (userQuery, screenId) => {
+        let actionIterations = 0;
+
+        while (actionIterations < loopState.maxActionsPerScreen) {
+            // Extract screen data
+            const screenContext = ScreenContextExtractor.extract();
+            loopState.extractedData = screenContext;
+
+            // Ask LLM if data answers question
+            const dataDecision = await IvaService.decideOperation(
+                `PERGUNTA ORIGINAL: "${userQuery}"
+                 DADOS VISÍVEIS: ${JSON.stringify(screenContext.visibleData)}
+                 
+                 Esses dados respondem completamente a pergunta?
+                 Se SIM: { hasData: true, message: "resposta formatada" }
+                 Se NÃO: { hasData: false, reason: "..." }`,
+                { screenContext }
+            );
+
+            if (dataDecision.hasData) {
+                // SUCCESS! Found data
+                addMessage('ai', dataDecision.message);
+                speak(dataDecision.message);
+
+                addMessage('ai', 'Isso responde sua pergunta?');
+                loopState.awaitingUserResponse = true;
+
+                return { success: true, type: 'DATA_FOUND' };
+            }
+
+            // No data, discover actions
+            const discoveredActions = IvaActionDiscovery.discoverAllActions();
+
+            if (discoveredActions.length === 0) {
+                return { success: false, reason: 'NO_ACTIONS' };
+            }
+
+            // Ask LLM which action to execute
+            const actionsForLLM = IvaActionFormatter.formatForLLM(discoveredActions);
+
+            const actionDecision = await IvaService.decideOperation(
+                `PERGUNTA: "${userQuery}"
+                 AÇÕES DISPONÍVEIS: ${JSON.stringify(actionsForLLM)}
+                 
+                 Qual ação pode trazer os dados necessários?
+                 Se encontrou: { action: "EXECUTE", actionId: "...", params: {...}, message: "..." }
+                 Se não encontrou: { action: "NO_SUITABLE_ACTION" }`,
+                { discoveredActions: actionsForLLM }
+            );
+
+            if (actionDecision.action === 'NO_SUITABLE_ACTION') {
+                return { success: false, reason: 'NO_SUITABLE_ACTION' };
+            }
+
+            // Execute action
+            actionIterations++;
+            const actionToExecute = discoveredActions.find(a => a.id === actionDecision.actionId);
+
+            if (!actionToExecute) {
+                console.error('[IVA Loop] Action not found:', actionDecision.actionId);
+                continue;
+            }
+
+            addMessage('ai', actionDecision.message || 'Executando ação...');
+
+            const result = await IvaActionExecutor.executeAction(actionToExecute, actionDecision.params);
+
+            if (!result.success) {
+                console.error('[IVA Loop] Action failed:', result.error);
+                continue;
+            }
+
+            // Wait for UI to update
+            await new Promise(r => setTimeout(r, 1000));
+
+            // Loop continues to extract data again
+        }
+
+        // Max actions reached
+        return { success: false, reason: 'MAX_ACTIONS_REACHED' };
+    };
+
+    /**
+     * Action execution flow: Navigate and execute specific action
+     */
+    const executeActionFlow = async (userQuery) => {
+        // Find appropriate screen
+        const menuStructure = MenuNavigator.getMenuStructure();
+
+        const navDecision = await IvaService.decideOperation(
+            `OBJETIVO: ${userQuery}
+             TELAS DISPONÍVEIS: ${JSON.stringify(menuStructure.flatMenu)}
+             
+             Qual tela permite executar esta ação?
+             Retorne: { action: "NAVIGATE", target: "screen-id" }`,
+            { menuStructure }
+        );
+
+        await IvaActions.navigate(navDecision.target);
+        await new Promise(r => setTimeout(r, 1500));
+
+        // Discover actions
+        const discoveredActions = IvaActionDiscovery.discoverAllActions();
+        const actionsForLLM = IvaActionFormatter.formatForLLM(discoveredActions);
+
+        // Ask LLM which action to execute
+        const actionDecision = await IvaService.decideOperation(
+            `OBJETIVO: ${userQuery}
+             AÇÕES DISPONÍVEIS: ${JSON.stringify(actionsForLLM)}
+             
+             Qual ação executar?
+             Retorne: { action: "EXECUTE", actionId: "...", params: {...} }`,
+            { discoveredActions: actionsForLLM }
+        );
+
+        if (actionDecision.action !== 'EXECUTE') {
+            addMessage('ai', 'Desculpe, não encontrei uma ação apropriada para isso.');
+            loopState.active = false;
+            return;
+        }
+
+        // Execute action
+        const actionToExecute = discoveredActions.find(a => a.id === actionDecision.actionId);
+        const result = await IvaActionExecutor.executeAction(actionToExecute, actionDecision.params);
+
+        if (result.success) {
+            addMessage('ai', result.message || 'Ação executada com sucesso!');
+            speak('Ação executada com sucesso!');
+        } else {
+            addMessage('ai', `Erro ao executar ação: ${result.error}`);
+        }
+
+        loopState.active = false;
     };
 
     // --- Semantic Screen Reading "The Eyes" ---
