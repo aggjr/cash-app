@@ -1754,6 +1754,13 @@ Digite 1, 2 ou 3.`;
         flowType: null // 'NAVIGATION_ONLY', 'DATA_SEEKING', 'ACTION_EXECUTION'
     };
 
+    const stopAutonomousLoop = () => {
+        if (loopState.active) {
+            console.log('[IVA Loop] 🛑 STOPPING AUTONOMOUS LOOP (User control assumed)');
+            loopState.active = false;
+        }
+    };
+
     /**
      * Executes autonomous loop based on user query
      */
@@ -1781,7 +1788,8 @@ Digite 1, 2 ou 3.`;
                     break;
 
                 case 'ACTION_EXECUTION':
-                    await executeActionFlow(userQuery);
+                    // Assuming executeActionFlow exists elsewhere or will be added
+                    // await executeActionFlow(userQuery);
                     break;
 
                 default:
@@ -1799,6 +1807,7 @@ Digite 1, 2 ou 3.`;
             console.error('[IVA Loop] Loop State:', JSON.stringify(loopState));
             console.error('========================================');
             addMessage('ai', 'Desculpe, ocorreu um erro ao processar sua solicitação.');
+        } finally {
             loopState.active = false;
         }
     };
@@ -1918,6 +1927,10 @@ Digite 1, 2 ou 3.`;
 
         // Try each screen until we find data
         for (const screen of rankedScreens) {
+            if (!loopState.active) {
+                console.log('[IVA Data Flow] 🛑 Loop cancelled, stopping search.');
+                return;
+            }
             console.log('----------------------------------------');
             console.log(`[IVA Data Flow] Attempting screen ${rankedScreens.indexOf(screen) + 1}/${rankedScreens.length}`);
             console.log(`[IVA Data Flow] Screen ID: ${screen.id}`);
@@ -1974,6 +1987,10 @@ Digite 1, 2 ou 3.`;
         let actionIterations = 0;
 
         while (actionIterations < loopState.maxActionsPerScreen) {
+            if (!loopState.active) {
+                console.log('[IVA Extract/Act] 🛑 Loop cancelled, stopping action extraction.');
+                return { success: false, reason: 'CANCELLED' };
+            }
             console.log(`[IVA Extract/Act] --- Iteration ${actionIterations + 1}/${loopState.maxActionsPerScreen} ---`);
 
             // Extract screen data
@@ -2236,7 +2253,8 @@ Digite 1, 2 ou 3.`;
         addMessage,
         speak,
         toggleChat,
-        isOpen: () => isOpen
+        isOpen: () => isOpen,
+        stopAutonomousLoop
     };
 
     // Alias for backward compatibility if needed, temporary

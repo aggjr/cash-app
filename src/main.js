@@ -224,7 +224,12 @@ function initAppLogic() {
       window.IvaHighlighter.clearAll();
     }
 
-    // 2. Clear IvaNavigationIndicator (arrows, borders, golden glow)
+    // 2. Stop IVA Autonomous Loop (Emergency Stop)
+    if (window.IVAConsultant && typeof window.IVAConsultant.stopAutonomousLoop === 'function') {
+      window.IVAConsultant.stopAutonomousLoop();
+    }
+
+    // 3. Clear IvaNavigationIndicator (arrows, borders, golden glow)
     const navArrows = document.querySelectorAll('.IVA-nav-arrow');
     navArrows.forEach(el => el.remove());
 
