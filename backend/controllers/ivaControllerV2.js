@@ -404,6 +404,10 @@ Antes de retornar a ação, classifique a intenção do usuário:
    Exemplos: "Criar entrada de R$ 1000", "Exportar relatório", "Filtrar por empresa X"
    Retorne: { "intent": "ACTION_EXECUTION", "action": "NAVIGATE", "target": "screen-id", "message": "..." }
 
+4. LEARNING - Usuário está ensinando uma regra, comando ou conhecimento.
+   Exemplos: "aprenda o seguinte...", "guarde este conhecimento...", "memorize..."
+   Retorne: { "intent": "LEARNING", "action": "REPLY", "message": "Entendido! Guardei esse novo conhecimento e vou usá-lo quando você me perguntar." }
+
 IMPORTANTE: SEMPRE inclua o campo "intent" na sua resposta JSON!
 `;
 
