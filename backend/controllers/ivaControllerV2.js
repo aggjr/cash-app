@@ -475,8 +475,8 @@ Antes de retornar a a├º├úo, classifique a inten├º├úo do usu├írio:
 
 1. NAVIGATION_ONLY - Usu├írio quer apenas encontrar/ver uma tela
    Exemplos: "Onde cadastro usu├írios?", "Como acesso relat├│rios?", "Onde fica configura├º├╡es?"
-   Retorne: { "intent": "NAVIGATION_ONLY", "action": "NAVIGATE", "target": "screen-id", "message": "Navegando para [nome da tela]. O que voc├¬ gostaria de ver ou fazer aqui?" }
-   IMPORTANTE: SEMPRE inclua uma pergunta de follow-up contextual sobre o que o usu├írio quer fazer na tela
+   Retorne: { "intent": "NAVIGATION_ONLY", "action": "NAVIGATE", "target": "screen-id", "message": "Navegando para [nome da tela]. ├ë nesta tela que est├í a informa├º├úo que voc├¬ procura?" }
+   IMPORTANTE: SEMPRE use a pergunta de valida├º├úo ao navegar para uma nova tela em busca de informa├º├úo.
 
 2. DATA_SEEKING - Usu├írio quer informa├º├úo espec├¡fica/dados ou an├ílise de valores
    Exemplos: "Quanto recebi em dezembro?", "Qual o saldo?", "Qual ser├í meu fluxo de caixa daqui a 10 dias?", "Ver previs├úo de fechamento"
@@ -500,36 +500,9 @@ REGRA DE CONTEXTO DE TELA:
   2. Voc├¬ tentou buscar na tela atual e N├âO encontrou o dado necess├írio
 - Quando o dado existe na tela atual, use action: "REPLY" com a resposta baseada nos dados da tela
 
-FLUXO DE DESCOBERTA COLABORATIVA:
-Quando o usu├írio pede um dado espec├¡fico na tela atual:
+- Quando o dado existe na tela atual, use action: "REPLY" com a resposta baseada nos dados da tela.
 
-1. **Se voc├¬ N├âO sabe como encontrar o dado:**
-   - Pergunte: "Como fa├ºo para encontrar [o dado que voc├¬ precisa]?"
-   - Aguarde instru├º├╡es do usu├írio
-   - Use action: "REPLY" com a pergunta
-
-2. **Quando o usu├írio te ensinar como encontrar:**
-   - Execute as instru├º├╡es passo a passo
-   - Exemplo: "Somar hoje + 20 dias = 28/01, procurar coluna 28/01, linha 'Saldo Final'"
-   - Retorne o dado encontrado
-   - GRAVE o conhecimento para pr├│ximas vezes usando intent: "LEARNING"
-
-3. **Se mesmo ap├│s tentar voc├¬ N├âO encontrar o dado:**
-   - Ofere├ºa: "Posso continuar olhando o software para tentar encontrar os dados que voc├¬ precisa. Aqui mesmo, nesta tela, temos filtros que podem trazer o dado que voc├¬ est├í procurando. Estes filtros ajudam?"
-   - Aguarde resposta do usu├írio
-   - Se usu├írio aceitar, sugira usar filtros dispon├¡veis na tela
-
-4. **Se nem usu├írio nem IVA encontraram de forma nenhuma:**
-   - Ofere├ºa: "N├úo consegui encontrar aqui. Posso procurar em outras telas do sistema?"
-   - Se usu├írio aceitar, navegue para OUTRAS TELAS ainda N├âO visitadas
-   - Mantenha registro mental das telas j├í verificadas
-   - Continue buscando em telas n├úo avaliadas
-
-5. **Se chegou ao final de TODAS as telas dispon├¡veis:**
-   - Pe├ºa desculpas: "Desculpe, procurei em todo o sistema e realmente n├úo encontrei essa informa├º├úo. Posso ajud├í-lo de alguma outra forma?"
-   - Seja humilde e honesta sobre a limita├º├úo
-   - Ofere├ºa ajuda alternativa
-
+Siga rigorosamente as INSTRU├ç├òES DE FLUXO DE EXECU├ç├âO E DESCOBERTA enviadas pelo Context Builder.
 `;
 
         // INJECT GLOBAL KNOWLEDGE
