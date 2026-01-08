@@ -232,6 +232,11 @@ class IvaKnowledgeManager {
             console.error('[IVA Knowledge] Semantic search failed, falling back to MySQL:', err.message);
         }
 
+        // 🧪 TESTE: Fallback MySQL comentado para verificar se Qdrant está funcionando
+        // Se a IVA funcionar normalmente, significa que está usando 100% Qdrant!
+        // Para reverter, descomente o bloco abaixo
+
+        /*
         // 2. Busca em cascata tradicional (fallback ou exata)
         const searchPaths = [
             { layer: 'USER', filters: { user_id: userId } },
@@ -248,8 +253,11 @@ class IvaKnowledgeManager {
                 return knowledge;
             }
         }
+        */
 
+        console.log('[IVA Knowledge] 🧪 TESTE: MySQL fallback desabilitado. Retornando null.');
         return null;
+
     }
 
     /**
