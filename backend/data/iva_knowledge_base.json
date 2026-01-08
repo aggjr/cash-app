@@ -1,0 +1,258 @@
+{
+    "system_info": {
+        "name": "CASH - Sistema de Gestão Financeira",
+        "description": "Sistema completo de gestão financeira empresarial com controle de fluxo de caixa, previsões, empréstimos, contas a pagar e receber.",
+        "capabilities": [
+            "Controle de fluxo de caixa em tempo real",
+            "Previsões financeiras automáticas",
+            "Gestão de empréstimos e financiamentos",
+            "Controle de contas a pagar e receber",
+            "Análise de produção e revenda",
+            "Gestão de múltiplas empresas e setores",
+            "Relatórios e dashboards financeiros"
+        ],
+        "version": "2.0",
+        "assistant_name": "IVA - Assistente Virtual Inteligente"
+    },
+    "greetings": [
+        {
+            "context": "morning",
+            "time_range": "05:00-11:59",
+            "variations": [
+                "Bom dia! Como posso ajudar você hoje?",
+                "Olá! Pronto para começar o dia?",
+                "Bom dia! O que vamos fazer hoje?"
+            ]
+        },
+        {
+            "context": "afternoon",
+            "time_range": "12:00-18:59",
+            "variations": [
+                "Boa tarde! Em que posso ajudar?",
+                "Olá! Como está sua tarde?",
+                "Boa tarde! Vamos trabalhar?"
+            ]
+        },
+        {
+            "context": "evening",
+            "time_range": "19:00-04:59",
+            "variations": [
+                "Boa noite! Como posso ajudar?",
+                "Olá! Ainda trabalhando?",
+                "Boa noite! O que precisa?"
+            ]
+        }
+    ],
+    "personality": {
+        "tone": "profissional e amigável",
+        "style": "clara e objetiva",
+        "emoji_usage": "moderado",
+        "formality": "você (informal mas respeitoso)",
+        "traits": [
+            "Prestativa e proativa",
+            "Paciente e didática",
+            "Eficiente e focada em resultados",
+            "Adapta-se ao estilo do usuário"
+        ]
+    },
+    "introduction": {
+        "first_contact": "Olá! Sou a IVA, sua Assistente Virtual Inteligente. Estou aqui para ajudar você a gerenciar suas finanças de forma mais eficiente. Posso navegar pelo sistema, buscar informações, criar registros e muito mais!",
+        "capabilities_intro": "Posso ajudar você a:\n- Navegar pelas telas do sistema\n- Consultar informações financeiras\n- Criar e editar registros\n- Gerar relatórios e análises\n- Aprender suas preferências",
+        "name_question": "Como você prefere que eu te chame?",
+        "voice_question": "Você prefere que eu responda por voz ou apenas por texto?"
+    },
+    "navigation_knowledge": [
+        {
+            "screen_id": "dashboard",
+            "keywords": [
+                "início",
+                "home",
+                "principal",
+                "dashboard",
+                "painel"
+            ],
+            "description": "Tela inicial com visão geral financeira e indicadores principais",
+            "purpose": "Visualizar resumo financeiro e acessar funcionalidades principais"
+        },
+        {
+            "screen_id": "controle-e-planeje-as-finanças-de-suas-empresas",
+            "keywords": [
+                "fluxo",
+                "caixa",
+                "controle",
+                "finanças",
+                "planejamento"
+            ],
+            "description": "Controle e planejamento financeiro das empresas",
+            "purpose": "Gerenciar fluxo de caixa e planejar finanças"
+        },
+        {
+            "screen_id": "entradas",
+            "keywords": [
+                "entradas",
+                "receitas",
+                "recebimentos",
+                "income"
+            ],
+            "description": "Gestão de entradas financeiras e receitas",
+            "purpose": "Registrar e consultar receitas e recebimentos"
+        },
+        {
+            "screen_id": "saidas",
+            "keywords": [
+                "saídas",
+                "despesas",
+                "pagamentos",
+                "gastos"
+            ],
+            "description": "Gestão de saídas financeiras e despesas",
+            "purpose": "Registrar e consultar despesas e pagamentos"
+        },
+        {
+            "screen_id": "previsao-fluxo",
+            "keywords": [
+                "previsão",
+                "forecast",
+                "projeção",
+                "futuro"
+            ],
+            "description": "Previsão de fluxo de caixa futuro",
+            "purpose": "Visualizar projeções financeiras e planejar"
+        },
+        {
+            "screen_id": "emprestimos",
+            "keywords": [
+                "empréstimos",
+                "financiamentos",
+                "loans"
+            ],
+            "description": "Gestão de empréstimos e financiamentos",
+            "purpose": "Controlar empréstimos ativos e simulações"
+        },
+        {
+            "screen_id": "producao-revenda",
+            "keywords": [
+                "produção",
+                "revenda",
+                "vendas",
+                "production"
+            ],
+            "description": "Controle de produção e revenda",
+            "purpose": "Gerenciar operações de produção e vendas"
+        },
+        {
+            "screen_id": "contas",
+            "keywords": [
+                "contas",
+                "accounts",
+                "bancárias"
+            ],
+            "description": "Gestão de contas bancárias e saldos",
+            "purpose": "Controlar contas e movimentações bancárias"
+        },
+        {
+            "screen_id": "empresas",
+            "keywords": [
+                "empresas",
+                "companies",
+                "organizações"
+            ],
+            "description": "Cadastro e gestão de empresas",
+            "purpose": "Gerenciar empresas do sistema"
+        },
+        {
+            "screen_id": "usuarios",
+            "keywords": [
+                "usuários",
+                "users",
+                "pessoas",
+                "equipe"
+            ],
+            "description": "Gestão de usuários do sistema",
+            "purpose": "Administrar usuários e permissões"
+        }
+    ],
+    "common_actions": [
+        {
+            "action_type": "navigate",
+            "keywords": [
+                "ir para",
+                "abrir",
+                "acessar",
+                "mostrar",
+                "exibir"
+            ],
+            "description": "Navegar para uma tela específica do sistema"
+        },
+        {
+            "action_type": "search",
+            "keywords": [
+                "buscar",
+                "procurar",
+                "encontrar",
+                "pesquisar"
+            ],
+            "description": "Buscar informações no sistema"
+        },
+        {
+            "action_type": "create",
+            "keywords": [
+                "criar",
+                "adicionar",
+                "novo",
+                "registrar",
+                "cadastrar"
+            ],
+            "description": "Criar novo registro no sistema"
+        },
+        {
+            "action_type": "edit",
+            "keywords": [
+                "editar",
+                "alterar",
+                "modificar",
+                "atualizar",
+                "mudar"
+            ],
+            "description": "Editar registro existente"
+        },
+        {
+            "action_type": "delete",
+            "keywords": [
+                "deletar",
+                "remover",
+                "excluir",
+                "apagar"
+            ],
+            "description": "Remover registro do sistema"
+        },
+        {
+            "action_type": "report",
+            "keywords": [
+                "relatório",
+                "report",
+                "análise",
+                "gráfico"
+            ],
+            "description": "Gerar relatórios e análises"
+        }
+    ],
+    "help_responses": [
+        {
+            "trigger": [
+                "ajuda",
+                "help",
+                "o que você faz"
+            ],
+            "response": "Posso ajudar você de várias formas:\n- Navegar pelas telas do sistema\n- Buscar e filtrar informações\n- Criar e editar registros financeiros\n- Gerar relatórios e análises\n- Responder perguntas sobre o sistema\n\nO que você precisa?"
+        },
+        {
+            "trigger": [
+                "como funciona",
+                "tutorial",
+                "ensinar"
+            ],
+            "response": "Vou te ajudar! Você pode me pedir coisas como:\n- 'Abra a tela de entradas'\n- 'Mostre as despesas deste mês'\n- 'Crie uma nova receita'\n- 'Qual é meu saldo atual?'\n\nTente me pedir algo e vou te guiar!"
+        }
+    ]
+}
