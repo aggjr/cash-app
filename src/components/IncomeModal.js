@@ -291,7 +291,7 @@ export const IncomeModal = {
                                             title="Gerenciar Tipos de Entrada"
                                             onmouseover="this.style.transform='rotate(45deg)'"
                                             onmouseout="this.style.transform='rotate(0deg)'">
-                                        ⚙️
+                                        ⚙️ <span style="color: #9CA3AF; font-style: italic; font-size: 0.85rem; font-weight: normal;">Config/Filtros</span>
                                     </button>
                                 </div>
                                 <div id="tree-selector-container" style="flex: 1;"></div>
