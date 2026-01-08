@@ -374,7 +374,7 @@ export const AIConsultant = () => {
     `;
 
     const closeBtn = document.createElement('button');
-    closeBtn.textContent = '├ù';
+    closeBtn.textContent = '×';
     closeBtn.style.color = 'white';
     closeBtn.style.fontSize = '1.5rem';
     closeBtn.style.background = 'none';
@@ -407,7 +407,7 @@ export const AIConsultant = () => {
     inputArea.style.gap = '0.5rem';
 
     const micBtn = document.createElement('button');
-    micBtn.innerHTML = '≡ƒÄñ';
+    micBtn.innerHTML = '🎤';
     micBtn.style.fontSize = '1.2rem';
     micBtn.style.background = 'transparent';
     micBtn.style.border = '1px solid #d1d5db';
@@ -468,7 +468,7 @@ export const AIConsultant = () => {
                     micBtn.style.backgroundColor = '#ffebe9';
                     micBtn.style.borderColor = '#ef4444';
                     micBtn.style.boxShadow = '0 0 0 4px rgba(239, 68, 68, 0.1)';
-                    input.placeholder = `Gravando... (${IVATimeout / 1000}s sil├¬ncio para enviar)`;
+                    input.placeholder = `Gravando... (${IVATimeout / 1000}s silêncio para enviar)`;
 
                     console.log('[SPEECH REC] Mic fully warmed up and ready');
                 }, 400); // 400ms warmup delay
@@ -667,7 +667,7 @@ export const AIConsultant = () => {
     };
 
     const sendBtn = document.createElement('button');
-    sendBtn.innerHTML = 'Γ₧ñ';
+    sendBtn.innerHTML = '➤';
     sendBtn.style.background = '#00425F';
     sendBtn.style.color = 'white';
     sendBtn.style.border = 'none';
@@ -773,7 +773,7 @@ export const AIConsultant = () => {
 
         // Use LLM for introduction
         pendingAction = 'intro_llm';
-        const msg = `Ol├í "${suggestedName}". Seja ${welcomeGender}. Eu sou a IVA, sua assistente virtual.\n\nPara que nossa intera├º├úo seja mais adequada, como ${pronoun} gostaria de ser ${called}?`
+        const msg = `Olá "${suggestedName}". Seja ${welcomeGender}. Eu sou a IVA, sua assistente virtual.\n\nPara que nossa interação seja mais adequada, como ${pronoun} gostaria de ser ${called}?`
 
         addMessage('ai', msg);
         speak(msg);
@@ -796,7 +796,7 @@ export const AIConsultant = () => {
 
             // Next step: Check Voice
             pendingAction = 'intro_ask_voice';
-            const msg = `Entendido, ${text}.\n\nPara facilitar nosso dia a dia, o(a) senhor(a) prefere que eu responda utilizando **├íudio e texto** ou **apenas texto**?`;
+            const msg = `Entendido, ${text}.\n\nPara facilitar nosso dia a dia, o(a) senhor(a) prefere que eu responda utilizando **áudio e texto** ou **apenas texto**?`;
             addMessage('ai', msg);
             speak(msg);
 
