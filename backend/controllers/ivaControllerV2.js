@@ -246,6 +246,25 @@ Confirme de forma clara e natural que você aprendeu.
 
         const llmResponse = response.choices[0].message.content;
 
+        // 🧠 GENERIC LEARNING HANDLER
+        // If LLM identified LEARNING intent, save to IvaGlobalKnowledge
+        if (intent.type === 'LEARNING') {
+            console.log('[IVA Learning] Generic learning detected, saving to global knowledge...');
+            try {
+                await IvaGlobalKnowledge.contribute({
+                    type: 'custom_rules',
+                    data: {
+                        description: message, // User's original message
+                        context: currentScreen || 'general',
+                        learned_at: new Date().toISOString()
+                    }
+                }, user.id);
+                console.log('[IVA Learning] ✅ Saved to IvaGlobalKnowledge (will sync with Qdrant)');
+            } catch (err) {
+                console.error('[IVA Learning] ❌ Failed to save:', err.message);
+            }
+        }
+
         // Extract data if in introduction mode
         let extracted = { preferredName: null, voicePreference: null };
         let reply = llmResponse;
