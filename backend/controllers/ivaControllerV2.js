@@ -600,6 +600,11 @@ Quando o usu├írio pede um dado espec├¡fico na tela atual:
                     await IvaUserPreferences.updateLastAccess(user.id);
                     console.log(`[IVA Function Call] Γ£à Updated last access for user ${user.id}`);
                 }
+
+                if (functionCall.name === 'close_chat') {
+                    console.log(`[IVA Function Call] 🚪 Close chat requested by LLM`);
+                    req._ivaForceClose = true;
+                }
             } catch (err) {
                 console.error('[IVA Function Call] Γ¥î Error executing function:', err.message);
             }
@@ -618,11 +623,12 @@ Quando o usu├írio pede um dado espec├¡fico na tela atual:
 
         // If LLM returned only function_call without content, create default response
         if (!responseContent && functionCall) {
-            console.log('[IVA Backend] ΓÜá∩╕Å LLM returned only function_call, creating default response');
+            console.log('[IVA Backend] ⚠️ LLM returned only function_call, creating default response');
             const defaultAction = {
                 action: 'REPLY',
-                message: 'Entendido! Salvei sua prefer├¬ncia.',
-                intent: 'PREFERENCE_UPDATE'
+                message: functionCall.name === 'close_chat' ? 'Até logo! Fechando janela.' : 'Entendido! Salvei sua preferência.',
+                intent: 'PREFERENCE_UPDATE',
+                forceClose: req._ivaForceClose || false
             };
             return res.json(defaultAction);
         }
@@ -634,6 +640,11 @@ Quando o usu├írio pede um dado espec├¡fico na tela atual:
 
         try {
             let action = JSON.parse(responseContent);
+
+            // Inject forceClose if requested by function call
+            if (req._ivaForceClose) {
+                action.forceClose = true;
+            }
 
             console.log('[IVA Backend] ========== PARSED ACTION ==========');
             console.log('[IVA Backend] Action type:', action.action);

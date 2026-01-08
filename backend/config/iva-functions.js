@@ -44,6 +44,14 @@ const ivaFunctions = [
             type: 'object',
             properties: {}
         }
+    },
+    {
+        name: 'close_chat',
+        description: 'Encerra a conversa e fecha a janela do chat da IVA. Deve ser chamado quando o usuário disser explicitamente que não precisa de mais ajuda, se despedir, ou confirmar que resolveu seu problema.',
+        parameters: {
+            type: 'object',
+            properties: {}
+        }
     }
 ];
 

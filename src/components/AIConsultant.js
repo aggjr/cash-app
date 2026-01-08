@@ -1127,6 +1127,13 @@ Digite 1, 2 ou 3.`;
                                 console.error('[IVA] MenuNavigator not available for navigation');
                             }
                         }
+
+                        // Handle auto-close from greeting
+                        if (decision.forceClose) {
+                            setTimeout(() => {
+                                if (isOpen) toggleChat();
+                            }, 2500);
+                        }
                     } catch (e) {
                         console.error('Greeting error:', e);
                         if (thinkingMsg.parentNode) thinkingMsg.parentNode.removeChild(thinkingMsg);
@@ -1566,6 +1573,14 @@ Digite 1, 2 ou 3.`;
                 console.error('[IVA] Operation error:', err);
                 if (thinkingMsg.parentNode) thinkingMsg.parentNode.removeChild(thinkingMsg);
                 addMessage('ai', 'Erro ao processar comando.');
+            }
+
+            // Check for auto-close flag from backend
+            if (decision.forceClose) {
+                console.log('[IVA] Auto-close requested by decision flag');
+                setTimeout(() => {
+                    if (isOpen) toggleChat();
+                }, 2500); // 2.5s delay to hear the final message
             }
 
             return; // Stop here, fulfilled by LLM
