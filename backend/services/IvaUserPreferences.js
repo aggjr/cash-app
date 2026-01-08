@@ -60,6 +60,54 @@ class IvaUserPreferences {
             console.error(`[IVA Preferences] ❌ Error saving preferred name:`, err.message);
             return false;
         }
+
+    /**
+     * Get user's last IVA access timestamp
+     */
+    static async getLastAccess(userId) {
+        try {
+            const results = await VectorSearchService.search(
+                `último acesso iva usuário ${userId}`,
+                {
+                    category: 'user_preference',
+                    layer: 'USER',
+                    user_id: userId,
+                    preference_type: 'last_iva_access'
+                },
+                1
+            );
+
+            return results[0]?.value || null;
+        } catch (err) {
+            console.error(`[IVA Preferences] Error getting last access:`, err.message);
+            return null;
+        }
+    }
+
+    /**
+     * Update user's last IVA access timestamp
+     */
+    static async updateLastAccess(userId) {
+        const now = new Date().toISOString();
+
+        try {
+            await VectorSearchService.upsertKnowledge(
+                `user_${userId}_last_iva_access`,
+                `Último acesso à IVA em ${now}`,
+                {
+                    category: 'user_preference',
+                    layer: 'USER',
+                    user_id: userId,
+                    preference_type: 'last_iva_access',
+                    value: now,
+                    updated_at: now
+                }
+            );
+            return now;
+        } catch (err) {
+            console.error(`[IVA Preferences] Error updating last access:`, err.message);
+            return null;
+        }
     }
 
     /**

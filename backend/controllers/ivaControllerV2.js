@@ -453,7 +453,8 @@ const operate = async (req, res) => {
             projectData,
             screenData,
             cachedScreens,
-            intent
+            intent,
+            lastAccess // Pass last access for smart greeting
         );
 
         // 🚀 INJECT QDRANT KNOWLEDGE INTO PROMPT
