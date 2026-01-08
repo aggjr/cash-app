@@ -1102,30 +1102,11 @@ Digite 1, 2 ou 3.`;
                 setTimeout(async () => {
                     const context = {
                         currentScreen: IvaKnowledge.activeScreen,
-                        availableScreens: IvaKnowledge.screens,
-                        // Different instructions based on interaction type
-                        systemInstruction: isFirstSessionInteraction
-                            ? `SYSTEM_TRIGGER: SESS├âO_INICIADA
-                            Contexto temporal: ${timeMessage}
-                            A├º├úo: D├¬ boas-vindas completas e calorosas ao usu├írio.
-                            - OBRIGAT├ôRIO: Inicie com sauda├º├úo de hor├írio: "Bom dia" (5h-12h), "Boa tarde" (12h-19h), ou "Boa noite" (19h-5h)
-                            - Use tratamento apropriado ao cargo (Dr., Sr., voc├¬)
-                            - Se tempo desde ├║ltimo acesso > 24h, mencione educadamente
-                            - Pergunte "Como posso ajudar?" ou similar
-                            - Seja breve mas acolhedora (m├íx 2-3 linhas)`
-                            : `SYSTEM_TRIGGER: CHAT_REABERTO
-                            A├º├úo: Sauda├º├úo MUITO curta e informal.
-                            Exemplos adequados ao cargo:
-                            - Executivos/Profissionais: "Pois n├úo?" ou "Como posso ajudar?"
-                            - Operacionais: "Oi!" ou "Sim?"
-                            Use NO M├üXIMO 3 palavras. N├úo explique nada.`
+                        availableScreens: IvaKnowledge.screens
                     };
 
                     try {
-                        const decision = await IvaService.decideOperation('IVA_AUTO_GREETING', {
-                            ...context,
-                            isFirstGreetingOfDay
-                        });
+                        const decision = await IvaService.decideOperation('IVA_AUTO_GREETING', context);
 
                         if (thinkingMsg.parentNode) thinkingMsg.parentNode.removeChild(thinkingMsg);
 

@@ -32,15 +32,9 @@ async function buildOperateContextWithQdrant(user, project, screenData, cachedSc
         : hour >= 12 && hour < 19 ? 'tarde'
             : 'noite';
 
-    // Determine greeting based on time and last access
-    const timeGreeting = hour >= 5 && hour < 12 ? 'Bom dia'
-        : hour >= 12 && hour < 19 ? 'Boa tarde'
-            : 'Boa noite';
-
-    const alreadyGreetedToday = wasGreetedToday(lastAccess);
-
-    const firstGreeting = `${timeGreeting}, ${user.preferred_name || user.name}! Como posso ajudar você hoje?`;
-    const returnGreeting = `Que bom ter você aqui novamente! Como posso te ajudar agora?`;
+    const now = new Date();
+    const isoDate = now.toISOString();
+    const dateOnly = isoDate.split('T')[0];
 
     return `
 Você é ${systemInfo.assistant_name}, ${systemInfo.description}.
@@ -50,22 +44,29 @@ PERSONALIDADE (de Qdrant):
 - Estilo: ${personality.style}
 - Traços: ${personality.traits.join(', ')}
 
-CONTEXTO DO USUÁRIO:
+CONTEXTO TEMPORAL E ACESSO (CRÍTICO):
+- Data/Hora Atual: ${isoDate}
+- Data Último Acesso: ${lastAccess || 'Nenhum registro anterior'}
+
+INSTRUÇÕES DE FLUXO DE CONVERSA:
+1. Verifique se o "Data Último Acesso" é anterior a ${dateOnly}.
+2. Se FOR anterior (ou se for o primeiro acesso de sempre):
+   - Você DEVE dar um cumprimento formal e caloroso (Bom dia/Boa tarde/Boa noite).
+   - Você DEVE chamar obrigatoriamente a função 'update_last_access' para registrar que já cumprimentou o usuário hoje.
+3. Se o último acesso já foi HOJE (${dateOnly}):
+   - NÃO dê saudações formais (evite "Olá", "Bom dia", etc).
+   - Vá direto ao ponto e ofereça nova ajuda de forma suscinta (ex: "Em que mais posso ajudar agora?").
+   - NÃO chame 'update_last_access' novamente.
+
+CONHECIMENTO DO USUÁRIO:
 - Nome: ${user.preferred_name || user.name}
 - Cargo: ${user.job_title || 'Não informado'}
 - Projeto: ${project?.name || 'CASH'}
-- Hora: ${timeOfDay} (${hour}h)
-- Já cumprimentado hoje: ${alreadyGreetedToday ? 'Sim' : 'Não'}
+- Preferência de Nome: ${user.preferred_name || user.name}
 
-PREFERÊNCIAS DO USUÁRIO (Qdrant):
-- Nome preferido: ${user.preferred_name || user.name}
-
-INSTRUÇÕES DE CUMPRIMENTO:
-${alreadyGreetedToday
-            ? `- Para auto-greeting (IVA_AUTO_GREETING), use: "${returnGreeting}"`
-            : `- Para auto-greeting (IVA_AUTO_GREETING), use: "${firstGreeting}"`
-        }
-- IMPORTANTE: Para IVA_AUTO_GREETING, SEMPRE retorne action: "REPLY" (nunca NAVIGATE)
+INSTRUÇÕES ADICIONAIS:
+- Para o evento "IVA_AUTO_GREETING" (que ocorre no primeiro contato), siga rigorosamente as regras acima de data.
+- Para "IVA_AUTO_GREETING", use SEMPRE action: "REPLY".
 
 INSTRUÇÕES GERAIS:
 1. Seja ${personality.style}

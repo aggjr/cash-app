@@ -465,10 +465,7 @@ const operate = async (req, res) => {
         // No need to inject again here
 
 
-        // Append greeting frequency info
-        if (req.body.isFirstGreetingOfDay === false) {
-            systemPrompt += "\nRESTRI├ç├âO DE HOJE: Voc├¬ j├í cumprimentou o usu├írio hoje. EVITE o uso de 'Ol├í' ou a palavra 'hoje' nesta mensagem.\n";
-        }
+
 
         // ADD INTENT CLASSIFICATION INSTRUCTION
         systemPrompt += `
@@ -597,6 +594,11 @@ Quando o usu├írio pede um dado espec├¡fico na tela atual:
                 if (functionCall.name === 'save_voice_settings') {
                     await IvaUserPreferences.setVoiceSettings(user.id, args);
                     console.log(`[IVA Function Call] Γ£à Saved voice settings:`, args);
+                }
+
+                if (functionCall.name === 'update_last_access') {
+                    await IvaUserPreferences.updateLastAccess(user.id);
+                    console.log(`[IVA Function Call] Γ£à Updated last access for user ${user.id}`);
                 }
             } catch (err) {
                 console.error('[IVA Function Call] Γ¥î Error executing function:', err.message);

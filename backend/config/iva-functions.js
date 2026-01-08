@@ -36,6 +36,14 @@ const ivaFunctions = [
                 }
             }
         }
+    },
+    {
+        name: 'update_last_access',
+        description: 'Registra a data e hora atual como o último acesso do usuário à IVA. Deve ser chamado obrigatoriamente no primeiro contato de cada dia para que o sistema saiba que o usuário já foi cumprimentado hoje.',
+        parameters: {
+            type: 'object',
+            properties: {}
+        }
     }
 ];
 
