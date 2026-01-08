@@ -865,6 +865,7 @@ export const ParametrosGeraisManager = (project) => {
             });
 
             // Knowledge loading and rendering
+            let knowledgeLoaded = false;
             let allKnowledge = [];
 
             async function loadKnowledge() {
