@@ -335,7 +335,7 @@ export const ConsolidadasManager = (project, fixedViewType = null) => {
                     </th>
                 </tr>
                 <tr>
-                    <th class="js-col-name" style="padding: 0.4rem 0.5rem; text-align: left; border-bottom: 2px solid #e5e7eb; min-width: 280px; width: 280px; position: sticky; left: 0; z-index: 11; background-color: #00425F; white-space: nowrap;"></th>
+                    <th class="js-col-name" style="padding: 0.4rem 0.5rem; text-align: left; border-bottom: 2px solid #e5e7eb; min-width: 227px; width: 227px; position: sticky; left: 0; z-index: 11; background-color: #00425F; white-space: nowrap;"></th>
                     <th style="padding: 0.4rem 0.5rem; text-align: center; border-bottom: 2px solid #e5e7eb; width: 120px; position: sticky; left: var(--c2-left, 320px); z-index: 11; background-color: #4B5563; color: white; white-space: nowrap; font-size: var(--text-table-title);">Média</th>
                     <th style="padding: 0.4rem 0.5rem; text-align: center; border-bottom: 2px solid #e5e7eb; width: 120px; position: sticky; left: var(--c3-left, 460px); z-index: 11; background-color: #374151; color: white; white-space: nowrap; font-size: var(--text-table-title);">Total</th>
                     ${months.map(m => {

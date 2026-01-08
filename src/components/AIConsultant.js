@@ -1184,6 +1184,44 @@ Digite 1, 2 ou 3.`;
             }
         }
 
+        // Handle Navigation Confirmation FIRST (before pendingAction check)
+        // This allows us to clear pendingAction and reprocess if there are additional instructions
+        if (pendingAction === 'nav_confirm') {
+            const isPositive = IvaConversation.isPositiveResponse(text);
+            if (isPositive) {
+                // User confirmed screen is correct
+                // Check if there's additional instruction in the same message
+                const hasAdditionalInstruction = text.length > 20 || text.includes('mas') || text.includes('porém') || text.includes('precisa') || text.includes('filtro') || text.includes('data');
+
+                if (hasAdditionalInstruction) {
+                    // User confirmed AND gave additional instruction
+                    // Clear pendingAction and let it reprocess as a new instruction
+                    pendingAction = null;
+                    const ackMsg = "Perfeito! Vou executar o que você pediu.";
+                    addMessage('ai', ackMsg);
+                    speak(ackMsg);
+                    // Continue to normal operation flow below
+                } else {
+                    // Just confirmation, offer more help
+                    const msg = "Ótimo! Fico feliz que encontrei o que você procurava. Mais algum assunto que eu possa ajudar?";
+                    addMessage('ai', msg);
+                    speak(msg);
+                    pendingAction = null;
+                    return;
+                }
+            } else if (IvaConversation.isNegativeResponse(text)) {
+                const msg = "Entendi. Desculpe por não ser o que você esperava. O que você gostaria de ver então? Posso tentar buscar de outra forma.";
+                addMessage('ai', msg);
+                speak(msg);
+                pendingAction = null;
+                return;
+            }
+            // If not clearly positive/negative, clear and let LLM handle it
+            if (pendingAction === 'nav_confirm') {
+                pendingAction = null;
+            }
+        }
+
         // Check if we're in a pending flow (intro, loan, etc)
         if (pendingAction) {
             console.log('[IVA] Pending action active, skipping operation logic:', pendingAction);
@@ -1260,6 +1298,46 @@ Digite 1, 2 ou 3.`;
                     const msg = decision.message;
                     addMessage('ai', msg);
                     speak(msg);
+
+                    // Check if user indicated they don't need more help
+                    const userText = text.toLowerCase();
+                    const farewellPhrases = [
+                        'não preciso',
+                        'não quero mais',
+                        'não quero',
+                        'não precisa',
+                        'pode fechar',
+                        'pode ir',
+                        'tá bom',
+                        'ok obrigado',
+                        'obrigado tchau',
+                        'tchau',
+                        'até logo',
+                        'até mais',
+                        'valeu tchau',
+                        'é só isso',
+                        'só isso',
+                        'nada mais',
+                        'não mais',
+                        'estou bem',
+                        'tô bem'
+                    ];
+
+                    const userWantsToEnd = farewellPhrases.some(phrase => userText.includes(phrase));
+
+                    if (userWantsToEnd) {
+                        // User wants to end conversation - close chat after farewell
+                        setTimeout(() => {
+                            const farewellMsg = 'Disponha! Estou aqui sempre que precisar. 😊';
+                            addMessage('ai', farewellMsg);
+                            speak(farewellMsg);
+
+                            // Close chat after 2 seconds
+                            setTimeout(() => {
+                                toggleChat();
+                            }, 2000);
+                        }, 500);
+                    }
                 }
                 else if (decision.action === 'START_TOUR') {
                     // LLM provides gender-aware tour offer message
@@ -1623,26 +1701,6 @@ Digite 1, 2 ou 3.`;
 
         setTimeout(async () => {
             loadingDiv.remove();
-
-            // Handle Navigation Confirmation
-            if (pendingAction === 'nav_confirm') {
-                const isPositive = IvaConversation.isPositiveResponse(text);
-                if (isPositive) {
-                    const msg = "Ótimo! Fico feliz que encontrei o que você procurava. O que você gostaria de analisar ou fazer nesta tela?";
-                    addMessage('ai', msg);
-                    speak(msg);
-                    pendingAction = null;
-                    return;
-                } else if (IvaConversation.isNegativeResponse(text)) {
-                    const msg = "Entendi. Desculpe por não ser o que você esperava. O que você gostaria de ver então? Posso tentar buscar de outra forma.";
-                    addMessage('ai', msg);
-                    speak(msg);
-                    pendingAction = null;
-                    return;
-                }
-                // If not clearly positive/negative, let LLM handle it but clear lock
-                pendingAction = null;
-            }
 
             // Handle Tour Offer
             if (pendingAction === 'tour_offer') {
