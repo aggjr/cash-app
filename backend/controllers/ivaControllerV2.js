@@ -441,22 +441,13 @@ const operate = async (req, res) => {
 
         // Dynamic profile not needed - Qdrant provides all context
 
-        // Build screen data context
-        const screenDataContext = IvaContextBuilder.buildScreenDataContext(screenData, cachedScreens);
-
-        // Build operate system prompt WITH DISCOVERED KNOWLEDGE
-        let systemPrompt = await IvaContextBuilder.buildOperateContext(
+        // Use Qdrant-based context builder (simplified)
+        let systemPrompt = await IvaContextBuilder.buildOperateContextWithQdrant(
             userData,
             projectData,
-            screenContext,
-            userSettings,
-            availableScreens,
-            currentScreen || null,
-            null, // dynamicProfile removed - Qdrant provides context
-            req.body.activeScreenContext || null,
-            db, // Pass db connection for unified context
-            screenDataContext // Screen data formatted for LLM
-            // Note: discoveredKnowledge will be integrated in future update to buildUnifiedContext
+            screenData,
+            cachedScreens,
+            intent
         );
 
         // 🚀 INJECT QDRANT KNOWLEDGE INTO PROMPT
