@@ -1,4 +1,4 @@
-import { getApiBaseUrl } from '../utils/apiConfig.js';
+﻿import { getApiBaseUrl } from '../utils/apiConfig.js';
 import { IvaActions } from '../iva/IvaActions.js';
 import { IvaKnowledge } from '../iva/IvaKnowledge.js';
 import { IvaService } from '../iva/IvaService.js';
@@ -374,7 +374,7 @@ export const AIConsultant = () => {
     `;
 
     const closeBtn = document.createElement('button');
-    closeBtn.textContent = '×';
+    closeBtn.textContent = '├ù';
     closeBtn.style.color = 'white';
     closeBtn.style.fontSize = '1.5rem';
     closeBtn.style.background = 'none';
@@ -407,7 +407,7 @@ export const AIConsultant = () => {
     inputArea.style.gap = '0.5rem';
 
     const micBtn = document.createElement('button');
-    micBtn.innerHTML = '🎤';
+    micBtn.innerHTML = '≡ƒÄñ';
     micBtn.style.fontSize = '1.2rem';
     micBtn.style.background = 'transparent';
     micBtn.style.border = '1px solid #d1d5db';
@@ -468,7 +468,7 @@ export const AIConsultant = () => {
                     micBtn.style.backgroundColor = '#ffebe9';
                     micBtn.style.borderColor = '#ef4444';
                     micBtn.style.boxShadow = '0 0 0 4px rgba(239, 68, 68, 0.1)';
-                    input.placeholder = `Gravando... (${IVATimeout / 1000}s silêncio para enviar)`;
+                    input.placeholder = `Gravando... (${IVATimeout / 1000}s sil├¬ncio para enviar)`;
 
                     console.log('[SPEECH REC] Mic fully warmed up and ready');
                 }, 400); // 400ms warmup delay
@@ -667,7 +667,7 @@ export const AIConsultant = () => {
     };
 
     const sendBtn = document.createElement('button');
-    sendBtn.innerHTML = '➤';
+    sendBtn.innerHTML = 'Γ₧ñ';
     sendBtn.style.background = '#00425F';
     sendBtn.style.color = 'white';
     sendBtn.style.border = 'none';
@@ -773,7 +773,7 @@ export const AIConsultant = () => {
 
         // Use LLM for introduction
         pendingAction = 'intro_llm';
-        const msg = `Olá "${suggestedName}". Seja ${welcomeGender}. Eu sou a IVA, sua assistente virtual.\n\nPara que nossa interação seja mais adequada, como ${pronoun} gostaria de ser ${called}?`
+        const msg = `Ol├í "${suggestedName}". Seja ${welcomeGender}. Eu sou a IVA, sua assistente virtual.\n\nPara que nossa intera├º├úo seja mais adequada, como ${pronoun} gostaria de ser ${called}?`
 
         addMessage('ai', msg);
         speak(msg);
@@ -796,7 +796,7 @@ export const AIConsultant = () => {
 
             // Next step: Check Voice
             pendingAction = 'intro_ask_voice';
-            const msg = `Entendido, ${text}.\n\nPara facilitar nosso dia a dia, o(a) senhor(a) prefere que eu responda utilizando **áudio e texto** ou **apenas texto**?`;
+            const msg = `Entendido, ${text}.\n\nPara facilitar nosso dia a dia, o(a) senhor(a) prefere que eu responda utilizando **├íudio e texto** ou **apenas texto**?`;
             addMessage('ai', msg);
             speak(msg);
 
@@ -814,7 +814,7 @@ export const AIConsultant = () => {
             }
 
             if (!understood) {
-                const msg = "Desculpe, não entendi. Prefere **áudio** ou **somente texto**?";
+                const msg = "Desculpe, n├úo entendi. Prefere **├íudio** ou **somente texto**?";
                 addMessage('ai', msg);
                 speak(msg);
                 return;
@@ -828,8 +828,8 @@ export const AIConsultant = () => {
 
             pendingAction = null;
             const msg = enableVoice
-                ? `Perfeito. Responderei por áudio sempre que possível. \n\nAh, meu tempo de espera padrão é de **${IVATimeout / 1000} segundos**, mas o senhor pode me pedir para alterar quando quiser.`
-                : `Combinado. Manterei nossa comunicação apenas por texto. \n\nAh, meu tempo de espera padrão é de **${IVATimeout / 1000} segundos**, mas o senhor pode me pedir para alterar quando quiser.`;
+                ? `Perfeito. Responderei por ├íudio sempre que poss├¡vel. \n\nAh, meu tempo de espera padr├úo ├⌐ de **${IVATimeout / 1000} segundos**, mas o senhor pode me pedir para alterar quando quiser.`
+                : `Combinado. Manterei nossa comunica├º├úo apenas por texto. \n\nAh, meu tempo de espera padr├úo ├⌐ de **${IVATimeout / 1000} segundos**, mas o senhor pode me pedir para alterar quando quiser.`;
 
             addMessage('ai', msg);
             if (enableVoice) speak(msg);
@@ -999,7 +999,7 @@ export const AIConsultant = () => {
 
 Agora, gostaria de conhecer o sistema?
 
-**1** - Visão Geral Rápida (2-3 minutos)
+**1** - Vis├úo Geral R├ípida (2-3 minutos)
 **2** - Tour Completo Guiado (10-15 minutos)  
 **3** - Pular e explorar sozinho
 
@@ -1046,24 +1046,20 @@ Digite 1, 2 ou 3.`;
             const hasGreeted = sessionStorage.getItem(hasGreetedKey);
             const today = new Date().toISOString().split('T')[0];
             const lastGreetingDate = localStorage.getItem(lastGreetingDateKey);
-
-            // CRITICAL: First greeting of the day check
             const isFirstGreetingOfDay = lastGreetingDate !== today;
 
-            // Decision: Do we need a fresh greeting or a reopening prompt?
-            // Case A: First time today OR no messages in session -> TRIGGER GREETING
-            // Case B: Reopening with history -> TRIGGER HELP PROMPT
-            const shouldTriggerGreeting = isFirstGreetingOfDay || messages.length === 0;
+            // Always greet when opening chat, but style differs
+            const isFirstSessionInteraction = !hasGreeted && messages.length === 0;
 
-            if (shouldTriggerGreeting) {
-                console.log('[IVA] Chat opened - generating greeting. First of day:', isFirstGreetingOfDay);
+            if (messages.length === 0) {
+                console.log('[IVA] Chat opened - generating greeting');
 
-                const isFirstSessionInteraction = !hasGreeted || messages.length === 0;
-
-                if (isFirstSessionInteraction || isFirstGreetingOfDay) {
-                    console.log('[IVA] Starting greeting flow');
+                if (isFirstSessionInteraction) {
+                    console.log('[IVA] First open in session - full welcome');
                     sessionStorage.setItem(hasGreetedKey, 'true');
                     localStorage.setItem(lastGreetingDateKey, today);
+                } else {
+                    console.log('[IVA] Chat reopened - short greeting');
                 }
 
                 // Calculate time since last visit (only for first session interaction)
@@ -1080,16 +1076,16 @@ Digite 1, 2 ou 3.`;
                         const diffDays = Math.floor(diffMs / 86400000);
 
                         if (diffDays > 0) {
-                            timeMessage = `O usuário não entrava há ${diffDays} dias.`;
+                            timeMessage = `O usu├írio n├úo entrava h├í ${diffDays} dias.`;
                         } else if (diffHours > 0) {
-                            timeMessage = `O usuário não entrava há ${diffHours} horas.`;
+                            timeMessage = `O usu├írio n├úo entrava h├í ${diffHours} horas.`;
                         } else if (diffMins > 0) {
-                            timeMessage = `O usuário esteve aqui há apenas ${diffMins} minutos.`;
+                            timeMessage = `O usu├írio esteve aqui h├í apenas ${diffMins} minutos.`;
                         } else {
-                            timeMessage = `O usuário acabou de sair e voltou.`;
+                            timeMessage = `O usu├írio acabou de sair e voltou.`;
                         }
                     } else {
-                        timeMessage = 'É a primeira vez que este usuário loga no sistema recentemente.';
+                        timeMessage = '├ë a primeira vez que este usu├írio loga no sistema recentemente.';
                     }
 
                     // Update last login
@@ -1101,7 +1097,6 @@ Digite 1, 2 ou 3.`;
                 thinkingMsg.className = 'thinking-bubble';
                 thinkingMsg.innerText = '...';
                 messagesContainer.appendChild(thinkingMsg);
-                messagesContainer.scrollTop = messagesContainer.scrollHeight;
 
                 // Send greeting request to backend
                 setTimeout(async () => {
@@ -1109,18 +1104,21 @@ Digite 1, 2 ou 3.`;
                         currentScreen: IvaKnowledge.activeScreen,
                         availableScreens: IvaKnowledge.screens,
                         // Different instructions based on interaction type
-                        systemInstruction: isFirstGreetingOfDay
-                            ? `SYSTEM_TRIGGER: SAUDAÇÃO_DIÁRIA_INICIAL
+                        systemInstruction: isFirstSessionInteraction
+                            ? `SYSTEM_TRIGGER: SESS├âO_INICIADA
                             Contexto temporal: ${timeMessage}
-                            Ação: Dê boas-vindas completas e calorosas. É o primeiro contato do dia.
-                            - OBRIGATÓRIO: Inicie com saudação de horário (Bom dia/Boa tarde/Boa noite)
-                            - Mencione o tempo desde o último acesso se for relevante (>24h)
-                            - Pergunte claramente "Como posso ajudar hoje?"
-                            - Seja acolhedora e use o nome preferido do usuário se disponível.`
-                            : `SYSTEM_TRIGGER: SAUDAÇÃO_SESSÃO_RECORRENTE
-                            Ação: Saudação curta de retorno à sessão. Já houve conversa hoje.
-                            - "Olá novamente! Em que posso ajudar desta vez?" ou similar.
-                            - Máximo 2 linhas.`
+                            A├º├úo: D├¬ boas-vindas completas e calorosas ao usu├írio.
+                            - OBRIGAT├ôRIO: Inicie com sauda├º├úo de hor├írio: "Bom dia" (5h-12h), "Boa tarde" (12h-19h), ou "Boa noite" (19h-5h)
+                            - Use tratamento apropriado ao cargo (Dr., Sr., voc├¬)
+                            - Se tempo desde ├║ltimo acesso > 24h, mencione educadamente
+                            - Pergunte "Como posso ajudar?" ou similar
+                            - Seja breve mas acolhedora (m├íx 2-3 linhas)`
+                            : `SYSTEM_TRIGGER: CHAT_REABERTO
+                            A├º├úo: Sauda├º├úo MUITO curta e informal.
+                            Exemplos adequados ao cargo:
+                            - Executivos/Profissionais: "Pois n├úo?" ou "Como posso ajudar?"
+                            - Operacionais: "Oi!" ou "Sim?"
+                            Use NO M├üXIMO 3 palavras. N├úo explique nada.`
                     };
 
                     try {
@@ -1135,51 +1133,33 @@ Digite 1, 2 ou 3.`;
                             addMessage('ai', decision.message);
                             speak(decision.message);
                         } else if (decision.action === 'NAVIGATE' && decision.target) {
+                            // Handle navigation action in greeting
                             console.log('[IVA] Greeting navigation to:', decision.target);
                             if (decision.message) {
                                 addMessage('ai', decision.message);
                                 speak(decision.message);
                             }
+                            // Execute navigation
                             if (typeof MenuNavigator !== 'undefined') {
                                 MenuNavigator.navigate(decision.target);
+                            } else {
+                                console.error('[IVA] MenuNavigator not available for navigation');
                             }
                         }
                     } catch (e) {
                         console.error('Greeting error:', e);
                         if (thinkingMsg.parentNode) thinkingMsg.parentNode.removeChild(thinkingMsg);
-                        addMessage('ai', isFirstGreetingOfDay ? 'Olá! Como posso ajudá-lo hoje?' : 'Como posso ajudar desta vez?');
+                        // Fallback based on interaction type
+                        const fallbackMsg = isFirstSessionInteraction
+                            ? 'Ol├í! Como posso ajud├í-lo hoje?'
+                            : 'Pois n├úo?';
+                        addMessage('ai', fallbackMsg);
                     }
-                }, 100);
+                }, 500);
 
             } else {
-                console.log('[IVA] Reopening chat with history. Adding reopening prompt.');
+                console.log('[IVA] Messages exist, rendering history');
                 renderMessages();
-
-                // Add a small delay then ask how can help "this time"
-                setTimeout(async () => {
-                    const context = {
-                        currentScreen: IvaKnowledge.activeScreen,
-                        availableScreens: IvaKnowledge.screens,
-                        systemInstruction: `SYSTEM_TRIGGER: REABERTURA_CHAT_COM_HISTORICO
-                        Ação: Pergunte como pode ajudar "agora" ou "desta vez".
-                        - Sendo que o usuário já estava conversando e acabou de reabrir a janela.
-                        - Seja MUITO suscinta (ex: "Como posso ajudar agora?", "Em que mais posso ser útil?")
-                        - Não repita saudações formais.`
-                    };
-
-                    try {
-                        const decision = await IvaService.decideOperation('IVA_REOPENING_PROMPT', context);
-                        if (decision.action === 'REPLY') {
-                            addMessage('ai', decision.message);
-                            speak(decision.message);
-                        }
-                    } catch (e) {
-                        const fallback = "Como posso ajudar agora?";
-                        addMessage('ai', fallback);
-                        speak(fallback);
-                    }
-                }, 100);
-
                 input.focus();
             }
         } else {
@@ -1201,44 +1181,6 @@ Digite 1, 2 ou 3.`;
             window.IvaNavigationIndicator.isEvaNavigating = false;
             if (typeof window.ivaClearAllHighlights === 'function') {
                 window.ivaClearAllHighlights();
-            }
-        }
-
-        // Handle Navigation Confirmation FIRST (before pendingAction check)
-        // This allows us to clear pendingAction and reprocess if there are additional instructions
-        if (pendingAction === 'nav_confirm') {
-            const isPositive = IvaConversation.isPositiveResponse(text);
-            if (isPositive) {
-                // User confirmed screen is correct
-                // Check if there's additional instruction in the same message
-                const hasAdditionalInstruction = text.length > 20 || text.includes('mas') || text.includes('porém') || text.includes('precisa') || text.includes('filtro') || text.includes('data');
-
-                if (hasAdditionalInstruction) {
-                    // User confirmed AND gave additional instruction
-                    // Clear pendingAction and let it reprocess as a new instruction
-                    pendingAction = null;
-                    const ackMsg = "Perfeito! Vou executar o que você pediu.";
-                    addMessage('ai', ackMsg);
-                    speak(ackMsg);
-                    // Continue to normal operation flow below
-                } else {
-                    // Just confirmation, offer more help
-                    const msg = "Ótimo! Fico feliz que encontrei o que você procurava. Mais algum assunto que eu possa ajudar?";
-                    addMessage('ai', msg);
-                    speak(msg);
-                    pendingAction = null;
-                    return;
-                }
-            } else if (IvaConversation.isNegativeResponse(text)) {
-                const msg = "Entendi. Desculpe por não ser o que você esperava. O que você gostaria de ver então? Posso tentar buscar de outra forma.";
-                addMessage('ai', msg);
-                speak(msg);
-                pendingAction = null;
-                return;
-            }
-            // If not clearly positive/negative, clear and let LLM handle it
-            if (pendingAction === 'nav_confirm') {
-                pendingAction = null;
             }
         }
 
@@ -1318,50 +1260,10 @@ Digite 1, 2 ou 3.`;
                     const msg = decision.message;
                     addMessage('ai', msg);
                     speak(msg);
-
-                    // Check if user indicated they don't need more help
-                    const userText = text.toLowerCase();
-                    const farewellPhrases = [
-                        'não preciso',
-                        'não quero mais',
-                        'não quero',
-                        'não precisa',
-                        'pode fechar',
-                        'pode ir',
-                        'tá bom',
-                        'ok obrigado',
-                        'obrigado tchau',
-                        'tchau',
-                        'até logo',
-                        'até mais',
-                        'valeu tchau',
-                        'é só isso',
-                        'só isso',
-                        'nada mais',
-                        'não mais',
-                        'estou bem',
-                        'tô bem'
-                    ];
-
-                    const userWantsToEnd = farewellPhrases.some(phrase => userText.includes(phrase));
-
-                    if (userWantsToEnd) {
-                        // User wants to end conversation - close chat after farewell
-                        setTimeout(() => {
-                            const farewellMsg = 'Disponha! Estou aqui sempre que precisar. 😊';
-                            addMessage('ai', farewellMsg);
-                            speak(farewellMsg);
-
-                            // Close chat after 2 seconds
-                            setTimeout(() => {
-                                toggleChat();
-                            }, 2000);
-                        }, 500);
-                    }
                 }
                 else if (decision.action === 'START_TOUR') {
                     // LLM provides gender-aware tour offer message
-                    const msg = decision.message || 'Posso mostrar um tour do sistema. Qual prefere: rápido ou completo?';
+                    const msg = decision.message || 'Posso mostrar um tour do sistema. Qual prefere: r├ípido ou completo?';
                     addMessage('ai', msg);
                     speak(msg.replace(/\n/g, ' '));
 
@@ -1391,7 +1293,7 @@ Digite 1, 2 ou 3.`;
                         speak(msg);
                     } catch (error) {
                         console.error('[IVA] Error updating voice rate:', error);
-                        const errorMsg = 'Desculpe, não consegui ajustar a velocidade.';
+                        const errorMsg = 'Desculpe, n├úo consegui ajustar a velocidade.';
                         addMessage('ai', errorMsg);
                         speak(errorMsg);
                     }
@@ -1419,7 +1321,7 @@ Digite 1, 2 ou 3.`;
                         speak(msg);
                     } catch (error) {
                         console.error('[IVA] Error updating voice gender:', error);
-                        const errorMsg = 'Desculpe, não consegui mudar a voz.';
+                        const errorMsg = 'Desculpe, n├úo consegui mudar a voz.';
                         addMessage('ai', errorMsg);
                         speak(errorMsg);
                     }
@@ -1441,7 +1343,7 @@ Digite 1, 2 ou 3.`;
                         console.log('[IVA] Voice enabled:', decision.enabled);
 
                         // Show confirmation
-                        const msg = decision.message || `Áudio ${decision.enabled ? 'ativado' : 'desativado'}.`;
+                        const msg = decision.message || `├üudio ${decision.enabled ? 'ativado' : 'desativado'}.`;
                         addMessage('ai', msg);
 
                         // Only speak if enabling
@@ -1450,7 +1352,7 @@ Digite 1, 2 ou 3.`;
                         }
                     } catch (error) {
                         console.error('[IVA] Error updating voice enabled:', error);
-                        const errorMsg = 'Desculpe, não consegui alterar o áudio.';
+                        const errorMsg = 'Desculpe, n├úo consegui alterar o ├íudio.';
                         addMessage('ai', errorMsg);
                     }
                 }
@@ -1472,7 +1374,7 @@ Digite 1, 2 ou 3.`;
                     );
 
                     if (!result.success) {
-                        const errorMsg = `Desculpe, não consegui executar essa ação: ${result.error}`;
+                        const errorMsg = `Desculpe, n├úo consegui executar essa a├º├úo: ${result.error}`;
                         addMessage('ai', errorMsg);
                         speak(errorMsg);
                         return;
@@ -1497,7 +1399,7 @@ Digite 1, 2 ou 3.`;
                                 method: 'POST',
                                 headers: getHeaders(),
                                 body: JSON.stringify({
-                                    message: `ANÁLISE: ${followUpQuery}`,
+                                    message: `AN├üLISE: ${followUpQuery}`,
                                     context: {
                                         ...context,
                                         screenContext: updatedScreenContext
@@ -1602,7 +1504,7 @@ Digite 1, 2 ou 3.`;
     
                             // Verify if it's main dashboard to avoid loop or generic analysis
                             if (decision.screen === 'dashboard') {
-                                const m = 'Estou no painel principal via visão geral.';
+                                const m = 'Estou no painel principal via vis├úo geral.';
                                 addMessage('ai', m);
                                 speak(m);
                                 return;
@@ -1614,7 +1516,7 @@ Digite 1, 2 ou 3.`;
     
                                 // Create a visual "Analyzing" indicator
                                 const analyzingDiv = document.createElement('div');
-                                analyzingDiv.innerHTML = '<i>🔍 Analisando dados da tela...</i>';
+                                analyzingDiv.innerHTML = '<i>≡ƒöì Analisando dados da tela...</i>';
                                 analyzingDiv.style.color = '#6b7280';
                                 analyzingDiv.style.marginLeft = '10px';
                                 messagesContainer.appendChild(analyzingDiv);
@@ -1647,7 +1549,7 @@ Digite 1, 2 ou 3.`;
                                     } else {
                                         // Chain actions (Rare, but possible)
                                         // For now, just report the action
-                                        const m = nextDecision.message || 'Análise concluída. O que mais deseja?';
+                                        const m = nextDecision.message || 'An├ílise conclu├¡da. O que mais deseja?';
                                         addMessage('ai', m);
                                         speak(m);
                                     }
@@ -1655,7 +1557,7 @@ Digite 1, 2 ou 3.`;
                                 } catch (e) {
                                     console.error('[IVA Autonomy] Error:', e);
                                     if (analyzingDiv.parentNode) analyzingDiv.parentNode.removeChild(analyzingDiv);
-                                    addMessage('ai', 'Não consegui ler os dados da tela automaticamente. Pode me perguntar novamente?');
+                                    addMessage('ai', 'N├úo consegui ler os dados da tela automaticamente. Pode me perguntar novamente?');
                                 }
                             }, 2500);
                             */
@@ -1664,18 +1566,18 @@ Digite 1, 2 ou 3.`;
                             // Generic Success for non-navigation
                             const followUps = ['Feito. O que mais?', 'Pronto.', 'Algo mais?'];
                             const followUp = followUps[Math.floor(Math.random() * followUps.length)];
-                            const msg = (result.message || 'Ação realizada.') + ' ' + followUp;
+                            const msg = (result.message || 'A├º├úo realizada.') + ' ' + followUp;
                             addMessage('ai', msg);
                             speak(msg);
                         }
                     } else {
-                        const msg = result.message || 'Não consegui realizar a ação.';
+                        const msg = result.message || 'N├úo consegui realizar a a├º├úo.';
                         addMessage('ai', msg);
                         speak(msg);
                     }
                 } else {
                     console.warn('Unknown decision action:', decision.action);
-                    const msg = 'Não entendi o que fazer.';
+                    const msg = 'N├úo entendi o que fazer.';
                     addMessage('ai', msg);
                 }
 
@@ -1700,7 +1602,7 @@ Digite 1, 2 ou 3.`;
                 // Also update backend if possible, but for now local is enough to trigger flow locally next reload
                 // Or better, let's just trigger it now:
 
-                addMessage('ai', '♻️ Reiniciando apresentação...');
+                addMessage('ai', 'ΓÖ╗∩╕Å Reiniciando apresenta├º├úo...');
                 setTimeout(() => {
                     messages.length = 0; // Clear history
                     pendingAction = null;
@@ -1722,13 +1624,33 @@ Digite 1, 2 ou 3.`;
         setTimeout(async () => {
             loadingDiv.remove();
 
+            // Handle Navigation Confirmation
+            if (pendingAction === 'nav_confirm') {
+                const isPositive = IvaConversation.isPositiveResponse(text);
+                if (isPositive) {
+                    const msg = "├ôtimo! Fico feliz que encontrei o que voc├¬ procurava. O que voc├¬ gostaria de analisar ou fazer nesta tela?";
+                    addMessage('ai', msg);
+                    speak(msg);
+                    pendingAction = null;
+                    return;
+                } else if (IvaConversation.isNegativeResponse(text)) {
+                    const msg = "Entendi. Desculpe por n├úo ser o que voc├¬ esperava. O que voc├¬ gostaria de ver ent├úo? Posso tentar buscar de outra forma.";
+                    addMessage('ai', msg);
+                    speak(msg);
+                    pendingAction = null;
+                    return;
+                }
+                // If not clearly positive/negative, let LLM handle it but clear lock
+                pendingAction = null;
+            }
+
             // Handle Tour Offer
             if (pendingAction === 'tour_offer') {
                 const choice = text.trim();
 
-                if (choice.includes('1') || /vis[aã]o|r[aá]pid[oa]|quick|curto|breve/i.test(text)) {
+                if (choice.includes('1') || /vis[a├ú]o|r[a├í]pid[oa]|quick|curto|breve/i.test(text)) {
                     // Overview tour
-                    addMessage('ai', 'Ótimo! Vou mostrar uma visão geral rápida. Iniciando...');
+                    addMessage('ai', '├ôtimo! Vou mostrar uma vis├úo geral r├ípida. Iniciando...');
 
                     // Mark as introduced before tour
                     await savePreferences({ IVAIntroduced: 1 });
@@ -1744,7 +1666,7 @@ Digite 1, 2 ou 3.`;
 
                 } else if (choice.includes('2') || /complet[oa]|guiad[oa]|full|detalhad[oa]|inteiro|longo/i.test(text)) {
                     // Full tour - LLM will handle gender-appropriate language
-                    addMessage('ai', 'Excelente escolha! Vou guiá-lo(a) por todo o sistema em detalhes. Vamos lá!');
+                    addMessage('ai', 'Excelente escolha! Vou gui├í-lo(a) por todo o sistema em detalhes. Vamos l├í!');
 
                     // Mark as introduced before tour
                     await savePreferences({ IVAIntroduced: 1 });
@@ -1758,9 +1680,9 @@ Digite 1, 2 ou 3.`;
                     pendingAction = null;
                     return;
 
-                } else if (choice.includes('3') || /pular|n[aã]o|sozinho|explorar|cancelar|sair/i.test(text)) {
+                } else if (choice.includes('3') || /pular|n[a├ú]o|sozinho|explorar|cancelar|sair/i.test(text)) {
                     // Skip tour
-                    addMessage('ai', 'Sem problemas! Fique à vontade para explorar. Estarei aqui caso precise de ajuda!');
+                    addMessage('ai', 'Sem problemas! Fique ├á vontade para explorar. Estarei aqui caso precise de ajuda!');
 
                     // Mark as introduced
                     await savePreferences({ IVAIntroduced: 1 });
@@ -1775,7 +1697,7 @@ Digite 1, 2 ou 3.`;
 
                 } else {
                     // Invalid choice
-                    addMessage('ai', 'Não entendi. Por favor, diga se prefere **Rápido**, **Completo** ou se quer **Pular** o tour.');
+                    addMessage('ai', 'N├úo entendi. Por favor, diga se prefere **R├ípido**, **Completo** ou se quer **Pular** o tour.');
                     return;
                 }
             }
@@ -1814,7 +1736,7 @@ Digite 1, 2 ou 3.`;
                         } catch (e) { console.error(e); }
                     }
                 }
-                const msg = "Para alterar o tempo, diga algo como 'Mudar tempo de espera para 5 segundos'. (Mínimo 3s, Máximo 60s)";
+                const msg = "Para alterar o tempo, diga algo como 'Mudar tempo de espera para 5 segundos'. (M├¡nimo 3s, M├íximo 60s)";
                 addMessage('ai', msg);
                 speak(msg);
                 return;
@@ -1893,7 +1815,7 @@ Digite 1, 2 ou 3.`;
 
     const stopAutonomousLoop = () => {
         if (loopState.active) {
-            console.log('[IVA Loop] 🛑 STOPPING AUTONOMOUS LOOP (User control assumed)');
+            console.log('[IVA Loop] ≡ƒ¢æ STOPPING AUTONOMOUS LOOP (User control assumed)');
             loopState.active = false;
         }
     };
@@ -1943,7 +1865,7 @@ Digite 1, 2 ou 3.`;
             console.error('[IVA Loop] Intent Type:', intentType);
             console.error('[IVA Loop] Loop State:', JSON.stringify(loopState));
             console.error('========================================');
-            addMessage('ai', 'Desculpe, ocorreu um erro ao processar sua solicitação.');
+            addMessage('ai', 'Desculpe, ocorreu um erro ao processar sua solicita├º├úo.');
         } finally {
             loopState.active = false;
             // Mark navigation as finished so manual navigation can be detected correctly
@@ -1969,24 +1891,24 @@ Digite 1, 2 ou 3.`;
         // Ask LLM to find appropriate screen
         const decision = await IvaService.decideOperation(
             `PERGUNTA: "${userQuery}"
-             TELAS DISPONÍVEIS: ${JSON.stringify(allScreens)}
+             TELAS DISPON├ìVEIS: ${JSON.stringify(allScreens)}
              
-             Qual tela é apropriada para esta pergunta?
+             Qual tela ├⌐ apropriada para esta pergunta?
              Retorne: { action: "NAVIGATE", target: "screen-id", message: "..." }
-             Se não encontrar: { action: "NO_SCREEN", message: "..." }`,
+             Se n├úo encontrar: { action: "NO_SCREEN", message: "..." }`,
             { menuStructure }
         );
 
         if (decision.action === 'NO_SCREEN') {
             console.log('[IVA Navigation Flow] No appropriate screen found');
             console.log('[IVA Navigation Flow] LLM Response:', JSON.stringify(decision));
-            addMessage('ai', decision.message || 'Desculpe, não encontrei uma tela apropriada para isso.');
+            addMessage('ai', decision.message || 'Desculpe, n├úo encontrei uma tela apropriada para isso.');
             loopState.active = false;
             return;
         }
 
         if (!loopState.active) {
-            console.log('[IVA Navigation Flow] 🛑 Loop cancelled before navigation.');
+            console.log('[IVA Navigation Flow] ≡ƒ¢æ Loop cancelled before navigation.');
             return;
         }
 
@@ -2040,8 +1962,8 @@ Digite 1, 2 ou 3.`;
 
         // SAFETY: Max global iterations (reduced to prevent loops)
         if (loopState.iteration >= 5) {
-            console.log('[IVA Data Flow] ❌ Max global iterations reached (5)');
-            const failMsg = 'Desculpe, tentei em várias telas mas não consegui encontrar essa informação. Poderia reformular sua pergunta ou me dizer em qual tela específica você quer que eu procure?';
+            console.log('[IVA Data Flow] Γ¥î Max global iterations reached (5)');
+            const failMsg = 'Desculpe, tentei em v├írias telas mas n├úo consegui encontrar essa informa├º├úo. Poderia reformular sua pergunta ou me dizer em qual tela espec├¡fica voc├¬ quer que eu procure?';
             addMessage('ai', failMsg);
             speak(failMsg);
             loopState.active = false;
@@ -2055,9 +1977,9 @@ Digite 1, 2 ou 3.`;
 
         const rankingDecision = await IvaService.decideOperation(
             `PERGUNTA: "${userQuery}"
-             TELAS DISPONÍVEIS: ${JSON.stringify(allScreens)}
+             TELAS DISPON├ìVEIS: ${JSON.stringify(allScreens)}
              
-             Ranqueie TODAS as telas por relevância (0-1).
+             Ranqueie TODAS as telas por relev├óncia (0-1).
              Retorne: { screens: [{ id: "...", relevance: 0.95 }, ...] }`,
             { menuStructure }
         );
@@ -2079,7 +2001,7 @@ Digite 1, 2 ou 3.`;
 
         for (const screen of rankedScreens) {
             if (!loopState.active) {
-                console.log('[IVA Data Flow] 🛑 Loop cancelled, stopping search.');
+                console.log('[IVA Data Flow] ≡ƒ¢æ Loop cancelled, stopping search.');
                 return;
             }
             console.log('----------------------------------------');
@@ -2098,7 +2020,7 @@ Digite 1, 2 ou 3.`;
             const result = await tryExtractOrAct(userQuery, screen.id);
 
             if (result.success) {
-                console.log(`[IVA Data Flow] ✅ SUCCESS on screen: ${screen.id}`);
+                console.log(`[IVA Data Flow] Γ£à SUCCESS on screen: ${screen.id}`);
                 console.log(`[IVA Data Flow] Result type: ${result.type}`);
 
                 // RECORD LEARNING
@@ -2114,7 +2036,7 @@ Digite 1, 2 ou 3.`;
             }
 
             // No data/actions on this screen, try next
-            console.log(`[IVA Data Flow] ❌ No data/actions on ${screen.id}`);
+            console.log(`[IVA Data Flow] Γ¥î No data/actions on ${screen.id}`);
             console.log(`[IVA Data Flow] Reason: ${result.reason}`);
             console.log(`[IVA Data Flow] Moving to next screen...`);
         }
@@ -2124,7 +2046,7 @@ Digite 1, 2 ou 3.`;
         console.log('[IVA Data Flow] Searched screens:', rankedScreens.length);
         console.log('[IVA Data Flow] No data found in any screen');
         console.log('[IVA Data Flow] ======================================');
-        addMessage('ai', 'Pesquisei em todas as telas relevantes mas não encontrei o que você precisa. Pode reformular a pergunta?');
+        addMessage('ai', 'Pesquisei em todas as telas relevantes mas n├úo encontrei o que voc├¬ precisa. Pode reformular a pergunta?');
         loopState.active = false;
     };
 
@@ -2139,7 +2061,7 @@ Digite 1, 2 ou 3.`;
 
         while (actionIterations < loopState.maxActionsPerScreen) {
             if (!loopState.active) {
-                console.log('[IVA Extract/Act] 🛑 Loop cancelled, stopping action extraction.');
+                console.log('[IVA Extract/Act] ≡ƒ¢æ Loop cancelled, stopping action extraction.');
                 return { success: false, reason: 'CANCELLED' };
             }
             console.log(`[IVA Extract/Act] --- Iteration ${actionIterations + 1}/${loopState.maxActionsPerScreen} ---`);
@@ -2157,17 +2079,17 @@ Digite 1, 2 ou 3.`;
             // Ask LLM if data answers question
             const dataDecision = await IvaService.decideOperation(
                 `PERGUNTA ORIGINAL: "${userQuery}"
-                 DADOS VISÍVEIS: ${JSON.stringify(screenContext.visibleData)}
+                 DADOS VIS├ìVEIS: ${JSON.stringify(screenContext.visibleData)}
                  
                  Esses dados respondem completamente a pergunta?
                  Se SIM: { hasData: true, message: "resposta formatada" }
-                 Se NÃO: { hasData: false, reason: "..." }`,
+                 Se N├âO: { hasData: false, reason: "..." }`,
                 { screenContext }
             );
 
             if (dataDecision.hasData) {
                 // SUCCESS! Found data
-                console.log(`[IVA Extract/Act] ✅ DATA FOUND!`);
+                console.log(`[IVA Extract/Act] Γ£à DATA FOUND!`);
                 console.log(`[IVA Extract/Act] LLM confirmed data answers question`);
                 console.log(`[IVA Extract/Act] Response length: ${dataDecision.message?.length} chars`);
 
@@ -2190,7 +2112,7 @@ Digite 1, 2 ou 3.`;
                 return { success: true, type: 'DATA_FOUND' };
             }
 
-            console.log(`[IVA Extract/Act] ❌ No data found, reason: ${dataDecision.reason || 'not specified'}`);
+            console.log(`[IVA Extract/Act] Γ¥î No data found, reason: ${dataDecision.reason || 'not specified'}`);
             console.log(`[IVA Extract/Act] Discovering available actions...`);
 
             // No data, discover actions
@@ -2207,7 +2129,7 @@ Digite 1, 2 ou 3.`;
             }
 
             if (discoveredActions.length === 0) {
-                console.log(`[IVA Extract/Act] ⚠️ No actions available on this screen`);
+                console.log(`[IVA Extract/Act] ΓÜá∩╕Å No actions available on this screen`);
                 return { success: false, reason: 'NO_ACTIONS' };
             }
 
@@ -2216,21 +2138,21 @@ Digite 1, 2 ou 3.`;
 
             const actionDecision = await IvaService.decideOperation(
                 `PERGUNTA: "${userQuery}"
-                 AÇÕES DISPONÍVEIS: ${JSON.stringify(actionsForLLM)}
+                 A├ç├òES DISPON├ìVEIS: ${JSON.stringify(actionsForLLM)}
                  
-                 Qual ação pode trazer os dados necessários?
+                 Qual a├º├úo pode trazer os dados necess├írios?
                  Se encontrou: { action: "EXECUTE", actionId: "...", params: {...}, message: "..." }
-                 Se não encontrou: { action: "NO_SUITABLE_ACTION" }`,
+                 Se n├úo encontrou: { action: "NO_SUITABLE_ACTION" }`,
                 { discoveredActions: actionsForLLM }
             );
 
 
             if (actionDecision.action === 'NO_SUITABLE_ACTION') {
-                console.log(`[IVA Extract/Act] ⚠️ LLM found no suitable action`);
+                console.log(`[IVA Extract/Act] ΓÜá∩╕Å LLM found no suitable action`);
 
                 // PHASE 4: Enter Conversational Learning Mode
                 if (!learningState.active) {
-                    console.log('[IVA Learning] 🎓 Entering conversational learning mode');
+                    console.log('[IVA Learning] ≡ƒÄô Entering conversational learning mode');
 
                     learningState.active = true;
                     learningState.step = 'DATA_LOCATION';
@@ -2249,14 +2171,14 @@ Digite 1, 2 ou 3.`;
                     loopState.active = false;
 
                     // Ask user for guidance
-                    const question = `Estou na tela "${screenId}" procurando por "${userQuery}", mas não encontrei uma ação adequada.
+                    const question = `Estou na tela "${screenId}" procurando por "${userQuery}", mas n├úo encontrei uma a├º├úo adequada.
                     
-Você pode me ajudar? Onde exatamente está essa informação?
+Voc├¬ pode me ajudar? Onde exatamente est├í essa informa├º├úo?
 
 Por exemplo:
-• "Na tabela, coluna X, linha Y"
-• "No card de resumo no topo"
-• "Precisa aplicar filtro primeiro"`;
+ΓÇó "Na tabela, coluna X, linha Y"
+ΓÇó "No card de resumo no topo"
+ΓÇó "Precisa aplicar filtro primeiro"`;
 
                     addMessage('ai', question);
                     speak(question);
@@ -2269,13 +2191,13 @@ Por exemplo:
 
             // Execute action
             actionIterations++;
-            console.log(`[IVA Extract/Act] 🎯 Executing action: ${actionDecision.actionId}`);
+            console.log(`[IVA Extract/Act] ≡ƒÄ» Executing action: ${actionDecision.actionId}`);
             console.log(`[IVA Extract/Act] Action params:`, actionDecision.params);
 
             const actionToExecute = discoveredActions.find(a => a.id === actionDecision.actionId);
 
             if (!actionToExecute) {
-                console.error(`[IVA Extract/Act] ❌ Action not found in discovered actions: ${actionDecision.actionId}`);
+                console.error(`[IVA Extract/Act] Γ¥î Action not found in discovered actions: ${actionDecision.actionId}`);
                 console.error(`[IVA Extract/Act] Available actions:`, discoveredActions.map(a => a.id));
                 continue;
             }
@@ -2286,16 +2208,16 @@ Por exemplo:
                 label: actionToExecute.label
             });
 
-            addMessage('ai', actionDecision.message || 'Executando ação...');
+            addMessage('ai', actionDecision.message || 'Executando a├º├úo...');
 
             const result = await IvaActionExecutor.executeAction(actionToExecute, actionDecision.params);
 
             if (!result.success) {
-                console.error(`[IVA Extract/Act] ❌ Action execution failed: ${result.error}`);
+                console.error(`[IVA Extract/Act] Γ¥î Action execution failed: ${result.error}`);
                 continue;
             }
 
-            console.log(`[IVA Extract/Act] ✅ Action executed successfully`);
+            console.log(`[IVA Extract/Act] Γ£à Action executed successfully`);
             console.log(`[IVA Extract/Act] Waiting for UI update...`);
 
             // RECORD ACTION LEARNING
@@ -2315,7 +2237,7 @@ Por exemplo:
         }
 
         // Max actions reached
-        console.log(`[IVA Extract/Act] ⚠️ Max actions (${loopState.maxActionsPerScreen}) reached`);
+        console.log(`[IVA Extract/Act] ΓÜá∩╕Å Max actions (${loopState.maxActionsPerScreen}) reached`);
         return { success: false, reason: 'MAX_ACTIONS_REACHED' };
     };
 
@@ -2333,15 +2255,15 @@ Por exemplo:
 
         const navDecision = await IvaService.decideOperation(
             `OBJETIVO: ${userQuery}
-             TELAS DISPONÍVEIS: ${JSON.stringify(menuStructure.flatMenu)}
+             TELAS DISPON├ìVEIS: ${JSON.stringify(menuStructure.flatMenu)}
              
-             Qual tela permite executar esta ação?
+             Qual tela permite executar esta a├º├úo?
              Retorne: { action: "NAVIGATE", target: "screen-id" }`,
             { menuStructure }
         );
 
         if (!loopState.active) {
-            console.log('[IVA Action Flow] 🛑 Loop cancelled before navigation.');
+            console.log('[IVA Action Flow] ≡ƒ¢æ Loop cancelled before navigation.');
             return;
         }
 
@@ -2355,20 +2277,20 @@ Por exemplo:
         // Ask LLM which action to execute
         const actionDecision = await IvaService.decideOperation(
             `OBJETIVO: ${userQuery}
-             AÇÕES DISPONÍVEIS: ${JSON.stringify(actionsForLLM)}
+             A├ç├òES DISPON├ìVEIS: ${JSON.stringify(actionsForLLM)}
              
-             Qual ação executar?
+             Qual a├º├úo executar?
              Retorne: { action: "EXECUTE", actionId: "...", params: {...} }`,
             { discoveredActions: actionsForLLM }
         );
 
         if (!loopState.active) {
-            console.log('[IVA Action Flow] 🛑 Loop cancelled before action execution.');
+            console.log('[IVA Action Flow] ≡ƒ¢æ Loop cancelled before action execution.');
             return;
         }
 
         if (actionDecision.action !== 'EXECUTE') {
-            addMessage('ai', 'Desculpe, não encontrei uma ação apropriada para isso.');
+            addMessage('ai', 'Desculpe, n├úo encontrei uma a├º├úo apropriada para isso.');
             loopState.active = false;
             return;
         }
@@ -2378,10 +2300,10 @@ Por exemplo:
         const result = await IvaActionExecutor.executeAction(actionToExecute, actionDecision.params);
 
         if (result.success) {
-            addMessage('ai', result.message || 'Ação executada com sucesso!');
-            speak('Ação executada com sucesso!');
+            addMessage('ai', result.message || 'A├º├úo executada com sucesso!');
+            speak('A├º├úo executada com sucesso!');
         } else {
-            addMessage('ai', `Erro ao executar ação: ${result.error}`);
+            addMessage('ai', `Erro ao executar a├º├úo: ${result.error}`);
         }
 
         loopState.active = false;
@@ -2460,26 +2382,6 @@ Por exemplo:
     // Alias for backward compatibility during transition from EVA to IVA
     window.EVA = window.IVA;
     window.FOCCUS = window.IVA;
-
-    // Proactive Auto-open Logic (First visit of the day)
-    setTimeout(() => {
-        const u = getUser();
-        if (!u) return;
-
-        const todayDate = new Date().toISOString().split('T')[0];
-        const lastAutoOpenKey = 'IVA_last_auto_open_' + (u.id || 'anon');
-        const lastAutoOpen = localStorage.getItem(lastAutoOpenKey);
-
-        if (lastAutoOpen !== todayDate) {
-            console.log('[IVA] Proactive auto-open for the first contact of the day');
-            localStorage.setItem(lastAutoOpenKey, todayDate);
-
-            // Only open if not already open
-            if (!isOpen) {
-                toggleChat();
-            }
-        }
-    }, 1000); // Reduced delay as requested by user
 
     return container;
 };

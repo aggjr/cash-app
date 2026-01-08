@@ -1,4 +1,4 @@
-const OpenAI = require('openai');
+﻿const OpenAI = require('openai');
 const db = require('../config/database');
 const IvaContextBuilder = require('../services/IvaContextBuilderQdrant'); // Qdrant-based context builder
 const IvaIntentValidator = require('../utils/ivaIntentValidator');
@@ -13,10 +13,10 @@ const openai = new OpenAI({
     apiKey: process.env.OPENAI_API_KEY
 });
 
-// Limitador de iterações para evitar loops infinitos
-const MAX_ITERATIONS = 5; // Máximo de tentativas autônomas
+// Limitador de itera├º├╡es para evitar loops infinitos
+const MAX_ITERATIONS = 5; // M├íximo de tentativas aut├┤nomas
 
-console.log('✅ IVA Controller loaded successfully');
+console.log('Γ£à IVA Controller loaded successfully');
 
 const chat = async (req, res, next) => {
     try {
@@ -24,7 +24,7 @@ const chat = async (req, res, next) => {
         const user = req.user;
 
         if (!message || !message.trim()) {
-            return res.status(400).json({ error: 'Mensagem é obrigatória' });
+            return res.status(400).json({ error: 'Mensagem ├⌐ obrigat├│ria' });
         }
 
         // Validate intent before calling LLM (security layer)
@@ -108,7 +108,7 @@ const chat = async (req, res, next) => {
                     console.log(`[IVA Learning] Saved preferred_name via Qdrant: "${newPreferredName}"`);
 
                     return res.json({
-                        reply: `Entendido! A partir de agora vou te chamar de ${newPreferredName}. 😊`,
+                        reply: `Entendido! A partir de agora vou te chamar de ${newPreferredName}. ≡ƒÿè`,
                         learned: true,
                         preferredName: newPreferredName
                     });
@@ -119,7 +119,7 @@ const chat = async (req, res, next) => {
         // Get time context
         const now = new Date();
         const hour = now.getHours();
-        const timeOfDay = hour >= 5 && hour < 12 ? 'manhã' : hour >= 12 && hour < 19 ? 'tarde' : 'noite';
+        const timeOfDay = hour >= 5 && hour < 12 ? 'manh├ú' : hour >= 12 && hour < 19 ? 'tarde' : 'noite';
 
         // Build contextual system prompt based on intent
         let systemPrompt;
@@ -130,10 +130,10 @@ const chat = async (req, res, next) => {
         switch (intent.type) {
             case 'LEARNING':
                 systemPrompt = `
-Você está em modo de aprendizado ativo. O usuário quer te ensinar uma nova regra ou conhecimento.
-Extraia a essência do que está sendo ensinado.
-Se for uma regra de onde encontrar dados (como na tela de previsão), formalize-a.
-Confirme de forma clara e natural que você aprendeu.
+Voc├¬ est├í em modo de aprendizado ativo. O usu├írio quer te ensinar uma nova regra ou conhecimento.
+Extraia a ess├¬ncia do que est├í sendo ensinado.
+Se for uma regra de onde encontrar dados (como na tela de previs├úo), formalize-a.
+Confirme de forma clara e natural que voc├¬ aprendeu.
 `;
                 // Trigger learning process in background
                 IvaGlobalKnowledge.contribute('custom_rules', {
@@ -218,7 +218,7 @@ Confirme de forma clara e natural que você aprendeu.
 
         const llmResponse = response.choices[0].message.content;
 
-        // 🧠 GENERIC LEARNING HANDLER
+        // ≡ƒºá GENERIC LEARNING HANDLER
         // If LLM identified LEARNING intent, save to IvaGlobalKnowledge
         if (intent.type === 'LEARNING') {
             console.log('[IVA Learning] Generic learning detected, saving to global knowledge...');
@@ -231,9 +231,9 @@ Confirme de forma clara e natural que você aprendeu.
                         learned_at: new Date().toISOString()
                     }
                 }, user.id);
-                console.log('[IVA Learning] ✅ Saved to IvaGlobalKnowledge (will sync with Qdrant)');
+                console.log('[IVA Learning] Γ£à Saved to IvaGlobalKnowledge (will sync with Qdrant)');
             } catch (err) {
-                console.error('[IVA Learning] ❌ Failed to save:', err.message);
+                console.error('[IVA Learning] Γ¥î Failed to save:', err.message);
             }
         }
 
@@ -272,7 +272,7 @@ Confirme de forma clara e natural que você aprendeu.
         }
 
         if (error.code === 'invalid_api_key') {
-            return res.status(500).json({ error: 'Chave API OpenAI inválida' });
+            return res.status(500).json({ error: 'Chave API OpenAI inv├ílida' });
         }
 
         res.status(500).json({ error: 'Erro ao processar mensagem' });
@@ -284,7 +284,7 @@ const operate = async (req, res) => {
         const { message, conversationHistory, context, screenContext, currentScreen, availableScreens, userSettings } = req.body;
         const user = req.user;
 
-        console.log('[IVA Operate] 🚀 VERSION: Function Calling Enabled (v2.1)');
+        console.log('[IVA Operate] ≡ƒÜÇ VERSION: Function Calling Enabled (v2.1)');
         // EXTENSIVE DEBUG LOGGING
         console.log('[IVA Operate] ========== REQUEST DEBUG ==========');
         console.log('[IVA Operate] Processing:', message);
@@ -302,10 +302,8 @@ const operate = async (req, res) => {
         console.log('[IVA Operate] ====================================');
 
         if (!message || !message.trim()) {
-            return res.status(400).json({ error: 'Mensagem é obrigatória' });
+            return res.status(400).json({ error: 'Mensagem ├⌐ obrigat├│ria' });
         }
-
-        const normalizedMessage = message.startsWith('IVA_') ? `[EVENTO_SISTEMA: ${message}]` : message;
 
         // Validate intent before calling LLM (security layer)
         const validation = IvaIntentValidator.validate(message);
@@ -327,7 +325,7 @@ const operate = async (req, res) => {
         const ivaIntroduced = user?.iva_introduced || false;
         const now = new Date();
         const hour = now.getHours();
-        const timeOfDay = hour >= 5 && hour < 12 ? 'manhã' : hour >= 12 && hour < 19 ? 'tarde' : 'noite';
+        const timeOfDay = hour >= 5 && hour < 12 ? 'manh├ú' : hour >= 12 && hour < 19 ? 'tarde' : 'noite';
 
         // ========================================
         // DEBUG: User Data Loading (Operate)
@@ -370,22 +368,22 @@ const operate = async (req, res) => {
         // ========================================
         // INTENT CLASSIFICATION (EARLY CHECK)
         // ========================================
-        const intent = IntentClassifier.classify(normalizedMessage, conversationHistory || []);
+        const intent = IntentClassifier.classify(message, conversationHistory || []);
 
         if (intent.type === 'LEARNING') {
-            console.log('[IVA Operate] 🧠 Learning intent detected, bypassing normal loop');
+            console.log('[IVA Operate] ≡ƒºá Learning intent detected, bypassing normal loop');
 
             // Trigger learning in background
             const IvaGlobalKnowledge = require('../services/IvaGlobalKnowledge');
             await IvaGlobalKnowledge.contribute('custom_rules', {
-                description: normalizedMessage.replace(/(iva|aprenda|guarde|memorize|grave|registre|ensinar|conhecimento|que|pergunta|original|:|"|')/gi, '').trim(),
-                keywords: IntentClassifier.extractKeywords ? IntentClassifier.extractKeywords(normalizedMessage) : IvaGlobalKnowledge.extractKeywords(normalizedMessage)
+                description: message.replace(/(iva|aprenda|guarde|memorize|grave|registre|ensinar|conhecimento|que|pergunta|original|:|"|')/gi, '').trim(),
+                keywords: IntentClassifier.extractKeywords ? IntentClassifier.extractKeywords(message) : IvaGlobalKnowledge.extractKeywords(message)
             }, user.id).catch(e => console.error('[IVA Learning] Error:', e));
 
             return res.json({
                 intent: 'LEARNING',
                 action: 'REPLY',
-                message: 'Entendido! Guardei esse novo conhecimento e vou usá-lo quando você me perguntar.'
+                message: 'Entendido! Guardei esse novo conhecimento e vou us├í-lo quando voc├¬ me perguntar.'
             });
         }
 
@@ -395,7 +393,7 @@ const operate = async (req, res) => {
         let discoveredKnowledge = null;
 
         /* TEMPORARILY DISABLED
-        // Check hvis projeto já foi explorado
+        // Check hvis projeto j├í foi explorado
         const hasKnowledge = await IvaExplorationService.hasProjectKnowledge(context.projectId);
 
         if (!hasKnowledge) {
@@ -469,95 +467,71 @@ const operate = async (req, res) => {
 
         // Append greeting frequency info
         if (req.body.isFirstGreetingOfDay === false) {
-            systemPrompt += "\nRESTRIÇÃO DE HOJE: Você já cumprimentou o usuário hoje. EVITE o uso de 'Olá' ou a palavra 'hoje' nesta mensagem.\n";
-        }
-
-        // 🧠 DYNAMIC SYSTEM INSTRUCTION OVERRIDE
-        if (context?.systemInstruction) {
-            console.log('[IVA Operate] Injecting dynamic system instruction override');
-            systemPrompt += `\n\nINSTRUÇÃO DINÂMICA DE FLUXO (PRIORIDADE ALTA):\n${context.systemInstruction}\n`;
+            systemPrompt += "\nRESTRI├ç├âO DE HOJE: Voc├¬ j├í cumprimentou o usu├írio hoje. EVITE o uso de 'Ol├í' ou a palavra 'hoje' nesta mensagem.\n";
         }
 
         // ADD INTENT CLASSIFICATION INSTRUCTION
         systemPrompt += `
 
-CLASSIFICAÇÃO DE INTENÇÃO (OBRIGATÓRIO):
-Antes de retornar a ação, classifique a intenção do usuário:
+CLASSIFICA├ç├âO DE INTEN├ç├âO (OBRIGAT├ôRIO):
+Antes de retornar a a├º├úo, classifique a inten├º├úo do usu├írio:
 
-1. NAVIGATION_ONLY - Usuário quer apenas encontrar/ver uma tela
-   Exemplos: "Onde cadastro usuários?", "Como acesso relatórios?", "Onde fica configurações?"
-   Retorne: { "intent": "NAVIGATION_ONLY", "action": "NAVIGATE", "target": "screen-id", "message": "Navegando para [nome da tela]. Esta é a tela que você procurava?" }
-   **CRÍTICO**: SEMPRE termine com uma pergunta de confirmação: "Esta é a tela que você procurava?" ou "É nesta tela que você quer trabalhar?"
-   **AGUARDE** a resposta do usuário antes de executar qualquer outra ação
+1. NAVIGATION_ONLY - Usu├írio quer apenas encontrar/ver uma tela
+   Exemplos: "Onde cadastro usu├írios?", "Como acesso relat├│rios?", "Onde fica configura├º├╡es?"
+   Retorne: { "intent": "NAVIGATION_ONLY", "action": "NAVIGATE", "target": "screen-id", "message": "Navegando para [nome da tela]. O que voc├¬ gostaria de ver ou fazer aqui?" }
+   IMPORTANTE: SEMPRE inclua uma pergunta de follow-up contextual sobre o que o usu├írio quer fazer na tela
 
-2. DATA_SEEKING - Usuário quer informação específica/dados ou análise de valores
-   Exemplos: "Quanto recebi em dezembro?", "Qual o saldo?", "Qual será meu fluxo de caixa daqui a 10 dias?", "Ver previsão de fechamento"
+2. DATA_SEEKING - Usu├írio quer informa├º├úo espec├¡fica/dados ou an├ílise de valores
+   Exemplos: "Quanto recebi em dezembro?", "Qual o saldo?", "Qual ser├í meu fluxo de caixa daqui a 10 dias?", "Ver previs├úo de fechamento"
    Retorne: { "intent": "DATA_SEEKING", "action": "NAVIGATE", "target": "screen-id", "message": "..." }
 
-3. ACTION_EXECUTION - Usuário quer executar uma ação específica
-   Exemplos: "Criar entrada de R$ 1000", "Exportar relatório", "Filtrar por empresa X"
+3. ACTION_EXECUTION - Usu├írio quer executar uma a├º├úo espec├¡fica
+   Exemplos: "Criar entrada de R$ 1000", "Exportar relat├│rio", "Filtrar por empresa X"
    Retorne: { "intent": "ACTION_EXECUTION", "action": "NAVIGATE", "target": "screen-id", "message": "..." }
 
-4. LEARNING - Usuário está ensinando uma regra, comando ou conhecimento.
+4. LEARNING - Usu├írio est├í ensinando uma regra, comando ou conhecimento.
    Exemplos: "aprenda o seguinte...", "guarde este conhecimento...", "memorize..."
-   Retorne: { "intent": "LEARNING", "action": "REPLY", "message": "Entendido! Guardei esse novo conhecimento e vou usá-lo quando você me perguntar." }
+   Retorne: { "intent": "LEARNING", "action": "REPLY", "message": "Entendido! Guardei esse novo conhecimento e vou us├í-lo quando voc├¬ me perguntar." }
 
 IMPORTANTE: SEMPRE inclua o campo "intent" na sua resposta JSON!
 
-REGRAS CRÍTICAS DE NAVEGAÇÃO:
-1. **NUNCA navegue para a mesma tela mais de uma vez** - Mantenha registro mental das telas já visitadas nesta conversa
-2. **SEMPRE confirme com o usuário após navegar** - Pergunte: "Esta é a tela que você procurava?" ou "É nesta tela que você quer trabalhar?"
-3. **AGUARDE confirmação do usuário** antes de executar qualquer ação adicional na tela
-4. **Se o usuário confirmar** que é a tela certa, então prossiga com a ação solicitada
-5. **Se o usuário negar**, pergunte qual tela ele procura ou ofereça buscar em outras telas
-
-REGRAS DE FORMATO DE PARÂMETROS:
-1. **Datas para campos INPUT devem ser formatadas como "YYYY-MM-DD"** (exemplo: "2028-12-31")
-   - IMPORTANTE: Este é o formato INTERNO dos campos HTML tipo "date"
-   - Mesmo que no Brasil as datas sejam exibidas como DD/MM/AAAA, os campos INPUT requerem YYYY-MM-DD
-2. **NUNCA passe strings literais** como "data_inicial", "data_final", "hoje", "amanhã"
-3. **Calcule a data real** antes de passar como parâmetro
-4. **Exemplo correto**: { "actionId": "setDateRange", "params": { "dataInicio": "2028-01-01", "dataFim": "2028-12-31" } }
-5. **Exemplo ERRADO**: { "actionId": "setDateRange", "params": { "dataInicio": "data_inicial", "dataFim": "data_final" } }
-6. **Exemplo ERRADO**: { "actionId": "setDateRange", "params": { "dataInicio": "01/01/2028", "dataFim": "31/12/2028" } }
-
 REGRA DE CONTEXTO DE TELA:
-- Se o usuário CONFIRMOU que está na tela certa (ex: "é nesta tela", "exatamente", "sim"), NÃO navegue para outra tela
-- SEMPRE tente buscar os dados na tela atual PRIMEIRO antes de sugerir navegação
-- Só sugira navegar para outra tela se:
-  1. O usuário explicitamente pedir para ir para outra tela, OU
-  2. Você tentou buscar na tela atual e NÃO encontrou o dado necessário
+- Se o usu├írio CONFIRMOU que est├í na tela certa (ex: "├⌐ nesta tela", "exatamente", "sim"), N├âO navegue para outra tela
+- SEMPRE tente buscar os dados na tela atual PRIMEIRO antes de sugerir navega├º├úo
+- S├│ sugira navegar para outra tela se:
+  1. O usu├írio explicitamente pedir para ir para outra tela, OU
+  2. Voc├¬ tentou buscar na tela atual e N├âO encontrou o dado necess├írio
 - Quando o dado existe na tela atual, use action: "REPLY" com a resposta baseada nos dados da tela
 
 FLUXO DE DESCOBERTA COLABORATIVA:
-Quando o usuário pede um dado específico na tela atual:
+Quando o usu├írio pede um dado espec├¡fico na tela atual:
 
-1. **Se você NÃO sabe como encontrar o dado:**
-   - Pergunte: "Como faço para encontrar [o dado que você precisa]?"
-   - Aguarde instruções do usuário
+1. **Se voc├¬ N├âO sabe como encontrar o dado:**
+   - Pergunte: "Como fa├ºo para encontrar [o dado que voc├¬ precisa]?"
+   - Aguarde instru├º├╡es do usu├írio
    - Use action: "REPLY" com a pergunta
 
-2. **Quando o usuário te ensinar como encontrar:**
-   - Execute as instruções passo a passo
+2. **Quando o usu├írio te ensinar como encontrar:**
+   - Execute as instru├º├╡es passo a passo
    - Exemplo: "Somar hoje + 20 dias = 28/01, procurar coluna 28/01, linha 'Saldo Final'"
    - Retorne o dado encontrado
-   - GRAVE o conhecimento para próximas vezes usando intent: "LEARNING"
+   - GRAVE o conhecimento para pr├│ximas vezes usando intent: "LEARNING"
 
-3. **Se mesmo após tentar você NÃO encontrar o dado:**
-   - Ofereça: "Posso continuar olhando o software para tentar encontrar os dados que você precisa. Aqui mesmo, nesta tela, temos filtros que podem trazer o dado que você está procurando. Estes filtros ajudam?"
-   - Aguarde resposta do usuário
-   - Se usuário aceitar, sugira usar filtros disponíveis na tela
+3. **Se mesmo ap├│s tentar voc├¬ N├âO encontrar o dado:**
+   - Ofere├ºa: "Posso continuar olhando o software para tentar encontrar os dados que voc├¬ precisa. Aqui mesmo, nesta tela, temos filtros que podem trazer o dado que voc├¬ est├í procurando. Estes filtros ajudam?"
+   - Aguarde resposta do usu├írio
+   - Se usu├írio aceitar, sugira usar filtros dispon├¡veis na tela
 
-4. **Se nem usuário nem IVA encontraram de forma nenhuma:**
-   - Ofereça: "Não consegui encontrar aqui. Posso procurar em outras telas do sistema?"
-   - Se usuário aceitar, navegue para OUTRAS TELAS ainda NÃO visitadas
-   - Mantenha registro mental das telas já verificadas
-   - Continue buscando em telas não avaliadas
+4. **Se nem usu├írio nem IVA encontraram de forma nenhuma:**
+   - Ofere├ºa: "N├úo consegui encontrar aqui. Posso procurar em outras telas do sistema?"
+   - Se usu├írio aceitar, navegue para OUTRAS TELAS ainda N├âO visitadas
+   - Mantenha registro mental das telas j├í verificadas
+   - Continue buscando em telas n├úo avaliadas
 
-5. **Se chegou ao final de TODAS as telas disponíveis:**
-   - Peça desculpas: "Desculpe, procurei em todo o sistema e realmente não encontrei essa informação. Posso ajudá-lo de alguma outra forma?"
-   - Seja humilde e honesta sobre a limitação
-   - Ofereça ajuda alternativa
+5. **Se chegou ao final de TODAS as telas dispon├¡veis:**
+   - Pe├ºa desculpas: "Desculpe, procurei em todo o sistema e realmente n├úo encontrei essa informa├º├úo. Posso ajud├í-lo de alguma outra forma?"
+   - Seja humilde e honesta sobre a limita├º├úo
+   - Ofere├ºa ajuda alternativa
 
 `;
 
@@ -576,7 +550,7 @@ Quando o usuário pede um dado específico na tela atual:
                 role: msg.sender === 'user' ? 'user' : 'assistant', // Map sender to role
                 content: msg.text
             })),
-            { role: 'user', content: normalizedMessage }
+            { role: 'user', content: message }
         ];
 
         console.log('[IVA Backend] ========== LLM REQUEST ==========');
@@ -617,15 +591,15 @@ Quando o usuário pede um dado específico na tela atual:
 
                 if (functionCall.name === 'save_preferred_name') {
                     await IvaUserPreferences.setPreferredName(user.id, args.name);
-                    console.log(`[IVA Function Call] ✅ Saved preferred name: "${args.name}"`);
+                    console.log(`[IVA Function Call] Γ£à Saved preferred name: "${args.name}"`);
                 }
 
                 if (functionCall.name === 'save_voice_settings') {
                     await IvaUserPreferences.setVoiceSettings(user.id, args);
-                    console.log(`[IVA Function Call] ✅ Saved voice settings:`, args);
+                    console.log(`[IVA Function Call] Γ£à Saved voice settings:`, args);
                 }
             } catch (err) {
-                console.error('[IVA Function Call] ❌ Error executing function:', err.message);
+                console.error('[IVA Function Call] Γ¥î Error executing function:', err.message);
             }
         }
 
@@ -642,17 +616,17 @@ Quando o usuário pede um dado específico na tela atual:
 
         // If LLM returned only function_call without content, create default response
         if (!responseContent && functionCall) {
-            console.log('[IVA Backend] ⚠️ LLM returned only function_call, creating default response');
+            console.log('[IVA Backend] ΓÜá∩╕Å LLM returned only function_call, creating default response');
             const defaultAction = {
                 action: 'REPLY',
-                message: 'Entendido! Salvei sua preferência.',
+                message: 'Entendido! Salvei sua prefer├¬ncia.',
                 intent: 'PREFERENCE_UPDATE'
             };
             return res.json(defaultAction);
         }
 
         if (!responseContent) {
-            console.error('[IVA Backend] ❌ OpenAI returned empty response');
+            console.error('[IVA Backend] Γ¥î OpenAI returned empty response');
             throw new Error('OpenAI returned empty response');
         }
 

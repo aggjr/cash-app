@@ -1,4 +1,4 @@
-import { getApiBaseUrl } from '../utils/apiConfig.js';
+﻿import { getApiBaseUrl } from '../utils/apiConfig.js';
 
 export const IvaService = {
     decideOperation: async (text, context) => {
@@ -44,8 +44,7 @@ export const IvaService = {
             const requestContext = {
                 projectId: projectId ? parseInt(projectId) : null,
                 screenContext: screenContext, // Nested under context as backend expects
-                currentScreenData: context.currentScreenData,
-                systemInstruction: context.systemInstruction // Pass through custom instructions
+                currentScreenData: context.currentScreenData
             };
 
             console.log('[ivaService] Sending request with context:', {
@@ -72,7 +71,6 @@ export const IvaService = {
                     activeScreenContext: context.currentScreenData, // NEW: Semantic Data (The Eyes)
                     userName: user?.name || '', // Full registered name for gender inference
                     preferredName: user?.preferred_name || '', // User's preferred form of address
-                    isFirstGreetingOfDay: context.isFirstGreetingOfDay, // Pass greeting flag
                     userSettings: { // Voice configuration
                         ivaVoiceRate: user?.iva_voice_rate || 70,
                         ivaVoiceMale: user?.iva_voice_male || 0,
@@ -87,7 +85,7 @@ export const IvaService = {
                 const errorText = await response.text();
                 console.error('[ivaService] Error response:', errorText);
                 // Fallback action
-                return { action: 'REPLY', message: 'Desculpe, tive um problema de conexão com meu cérebro.' };
+                return { action: 'REPLY', message: 'Desculpe, tive um problema de conex├úo com meu c├⌐rebro.' };
             }
 
             const decision = await response.json();
@@ -96,7 +94,7 @@ export const IvaService = {
 
         } catch (error) {
             console.error('ivaService Exception:', error);
-            return { action: 'REPLY', message: 'Erro ao processar sua solicitação.' };
+            return { action: 'REPLY', message: 'Erro ao processar sua solicita├º├úo.' };
         }
     }
 };
