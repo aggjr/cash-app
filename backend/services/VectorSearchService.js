@@ -180,14 +180,19 @@ class VectorSearchService {
     }
 
     /**
-     * Helper para ID
+     * Helper para gerar UUID válido a partir de string ID
+     * Qdrant aceita apenas UUID ou integer, não strings arbitrárias
      */
     generatePointId(id) {
-        // Simple sanitization for string IDs if needed, 
-        // Qdrant REST supports UUID and uint64, but also allows string if configured 
-        // Or we can just use a simple hash to uint64 if needed.
-        // For layer_ID and global_ID, we'll try to keep it as is.
-        return id;
+        const crypto = require('crypto');
+
+        // Gerar hash MD5 da string (128 bits = 16 bytes)
+        const hash = crypto.createHash('md5').update(id).digest('hex');
+
+        // Formatar como UUID v4 (8-4-4-4-12)
+        const uuid = `${hash.substring(0, 8)}-${hash.substring(8, 12)}-${hash.substring(12, 16)}-${hash.substring(16, 20)}-${hash.substring(20, 32)}`;
+
+        return uuid;
     }
 
     buildFilter(filters) {
