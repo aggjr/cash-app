@@ -619,6 +619,17 @@ IMPORTANTE: SEMPRE inclua o campo "intent" na sua resposta JSON!
             total: completion.usage?.total_tokens
         });
 
+        // If LLM returned only function_call without content, create default response
+        if (!responseContent && functionCall) {
+            console.log('[IVA Backend] ⚠️ LLM returned only function_call, creating default response');
+            const defaultAction = {
+                action: 'REPLY',
+                message: 'Entendido! Salvei sua preferência.',
+                intent: 'PREFERENCE_UPDATE'
+            };
+            return res.json(defaultAction);
+        }
+
         if (!responseContent) {
             console.error('[IVA Backend] ❌ OpenAI returned empty response');
             throw new Error('OpenAI returned empty response');
