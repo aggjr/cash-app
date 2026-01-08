@@ -26,7 +26,7 @@ class IvaUserPreferences {
             );
 
             console.log(`[IVA Preferences] Search results:`, JSON.stringify(results, null, 2));
-            const preferredName = results[0]?.payload?.value || null;
+            const preferredName = results[0]?.value || null;
             console.log(`[IVA Preferences] Preferred name: ${preferredName || 'not set'}`);
             return preferredName;
         } catch (err) {
@@ -80,7 +80,7 @@ class IvaUserPreferences {
                 1
             );
 
-            const settings = results[0]?.payload?.value || {
+            const settings = results[0]?.value || {
                 enabled: false,
                 rate: 75,
                 premium: 2,
@@ -140,7 +140,7 @@ class IvaUserPreferences {
                 1
             );
 
-            const introduced = results[0]?.payload?.value || false;
+            const introduced = results[0]?.value || false;
             console.log(`[IVA Preferences] Introduction status: ${introduced}`);
             return introduced;
         } catch (err) {
