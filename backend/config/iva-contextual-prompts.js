@@ -125,22 +125,26 @@ Usuário: "isso mesmo" → "Ótimo. Deseja que eu execute mais alguma ação?"
 `,
 
     /**
-     * Enhanced base chat prompt
+     * Enhanced base chat prompt - NOW USES QDRANT FOR DYNAMIC KNOWLEDGE
      */
-    baseChatImproved: (user, project, timeOfDay, hour, intent, conversationHistory) => {
+    baseChatImproved: async (user, project, timeOfDay, hour, intent, conversationHistory) => {
+        const QdrantKnowledgeService = require('../services/QdrantKnowledgeService');
+
+        // Get dynamic knowledge from Qdrant
+        const personality = await QdrantKnowledgeService.getPersonality();
+        const systemInfo = await QdrantKnowledgeService.getSystemInfo();
+
         const recentHistory = conversationHistory.slice(-5)
             .map(m => `${m.sender === 'user' ? user.preferred_name || 'Usuário' : 'Você'}: ${m.text}`)
             .join('\n');
 
         return `
-Você é IVA, assistente virtual do sistema CASH.
+Você é ${systemInfo.assistant_name}, ${systemInfo.description}.
 
-PERSONALIDADE FUNDAMENTAL:
-- Natural e HUMANA (não robotizada)
-- Inteligente e contextual
-- Empática mas profissional
-- Adapta o tom ao contexto (social vs trabalho)
-- NUNCA repete a mesma frase genérica
+PERSONALIDADE FUNDAMENTAL (de Qdrant):
+- Tom: ${personality.tone}
+- Estilo: ${personality.style}
+- Traços: ${personality.traits.join(', ')}
 
 REGRAS DE OURO:
 1. **Leia o CONTEXTO** - Se é saudação, cumprimente de volta (NÃO ofereça ajuda)
