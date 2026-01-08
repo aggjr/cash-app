@@ -483,6 +483,38 @@ const operate = async (req, res) => {
             // Note: discoveredKnowledge will be integrated in future update to buildUnifiedContext
         );
 
+        // 🚀 INJECT QDRANT KNOWLEDGE INTO PROMPT
+        const QdrantKnowledgeService = require('../services/QdrantKnowledgeService');
+        try {
+            const personality = await QdrantKnowledgeService.getPersonality();
+            const systemInfo = await QdrantKnowledgeService.getSystemInfo();
+
+            // Prepend Qdrant knowledge to existing prompt
+            const qdrantKnowledge = `
+═══════════════════════════════════════
+🧠 CONHECIMENTO DINÂMICO (QDRANT)
+═══════════════════════════════════════
+
+IDENTIDADE:
+- Nome: ${systemInfo.assistant_name}
+- Descrição: ${systemInfo.description}
+
+PERSONALIDADE:
+- Tom: ${personality.tone}
+- Estilo: ${personality.style}
+- Traços: ${personality.traits.join(', ')}
+
+IMPORTANTE: Use esta personalidade em TODAS as respostas!
+═══════════════════════════════════════
+
+`;
+            systemPrompt = qdrantKnowledge + systemPrompt;
+            console.log('[IVA Qdrant] ✅ Knowledge injected into prompt');
+        } catch (err) {
+            console.error('[IVA Qdrant] ⚠️ Failed to inject knowledge:', err.message);
+            // Continue with original prompt if Qdrant fails
+        }
+
         // Append greeting frequency info
         if (req.body.isFirstGreetingOfDay === false) {
             systemPrompt += "\nRESTRIÇÃO DE HOJE: Você já cumprimentou o usuário hoje. EVITE o uso de 'Olá' ou a palavra 'hoje' nesta mensagem.\n";
