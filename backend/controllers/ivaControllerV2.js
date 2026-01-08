@@ -441,9 +441,15 @@ const operate = async (req, res) => {
 
         // Dynamic profile not needed - Qdrant provides all context
 
+        // Update userData with Qdrant preferredName (override MySQL value)
+        const userDataWithQdrant = {
+            ...userData,
+            preferred_name: preferredName // From Qdrant, not MySQL
+        };
+
         // Use Qdrant-based context builder (simplified)
         let systemPrompt = await IvaContextBuilder.buildOperateContextWithQdrant(
-            userData,
+            userDataWithQdrant,
             projectData,
             screenData,
             cachedScreens,
