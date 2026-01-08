@@ -107,8 +107,14 @@ class VectorSearchService {
      */
     async upsertKnowledge(id, text, metadata) {
         try {
+            console.log(`[VectorSearch] 🔄 Starting upsert for ID: ${id}`);
+            console.log(`[VectorSearch] 📝 Text to embed: "${text.substring(0, 100)}..."`);
+
             await this.ensureCollection();
+            console.log(`[VectorSearch] ✅ Collection ensured`);
+
             const vector = await this.generateEmbedding(text);
+            console.log(`[VectorSearch] ✅ Embedding generated (dim: ${vector.length})`);
 
             await this.request('PUT', `/collections/${this.collectionName}/points`, {
                 wait: true,
@@ -124,9 +130,10 @@ class VectorSearchService {
                     },
                 ],
             });
-            console.log(`[VectorSearch] Knowledge upserted: ${id}`);
+            console.log(`[VectorSearch] ✅ Knowledge upserted: ${id}`);
         } catch (error) {
-            console.error('[VectorSearch] Error upserting knowledge:', error.message);
+            console.error('[VectorSearch] ❌ Error upserting knowledge:', error.message);
+            console.error('[VectorSearch] Stack:', error.stack);
             throw error;
         }
     }
