@@ -165,6 +165,9 @@ class IvaGlobalKnowledge {
      * Sync knowledge item with Qdrant
      */
     static async syncWithQdrant(type, item, userId) {
+        console.log(`[IVA Qdrant] 🔄 Starting sync for type: ${type}`);
+        console.log(`[IVA Qdrant] 📦 Item:`, JSON.stringify(item, null, 2));
+
         let textToEmbed = '';
         if (type === 'menus') {
             textToEmbed = `Menu/Tela ${item.screen_id}: ${this.getAllKeywords(item.keywords).join(', ')}. Objetivo: ${item.purpose || ''}`;
@@ -172,20 +175,39 @@ class IvaGlobalKnowledge {
             textToEmbed = `Ação [${item.screen_id}] ${item.action_type}: ${this.getAllKeywords(item.keywords).join(', ')}. Descrição: ${item.description || ''}`;
         } else if (type === 'custom_rules') {
             textToEmbed = `Regra Aprendida: ${item.description}`;
+            console.log(`[IVA Qdrant] 📝 Text to embed: "${textToEmbed}"`);
+        } else {
+            console.log(`[IVA Qdrant] ⚠️ Unknown type: ${type}`);
         }
 
-        if (!textToEmbed) return;
+        if (!textToEmbed) {
+            console.log(`[IVA Qdrant] ⚠️ No text to embed for type: ${type}. Skipping sync.`);
+            return;
+        }
 
         const metadata = {
             source: 'json_global',
             category: type,
+            layer: 'GLOBAL',
             screen_id: item.screen_id,
             action_id: item.action_id,
-            user_id: userId
+            user_id: userId,
+            created_at: new Date().toISOString()
         };
 
         const qdrantId = `global_${type}_${item.screen_id || item.action_id || Math.random().toString(36).substring(7)}`;
-        await vectorService.upsertKnowledge(qdrantId, textToEmbed, metadata);
+        console.log(`[IVA Qdrant] 🆔 Generated ID: ${qdrantId}`);
+        console.log(`[IVA Qdrant] 📊 Metadata:`, metadata);
+
+        try {
+            console.log(`[IVA Qdrant] 📡 Calling vectorService.upsertKnowledge...`);
+            await vectorService.upsertKnowledge(qdrantId, textToEmbed, metadata);
+            console.log(`[IVA Qdrant] ✅ Synced successfully to Qdrant!`);
+        } catch (err) {
+            console.error(`[IVA Qdrant] ❌ Sync failed:`, err.message);
+            console.error(`[IVA Qdrant] Stack:`, err.stack);
+            throw err; // Re-throw to propagate error
+        }
     }
 
     /**
