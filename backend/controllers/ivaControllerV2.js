@@ -1,5 +1,6 @@
 const OpenAI = require('openai');
 const db = require('../config/database');
+const IvaContextBuilder = require('../services/IvaContextBuilderQdrant'); // Qdrant-based context builder
 const IvaIntentValidator = require('../utils/ivaIntentValidator');
 const IntentClassifier = require('../utils/ivaIntentClassifier');
 const ContextualPrompts = require('../config/iva-contextual-prompts');
@@ -96,39 +97,21 @@ const chat = async (req, res, next) => {
         if (learningCommand.type !== 'NONE') {
             console.log('[IVA Learning] Command detected:', learningCommand.type);
 
-            // Handle preferred name change (USER-level RULE in knowledge layers)
-            if (message.toLowerCase().includes('me chame') ||
-                message.toLowerCase().includes('me trate') ||
-                message.toLowerCase().includes('prefiro que')) {
-
-                // Extract new preferred name
+            if (learningCommand.type === 'PREFERRED_NAME') {
+                // Extract preferred name from command
                 const nameMatch = message.match(/(?:me chame|me trate|prefiro que.*?me (?:chame|trate)).*?(?:de|como)\s+([^.,!?]+)/i);
 
                 if (nameMatch) {
                     const newPreferredName = nameMatch[1].trim();
 
-                    // Save as USER-level RULE in iva_knowledge_layers
-                    const result = await IvaKnowledgeManager.learn({
-                        layer_type: 'USER',
-                        user_id: user.id,
-                        knowledge_type: 'RULE',
-                        knowledge_key: 'preferred_name',
-                        knowledge_value: {
-                            name: newPreferredName,
-                            updated_at: new Date().toISOString()
-                        },
-                        source: 'EXPLICIT'
-                    }, user.id);
-
-                    console.log(`[IVA Learning] Saved preferred_name as USER knowledge: "${newPreferredName}"`);
+                    // Save via IvaUserPreferences (Qdrant)
+                    await IvaUserPreferences.setPreferredName(user.id, newPreferredName);
+                    console.log(`[IVA Learning] Saved preferred_name via Qdrant: "${newPreferredName}"`);
 
                     return res.json({
-                        reply: `Perfeito! A partir de agora vou te chamar de ${newPreferredName}. 😊`,
-                        metadata: {
-                            learning: true,
-                            type: 'PREFERRED_NAME_UPDATE',
-                            value: newPreferredName
-                        }
+                        reply: `Entendido! A partir de agora vou te chamar de ${newPreferredName}. 😊`,
+                        learned: true,
+                        preferredName: newPreferredName
                     });
                 }
             }
