@@ -25,6 +25,7 @@ class IvaUserPreferences {
                 1
             );
 
+            console.log(`[IVA Preferences] Search results:`, JSON.stringify(results, null, 2));
             const preferredName = results[0]?.payload?.value || null;
             console.log(`[IVA Preferences] Preferred name: ${preferredName || 'not set'}`);
             return preferredName;
