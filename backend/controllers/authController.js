@@ -138,16 +138,14 @@ exports.login = async (req, res, next) => {
         }
 
         // Find user and project credentials
+        // LAW: IVA knowledge (preferred_name, iva_*) comes from Qdrant, not MySQL
         const [result] = await db.query(`
             SELECT 
                 u.id,
                 u.name,
                 u.email,
                 u.is_active,
-                u.preferred_name,
                 u.gender,
-                u.iva_introduced,
-                u.iva_voice_enabled,
                 pu.password,
                 pu.password_reset_required,
                 pu.role,
@@ -194,12 +192,10 @@ exports.login = async (req, res, next) => {
             user: {
                 id: user.id,
                 name: user.name,
-                preferred_name: user.preferred_name,
                 gender: user.gender,
-                iva_introduced: user.iva_introduced,
-                iva_voice_enabled: user.iva_voice_enabled,
                 email: user.email,
                 password_reset_required: user.password_reset_required
+                // Note: IVA preferences (preferred_name, etc) loaded from Qdrant by frontend
             },
             project: {
                 id: parseInt(projectId),
@@ -260,60 +256,21 @@ exports.changePassword = async (req, res, next) => {
     }
 };
 
+// DEPRECATED: IVA preferences now managed via IvaUserPreferences service (Qdrant)
+// This endpoint is kept for backward compatibility but should not be used
 exports.updatePreference = async (req, res, next) => {
     try {
-        const { preferredName, ivaIntroduced, ivaVoiceEnabled, gender, ivaVoiceRate } = req.body;
+        const { gender } = req.body;
         const userId = req.user.id;
 
-        // Build dynamic update query based on provided fields
-        const updates = [];
-        const values = [];
-
-        if (preferredName !== undefined) {
-            updates.push('preferred_name = ?');
-            values.push(preferredName);
-        }
-
-        if (ivaIntroduced !== undefined) {
-            updates.push('iva_introduced = ?');
-            values.push(ivaIntroduced);
-        }
-
-        if (ivaVoiceEnabled !== undefined) {
-            updates.push('iva_voice_enabled = ?');
-            values.push(ivaVoiceEnabled);
-        }
-
+        // Only gender is still in MySQL (not IVA-specific)
         if (gender !== undefined) {
-            updates.push('gender = ?');
-            values.push(gender);
+            await db.query('UPDATE users SET gender = ? WHERE id = ?', [gender, userId]);
         }
-
-        if (ivaVoiceRate !== undefined) {
-            updates.push('iva_voice_rate = ?');
-            values.push(ivaVoiceRate);
-        }
-
-        if (updates.length === 0) {
-            throw new AppError('VAL-002', 'Nenhuma preferência fornecida');
-        }
-
-        values.push(userId);
-
-        await db.query(
-            `UPDATE users SET ${updates.join(', ')} WHERE id = ?`,
-            values
-        );
-
-        // Fetch updated user data to return
-        const [updatedUser] = await db.query(
-            'SELECT preferred_name, iva_introduced, iva_voice_enabled, gender FROM users WHERE id = ?',
-            [userId]
-        );
 
         res.json({
-            message: 'Preferências atualizadas com sucesso',
-            user: updatedUser[0]
+            message: 'Preferência atualizada com sucesso'
+            // Note: IVA preferences should use IvaUserPreferences service
         });
     } catch (error) {
         next(error);

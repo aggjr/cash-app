@@ -255,9 +255,10 @@ exports.updateUserProfile = async (req, res) => {
     let connection;
     try {
         const { userId } = req.params;
-        const { name, preferred_name, job_title, department } = req.body;
+        const { name, job_title, department } = req.body;
         console.log('[User Update] Request for ID:', userId);
-        console.log('[User Update] Payload:', { name, preferred_name, job_title, department });
+        console.log('[User Update] Payload:', { name, job_title, department });
+        // Note: preferred_name is IVA-specific, managed via IvaUserPreferences service
         const requesterId = req.user.id; // From auth middleware
 
         // Authorization: Only allow user to update themselves OR master
@@ -281,10 +282,7 @@ exports.updateUserProfile = async (req, res) => {
             updates.push('name = ?');
             values.push(name);
         }
-        if (preferred_name !== undefined) {
-            updates.push('preferred_name = ?');
-            values.push(preferred_name);
-        }
+        // preferred_name removed - use IvaUserPreferences service instead
         if (job_title !== undefined) {
             updates.push('job_title = ?');
             values.push(job_title);
