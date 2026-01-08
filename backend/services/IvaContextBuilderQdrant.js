@@ -65,6 +65,7 @@ ${alreadyGreetedToday
             ? `- Para auto-greeting (IVA_AUTO_GREETING), use: "${returnGreeting}"`
             : `- Para auto-greeting (IVA_AUTO_GREETING), use: "${firstGreeting}"`
         }
+- IMPORTANTE: Para IVA_AUTO_GREETING, SEMPRE retorne action: "REPLY" (nunca NAVIGATE)
 
 INSTRUÇÕES GERAIS:
 1. Seja ${personality.style}
