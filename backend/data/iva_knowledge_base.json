@@ -1,4 +1,5 @@
 {
+    "_README": "Este arquivo é usado APENAS para seed inicial do Qdrant. Após a primeira inicialização, todo conhecimento da IVA é gerenciado exclusivamente no Qdrant. Para re-popular o Qdrant, use a rota POST /api/iva/migrate-to-qdrant-force (requer autenticação admin).",
     "GLOBAL": {
         "description": "Conhecimento universal da IVA, aplicável a todos os módulos e usuários",
         "system_info": {

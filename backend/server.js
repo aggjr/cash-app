@@ -207,6 +207,9 @@ loadErrorCatalog()
 
             if (!hasData) {
                 console.log('📦 Qdrant is empty. Populating with initial knowledge...');
+                // NOTE: iva_knowledge_base.json is used ONLY for initial seed.
+                // After first run, all IVA knowledge is managed exclusively in Qdrant.
+                // To re-populate, use POST /api/iva/migrate-to-qdrant-force (admin only)
                 const knowledgeBasePath = path.join(__dirname, 'data/iva_knowledge_base.json');
                 const knowledgeData = JSON.parse(await fs.readFile(knowledgeBasePath, 'utf8'));
 

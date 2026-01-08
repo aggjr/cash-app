@@ -118,84 +118,121 @@ router.use('/', ivaAnalytics);
 const ivaTracking = require('./ivaTracking');
 router.use('/', ivaTracking);
 
-// --- TEMPORARY MIGRATION ROUTE ---
-router.get('/migrate-to-qdrant-force', async (req, res) => {
-    console.log('🚀 Starting Forced Qdrant Migration via Route...');
+// --- SECURE MIGRATION ROUTE (Admin Only) ---
+// POST /api/iva/migrate-to-qdrant-force - Force re-seed Qdrant from knowledge base
+router.post('/migrate-to-qdrant-force', auth, async (req, res) => {
     try {
+        // Check if user is admin
+        if (req.user.role !== 'admin') {
+            return res.status(403).json({
+                error: 'Acesso negado. Apenas administradores podem executar esta migração.'
+            });
+        }
+
+        console.log('🚀 Starting Forced Qdrant Migration...');
         const VectorSearchService = require('../services/VectorSearchService');
+        const fs = require('fs').promises;
+        const path = require('path');
 
-        // 1. Define Screens (extracted from IvaKnowledge.js)
-        const screens = [
-            { id: 'dashboard', name: 'Dashboard', desc: 'Visão geral do sistema com atalhos principais.', keywords: ['inicio', 'home', 'começo', 'painel'] },
-            { id: 'entrada', name: 'Entradas', desc: 'Tela para registro de ganhos, receitas e recebimentos.', keywords: ['ganhos', 'receitas', 'recebimentos', 'vendas'] },
-            { id: 'saida', name: 'Saídas', desc: 'Tela para registro de gastos, despesas e pagamentos.', keywords: ['gastos', 'despesas', 'pagamentos', 'custos'] },
-            { id: 'contas', name: 'Contas Bancárias', desc: 'Gerenciamento de contas bancárias e saldos.', keywords: ['banco', 'saldo', 'conta corrente', 'poupança'] },
-            { id: 'producao-revenda', name: 'Produção e Revenda', desc: 'Gestão de itens produzidos ou revendidos pela empresa.', keywords: ['estoque', 'produtos', 'revenda', 'produção'] },
-            { id: 'usuarios', name: 'Gerenciamento de Usuários', desc: 'Cadastro e controle de usuários do sistema.', keywords: ['usuário', 'usuarios', 'login', 'acesso', 'perfil', 'pessoas'] },
-            { id: 'empresa', name: 'Dados da Empresa', desc: 'Cadastro das informações principais da empresa.', keywords: ['empresa', 'cnpj', 'endereço', 'dados cadastrais'] },
-            { id: 'parametros-gerais', name: 'Parâmetros Gerais', desc: 'Configurações globais do sistema.', keywords: ['configuração', 'configurações', 'parâmetros', 'setup', 'ajustes'] },
-            { id: 'transferencias', name: 'Transferências', desc: 'Transferências entre contas bancárias.', keywords: ['transferência', 'movimentar', 'ted', 'doc'] },
-            { id: 'extrato-conta', name: 'Extrato', desc: 'Extrato detalhado das contas.', keywords: ['extrato', 'movimentação', 'histórico'] },
-            { id: 'consolidadas', name: 'Consolidadas', desc: 'Visão consolidada das transações financeiras - reais e previstas.', keywords: ['consolidada', 'consolidadas', 'análise financeira', 'transações', 'consolidado'] },
-            { id: 'previsao', name: 'Previsão Diária', desc: 'Previsão diária do fluxo de caixa.', keywords: ['previsão', 'fluxo de caixa', 'forecast', 'projeção'] },
-            { id: 'analise-financeira', name: 'Análise Financeira', desc: 'Relatórios e gráficos de análise financeira.', keywords: ['análise', 'relatório', 'gráfico', 'ROI', 'performance'] }
-        ];
+        // Read knowledge base
+        const knowledgeBasePath = path.join(__dirname, '../data/iva_knowledge_base.json');
+        const knowledgeData = JSON.parse(await fs.readFile(knowledgeBasePath, 'utf8'));
 
-        // 2. Define Actions (extracted from IvaScreenActions.js)
-        const actions = [
-            { screen: 'previsao', id: 'setDaysAhead', desc: 'Filtrar X dias à frente na previsão de fluxo', params: ['days'] },
-            { screen: 'previsao', id: 'setDateRange', desc: 'Filtrar por intervalo de datas específico', params: ['dataInicio', 'dataFim'] },
-            { screen: 'entrada', id: 'filterByMonth', desc: 'Filtrar entradas por mês e ano específico', params: ['mes', 'ano'] },
-            { screen: 'entrada', id: 'filterByType', desc: 'Filtrar por tipo de entrada (Serviços, Vendas, etc)', params: ['tipoId'] },
-            { screen: 'entrada', id: 'filterByStatus', desc: 'Filtrar por status (Realizada/Prevista)', params: ['status'] },
-            { screen: 'saida', id: 'filterByMonth', desc: 'Filtrar saídas por mês e ano', params: ['mes', 'ano'] },
-            { screen: 'saida', id: 'filterByType', desc: 'Filtrar por tipo de saída', params: ['tipoId'] },
-            { screen: 'usuarios', id: 'openNewUserModal', desc: 'Abrir modal para criar novo usuário', params: [] }
-        ];
+        let count = 0;
+        const log = [];
 
-        // A. Upsert Screens
-        let log = 'Starting migration...\n';
-        for (const screen of screens) {
-            const text = `Tela/Menu ${screen.name} (${screen.id}): ${screen.desc}. Palavras-chave: ${screen.keywords.join(', ')}`;
-            await VectorSearchService.upsertKnowledge(
-                `global_menus_${screen.id}`,
-                text,
-                {
-                    category: 'menus',
-                    layer: 'GLOBAL',
-                    screen_id: screen.id,
-                    name: screen.name,
-                    purpose: screen.desc,
-                    keywords: { primary: screen.keywords }
-                }
-            );
-            log += `Upserted screen: ${screen.id}\n`;
+        // Populate GLOBAL knowledge
+        const global = knowledgeData.GLOBAL;
+
+        // 1. System info
+        await VectorSearchService.upsertKnowledge(
+            'system_info_main',
+            `Assistente: ${global.system_info.assistant_name}. ${global.system_info.description}`,
+            { category: 'system_info', layer: 'GLOBAL', ...global.system_info }
+        );
+        count++;
+        log.push('✅ System info');
+
+        // 2. Greetings
+        for (const greeting of global.greetings) {
+            for (let i = 0; i < greeting.variations.length; i++) {
+                await VectorSearchService.upsertKnowledge(
+                    `greeting_${greeting.context}_${i}`,
+                    `Saudação ${greeting.context}: ${greeting.variations[i]}`,
+                    { category: 'greeting', layer: 'GLOBAL', ...greeting, text: greeting.variations[i] }
+                );
+                count++;
+            }
         }
+        log.push(`✅ Greetings (${global.greetings.length} contexts)`);
 
-        // B. Upsert Actions
-        for (const action of actions) {
-            const text = `Ação na tela ${action.screen}: ${action.desc} (ID: ${action.id}). Parâmetros: ${action.params.join(', ')}`;
+        // 3. Personality
+        await VectorSearchService.upsertKnowledge(
+            'personality_main',
+            `Personalidade: ${global.personality.tone}, ${global.personality.style}. Traços: ${global.personality.traits.join(', ')}`,
+            { category: 'personality', layer: 'GLOBAL', ...global.personality }
+        );
+        count++;
+        log.push('✅ Personality');
+
+        // 4. Introduction
+        await VectorSearchService.upsertKnowledge(
+            'introduction_main',
+            global.introduction.first_contact,
+            { category: 'introduction', layer: 'GLOBAL', ...global.introduction }
+        );
+        count++;
+        log.push('✅ Introduction');
+
+        // 5. Common actions
+        for (const action of global.common_actions) {
             await VectorSearchService.upsertKnowledge(
-                `global_actions_${action.screen}_${action.id}`,
-                text,
-                {
-                    category: 'actions',
-                    layer: 'GLOBAL',
-                    screen_id: action.screen,
-                    action_id: action.id,
-                    description: action.desc,
-                    params: action.params
-                }
+                `action_${action.action_type}`,
+                `Ação ${action.action_type}: ${action.description}. Keywords: ${action.keywords.join(', ')}`,
+                { category: 'action', layer: 'GLOBAL', ...action }
             );
-            log += `Upserted action: ${action.id}\n`;
+            count++;
         }
+        log.push(`✅ Common actions (${global.common_actions.length})`);
 
-        console.log('✅ Migration via Route Completed!');
-        res.send(`<pre>${log}\nMigration Completed Successfully!</pre>`);
+        // 6. Help responses
+        for (let i = 0; i < global.help_responses.length; i++) {
+            const help = global.help_responses[i];
+            await VectorSearchService.upsertKnowledge(
+                `help_${i}`,
+                `Ajuda: ${help.trigger.join(', ')}. Resposta: ${help.response}`,
+                { category: 'help', layer: 'GLOBAL', ...help }
+            );
+            count++;
+        }
+        log.push(`✅ Help responses (${global.help_responses.length})`);
+
+        // 7. Module info
+        const moduleCash = knowledgeData.MODULE_CASH;
+        await VectorSearchService.upsertKnowledge(
+            'module_cash_info',
+            `Módulo: ${moduleCash.module_info.name}. ${moduleCash.module_info.description}`,
+            { category: 'module_info', layer: 'MODULE', module: 'CASH', ...moduleCash.module_info }
+        );
+        count++;
+        log.push('✅ Module CASH info');
+
+        console.log(`✅ Qdrant migration completed! ${count} items upserted.`);
+
+        res.json({
+            success: true,
+            message: `Migração concluída com sucesso!`,
+            items_migrated: count,
+            details: log
+        });
 
     } catch (error) {
         console.error('❌ Migration Error:', error);
-        res.status(500).send(`Error: ${error.message}<br><pre>${error.stack}</pre>`);
+        res.status(500).json({
+            error: 'Erro na migração',
+            message: error.message,
+            stack: error.stack
+        });
     }
 });
 
