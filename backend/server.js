@@ -192,7 +192,104 @@ loadErrorCatalog()
     .then(() => migrateAddUserCompany()) // NEW: Add company_id to project_users
     .then(() => require('./migrate_add_user_preferences')()) // NEW: User preferences table
     .then(() => require('./database/migrate_iva_knowledge_layers')()) // NEW: IVA knowledge architecture
-    .then(() => {
+    .then(async () => {
+        // 🚀 AUTO-POPULATE QDRANT WITH IVA KNOWLEDGE
+        console.log('\n🧠 Checking Qdrant knowledge base...');
+        try {
+            const VectorSearchService = require('./services/VectorSearchService');
+            const fs = require('fs').promises;
+            const path = require('path');
+
+            // Check if Qdrant has data
+            const hasData = await VectorSearchService.search('test', {}, 1)
+                .then(results => results.length > 0)
+                .catch(() => false);
+
+            if (!hasData) {
+                console.log('📦 Qdrant is empty. Populating with initial knowledge...');
+                const knowledgeBasePath = path.join(__dirname, 'data/iva_knowledge_base.json');
+                const knowledgeData = JSON.parse(await fs.readFile(knowledgeBasePath, 'utf8'));
+
+                let count = 0;
+
+                // Populate GLOBAL knowledge
+                const global = knowledgeData.GLOBAL;
+
+                // System info
+                await VectorSearchService.upsertKnowledge(
+                    'system_info_main',
+                    `Assistente: ${global.system_info.assistant_name}. ${global.system_info.description}`,
+                    { category: 'system_info', layer: 'GLOBAL', ...global.system_info }
+                );
+                count++;
+
+                // Greetings
+                for (const greeting of global.greetings) {
+                    for (let i = 0; i < greeting.variations.length; i++) {
+                        await VectorSearchService.upsertKnowledge(
+                            `greeting_${greeting.context}_${i}`,
+                            `Saudação ${greeting.context}: ${greeting.variations[i]}`,
+                            { category: 'greeting', layer: 'GLOBAL', ...greeting, text: greeting.variations[i] }
+                        );
+                        count++;
+                    }
+                }
+
+                // Personality
+                await VectorSearchService.upsertKnowledge(
+                    'personality_main',
+                    `Personalidade: ${global.personality.tone}, ${global.personality.style}. Traços: ${global.personality.traits.join(', ')}`,
+                    { category: 'personality', layer: 'GLOBAL', ...global.personality }
+                );
+                count++;
+
+                // Introduction
+                await VectorSearchService.upsertKnowledge(
+                    'introduction_main',
+                    global.introduction.first_contact,
+                    { category: 'introduction', layer: 'GLOBAL', ...global.introduction }
+                );
+                count++;
+
+                // Common actions
+                for (const action of global.common_actions) {
+                    await VectorSearchService.upsertKnowledge(
+                        `action_${action.action_type}`,
+                        `Ação ${action.action_type}: ${action.description}. Keywords: ${action.keywords.join(', ')}`,
+                        { category: 'action', layer: 'GLOBAL', ...action }
+                    );
+                    count++;
+                }
+
+                // Help responses
+                for (let i = 0; i < global.help_responses.length; i++) {
+                    const help = global.help_responses[i];
+                    await VectorSearchService.upsertKnowledge(
+                        `help_${i}`,
+                        `Ajuda: ${help.trigger.join(', ')}. Resposta: ${help.response}`,
+                        { category: 'help', layer: 'GLOBAL', ...help }
+                    );
+                    count++;
+                }
+
+                // Module info
+                const moduleCash = knowledgeData.MODULE_CASH;
+                await VectorSearchService.upsertKnowledge(
+                    'module_cash_info',
+                    `Módulo: ${moduleCash.module_info.name}. ${moduleCash.module_info.description}`,
+                    { category: 'module_info', layer: 'MODULE', module: 'CASH', ...moduleCash.module_info }
+                );
+                count++;
+
+                console.log(`✅ Qdrant populated with ${count} knowledge items!`);
+            } else {
+                console.log('✅ Qdrant already has data. Skipping population.');
+            }
+        } catch (err) {
+            console.error('⚠️ Failed to populate Qdrant:', err.message);
+            console.error('   IVA will work but without semantic search until Qdrant is populated manually.');
+        }
+
         startServer();
     })
     .catch(err => {
