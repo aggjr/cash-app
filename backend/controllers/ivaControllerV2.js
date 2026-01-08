@@ -71,12 +71,11 @@ const chat = async (req, res, next) => {
         const userData = userResult[0][0] || user;
         const projectData = projectResult[0][0] || {};
 
-        // 🚀 LOAD USER PREFERENCES FROM QDRANT (NOT MySQL!)
-        // LAW: KNOWLEDGE USED ONLY BY IVA = ONLY QDRANT
+        // Load USER preferences from Qdrant (not MySQL!)
         const IvaUserPreferences = require('../services/IvaUserPreferences');
-        const preferredName = await IvaUserPreferences.getPreferredName(user.id) || userData?.name?.split(' ')[0];
+        const preferredName = await IvaUserPreferences.getPreferredName(userData.id) || userData.name?.split(' ')[0];
 
-        console.log('[IVA Chat] Step 3 - Final userData:', JSON.stringify({
+        console.log('[IVA Chat] Step 3 - User with Qdrant preferences:', JSON.stringify({
             id: userData?.id,
             name: userData?.name,
             preferred_name: preferredName,
