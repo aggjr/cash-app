@@ -307,6 +307,7 @@ const operate = async (req, res) => {
         const { message, conversationHistory, context, screenContext, currentScreen, availableScreens, userSettings } = req.body;
         const user = req.user;
 
+        console.log('[IVA Operate] 🚀 VERSION: Function Calling Enabled (v2.1)');
         // EXTENSIVE DEBUG LOGGING
         console.log('[IVA Operate] ========== REQUEST DEBUG ==========');
         console.log('[IVA Operate] Processing:', message);
