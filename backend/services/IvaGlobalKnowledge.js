@@ -7,13 +7,12 @@ const vectorService = require('./VectorSearchService');
  * Manages global system knowledge shared across all users and projects
  */
 class IvaGlobalKnowledge {
-    static KNOWLEDGE_FILE = path.join(__dirname, '../data/iva_global_knowledge.json');
     static knowledgeCache = null;
     static lastLoad = null;
     static CACHE_TTL = 300000; // 5 minutes
 
     /**
-     * Load global knowledge (with cache)
+     * Load global knowledge (Pure Qdrant)
      */
     static async load() {
         const now = Date.now();
@@ -23,17 +22,39 @@ class IvaGlobalKnowledge {
             return this.knowledgeCache;
         }
 
+        console.log('[IVA Knowledge] Loading knowledge from Qdrant (Pure Vector Mode)...');
+
         try {
-            const data = await fs.readFile(this.KNOWLEDGE_FILE, 'utf8');
-            this.knowledgeCache = JSON.parse(data);
+            // Fetch relevant categories from Qdrant
+            // Note: In a real vector system, we search by context. 
+            // For now, to maintain compatibility, we fetch "all known" items via generic queries
+            // or rely on the fact that formatForPrompt might be called with specific search results in the future.
+
+            // For this implementation, we will fetch standard menus and actions 
+            // We use a broad search or specific IDs if known, but here we scan for "menus" and "actions" layer GLOBAL
+
+            const [menus, actions, rules] = await Promise.all([
+                vectorService.search('menu', { category: 'menus', layer: 'GLOBAL' }, 50),
+                vectorService.search('action', { category: 'actions', layer: 'GLOBAL' }, 50),
+                vectorService.search('rule', { category: 'custom_rules', layer: 'GLOBAL' }, 20)
+            ]);
+
+            const knowledge = {
+                knowledge: {
+                    menus: menus.map(m => m.payload || m),
+                    actions: actions.map(m => m.payload || m),
+                    custom_rules: rules.map(m => m.payload || m)
+                }
+            };
+
+            this.knowledgeCache = knowledge;
             this.lastLoad = now;
             return this.knowledgeCache;
+
         } catch (error) {
-            // Create new if doesn't exist
-            console.log('[IVA Knowledge] Creating new knowledge base');
-            const newKnowledge = this.createEmpty();
-            await this.save(newKnowledge);
-            return newKnowledge;
+            console.error('[IVA Knowledge] Error loading from Qdrant:', error);
+            // Return empty structure on error to prevent checks from failing
+            return this.createEmpty();
         }
     }
 
@@ -42,33 +63,21 @@ class IvaGlobalKnowledge {
      */
     static createEmpty() {
         return {
-            system: 'CASH',
-            version: '1.0',
-            last_updated: new Date().toISOString(),
-            last_optimization: new Date().toISOString(),
-            total_interactions: 0,
-            total_contributors: 0,
             knowledge: {
                 menus: [],
                 actions: [],
-                data_structures: [],
-                common_queries: [],
                 custom_rules: []
             }
         };
     }
 
     /**
-     * Save knowledge to file
+     * Save/Update knowledge (Direct to Qdrant)
      */
     static async save(knowledge) {
-        knowledge.last_updated = new Date().toISOString();
-
-        // Ensure data directory exists
-        const dataDir = path.dirname(this.KNOWLEDGE_FILE);
-        await fs.mkdir(dataDir, { recursive: true });
-
-        await fs.writeFile(this.KNOWLEDGE_FILE, JSON.stringify(knowledge, null, 2));
+        // In Pure Qdrant mode, "saving" the whole object isn't used.
+        // We upsert individual items via contribute().
+        // This method is kept for compatibility but does nothing or updates cache.
         this.knowledgeCache = knowledge;
         this.lastLoad = Date.now();
     }
