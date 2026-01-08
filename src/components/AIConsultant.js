@@ -1132,6 +1132,19 @@ Digite 1, 2 ou 3.`;
                         if (decision.action === 'REPLY') {
                             addMessage('ai', decision.message);
                             speak(decision.message);
+                        } else if (decision.action === 'NAVIGATE' && decision.target) {
+                            // Handle navigation action in greeting
+                            console.log('[IVA] Greeting navigation to:', decision.target);
+                            if (decision.message) {
+                                addMessage('ai', decision.message);
+                                speak(decision.message);
+                            }
+                            // Execute navigation
+                            if (typeof MenuNavigator !== 'undefined') {
+                                MenuNavigator.navigate(decision.target);
+                            } else {
+                                console.error('[IVA] MenuNavigator not available for navigation');
+                            }
                         }
                     } catch (e) {
                         console.error('Greeting error:', e);
