@@ -77,7 +77,12 @@ const IntentClassifier = {
         }
 
         // 5. LEARNING (High Priority - Synonyms supported)
-        if (/(aprenda|guarde|memorize|grave|registre|ensinar|conhecimento|entenda|lembre)/i.test(msg)) {
+        const learningRegex = /(aprenda|guarde|memorize|grave|registre|ensinar|conhecimento|entenda|lembre)/i;
+        const learningMatch = learningRegex.test(msg);
+        console.log(`[Intent Classifier] Testing LEARNING: "${msg}" -> Match: ${learningMatch}`);
+
+        if (learningMatch) {
+            console.log(`[Intent Classifier] ✅ LEARNING intent detected!`);
             return {
                 type: 'LEARNING',
                 priority: 'HIGH',
