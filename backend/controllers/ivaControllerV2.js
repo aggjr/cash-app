@@ -80,8 +80,7 @@ const chat = async (req, res, next) => {
             department: userData?.department
         }));
 
-        // Build dynamic profile
-        const dynamicProfile = await IvaContextBuilder.buildDynamicBusinessProfile(db, context.projectId);
+        // Dynamic profile not needed - Qdrant provides all context
 
         // ========================================
         // INTENT CLASSIFICATION
@@ -440,8 +439,7 @@ const operate = async (req, res) => {
             }
         }
 
-        // Build dynamic profile
-        const dynamicProfile = await IvaContextBuilder.buildDynamicBusinessProfile(db, context?.projectId);
+        // Dynamic profile not needed - Qdrant provides all context
 
         // Build screen data context
         const screenDataContext = IvaContextBuilder.buildScreenDataContext(screenData, cachedScreens);
@@ -454,7 +452,7 @@ const operate = async (req, res) => {
             userSettings,
             availableScreens,
             currentScreen || null,
-            dynamicProfile,
+            null, // dynamicProfile removed - Qdrant provides context
             req.body.activeScreenContext || null,
             db, // Pass db connection for unified context
             screenDataContext // Screen data formatted for LLM
