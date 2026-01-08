@@ -9,34 +9,34 @@ const QdrantKnowledgeService = require('./QdrantKnowledgeService');
  * Check if user was greeted today
  */
 function wasGreetedToday(lastAccess) {
-    if (!lastAccess) return false;
+   if (!lastAccess) return false;
 
-    const lastDate = new Date(lastAccess);
-    const today = new Date();
+   const lastDate = new Date(lastAccess);
+   const today = new Date();
 
-    return lastDate.getDate() === today.getDate() &&
-        lastDate.getMonth() === today.getMonth() &&
-        lastDate.getFullYear() === today.getFullYear();
+   return lastDate.getDate() === today.getDate() &&
+      lastDate.getMonth() === today.getMonth() &&
+      lastDate.getFullYear() === today.getFullYear();
 }
 
 /**
  * Build system prompt with Qdrant knowledge
  */
 async function buildOperateContextWithQdrant(user, project, screenData, cachedScreens, intent, lastAccess) {
-    // Get dynamic knowledge from Qdrant
-    const personality = await QdrantKnowledgeService.getPersonality();
-    const systemInfo = await QdrantKnowledgeService.getSystemInfo();
+   // Get dynamic knowledge from Qdrant
+   const personality = await QdrantKnowledgeService.getPersonality();
+   const systemInfo = await QdrantKnowledgeService.getSystemInfo();
 
-    const hour = new Date().getHours();
-    const timeOfDay = hour >= 5 && hour < 12 ? 'manhã'
-        : hour >= 12 && hour < 19 ? 'tarde'
-            : 'noite';
+   const hour = new Date().getHours();
+   const timeOfDay = hour >= 5 && hour < 12 ? 'manhã'
+      : hour >= 12 && hour < 19 ? 'tarde'
+         : 'noite';
 
-    const now = new Date();
-    const isoDate = now.toISOString();
-    const dateOnly = isoDate.split('T')[0];
+   const now = new Date();
+   const isoDate = now.toISOString();
+   const dateOnly = isoDate.split('T')[0];
 
-    return `
+   return `
 Você é ${systemInfo.assistant_name}, ${systemInfo.description}.
 
 PERSONALIDADE (de Qdrant):
@@ -59,18 +59,20 @@ MODO: LOOPING DE AJUDA:
 - Ofereça apoio proativo ao cliente em suas tarefas no sistema de forma variada.
 - **FLUXO DE EXECUÇÃO E DESCOBERTA (CRÍTICO)**:
   1. Ao receber um pedido do usuário, analise se você já conhece as etapas necessárias (conhecimento interno ou Qdrant).
-  2. **VERIFICAÇÃO DE PLANO**: Se você identificar uma sequência de ações provável:
+  2. **MEMÓRIA DE AÇÕES (REGRA DE NÃO REPETIÇÃO)**: Verifique o histórico de conversas. **NUNCA** tente duas vezes a mesma ação (`NAVIGATE` ou `INTERACT`) com os mesmos parâmetros na mesma sessão, exceto se o usuário orientar explicitamente para repetir.
+  3. **VERIFICAÇÃO DE PLANO**: Se você identificar uma sequência de ações provável:
      - **PARE** e descreva para o usuário o que você pretende fazer.
      - Peça permissão: "Posso seguir com este procedimento?"
-     - **NÃO EXCUTE** ações sem confirmação.
-  3. **AO ENTRAR EM NOVA TELA**: Sempre que você navegar para uma tela buscando resolver um problema:
+     - **NÃO EXECUTE** ações sem confirmação.
+  4. **AO ENTRAR EM NOVA TELA**: Sempre que você navegar para uma tela buscando resolver um problema:
      - Pergunte obrigatoriamente: "É nesta tela que tem a informação para resolver o seu problema?"
-  4. **SE O USUÁRIO DISSER NÃO (TELA ERRADA)**:
+  5. **SE O USUÁRIO DISSER NÃO (TELA ERRADA)**:
      - Procure imediatamente a próxima tela com alta probabilidade de sucesso e navegue para ela.
      - Se não houver mais opções prováveis: "Infelizmente não encontrei onde está essa informação no sistema. Você pode me explicar o passo a passo para achá-la?"
-  5. **SE O USUÁRIO DISSER SIM (TELA CORRETA)**:
+  6. **SE O USUÁRIO DISSER SIM (TELA CORRETA - PERSISTÊNCIA)**:
+     - **REGRA DE OURO**: Uma vez que o usuário confirmou que a tela é a correta, **NUNCA SAIA DA TELA** (não use `NAVIGATE` ou `INTERACT` que mude de tela) sem permissão explícita.
      - Se você ainda não souber o passo a passo exato nesta tela, pergunte obrigatoriamente: "Como faço para encontrar a informação (ou executar a ação) que você precisa nesta tela?"
-     - Após o usuário explicar, execute as tarefas minuciosamente e apresente o dado solicitado ou confirme a execução.
+     - Após o usuário explicar, execute as tarefas minuciosamente nesta tela e apresente o dado ou confirme a execução.
 - Após cada ciclo de ajuda bem sucedido, pergunte de formas variadas como pode ajudar mais.
 - Se o usuário não precisar de mais ajuda, use a função 'close_chat'.
 
@@ -100,5 +102,5 @@ ${cachedScreens?.length > 0 ? `TELAS RECENTES:\n${cachedScreens.map(s => s.scree
 }
 
 module.exports = {
-    buildOperateContextWithQdrant
+   buildOperateContextWithQdrant
 };
