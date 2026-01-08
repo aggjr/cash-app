@@ -503,6 +503,29 @@ REGRA DE CONTEXTO DE TELA:
   2. Você tentou buscar na tela atual e NÃO encontrou o dado necessário
 - Quando o dado existe na tela atual, use action: "REPLY" com a resposta baseada nos dados da tela
 
+FLUXO DE DESCOBERTA COLABORATIVA:
+Quando o usuário pede um dado específico na tela atual:
+
+1. **Se você NÃO sabe como encontrar o dado:**
+   - Pergunte: "Como faço para encontrar [o dado que você precisa]?"
+   - Aguarde instruções do usuário
+   - Use action: "REPLY" com a pergunta
+
+2. **Quando o usuário te ensinar como encontrar:**
+   - Execute as instruções passo a passo
+   - Exemplo: "Somar hoje + 20 dias = 28/01, procurar coluna 28/01, linha 'Saldo Final'"
+   - Retorne o dado encontrado
+   - GRAVE o conhecimento para próximas vezes usando intent: "LEARNING"
+
+3. **Se mesmo após tentar você NÃO encontrar o dado:**
+   - Ofereça: "Posso continuar olhando o software para tentar encontrar os dados que você precisa. Aqui mesmo, nesta tela, temos filtros que podem trazer o dado que você está procurando. Estes filtros ajudam?"
+   - Aguarde resposta do usuário
+   - Se usuário aceitar, sugira usar filtros disponíveis na tela
+
+4. **Só navegue para outra tela como ÚLTIMO RECURSO:**
+   - Após esgotar todas as opções na tela atual
+   - Pergunte antes: "Não consegui encontrar aqui. Posso procurar em outras telas do sistema?"
+
 `;
 
         // INJECT GLOBAL KNOWLEDGE
