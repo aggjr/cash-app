@@ -176,6 +176,17 @@ export const createTreeManager = (tableName, title, term = 'Categoria', onClose 
                 toggleAllCheckboxes(true);
             }
 
+            // Auto-check any NEW items that were just created (not in saved preferences)
+            // This ensures new types appear as default
+            const allCurrentIds = getAllNodeIds(treeData);
+            allCurrentIds.forEach(id => {
+                const idStr = String(id);
+                if (!checkedNodes.has(idStr)) {
+                    checkedNodes.add(idStr);
+                    console.log(`Auto-checked new item: ${idStr}`);
+                }
+            });
+
             if (loadingEl) loadingEl.style.display = 'none';
             if (containerEl) containerEl.style.display = 'block';
 
