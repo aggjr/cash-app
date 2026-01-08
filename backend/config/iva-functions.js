@@ -52,6 +52,37 @@ const ivaFunctions = [
             type: 'object',
             properties: {}
         }
+    },
+    {
+        name: 'contribute_knowledge',
+        description: 'Adiciona novo conhecimento ao sistema global da IVA. Use sempre que o usuário te ensinar algo novo, explicar um passo a passo, ou quando você descobrir como encontrar uma informação que não sabia antes.',
+        parameters: {
+            type: 'object',
+            properties: {
+                type: {
+                    type: 'string',
+                    enum: ['menus', 'actions', 'custom_rules'],
+                    description: 'O tipo de conhecimento sendo adicionado'
+                },
+                data: {
+                    type: 'object',
+                    description: 'Os dados do conhecimento. Para menus: {screen_id, keywords: {primary: []}, purpose}. Para actions: {screen_id, action_type, keywords: {primary: []}, description}. Para rules: {description}.',
+                    properties: {
+                        screen_id: { type: 'string' },
+                        action_type: { type: 'string' },
+                        description: { type: 'string' },
+                        purpose: { type: 'string' },
+                        keywords: {
+                            type: 'object',
+                            properties: {
+                                primary: { type: 'array', items: { type: 'string' } }
+                            }
+                        }
+                    }
+                }
+            },
+            required: ['type', 'data']
+        }
     }
 ];
 

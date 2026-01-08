@@ -486,9 +486,10 @@ Antes de retornar a a├º├úo, classifique a inten├º├úo do usu├írio:
    Exemplos: "Criar entrada de R$ 1000", "Exportar relat├│rio", "Filtrar por empresa X"
    Retorne: { "intent": "ACTION_EXECUTION", "action": "NAVIGATE", "target": "screen-id", "message": "..." }
 
-4. LEARNING - Usu├írio est├í ensinando uma regra, comando ou conhecimento.
+4. LEARNING - Usuário está ensinando uma regra, comando ou conhecimento.
    Exemplos: "aprenda o seguinte...", "guarde este conhecimento...", "memorize..."
-   Retorne: { "intent": "LEARNING", "action": "REPLY", "message": "Entendido! Guardei esse novo conhecimento e vou us├í-lo quando voc├¬ me perguntar." }
+   Retorne: { "intent": "LEARNING", "action": "REPLY", "message": "Entendido! Guardei esse novo conhecimento e vou usá-lo quando você me perguntar." }
+   IMPORTANTE: SEMPRE que o conhecimento for sistêmico (como encontrar um dado ou agir em uma tela), você DEVE chamar a função `contribute_knowledge` além de retornar o JSON.
 
 IMPORTANTE: SEMPRE inclua o campo "intent" na sua resposta JSON!
 
@@ -577,6 +578,12 @@ Siga rigorosamente as INSTRU├ç├òES DE FLUXO DE EXECU├ç├âO E DESCOBER
                 if (functionCall.name === 'close_chat') {
                     console.log(`[IVA Function Call] 🚪 Close chat requested by LLM`);
                     req._ivaForceClose = true;
+                }
+
+                if (functionCall.name === 'contribute_knowledge') {
+                    const IvaGlobalKnowledge = require('../services/IvaGlobalKnowledge');
+                    await IvaGlobalKnowledge.contribute(args.type, args.data, user.id);
+                    console.log(`[IVA Function Call] ✅ Contributed new knowledge of type: "${args.type}"`);
                 }
             } catch (err) {
                 console.error('[IVA Function Call] Γ¥î Error executing function:', err.message);
