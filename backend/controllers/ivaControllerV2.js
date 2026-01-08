@@ -7,6 +7,7 @@ const ContextualPrompts = require('../config/iva-contextual-prompts');
 const IvaDataFetcher = require('../services/IvaDataFetcher');
 const IvaScreenCache = require('../services/IvaScreenCache');
 const LearningCommandClassifier = require('../utils/LearningCommandClassifier');
+const IvaGlobalKnowledge = require('../services/IvaGlobalKnowledge');
 // TEMPORARILY DISABLED - Tables not in production yet
 
 const openai = new OpenAI({
