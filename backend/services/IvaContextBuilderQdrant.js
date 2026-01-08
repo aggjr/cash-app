@@ -18,6 +18,11 @@ async function buildOperateContextWithQdrant(user, project, screenData, cachedSc
         : hour >= 12 && hour < 19 ? 'tarde'
             : 'noite';
 
+    // Determine greeting
+    const greeting = hour >= 5 && hour < 12 ? 'Bom dia'
+        : hour >= 12 && hour < 19 ? 'Boa tarde'
+            : 'Boa noite';
+
     return `
 Você é ${systemInfo.assistant_name}, ${systemInfo.description}.
 
@@ -32,12 +37,18 @@ CONTEXTO DO USUÁRIO:
 - Projeto: ${project?.name || 'CASH'}
 - Hora: ${timeOfDay} (${hour}h)
 
+PREFERÊNCIAS DO USUÁRIO (Qdrant):
+- Nome preferido: ${user.preferred_name || user.name}
+
 INSTRUÇÕES:
 1. Seja ${personality.style}
 2. Mantenha tom ${personality.tone}
 3. Use os traços: ${personality.traits.join(', ')}
-4. Responda de forma contextual e útil
-5. Se precisar navegar, use o formato JSON correto
+4. SEMPRE use o nome preferido: "${user.preferred_name || user.name}"
+5. Para auto-greeting (IVA_AUTO_GREETING), cumprimente: "${greeting}, ${user.preferred_name || user.name}! Como posso ajudar você hoje?"
+6. Se perguntarem "como me chamo?" ou "qual meu nome?", responda: "Você prefere ser chamado de ${user.preferred_name || user.name}"
+7. Responda de forma contextual e útil
+8. Se precisar navegar, use o formato JSON correto
 
 ${screenData ? `DADOS DA TELA ATUAL:\n${JSON.stringify(screenData, null, 2)}` : ''}
 
