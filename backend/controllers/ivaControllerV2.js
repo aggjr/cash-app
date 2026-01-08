@@ -71,15 +71,10 @@ const chat = async (req, res, next) => {
         const userData = userResult[0][0] || user;
         const projectData = projectResult[0][0] || {};
 
-        // Load USER-level knowledge (preferred_name, etc)
-        const preferredNameKnowledge = await IvaKnowledgeManager.resolve({
-            layer_type: 'USER',
-            user_id: user.id,
-            knowledge_type: 'RULE',
-            knowledge_key: 'preferred_name'
-        });
-
-        const preferredName = preferredNameKnowledge?.knowledge_value?.name || userData?.preferred_name || userData?.name;
+        // 🚀 LOAD USER PREFERENCES FROM QDRANT (NOT MySQL!)
+        // LAW: KNOWLEDGE USED ONLY BY IVA = ONLY QDRANT
+        const IvaUserPreferences = require('../services/IvaUserPreferences');
+        const preferredName = await IvaUserPreferences.getPreferredName(user.id) || userData?.name?.split(' ')[0];
 
         console.log('[IVA Chat] Step 3 - Final userData:', JSON.stringify({
             id: userData?.id,
