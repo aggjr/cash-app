@@ -362,6 +362,9 @@ const operate = async (req, res) => {
         const IvaUserPreferences = require('../services/IvaUserPreferences');
         const preferredName = await IvaUserPreferences.getPreferredName(userData.id) || userData.name?.split(' ')[0];
 
+        // Load last access time for smart greeting
+        const lastAccess = await IvaUserPreferences.getLastAccess(userData.id);
+
         // ========================================
         // INTENT CLASSIFICATION (EARLY CHECK)
         // ========================================
