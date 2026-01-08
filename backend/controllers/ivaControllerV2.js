@@ -1,16 +1,12 @@
 const OpenAI = require('openai');
 const db = require('../config/database');
-const IvaContextBuilder = require('../services/IvaContextBuilder');
 const IvaIntentValidator = require('../utils/ivaIntentValidator');
 const IntentClassifier = require('../utils/ivaIntentClassifier');
 const ContextualPrompts = require('../config/iva-contextual-prompts');
 const IvaDataFetcher = require('../services/IvaDataFetcher');
 const IvaScreenCache = require('../services/IvaScreenCache');
-const IvaKnowledgeManager = require('../services/IvaKnowledgeManager');
 const LearningCommandClassifier = require('../utils/LearningCommandClassifier');
 // TEMPORARILY DISABLED - Tables not in production yet
-// const IvaExplorationService = require('../services/IvaExplorationService');
-// const IvaLearningCache = require('../services/IvaLearningCache');
 
 const openai = new OpenAI({
     apiKey: process.env.OPENAI_API_KEY
