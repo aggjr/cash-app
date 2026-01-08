@@ -205,7 +205,7 @@ router.get('/knowledge/stats', async (req, res) => {
                 uses: k.usage_count,
                 last_used: k.last_used_at
             }))
-        }); \
+        });
 
     } catch (error) {
         console.error('[IVA Stats] Error:', error);
