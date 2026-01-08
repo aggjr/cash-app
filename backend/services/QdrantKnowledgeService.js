@@ -61,8 +61,8 @@ class QdrantKnowledgeService {
                 const personality = results[0].payload || results[0];
                 console.log(`[Qdrant Knowledge] ✅ Found personality:`, personality);
                 return {
-                    tone: personality.tone || 'profissional e amigável',
-                    style: personality.style || 'clara e objetiva',
+                    tone: personality.tone,
+                    style: personality.style,
                     traits: personality.traits || []
                 };
             }
@@ -72,9 +72,9 @@ class QdrantKnowledgeService {
 
         // Fallback
         const fallback = {
-            tone: 'profissional e amigável',
-            style: 'clara e objetiva',
-            traits: ['Prestativa', 'Paciente', 'Eficiente']
+            tone: 'neutral',
+            style: 'clear',
+            traits: []
         };
         console.log(`[Qdrant Knowledge] ⚠️ Using fallback personality`);
         return fallback;
