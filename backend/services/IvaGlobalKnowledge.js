@@ -133,16 +133,20 @@ class IvaGlobalKnowledge {
         const knowledge = await this.load();
 
         // Find existing
-        const existing = this.findExisting(knowledge.knowledge[type], data);
+        const existing = this.findExisting(knowledge, type, data);
+
+        let itemToSync; // Item que será sincronizado com Qdrant
 
         if (existing) {
             // Update existing
             this.updateExisting(existing, data, userId);
+            itemToSync = existing;
             console.log(`[IVA Knowledge] Updated ${type}:`, data.screen_id || data.action_id);
         } else {
             // Add new
             const newItem = this.createNewItem(data, userId);
             knowledge.knowledge[type].push(newItem);
+            itemToSync = newItem;
             console.log(`[IVA Knowledge] Added new ${type}:`, data.screen_id || data.action_id);
         }
 
@@ -150,7 +154,7 @@ class IvaGlobalKnowledge {
         await this.save(knowledge);
 
         // Sync with Qdrant in background
-        this.syncWithQdrant(type, newItem || existing, userId).catch(err =>
+        this.syncWithQdrant(type, itemToSync, userId).catch(err =>
             console.error('[IVA Knowledge] Qdrant sync failed:', err.message)
         );
 
