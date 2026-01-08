@@ -205,8 +205,11 @@ router.get('/knowledge/stats', async (req, res) => {
                 uses: k.usage_count,
                 last_used: k.last_used_at
             }))
-        });
+        }); \
 
+    } catch (error) {
+        console.error('[IVA Stats] Error:', error);
+        res.status(500).json({ error: 'Failed to get stats' });
     }
 });
 
