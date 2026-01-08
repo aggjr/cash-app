@@ -60,6 +60,7 @@ class IvaUserPreferences {
             console.error(`[IVA Preferences] ❌ Error saving preferred name:`, err.message);
             return false;
         }
+    }
 
     /**
      * Get user's last IVA access timestamp
