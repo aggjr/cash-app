@@ -478,7 +478,8 @@ Antes de retornar a ação, classifique a intenção do usuário:
 
 1. NAVIGATION_ONLY - Usuário quer apenas encontrar/ver uma tela
    Exemplos: "Onde cadastro usuários?", "Como acesso relatórios?", "Onde fica configurações?"
-   Retorne: { "intent": "NAVIGATION_ONLY", "action": "NAVIGATE", "target": "screen-id", "message": "..." }
+   Retorne: { "intent": "NAVIGATION_ONLY", "action": "NAVIGATE", "target": "screen-id", "message": "Navegando para [nome da tela]. O que você gostaria de ver ou fazer aqui?" }
+   IMPORTANTE: SEMPRE inclua uma pergunta de follow-up contextual sobre o que o usuário quer fazer na tela
 
 2. DATA_SEEKING - Usuário quer informação específica/dados ou análise de valores
    Exemplos: "Quanto recebi em dezembro?", "Qual o saldo?", "Qual será meu fluxo de caixa daqui a 10 dias?", "Ver previsão de fechamento"
