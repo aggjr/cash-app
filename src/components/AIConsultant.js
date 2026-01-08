@@ -1046,20 +1046,24 @@ Digite 1, 2 ou 3.`;
             const hasGreeted = sessionStorage.getItem(hasGreetedKey);
             const today = new Date().toISOString().split('T')[0];
             const lastGreetingDate = localStorage.getItem(lastGreetingDateKey);
+
+            // CRITICAL: First greeting of the day check
             const isFirstGreetingOfDay = lastGreetingDate !== today;
 
-            // Always greet when opening chat, but style differs
-            const isFirstSessionInteraction = !hasGreeted && messages.length === 0;
+            // Decision: Do we need a fresh greeting or a reopening prompt?
+            // Case A: First time today OR no messages in session -> TRIGGER GREETING
+            // Case B: Reopening with history -> TRIGGER HELP PROMPT
+            const shouldTriggerGreeting = isFirstGreetingOfDay || messages.length === 0;
 
-            if (messages.length === 0) {
-                console.log('[IVA] Chat opened - generating greeting');
+            if (shouldTriggerGreeting) {
+                console.log('[IVA] Chat opened - generating greeting. First of day:', isFirstGreetingOfDay);
 
-                if (isFirstSessionInteraction) {
-                    console.log('[IVA] First open in session - full welcome');
+                const isFirstSessionInteraction = !hasGreeted || messages.length === 0;
+
+                if (isFirstSessionInteraction || isFirstGreetingOfDay) {
+                    console.log('[IVA] Starting greeting flow');
                     sessionStorage.setItem(hasGreetedKey, 'true');
                     localStorage.setItem(lastGreetingDateKey, today);
-                } else {
-                    console.log('[IVA] Chat reopened - short greeting');
                 }
 
                 // Calculate time since last visit (only for first session interaction)
@@ -1097,6 +1101,7 @@ Digite 1, 2 ou 3.`;
                 thinkingMsg.className = 'thinking-bubble';
                 thinkingMsg.innerText = '...';
                 messagesContainer.appendChild(thinkingMsg);
+                messagesContainer.scrollTop = messagesContainer.scrollHeight;
 
                 // Send greeting request to backend
                 setTimeout(async () => {
@@ -1104,21 +1109,18 @@ Digite 1, 2 ou 3.`;
                         currentScreen: IvaKnowledge.activeScreen,
                         availableScreens: IvaKnowledge.screens,
                         // Different instructions based on interaction type
-                        systemInstruction: isFirstSessionInteraction
-                            ? `SYSTEM_TRIGGER: SESSÃO_INICIADA
+                        systemInstruction: isFirstGreetingOfDay
+                            ? `SYSTEM_TRIGGER: SAUDAÇÃO_DIÁRIA_INICIAL
                             Contexto temporal: ${timeMessage}
-                            Ação: Dê boas-vindas completas e calorosas ao usuário.
-                            - OBRIGATÓRIO: Inicie com saudação de horário: "Bom dia" (5h-12h), "Boa tarde" (12h-19h), ou "Boa noite" (19h-5h)
-                            - Use tratamento apropriado ao cargo (Dr., Sr., você)
-                            - Se tempo desde último acesso > 24h, mencione educadamente
-                            - Pergunte "Como posso ajudar?" ou similar
-                            - Seja breve mas acolhedora (máx 2-3 linhas)`
-                            : `SYSTEM_TRIGGER: CHAT_REABERTO
-                            Ação: Saudação MUITO curta e informal.
-                            Exemplos adequados ao cargo:
-                            - Executivos/Profissionais: "Pois não?" ou "Como posso ajudar?"
-                            - Operacionais: "Oi!" ou "Sim?"
-                            Use NO MÁXIMO 3 palavras. Não explique nada.`
+                            Ação: Dê boas-vindas completas e calorosas. É o primeiro contato do dia.
+                            - OBRIGATÓRIO: Inicie com saudação de horário (Bom dia/Boa tarde/Boa noite)
+                            - Mencione o tempo desde o último acesso se for relevante (>24h)
+                            - Pergunte claramente "Como posso ajudar hoje?"
+                            - Seja acolhedora e use o nome preferido do usuário se disponível.`
+                            : `SYSTEM_TRIGGER: SAUDAÇÃO_SESSÃO_RECORRENTE
+                            Ação: Saudação curta de retorno à sessão. Já houve conversa hoje.
+                            - "Olá novamente! Em que posso ajudar desta vez?" ou similar.
+                            - Máximo 2 linhas.`
                     };
 
                     try {
@@ -1133,33 +1135,51 @@ Digite 1, 2 ou 3.`;
                             addMessage('ai', decision.message);
                             speak(decision.message);
                         } else if (decision.action === 'NAVIGATE' && decision.target) {
-                            // Handle navigation action in greeting
                             console.log('[IVA] Greeting navigation to:', decision.target);
                             if (decision.message) {
                                 addMessage('ai', decision.message);
                                 speak(decision.message);
                             }
-                            // Execute navigation
                             if (typeof MenuNavigator !== 'undefined') {
                                 MenuNavigator.navigate(decision.target);
-                            } else {
-                                console.error('[IVA] MenuNavigator not available for navigation');
                             }
                         }
                     } catch (e) {
                         console.error('Greeting error:', e);
                         if (thinkingMsg.parentNode) thinkingMsg.parentNode.removeChild(thinkingMsg);
-                        // Fallback based on interaction type
-                        const fallbackMsg = isFirstSessionInteraction
-                            ? 'Olá! Como posso ajudá-lo hoje?'
-                            : 'Pois não?';
-                        addMessage('ai', fallbackMsg);
+                        addMessage('ai', isFirstGreetingOfDay ? 'Olá! Como posso ajudá-lo hoje?' : 'Como posso ajudar desta vez?');
                     }
                 }, 500);
 
             } else {
-                console.log('[IVA] Messages exist, rendering history');
+                console.log('[IVA] Reopening chat with history. Adding reopening prompt.');
                 renderMessages();
+
+                // Add a small delay then ask how can help "this time"
+                setTimeout(async () => {
+                    const context = {
+                        currentScreen: IvaKnowledge.activeScreen,
+                        availableScreens: IvaKnowledge.screens,
+                        systemInstruction: `SYSTEM_TRIGGER: REABERTURA_CHAT_COM_HISTORICO
+                        Ação: Pergunte como pode ajudar "agora" ou "desta vez".
+                        - Sendo que o usuário já estava conversando e acabou de reabrir a janela.
+                        - Seja MUITO suscinta (ex: "Como posso ajudar agora?", "Em que mais posso ser útil?")
+                        - Não repita saudações formais.`
+                    };
+
+                    try {
+                        const decision = await IvaService.decideOperation('IVA_REOPENING_PROMPT', context);
+                        if (decision.action === 'REPLY') {
+                            addMessage('ai', decision.message);
+                            speak(decision.message);
+                        }
+                    } catch (e) {
+                        const fallback = "Como posso ajudar agora?";
+                        addMessage('ai', fallback);
+                        speak(fallback);
+                    }
+                }, 800);
+
                 input.focus();
             }
         } else {
@@ -2440,6 +2460,26 @@ Por exemplo:
     // Alias for backward compatibility during transition from EVA to IVA
     window.EVA = window.IVA;
     window.FOCCUS = window.IVA;
+
+    // Proactive Auto-open Logic (First visit of the day)
+    setTimeout(() => {
+        const u = getUser();
+        if (!u) return;
+
+        const todayDate = new Date().toISOString().split('T')[0];
+        const lastAutoOpenKey = 'IVA_last_auto_open_' + (u.id || 'anon');
+        const lastAutoOpen = localStorage.getItem(lastAutoOpenKey);
+
+        if (lastAutoOpen !== todayDate) {
+            console.log('[IVA] Proactive auto-open for the first contact of the day');
+            localStorage.setItem(lastAutoOpenKey, todayDate);
+
+            // Only open if not already open
+            if (!isOpen) {
+                toggleChat();
+            }
+        }
+    }, 4500); // 4.5s delay to let the dashboard / initial screens load
 
     return container;
 };

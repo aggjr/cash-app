@@ -305,6 +305,8 @@ const operate = async (req, res) => {
             return res.status(400).json({ error: 'Mensagem é obrigatória' });
         }
 
+        const normalizedMessage = message.startsWith('IVA_') ? `[EVENTO_SISTEMA: ${message}]` : message;
+
         // Validate intent before calling LLM (security layer)
         const validation = IvaIntentValidator.validate(message);
         if (!validation.valid) {
@@ -368,7 +370,7 @@ const operate = async (req, res) => {
         // ========================================
         // INTENT CLASSIFICATION (EARLY CHECK)
         // ========================================
-        const intent = IntentClassifier.classify(message, conversationHistory || []);
+        const intent = IntentClassifier.classify(normalizedMessage, conversationHistory || []);
 
         if (intent.type === 'LEARNING') {
             console.log('[IVA Operate] 🧠 Learning intent detected, bypassing normal loop');
@@ -376,8 +378,8 @@ const operate = async (req, res) => {
             // Trigger learning in background
             const IvaGlobalKnowledge = require('../services/IvaGlobalKnowledge');
             await IvaGlobalKnowledge.contribute('custom_rules', {
-                description: message.replace(/(iva|aprenda|guarde|memorize|grave|registre|ensinar|conhecimento|que|pergunta|original|:|"|')/gi, '').trim(),
-                keywords: IntentClassifier.extractKeywords ? IntentClassifier.extractKeywords(message) : IvaGlobalKnowledge.extractKeywords(message)
+                description: normalizedMessage.replace(/(iva|aprenda|guarde|memorize|grave|registre|ensinar|conhecimento|que|pergunta|original|:|"|')/gi, '').trim(),
+                keywords: IntentClassifier.extractKeywords ? IntentClassifier.extractKeywords(normalizedMessage) : IvaGlobalKnowledge.extractKeywords(normalizedMessage)
             }, user.id).catch(e => console.error('[IVA Learning] Error:', e));
 
             return res.json({
@@ -468,6 +470,12 @@ const operate = async (req, res) => {
         // Append greeting frequency info
         if (req.body.isFirstGreetingOfDay === false) {
             systemPrompt += "\nRESTRIÇÃO DE HOJE: Você já cumprimentou o usuário hoje. EVITE o uso de 'Olá' ou a palavra 'hoje' nesta mensagem.\n";
+        }
+
+        // 🧠 DYNAMIC SYSTEM INSTRUCTION OVERRIDE
+        if (context?.systemInstruction) {
+            console.log('[IVA Operate] Injecting dynamic system instruction override');
+            systemPrompt += `\n\nINSTRUÇÃO DINÂMICA DE FLUXO (PRIORIDADE ALTA):\n${context.systemInstruction}\n`;
         }
 
         // ADD INTENT CLASSIFICATION INSTRUCTION
@@ -568,7 +576,7 @@ Quando o usuário pede um dado específico na tela atual:
                 role: msg.sender === 'user' ? 'user' : 'assistant', // Map sender to role
                 content: msg.text
             })),
-            { role: 'user', content: message }
+            { role: 'user', content: normalizedMessage }
         ];
 
         console.log('[IVA Backend] ========== LLM REQUEST ==========');

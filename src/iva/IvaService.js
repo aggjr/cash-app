@@ -44,7 +44,8 @@ export const IvaService = {
             const requestContext = {
                 projectId: projectId ? parseInt(projectId) : null,
                 screenContext: screenContext, // Nested under context as backend expects
-                currentScreenData: context.currentScreenData
+                currentScreenData: context.currentScreenData,
+                systemInstruction: context.systemInstruction // Pass through custom instructions
             };
 
             console.log('[ivaService] Sending request with context:', {
@@ -71,6 +72,7 @@ export const IvaService = {
                     activeScreenContext: context.currentScreenData, // NEW: Semantic Data (The Eyes)
                     userName: user?.name || '', // Full registered name for gender inference
                     preferredName: user?.preferred_name || '', // User's preferred form of address
+                    isFirstGreetingOfDay: context.isFirstGreetingOfDay, // Pass greeting flag
                     userSettings: { // Voice configuration
                         ivaVoiceRate: user?.iva_voice_rate || 70,
                         ivaVoiceMale: user?.iva_voice_male || 0,
