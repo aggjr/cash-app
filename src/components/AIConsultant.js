@@ -1149,7 +1149,7 @@ Digite 1, 2 ou 3.`;
                         if (thinkingMsg.parentNode) thinkingMsg.parentNode.removeChild(thinkingMsg);
                         addMessage('ai', isFirstGreetingOfDay ? 'Olá! Como posso ajudá-lo hoje?' : 'Como posso ajudar desta vez?');
                     }
-                }, 500);
+                }, 100);
 
             } else {
                 console.log('[IVA] Reopening chat with history. Adding reopening prompt.');
@@ -1178,7 +1178,7 @@ Digite 1, 2 ou 3.`;
                         addMessage('ai', fallback);
                         speak(fallback);
                     }
-                }, 800);
+                }, 100);
 
                 input.focus();
             }
@@ -2479,7 +2479,7 @@ Por exemplo:
                 toggleChat();
             }
         }
-    }, 4500); // 4.5s delay to let the dashboard / initial screens load
+    }, 1000); // Reduced delay as requested by user
 
     return container;
 };
