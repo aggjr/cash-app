@@ -3,7 +3,6 @@ const router = express.Router();
 const ivaController = require('../controllers/ivaControllerV2');
 const auth = require('../middleware/auth');
 const IvaGlobalKnowledge = require('../services/IvaGlobalKnowledge');
-const IvaKnowledgeOptimizer = require('../services/IvaKnowledgeOptimizer');
 
 // POST /api/IVA/chat - Chat with IVA using LLM
 router.post('/chat', auth, ivaController.chat);
@@ -84,27 +83,8 @@ router.post('/observe', auth, async (req, res) => {
     }
 });
 
-// GET /api/IVA/knowledge/stats - Get knowledge statistics
-router.get('/knowledge/stats', auth, async (req, res) => {
-    try {
-        const stats = await IvaKnowledgeOptimizer.getStats();
-        res.json(stats);
-    } catch (error) {
-        console.error('[IVA Stats] Error:', error);
-        res.status(500).json({ error: 'Erro ao obter estatísticas' });
-    }
-});
-
-// POST /api/IVA/knowledge/optimize - Manually trigger optimization
-router.post('/knowledge/optimize', auth, async (req, res) => {
-    try {
-        const result = await IvaKnowledgeOptimizer.optimize();
-        res.json(result);
-    } catch (error) {
-        console.error('[IVA Optimize] Error:', error);
-        res.status(500).json({ error: 'Erro ao otimizar conhecimento' });
-    }
-});
+// Knowledge optimization routes removed - service deprecated
+// Use IvaGlobalKnowledge.contribute() for knowledge management
 
 // POST /api/IVA/record-failure - Record failure for self-healing
 router.post('/record-failure', auth, async (req, res) => {
