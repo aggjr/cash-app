@@ -870,7 +870,7 @@ export const ParametrosGeraisManager = (project) => {
 
             async function loadKnowledge() {
                 try {
-                    const response = await fetch(`${API_BASE_URL}/iva-collective/knowledge`, {
+                    const response = await fetch(`${API_BASE_URL}/iva/knowledge`, {
                         headers: { 'Authorization': `Bearer ${localStorage.getItem('token')}` }
                     });
 
