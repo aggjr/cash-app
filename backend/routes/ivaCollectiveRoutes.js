@@ -207,9 +207,72 @@ router.get('/knowledge/stats', async (req, res) => {
             }))
         });
 
+    }
+});
+
+/**
+ * GET /api/iva-collective/knowledge
+ * Get all IVA knowledge formatted for display
+ */
+router.get('/knowledge', async (req, res) => {
+    try {
+        const { category, layer, search } = req.query;
+
+        // Build query
+        let query = `
+            SELECT * FROM iva_knowledge_layers
+            WHERE active = TRUE
+        `;
+        const params = [];
+
+        if (category) {
+            query += ` AND knowledge_type = ?`;
+            params.push(category);
+        }
+
+        if (layer) {
+            query += ` AND layer_type = ?`;
+            params.push(layer);
+        }
+
+        if (search) {
+            query += ` AND (knowledge_key LIKE ? OR knowledge_value LIKE ?)`;
+            params.push(`%${search}%`, `%${search}%`);
+        }
+
+        query += ` ORDER BY usage_count DESC, last_used_at DESC LIMIT 100`;
+
+        const [knowledge] = await db.query(query, params);
+
+        // Format for display
+        const formatted = knowledge.map(k => {
+            let value;
+            try {
+                value = JSON.parse(k.knowledge_value);
+            } catch {
+                value = k.knowledge_value;
+            }
+
+            return {
+                id: k.id,
+                category: k.knowledge_type,
+                layer: k.layer_type,
+                description: value.description || value.element_text || k.knowledge_key,
+                keywords: value.keywords || [],
+                usage_count: k.usage_count,
+                success_rate: k.success_rate || 1.0,
+                created_at: k.created_at,
+                created_by: k.created_by,
+                last_used_at: k.last_used_at,
+                full_data: value
+            };
+        });
+
+        res.json(formatted);
+
     } catch (error) {
-        console.error('[IVA Stats] Error:', error);
-        res.status(500).json({ error: 'Failed to get stats' });
+        console.error('[IVA Knowledge] Error:', error);
+        res.status(500).json({ error: 'Failed to fetch knowledge' });
     }
 });
 
