@@ -574,7 +574,7 @@ IMPORTANTE: SEMPRE inclua o campo "intent" na sua resposta JSON!
                 model: "gpt-4o-mini",
                 messages: messages,
                 temperature: 0.3,
-                // Note: Removed response_format to avoid conflict with functions
+                response_format: { type: "json_object" },
                 functions: ivaFunctions,
                 function_call: 'auto'
             }),
