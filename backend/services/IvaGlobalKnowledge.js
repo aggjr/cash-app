@@ -92,12 +92,14 @@ class IvaGlobalKnowledge {
         if (knowledge.knowledge.menus.length > 0) {
             prompt += '📋 MENUS:\n';
             knowledge.knowledge.menus
-                .sort((a, b) => (b.usage_count * b.success_rate) - (a.usage_count * a.success_rate))
+                .sort((a, b) => ((b.usage_count || 0) * (b.success_rate || 0)) - ((a.usage_count || 0) * (a.success_rate || 0)))
                 .forEach(menu => {
-                    const primary = menu.keywords.primary?.join(', ') || '';
-                    const synCount = menu.keywords.synonyms?.length || 0;
+                    // Safe access to keywords
+                    const keywords = menu.keywords || {};
+                    const primary = keywords.primary?.join(', ') || '';
+                    const synCount = keywords.synonyms?.length || 0;
 
-                    prompt += `• ${menu.screen_id}: ${primary}`;
+                    prompt += `• ${menu.screen_id || 'unknown'}: ${primary}`;
                     if (synCount > 0) prompt += ` [+${synCount}]`;
                     prompt += '\n';
                 });
@@ -108,11 +110,13 @@ class IvaGlobalKnowledge {
         if (knowledge.knowledge.actions.length > 0) {
             prompt += '⚡ AÇÕES:\n';
             knowledge.knowledge.actions
-                .sort((a, b) => (b.usage_count * b.success_rate) - (a.usage_count * a.success_rate))
+                .sort((a, b) => ((b.usage_count || 0) * (b.success_rate || 0)) - ((a.usage_count || 0) * (a.success_rate || 0)))
                 .slice(0, 20) // Top 20
                 .forEach(action => {
-                    const primary = action.keywords.primary?.join(', ') || '';
-                    prompt += `• [${action.screen_id}] ${action.action_type}: ${primary}\n`;
+                    // Safe access to keywords
+                    const keywords = action.keywords || {};
+                    const primary = keywords.primary?.join(', ') || '';
+                    prompt += `• [${action.screen_id || 'unknown'}] ${action.action_type || 'action'}: ${primary}\n`;
                 });
             prompt += '\n';
         }
