@@ -1,6 +1,7 @@
 import { Dialogs } from './Dialogs.js';
 import { getApiBaseUrl } from '../utils/apiConfig.js';
 import { TabPanel } from './TabPanel.js';
+import { IvaAnalytics } from './IvaAnalytics.js';
 
 export const ParametrosGeraisManager = (project) => {
     // Create main wrapper for tabs
@@ -395,6 +396,14 @@ export const ParametrosGeraisManager = (project) => {
                     >
                         🤖 IA IVA
                     </button>
+                    <button 
+                        id="tab-analytics" 
+                        class="modern-tab"
+                        role="tab"
+                        aria-selected="false"
+                    >
+                        📊 Gerencial IVA
+                    </button>
                     <div class="modern-tab-indicator"></div>
                 </div>
             </div>
@@ -716,6 +725,14 @@ export const ParametrosGeraisManager = (project) => {
                 </div>
             </div>
 
+            <!-- Tab Content: Analytics (Gerencial IVA) -->
+            <div id="content-analytics" class="modern-tab-panel" role="tabpanel" style="display: none;">
+                <h2 style="margin-bottom: 1.5rem;">📊 Analytics da IVA - Gerencial</h2>
+                <div id="analytics-container" style="background: var(--color-surface); padding: 2rem; border-radius: 12px; border: 1px solid var(--color-border-light);">
+                    <p style="color: var(--color-text-muted); text-align: center; padding: 2rem;">Carregando analytics...</p>
+                </div>
+            </div>
+
             <script>
                 // Tab switching logic
                 // Note: The script tag here is for documentation of structure. 
@@ -728,6 +745,7 @@ export const ParametrosGeraisManager = (project) => {
             const tabs = container.querySelectorAll('.modern-tab');
             const contents = container.querySelectorAll('.modern-tab-panel');
             const indicator = container.querySelector('.modern-tab-indicator');
+            let analyticsLoaded = false;
 
             // Function to update indicator position
             const updateIndicator = (activeTab) => {
@@ -765,6 +783,17 @@ export const ParametrosGeraisManager = (project) => {
                     const content = container.querySelector(`#${targetId}`);
                     if (content) {
                         content.style.display = 'block';
+
+                        // Load analytics on first click
+                        if (targetId === 'content-analytics' && !analyticsLoaded) {
+                            const analyticsContainer = content.querySelector('#analytics-container');
+                            if (analyticsContainer) {
+                                analyticsContainer.innerHTML = '';
+                                const analyticsComponent = IvaAnalytics();
+                                analyticsContainer.appendChild(analyticsComponent);
+                                analyticsLoaded = true;
+                            }
+                        }
                     }
                 });
             });
