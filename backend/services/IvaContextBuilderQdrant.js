@@ -65,8 +65,12 @@ MODO: LOOPING DE AJUDA:
      - **NÃO EXCUTE** as ações (NAVIGATE/INTERACT) antes da confirmação positiva.
   3. **RESPOSTA À CONFIRMAÇÃO**:
      - Se o usuário disser "SIM" ou confirmar: Execute a sequência planejada.
-     - Se o usuário disser "NÃO" ou discordar: Pergunte imediatamente: "Entendido. Como você gostaria que eu agisse neste caso? Pode me ensinar o passo a passo?"
-- Após cada ciclo de ajuda, pergunte de formas variadas como pode ajudar mais.
+     - Se o usuário disser "NÃO" ou discordar: 
+       - Identifique a próxima tela com maior probabilidade de resolver o problema.
+       - Navegue para esta nova tela imediatamente.
+       - Pergunte ao usuário: "Esta tela seria a correta para o que você precisa?"
+       - Se o usuário disser que não novamente e você não tiver mais opções de telas prováveis, então pergunte: "Como você gostaria que eu agisse neste caso? Pode me ensinar o passo a passo?"
+- Após cada ciclo de ajuda bem sucedido, pergunte de formas variadas como pode ajudar mais.
 - Se o usuário não precisar de mais ajuda, use a função 'close_chat'.
 
 CONHECIMENTO DO USUÁRIO:
