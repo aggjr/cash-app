@@ -566,18 +566,47 @@ IMPORTANTE: SEMPRE inclua o campo "intent" na sua resposta JSON!
         console.log('[IVA Backend] Calling OpenAI...');
 
         // Call LLM with 60-second timeout protection
+        const ivaFunctions = require('../config/iva-functions');
+
         const completion = await Promise.race([
 
             openai.chat.completions.create({
                 model: "gpt-4o-mini",
                 messages: messages,
                 temperature: 0.3, // Lower temperature for actions
-                response_format: { type: "json_object" }
+                response_format: { type: "json_object" },
+                functions: ivaFunctions,
+                function_call: 'auto'
             }),
             new Promise((_, reject) =>
                 setTimeout(() => reject(new Error('OpenAI request timeout (60s)')), 60000)
             )
         ]);
+
+        // Handle function calls from LLM
+        const functionCall = completion.choices[0].message.function_call;
+        if (functionCall) {
+            console.log('[IVA Function Call] LLM requested function:', functionCall.name);
+            console.log('[IVA Function Call] Arguments:', functionCall.arguments);
+
+            const IvaUserPreferences = require('../services/IvaUserPreferences');
+
+            try {
+                const args = JSON.parse(functionCall.arguments);
+
+                if (functionCall.name === 'save_preferred_name') {
+                    await IvaUserPreferences.setPreferredName(user.id, args.name);
+                    console.log(`[IVA Function Call] ✅ Saved preferred name: "${args.name}"`);
+                }
+
+                if (functionCall.name === 'save_voice_settings') {
+                    await IvaUserPreferences.setVoiceSettings(user.id, args);
+                    console.log(`[IVA Function Call] ✅ Saved voice settings:`, args);
+                }
+            } catch (err) {
+                console.error('[IVA Function Call] ❌ Error executing function:', err.message);
+            }
+        }
 
         const responseContent = completion.choices[0].message.content;
 
