@@ -494,6 +494,15 @@ Antes de retornar a ação, classifique a intenção do usuário:
    Retorne: { "intent": "LEARNING", "action": "REPLY", "message": "Entendido! Guardei esse novo conhecimento e vou usá-lo quando você me perguntar." }
 
 IMPORTANTE: SEMPRE inclua o campo "intent" na sua resposta JSON!
+
+REGRA DE CONTEXTO DE TELA:
+- Se o usuário CONFIRMOU que está na tela certa (ex: "é nesta tela", "exatamente", "sim"), NÃO navegue para outra tela
+- SEMPRE tente buscar os dados na tela atual PRIMEIRO antes de sugerir navegação
+- Só sugira navegar para outra tela se:
+  1. O usuário explicitamente pedir para ir para outra tela, OU
+  2. Você tentou buscar na tela atual e NÃO encontrou o dado necessário
+- Quando o dado existe na tela atual, use action: "REPLY" com a resposta baseada nos dados da tela
+
 `;
 
         // INJECT GLOBAL KNOWLEDGE
