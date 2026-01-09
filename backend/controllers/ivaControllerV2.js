@@ -463,7 +463,6 @@ const operate = async (req, res) => {
             screenData,
             cachedScreens,
             intent,
-            intent,
             lastAccess, // Pass last access for smart greeting
             conversationHistory // Pass history for linguistic analysis
         );
