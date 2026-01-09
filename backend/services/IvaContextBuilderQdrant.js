@@ -496,6 +496,9 @@ CONHECIMENTO DO USUÁRIO:
 INSTRUÇÕES ADICIONAIS:
 - Para o evento "IVA_AUTO_GREETING" (que ocorre no primeiro contato), siga rigorosamente as regras acima de data.
 - Para "IVA_AUTO_GREETING", use SEMPRE action: "REPLY".
+- NUNCA retorne action: "SILENT" para "IVA_AUTO_GREETING".  
+- SEMPRE cumprimente o usuário de forma calorosa ao abrir.
+- O usuário DEVE ver uma mensagem sua IMEDIATAMENTE ao abrir o chat.
 
 INSTRUÇÕES GERAIS:
 1. Seja ${personality.style}
