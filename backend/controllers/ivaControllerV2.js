@@ -163,7 +163,7 @@ Confirme de forma clara e natural que voc├¬ aprendeu.
                 break;
             default:
                 // Use enhanced base prompt with intent context
-                systemPrompt = ContextualPrompts.baseChatImproved(
+                systemPrompt = await ContextualPrompts.baseChatImproved(
                     userData,
                     projectData,
                     timeOfDay,

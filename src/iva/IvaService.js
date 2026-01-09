@@ -87,7 +87,7 @@ export const IvaService = {
                 const errorText = await response.text();
                 console.error('[ivaService] Error response:', errorText);
                 // Fallback action
-                return { action: 'REPLY', message: 'Desculpe, tive um problema de conex├úo com meu c├⌐rebro.' };
+                return { action: 'REPLY', message: 'Desculpe, tive um problema de conexão com meu cérebro.' };
             }
 
             const decision = await response.json();
@@ -96,7 +96,7 @@ export const IvaService = {
 
         } catch (error) {
             console.error('ivaService Exception:', error);
-            return { action: 'REPLY', message: 'Erro ao processar sua solicita├º├úo.' };
+            return { action: 'REPLY', message: 'Erro ao processar sua solicitação.' };
         }
     }
 };

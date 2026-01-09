@@ -135,8 +135,8 @@ const IntentClassifier = {
         }
 
         // 5. LEARNING (High Priority - Synonyms supported)
-        // STRICTER REGEX: Must verify it's an instruction, not just the word "conhecimento" or "teste"
-        const learningRegex = /^(aprenda|guarde|memorize|grave|registre|ensinar|conhecimento|entenda|lembre)\s/i;
+        // STRICTER REGEX: Must verify it's an instruction. Matches "aprenda " or "aprenda," or "aprenda!"
+        const learningRegex = /^(aprenda|guarde|memorize|grave|registre|ensinar|conhecimento|entenda|lembre)[\s\.,!?:;]+/i;
         const learningMatch = learningRegex.test(msg);
         console.log(`[Intent Classifier] Testing LEARNING: "${msg}" -> Match: ${learningMatch}`);
 
