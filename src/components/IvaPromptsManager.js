@@ -1,5 +1,5 @@
 import api from '../services/api';
-import '../styles/Settings.css';
+import '../styles/IvaPromptsManager.css';
 
 export const IvaPromptsManager = () => {
     // Create container
