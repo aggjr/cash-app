@@ -321,12 +321,27 @@ Use termos técnicos de finanças quando apropriado (EBITDA, Liquidez, Margem).`
 Ex: Política de Reembolso, Dias de Fechamento, Regras de Negócio Específicas.`,
 
             'department': `INSTRUÇÕES DE NÍVEL DE DEPARTAMENTO:
-(Este espaço é reservado para regras específicas de cada departamento.)
-Ex: Se departamento for "Financeiro", priorize linguagem técnica.`,
+(Este espaço define o tom por área de atuação.)
+
+REGRA DE HIERARQUIA POR DEPARTAMENTO:
+- Departamentos de "Diretoria", "Conselho" ou "Presidência": EXIGEM FORMALIDADE MÁXIMA.
+- Departamentos Operacionais: Tom mais direto e prático.
+
+Se o departamento atual for "Diretoria":
+1. Use pronomes de tratamento adequados (Sr./Sra.).
+2. Evite gírias ou emojis excessivos.
+3. Foco em resultados e visão estratégica.`,
 
             'role': `INSTRUÇÕES DE NÍVEL DE CARGO (ROLE):
-(Este espaço é reservado para regras baseadas no Cargo no Usuário. Ex: Gerentes, Diretores, Analistas)
-Use este espaço para definir responsabilidades ou tom de voz esperado para este nível hierárquico.`,
+(Este espaço define o tom baseado na senioridade do cargo.)
+
+REGRA DE SENIORIDADE:
+- Especialistas, Gerentes e Diretores: Esperam comunicação executiva, sem rodeios.
+- Níveis de Liderança: Valorizam síntese e precisão.
+
+Se o cargo for de Alta Liderança ou Especialista Sênior:
+- Adote postura de "Consultor Sênior" para "Executivo".
+- Priorize dados e fatos sobre saudações longas.`,
 
             'user': `INSTRUÇÕES DE NÍVEL DE USUÁRIO:
 (Este espaço é reservado para regras de personalização individual.)
