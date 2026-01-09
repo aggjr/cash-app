@@ -33,6 +33,15 @@ const IntentClassifier = {
             };
         }
 
+        // 1.5 DISMISSAL (Recusa de ajuda - Alta Prioridade)
+        if (/(não preciso|não quero|não precisa|só isso|obrigado por enquanto|obrigado não|obrigada não|nada mais)(\s|$|,|!|.)/i.test(msg)) {
+            return {
+                type: 'DISMISSAL',
+                priority: 'HIGH',
+                context: 'User is dismissing further help or indicating satisfaction. SHOULD CLOSE CHAT.'
+            };
+        }
+
         // 2. CORRECTIONS (High Priority - needs previous context)
         if (/^(não|nao|errado|incorreto|não é|nao e|na verdade|fui eu|sou eu|é o|é a)/i.test(msg)) {
             const lastAssistantMsg = conversationHistory
@@ -132,6 +141,7 @@ const IntentClassifier = {
         const temperatureMap = {
             'GREETING': 0.9,      // More creative for greetings
             'FAREWELL': 0.9,      // More creative for farewells
+            'DISMISSAL': 0.9,     // Creative farewell
             'GRATITUDE': 0.9,     // More creative for casual
             'CONFIRMATION': 0.3,  // Focused for confirmations
             'IDENTITY': 0.7,      // Moderate for identity
@@ -153,6 +163,7 @@ const IntentClassifier = {
         const tokenMap = {
             'GREETING': 50,       // Very short
             'FAREWELL': 50,       // Very short
+            'DISMISSAL': 50,      // Very short
             'GRATITUDE': 50,      // Very short
             'CONFIRMATION': 50,   // Very short
             'IDENTITY': 100,      // Short
