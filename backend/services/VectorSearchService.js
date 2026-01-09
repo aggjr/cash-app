@@ -195,14 +195,82 @@ class VectorSearchService {
         return uuid;
     }
 
+    /**
+     * Retrieve a point by ID
+     */
+    async retrieve(id) {
+        try {
+            const uuid = this.generatePointId(id);
+            const response = await this.request('POST', `/collections/${this.collectionName}/points`, {
+                ids: [uuid],
+                with_payload: true,
+                with_vector: false
+            });
+            return response.result || [];
+        } catch (error) {
+            console.error('[VectorSearch] Error retrieving point:', error.message);
+            return [];
+        }
+    }
+
+    /**
+     * Scroll/List points with filter
+     */
+    async scroll(filter = {}, limit = 100) {
+        try {
+            await this.ensureCollection();
+            const payload = {
+                limit: limit,
+                with_payload: true,
+                with_vector: false
+            };
+
+            const qdrantFilter = this.buildFilter(filter);
+            if (qdrantFilter) {
+                payload.filter = qdrantFilter;
+            }
+
+            const response = await this.request('POST', `/collections/${this.collectionName}/points/scroll`, payload);
+            return response.result;
+        } catch (error) {
+            console.error('[VectorSearch] Error scrolling points:', error.message);
+            return { points: [] };
+        }
+    }
+
+    /**
+     * Alias for generateEmbedding to match other service calls
+     */
+    async getEmbedding(text) {
+        return this.generateEmbedding(text);
+    }
+
+    /**
+     * Helper to upsert raw point (for prompts with custom IDs logic if needed, though upsertKnowledge does most)
+     * Exposed to allow flexible upserts
+     */
+    async upsertPoints(points) {
+        return this.request('PUT', `/collections/${this.collectionName}/points`, {
+            wait: true,
+            points: points
+        });
+    }
+
     buildFilter(filters) {
         const must = [];
         for (const [key, value] of Object.entries(filters)) {
             if (value !== undefined && value !== null) {
-                must.push({
-                    key: key,
-                    match: { value: value }
-                });
+                // Handle nested match objects if passed manually
+                if (typeof value === 'object' && value.match) {
+                    must.push({ key, ...value });
+                } else if (typeof value === 'object' && value.value) { // Handle {value: 'x'}
+                    must.push({ key, match: value });
+                } else {
+                    must.push({
+                        key: key,
+                        match: { value: value }
+                    });
+                }
             }
         }
         return must.length > 0 ? { must } : undefined;

@@ -178,16 +178,20 @@ class QdrantKnowledgeService {
      * @param {string} type - Prompt type/level (system, department, user)
      * @returns {Promise<string>} Prompt content
      */
+    /**
+     * Get a specific core prompt
+     * @param {string} type - Prompt type/level (system, department, user)
+     * @returns {Promise<string>} Prompt content
+     */
     static async getPrompt(type) {
         // We use direct point retrieval by ID for speed and accuracy
         const pointId = `prompt_${type}`;
         console.log(`[Qdrant Knowledge] 📜 Fetching prompt: ${type} (ID: ${pointId})`);
 
         try {
-            const result = await VectorSearchService.client.retrieve(VectorSearchService.collectionName, {
-                ids: [pointId],
-                with_payload: true
-            });
+            // Use VectorSearchService.retrieve instead of client
+            // Note: VectorSearchService handles UUID conversion internally in retrieve
+            const result = await VectorSearchService.retrieve(pointId);
 
             if (result && result.length > 0) {
                 const content = result[0].payload.content;
@@ -212,8 +216,12 @@ class QdrantKnowledgeService {
         console.log(`[Qdrant Knowledge] 💾 Saving prompt: ${type} (${content.length} chars)`);
 
         try {
+            // Use VectorSearchService to generate ID and Embedding
+            const uuid = VectorSearchService.generatePointId(pointId);
+            const vector = await VectorSearchService.getEmbedding(`Prompt ${type}`);
+
             const point = {
-                id: pointId,
+                id: uuid,
                 payload: {
                     category: 'core_prompt',
                     layer: 'GLOBAL',
@@ -222,13 +230,10 @@ class QdrantKnowledgeService {
                     text: `Prompt do sistema nível ${type}`,
                     updated_at: new Date().toISOString()
                 },
-                vector: await VectorSearchService.getEmbedding(`Prompt ${type}`)
+                vector: vector
             };
 
-            await VectorSearchService.client.upsert(VectorSearchService.collectionName, {
-                wait: true,
-                points: [point]
-            });
+            await VectorSearchService.upsertPoints([point]);
 
             console.log(`[Qdrant Knowledge] ✅ Prompt ${type} saved successfully.`);
         } catch (err) {
@@ -245,24 +250,14 @@ class QdrantKnowledgeService {
         try {
             // Scroll through all points with category 'core_prompt'
             const filter = {
-                must: [
-                    { key: "category", match: { value: "core_prompt" } }
-                ]
+                category: "core_prompt"
             };
 
-            const result = await VectorSearchService.client.scroll(VectorSearchService.collectionName, {
-                filter: filter,
-                limit: 100,
-                with_payload: true
-            });
+            const result = await VectorSearchService.scroll(filter, 100);
 
             if (result && result.points) {
                 const types = result.points.map(p => p.payload.type).sort();
-                // Ensure system is first if present
-                const sorted = ['system', ...types.filter(t => t !== 'system')];
-                // Remove duplicates if any logic error, but sort above handles specific order pref
-                // Actually keep it simple: return unique types found
-                return [...new Set(sorted)].filter(Boolean);
+                return [...new Set(types)].filter(Boolean);
             }
         } catch (err) {
             console.error(`[Qdrant Knowledge] ❌ Error listing prompts:`, err.message);
