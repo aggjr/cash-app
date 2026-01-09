@@ -1586,19 +1586,21 @@ Digite 1, 2 ou 3.`;
                     addMessage('ai', msg);
                 }
 
+                // Check for auto-close flag from backend
+                if (decision.forceClose) {
+                    console.log('[IVA] Auto-close requested by decision flag');
+                    setTimeout(() => {
+                        if (isOpen) toggleChat();
+                    }, 3000); // 3s delay to hear the final message
+                }
+
             } catch (err) {
                 console.error('[IVA] Operation error:', err);
                 if (thinkingMsg.parentNode) thinkingMsg.parentNode.removeChild(thinkingMsg);
                 addMessage('ai', 'Erro ao processar comando.');
             }
 
-            // Check for auto-close flag from backend
-            if (decision.forceClose) {
-                console.log('[IVA] Auto-close requested by decision flag');
-                setTimeout(() => {
-                    if (isOpen) toggleChat();
-                }, 3000); // 3s delay to hear the final message
-            }
+
 
             return; // Stop here, fulfilled by LLM
         }
