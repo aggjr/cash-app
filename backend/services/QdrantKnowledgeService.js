@@ -482,6 +482,12 @@ Exemplos de uso:
 - Se departamento for "Financeiro", priorize linguagem técnica.
 - Se departamento for "Vendas", priorize agilidade.`,
 
+            'role': `INSTRUÇÕES DE NÍVEL DE CARGO (ROLE):
+
+(Este espaço é reservado para regras baseadas no Cargo no Usuário. Ex: Gerentes, Diretores, Analistas)
+
+Use este espaço para definir responsabilidades ou tom de voz esperado para este nível hierárquico.`,
+
             'user': `INSTRUÇÕES DE NÍVEL DE USUÁRIO:
 
 (Este espaço é reservado para regras de personalização individual. O conteúdo aqui será inserido no contexto da IVA.)

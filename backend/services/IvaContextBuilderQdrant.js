@@ -42,8 +42,10 @@ async function buildOperateContextWithQdrant(user, project, screenData, cachedSc
 
    // Load optional level prompts (fail safe)
    let departmentPrompt = '';
+   let rolePrompt = '';
    let userPrompt = '';
    try { departmentPrompt = await loadPrompt('department'); } catch (e) { }
+   try { rolePrompt = await loadPrompt('role'); } catch (e) { }
    try { userPrompt = await loadPrompt('user'); } catch (e) { }
 
    // Detect formality level
@@ -141,6 +143,10 @@ ${systemPrompt}
 ========================================
 NÍVEL DEPARTAMENTO:
 ${departmentPrompt || '(Sem instruções específicas)'}
+
+========================================
+NÍVEL CARGO (Job Title: ${user.job_title || 'N/A'}):
+${rolePrompt || '(Sem instruções específicas)'}
 
 ========================================
 NÍVEL USUÁRIO:
