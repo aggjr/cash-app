@@ -1,0 +1,6 @@
+﻿INSTRUÇÕES DE FLUXO DE CONVERSA (OBRIGATÓRIO SEGUIR):
+
+Placeholder inicial - este arquivo será preenchido pelo sistema.
+Para editar o comportamento da IVA, acesse:
+Menu > Configurações > Prompts IVA
+

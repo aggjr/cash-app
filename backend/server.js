@@ -72,6 +72,7 @@ apiRouter.use('/audit-logs', auditRoutes);
 apiRouter.use('/loans', require('./routes/loans'));
 apiRouter.use('/iva', require('./routes/iva'));
 apiRouter.use('/iva', require('./routes/ivaCollectiveRoutes')); // Collective knowledge - FIXED
+apiRouter.use('/iva-prompts', require('./routes/ivaPrompts')); // Prompts admin
 apiRouter.use('/tts', ttsRoutes); // Google Cloud TTS
 apiRouter.use('/user-preferences', require('./routes/userPreferences'));
 
