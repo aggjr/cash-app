@@ -12,23 +12,21 @@ class IvaUserPreferences {
      */
     static async getPreferredName(userId) {
         console.log(`[IVA Preferences] Getting preferred name for user ${userId}`);
+        const pointId = `user_${userId}_preferred_name`;
 
         try {
-            const results = await VectorSearchService.search(
-                `nome preferido usuário ${userId}`,
-                {
-                    category: 'user_preference',
-                    layer: 'USER',
-                    user_id: userId,
-                    preference_type: 'preferred_name'
-                },
-                1
-            );
+            // Use retrieve (ID lookup) instead of search to guarantee we get the single specific record
+            const results = await VectorSearchService.retrieve(pointId);
 
-            console.log(`[IVA Preferences] Search results:`, JSON.stringify(results, null, 2));
-            const preferredName = results[0]?.value || null;
-            console.log(`[IVA Preferences] Preferred name: ${preferredName || 'not set'}`);
-            return preferredName;
+            if (results && results.length > 0) {
+                // retrieve returns array of points. Payload has 'value'
+                const preferredName = results[0].payload.value;
+                console.log(`[IVA Preferences] Preferred name (ID lookup): ${preferredName}`);
+                return preferredName;
+            } else {
+                console.log(`[IVA Preferences] No preferred name found for ID: ${pointId}`);
+                return null;
+            }
         } catch (err) {
             console.error(`[IVA Preferences] Error getting preferred name:`, err.message);
             return null;
