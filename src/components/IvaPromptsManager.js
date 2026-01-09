@@ -36,8 +36,8 @@ export const IvaPromptsManager = () => {
 
         const availableTabsKey = Object.keys(state.prompts);
 
-        // Custom ordering: system -> department -> role -> user
-        const order = ['system', 'department', 'role', 'user'];
+        // Custom ordering: system -> module -> company -> department -> role -> user
+        const order = ['system', 'module', 'company', 'department', 'role', 'user'];
         const availableTabs = availableTabsKey.sort((a, b) => {
             const indexA = order.indexOf(a);
             const indexB = order.indexOf(b);
@@ -55,8 +55,10 @@ export const IvaPromptsManager = () => {
         // Label mapping
         const getTabLabel = (key) => {
             const map = {
-                'system': '📋 Sistema', // Changed from System
-                'department': '🏢 Departamento',
+                'system': '🌐 Sistema (ERP)',
+                'module': '📦 Módulo (CASH)',
+                'company': '🏢 Empresa',
+                'department': '📂 Departamento',
                 'role': '💼 Cargo',
                 'user': '👤 Usuário'
             };

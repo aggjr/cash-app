@@ -41,9 +41,13 @@ async function buildOperateContextWithQdrant(user, project, screenData, cachedSc
    const systemPromptTemplate = await loadPrompt('system');
 
    // Load optional level prompts (fail safe)
+   let modulePrompt = '';
+   let companyPrompt = '';
    let departmentPrompt = '';
    let rolePrompt = '';
    let userPrompt = '';
+   try { modulePrompt = await loadPrompt('module'); } catch (e) { }
+   try { companyPrompt = await loadPrompt('company'); } catch (e) { }
    try { departmentPrompt = await loadPrompt('department'); } catch (e) { }
    try { rolePrompt = await loadPrompt('role'); } catch (e) { }
    try { userPrompt = await loadPrompt('user'); } catch (e) { }
@@ -139,6 +143,14 @@ CONTEXTO TEMPORAL E ACESSO (CRÃ TICO):
 - Ãšltimo acesso foi hoje? ${wasGreetedToday(lastAccess) ? 'SIM' : 'NÃƒO'}
 
 ${systemPrompt}
+
+========================================
+NÍVEL MÓDULO (CASH):
+${modulePrompt || '(Sem instruções específicas)'}
+
+========================================
+NÍVEL EMPRESA (${project.name || 'Cliente'}):
+${companyPrompt || '(Sem instruções específicas)'}
 
 ========================================
 NÍVEL DEPARTAMENTO:
