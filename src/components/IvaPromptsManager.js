@@ -273,6 +273,12 @@ export const IvaPromptsManager = () => {
 
     // Auto-refresh poll (every 5s)
     const pollInterval = setInterval(() => {
+        // Self-cleanup: Stop polling if component is removed from DOM
+        if (!container.isConnected) {
+            clearInterval(pollInterval);
+            return;
+        }
+
         // Only refresh if no unsaved changes
         const hasChanges = state.editedContent !== (state.prompts[state.activeTab] || '');
         if (!hasChanges && !state.saving) {
