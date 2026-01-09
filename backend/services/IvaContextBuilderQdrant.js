@@ -23,7 +23,7 @@ function wasGreetedToday(lastAccess) {
 /**
  * Build system prompt with Qdrant knowledge
  */
-async function buildOperateContextWithQdrant(user, project, screenData, cachedScreens, intent, lastAccess) {
+async function buildOperateContextWithQdrant(user, project, screenData, cachedScreens, intent, lastAccess, conversationHistory) {
    // Get dynamic knowledge from Qdrant
    const personality = await QdrantKnowledgeService.getPersonality();
    const systemInfo = await QdrantKnowledgeService.getSystemInfo();
@@ -56,8 +56,30 @@ async function buildOperateContextWithQdrant(user, project, screenData, cachedSc
    // Regex checks for "Dr.", "Sr.", "Professor" at start of name
    const hasFormalHonorific = /^(Dr|Dra|Sr|Sra|Prof|Professor|Professora)(\.|\s)/i.test(pn);
 
+   // Linguistic Analysis of recent user messages
+   const recentUserMessages = (conversationHistory || [])
+      .filter(m => m.sender === 'user')
+      .slice(-5)
+      .map(m => m.text.toLowerCase())
+      .join(' ');
+
+   const formalMarkers = [
+      'auxiliar', 'solicito', 'gentileza', 'grato', 'agradeço',
+      'prezado', 'efetuar', 'realizar', 'proceder', 'verificar',
+      'poderia', 'gostaria', 'informar', 'questão', 'devido'
+   ];
+
+   let formalScore = 0;
+   formalMarkers.forEach(word => {
+      if (recentUserMessages.includes(word)) formalScore++;
+   });
+
+   // High formality in text overrides job title
+   const hasFormalStyle = formalScore >= 1;
+
    const isFormal =
-      hasFormalHonorific || // Explicit user preference for formality
+      hasFormalHonorific ||
+      hasFormalStyle ||
       (jt.includes('consult') && (jt.includes('sênior') || jt.includes('senior'))) ||
       dp.includes('board') || dp.includes('diretoria');
 
