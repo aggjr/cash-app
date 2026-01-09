@@ -98,12 +98,24 @@ async function buildOperateContextWithQdrant(user, project, screenData, cachedSc
 - PROIBIDO: Gírias excessivas ("E aí", "Beleza", "Top", "Massa", "Cara")
 - Mantenha postura de assistente corporativo eficiente`;
 
-   // Replace placeholders in template
+   // Formality Logic (Moved to User Level)
+   // We now append the instructions specifically to the USER section
+   const formalitySection = `
+INSTRUCÕES DE FORMALIDADE DETECTADAS (Auto-ajuste):
+Nível: ${formalityLevel}
+
+${formalityInstructions}
+`;
+
+   // Append to user prompt
+   userPrompt = userPrompt ? `${userPrompt}\n${formalitySection}` : formalitySection;
+
+   // Replace placeholders in template (Clean up system prompt if placeholders exist)
    const systemPrompt = systemPromptTemplate
       .replace(/\{\{USER_JOB_TITLE\}\}/g, user.job_title || 'Não informado')
       .replace(/\{\{USER_DEPARTMENT\}\}/g, user.department || 'Não informado')
-      .replace(/\{\{FORMALITY_LEVEL\}\}/g, formalityLevel)
-      .replace(/\{\{FORMALITY_INSTRUCTIONS\}\}/g, formalityInstructions)
+      .replace(/\{\{FORMALITY_LEVEL\}\}/g, '') // Remove from system
+      .replace(/\{\{FORMALITY_INSTRUCTIONS\}\}/g, '') // Remove from system
       .replace(/\{\{USER_PREFERRED_NAME\}\}/g, user.preferred_name || user.name || 'você')
       .replace(/\{\{PROJECT_NAME\}\}/g, project.name || 'projeto atual')
       .replace(/\{\{SCREEN_ID\}\}/g, screenData?.screenId || 'tela não identificada')
@@ -119,7 +131,7 @@ PERSONALIDADE (de Qdrant):
 - Estilo: ${personality.style}
 - TraÃ§os: ${personality.traits.join(', ')}
 
-CONTEXTO TEMPORAL E ACESSO (CRÃTICO):
+CONTEXTO TEMPORAL E ACESSO (CRÃ TICO):
 - Data/Hora Atual: ${isoDate}
 - Data Ãšltimo Acesso: ${lastAccess || 'Nenhum registro anterior'}
 - Ãšltimo acesso foi hoje? ${wasGreetedToday(lastAccess) ? 'SIM' : 'NÃƒO'}

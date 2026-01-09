@@ -287,9 +287,7 @@ class QdrantKnowledgeService {
 **Cargo do usuário**: {{USER_JOB_TITLE}}
 **Departamento**: {{USER_DEPARTMENT}}
 
-**DETECÇÃO AUTOMÁTICA**: {{FORMALITY_LEVEL}}
-
-**{{FORMALITY_INSTRUCTIONS}}**
+(A lógica de formalidade foi movida para o Nível de Usuário)
 
 ## 2. NUNCA REPITA CUMPRIMENTOS
 
