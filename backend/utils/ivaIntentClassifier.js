@@ -42,6 +42,45 @@ const IntentClassifier = {
             };
         }
 
+        // 1.6 SOCIAL INTERACTIONS (Prioridade MÁXIMA para humanizar)
+
+        // Agradecimentos simples (NÃO são dismissal)
+        if (/^(obrigad[oa]|valeu|obg|brigad[oa]|agradeço)(\\s|$|,|!)/i.test(msg) && !/por enquanto|não|nada mais/i.test(msg)) {
+            return {
+                type: 'SOCIAL_THANKS',
+                priority: 'HIGHEST',
+                context: 'User is thanking. Respond warmly: "Por nada! Fico feliz em ajudar. Precisa de mais alguma coisa?"'
+            };
+        }
+
+        // Elogios e feedback positivo
+        if (/(muito bom|excelente|perfeito|ótimo|legal|adorei|top|massa|show|bacana|maravilha|incrível)(\\s|$|,|!)/i.test(msg)) {
+            return {
+                type: 'SOCIAL_PRAISE',
+                priority: 'HIGHEST',
+                context: 'User is praising. Respond enthusiastically: "Que bom que gostou! 😊 Posso fazer mais alguma coisa?"'
+            };
+        }
+
+        // Conversa casual
+        if (/(como você está|tudo bem|como vai|e você|e tu)(\\?|$|,|!)/i.test(msg)) {
+            return {
+                type: 'SOCIAL_CASUAL',
+                priority: 'HIGHEST',
+                context: 'User is being casual. Respond warmly: "Estou ótima, obrigada! E você? Em que posso ajudar?"'
+            };
+        }
+
+        // Frustração/confusão
+        if (/(não entend[io]|tá confuso|confusa|não funciona|não tá funcionando|tá errado|bugou|travou)(\\s|$|,|!)/i.test(msg)) {
+            return {
+                type: 'SOCIAL_FRUSTRATION',
+                priority: 'HIGHEST',
+                context: 'User is frustrated/confused. Be EXTRA patient: "Opa, desculpa! Deixa eu te explicar melhor..."'
+            };
+        }
+
+
         // 2. CORRECTIONS (High Priority - needs previous context)
         if (/^(não|nao|errado|incorreto|não é|nao e|na verdade|fui eu|sou eu|é o|é a)/i.test(msg)) {
             const lastAssistantMsg = conversationHistory
