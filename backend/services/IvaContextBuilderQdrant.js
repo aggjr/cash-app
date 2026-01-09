@@ -4,6 +4,7 @@
  */
 
 const QdrantKnowledgeService = require('./QdrantKnowledgeService');
+const IvaKnowledgeGenerator = require('./IvaKnowledgeGenerator');
 const { loadPrompt } = require('./promptLoader');
 
 /**
@@ -116,6 +117,22 @@ ${formalityInstructions}
    // Append to user prompt
    userPrompt = userPrompt ? `${userPrompt}\n${formalitySection}` : formalitySection;
 
+   // --- DYNAMIC KNOWLEDGE GENERATION (ACTIVE LEARNING) ---
+   // Research specific rules if this specific department/role is new
+   let dynamicDeptRules = '';
+   let dynamicRoleRules = '';
+
+   try {
+      if (user.department) {
+         dynamicDeptRules = await IvaKnowledgeGenerator.ensureContextRules('department', user.department);
+      }
+      if (user.job_title) {
+         dynamicRoleRules = await IvaKnowledgeGenerator.ensureContextRules('role', user.job_title);
+      }
+   } catch (err) {
+      console.error('[ContextBuilder] Error generating dynamic rules:', err);
+   }
+
    // Replace placeholders in template (Clean up system prompt if placeholders exist)
    const systemPrompt = systemPromptTemplate
       .replace(/\{\{USER_JOB_TITLE\}\}/g, user.job_title || 'Não informado')
@@ -156,9 +173,13 @@ ${companyPrompt || '(Sem instruções específicas)'}
 NÍVEL DEPARTAMENTO:
 ${departmentPrompt || '(Sem instruções específicas)'}
 
+${dynamicDeptRules ? `--- CONTEXTO ESPECÍFICO DEPARTAMENTO (${user.department}):\n${dynamicDeptRules}` : ''}
+
 ========================================
 NÍVEL CARGO (Job Title: ${user.job_title || 'N/A'}):
 ${rolePrompt || '(Sem instruções específicas)'}
+
+${dynamicRoleRules ? `--- CONTEXTO ESPECÍFICO CARGO (${user.job_title}):\n${dynamicRoleRules}` : ''}
 
 ========================================
 NÍVEL USUÁRIO:
