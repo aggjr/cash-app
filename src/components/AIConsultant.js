@@ -36,6 +36,7 @@ export const AIConsultant = () => {
 
     // State
     let isOpen = false;
+    let wasDismissed = false; // Track if chat was closed by AI/User dismissal
     let isListening = false;
     let pendingAction = null; // null | 'intro_ask_name' | 'intro_ask_voice' | ...
     let loanResolver = null;
@@ -1051,8 +1052,9 @@ Digite 1, 2 ou 3.`;
             // Always greet when opening chat, but style differs
             const isFirstSessionInteraction = !hasGreeted && messages.length === 0;
 
-            if (messages.length === 0) {
-                console.log('[IVA] Chat opened - generating greeting');
+            if (messages.length === 0 || wasDismissed) {
+                console.log('[IVA] Chat opened - generating greeting (Dismissed:', wasDismissed, ')');
+                wasDismissed = false; // Reset flag
 
                 if (isFirstSessionInteraction) {
                     console.log('[IVA] First open in session - full welcome');
@@ -1147,6 +1149,7 @@ Digite 1, 2 ou 3.`;
 
                         // Handle auto-close from greeting
                         if (decision.forceClose) {
+                            wasDismissed = true;
                             setTimeout(() => {
                                 if (isOpen) toggleChat();
                             }, 3000);
@@ -1589,6 +1592,7 @@ Digite 1, 2 ou 3.`;
                 // Check for auto-close flag from backend
                 if (decision.forceClose) {
                     console.log('[IVA] Auto-close requested by decision flag');
+                    wasDismissed = true; // Mark as dismissed so next open triggers greeting
                     setTimeout(() => {
                         if (isOpen) toggleChat();
                     }, 3000); // 3s delay to hear the final message
