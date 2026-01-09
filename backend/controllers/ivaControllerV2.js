@@ -635,7 +635,20 @@ Siga rigorosamente as INSTRU├ç├òES DE FLUXO DE EXECU├ç├âO E DESCOBER
                 const hour = new Date().getHours();
                 const greeting = hour >= 5 && hour < 12 ? 'Bom dia' :
                     hour >= 12 && hour < 19 ? 'Boa tarde' : 'Boa noite';
-                defaultMessage = `${greeting}! 😊 No que posso te ajudar?`;
+
+                // Formality check
+                const jobTitle = userData?.job_title?.toLowerCase() || '';
+                const isExecutive = jobTitle.includes('diretor') || jobTitle.includes('ceo') || jobTitle.includes('presidente') || jobTitle.includes('head');
+                const isFormal = isExecutive || (userData?.department === 'Diretoria');
+
+                // Name logic
+                const name = userData?.preferred_name || userData?.name?.split(' ')[0] || '';
+                const prefix = isFormal ? (userData?.gender === 'F' ? 'Sra.' : 'Sr.') : '';
+                const displayName = isFormal ? `${prefix} ${name}` : name;
+
+                // Message construction
+                const emoji = isFormal ? '' : ' 😊';
+                defaultMessage = `${greeting}, ${displayName}!${emoji} Como posso ajudar?`;
             } else if (intent.type === 'SOCIAL_THANKS') {
                 defaultMessage = 'Por nada! Fico feliz em ajudar! 😊 Precisa de mais alguma coisa?';
             } else if (intent.type === 'SOCIAL_PRAISE') {

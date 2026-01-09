@@ -2200,14 +2200,15 @@ Digite 1, 2 ou 3.`;
                     loopState.active = false;
 
                     // Ask user for guidance
-                    const question = `Estou na tela "${screenId}" procurando por "${userQuery}", mas n├úo encontrei uma a├º├úo adequada.
+                    // Ask user for guidance
+                    const question = `Estou na tela "${screenId}" procurando por "${userQuery}", mas não encontrei uma ação adequada.
                     
-Voc├¬ pode me ajudar? Onde exatamente est├í essa informa├º├úo?
+Você pode me ajudar? Onde exatamente está essa informação?
 
 Por exemplo:
-ΓÇó "Na tabela, coluna X, linha Y"
-ΓÇó "No card de resumo no topo"
-ΓÇó "Precisa aplicar filtro primeiro"`;
+• "Na tabela, coluna X, linha Y"
+• "No card de resumo no topo"
+• "Precisa aplicar filtro primeiro"`;
 
                     addMessage('ai', question);
                     speak(question);
