@@ -47,9 +47,18 @@ async function buildOperateContextWithQdrant(user, project, screenData, cachedSc
    try { userPrompt = await loadPrompt('user'); } catch (e) { }
 
    // Detect formality level
+   // Detect formality level
    const jt = (user.job_title || '').toLowerCase();
    const dp = (user.department || '').toLowerCase();
-   const isFormal = jt.includes('consult') && (jt.includes('sênior') || jt.includes('senior')) ||
+   const pn = (user.preferred_name || '').trim();
+
+   // Check for Honorifics in preferred name (Dr, Sr, Prof, etc)
+   // Regex checks for "Dr.", "Sr.", "Professor" at start of name
+   const hasFormalHonorific = /^(Dr|Dra|Sr|Sra|Prof|Professor|Professora)(\.|\s)/i.test(pn);
+
+   const isFormal =
+      hasFormalHonorific || // Explicit user preference for formality
+      (jt.includes('consult') && (jt.includes('sênior') || jt.includes('senior'))) ||
       dp.includes('board') || dp.includes('diretoria');
 
    const formalityLevel = isFormal ? '✅ FORMAL (Alta liderança detectada)' : '⚠️ PROFISSIONAL/AMIGÁVEL';
