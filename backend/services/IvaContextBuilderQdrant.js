@@ -9,34 +9,34 @@ const QdrantKnowledgeService = require('./QdrantKnowledgeService');
  * Check if user was greeted today
  */
 function wasGreetedToday(lastAccess) {
-  if (!lastAccess) return false;
+   if (!lastAccess) return false;
 
-  const lastDate = new Date(lastAccess);
-  const today = new Date();
+   const lastDate = new Date(lastAccess);
+   const today = new Date();
 
-  return lastDate.getDate() === today.getDate() &&
-    lastDate.getMonth() === today.getMonth() &&
-    lastDate.getFullYear() === today.getFullYear();
+   return lastDate.getDate() === today.getDate() &&
+      lastDate.getMonth() === today.getMonth() &&
+      lastDate.getFullYear() === today.getFullYear();
 }
 
 /**
  * Build system prompt with Qdrant knowledge
  */
 async function buildOperateContextWithQdrant(user, project, screenData, cachedScreens, intent, lastAccess) {
-  // Get dynamic knowledge from Qdrant
-  const personality = await QdrantKnowledgeService.getPersonality();
-  const systemInfo = await QdrantKnowledgeService.getSystemInfo();
+   // Get dynamic knowledge from Qdrant
+   const personality = await QdrantKnowledgeService.getPersonality();
+   const systemInfo = await QdrantKnowledgeService.getSystemInfo();
 
-  const hour = new Date().getHours();
-  const timeOfDay = hour >= 5 && hour < 12 ? 'manhã'
-    : hour >= 12 && hour < 19 ? 'tarde'
-      : 'noite';
+   const hour = new Date().getHours();
+   const timeOfDay = hour >= 5 && hour < 12 ? 'manhã'
+      : hour >= 12 && hour < 19 ? 'tarde'
+         : 'noite';
 
-  const now = new Date();
-  const isoDate = now.toISOString();
-  const dateOnly = isoDate.split('T')[0];
+   const now = new Date();
+   const isoDate = now.toISOString();
+   const dateOnly = isoDate.split('T')[0];
 
-  return `
+   return `
 Você é ${systemInfo.assistant_name}, ${systemInfo.description}.
 
 PERSONALIDADE (de Qdrant):
@@ -118,9 +118,9 @@ Ao oferecer ajuda, ANALISE O CONTEXTO e sugira proativamente:
 ANTES de entrar nos LOOPs, verifique se o problema se enquadra em padrão comum:
 
 1. **ATALHOS NATIVOS** (resposta instantânea sem busca):
-   - "Qual minha empresa?" → Leia `project.name` e responda IMEDIATAMENTE
-   - "Que horas são?" / "Que dia é?" → Leia `isoDate` e responda IMEDIATAMENTE
-   - "Qual meu nome?" → Leia `user.preferred_name` e responda IMEDIATAMENTE
+   - "Qual minha empresa?" → Leia 'project.name' e responda IMEDIATAMENTE
+   - "Que horas são?" / "Que dia é?" → Leia 'isoDate' e responda IMEDIATAMENTE
+   - "Qual meu nome?" → Leia 'user.preferred_name' e responda IMEDIATAMENTE
    - "Onde estou?" → Leia tela atual e responda IMEDIATAMENTE
    - **BENEFÍCIO**: Resposta em <1s sem processar nada
 
@@ -174,7 +174,7 @@ Ao buscar no Qdrant, use ESTRATÉGIA INTELIGENTE:
 
 Se você já está em uma tela específica OU se navegou para uma tela:
   1. **EXAMINE O CÓDIGO FONTE DA TELA**:
-     - Analise o HTML/JSON/estrutura disponível no `screenContext`
+     - Analise o HTML/JSON/estrutura disponível no 'screenContext'
      - Procure por palavras-chave relacionadas ao problema do usuário
      - Busque por:
        * Campos de formulário relacionados (inputs, selects, textareas)
@@ -195,7 +195,7 @@ Se você já está em uma tela específica OU se navegou para uma tela:
   
   4. **EXECUTE E APRENDA IMEDIATAMENTE**:
      - Se usuário confirmar, execute a ação
-     - **APRENDIZADO GRANULAR OBRIGATÓRIO**: Use `contribute_knowledge` IMEDIATAMENTE após CADA descoberta bem-sucedida:
+     - **APRENDIZADO GRANULAR OBRIGATÓRIO**: Use 'contribute_knowledge' IMEDIATAMENTE após CADA descoberta bem-sucedida:
        * Se descobriu onde navegar → Grave: "Para [problema], navegue para [tela]"
        * Se descobriu qual campo preencher → Grave: "Para [ação], preencha o campo [id/name] com [tipo de dado]"
        * Se descobriu qual filtro usar → Grave: "Para [busca], use o filtro [nome] com [valor]"
@@ -242,7 +242,7 @@ SE todas as soluções conhecidas falharam OU não havia soluções no Qdrant:
 
 ANTES de iniciar navegação cega, faça ANÁLISE INTELIGENTE:
 
-1. **PRÉ-ANÁLISE DE MÚLTIPLAS TELAS** (se `cachedScreens` disponível):
+1. **PRE-ANALISE DE MULTIPLAS TELAS** (se 'cachedScreens' disponivel):
    - Examine o código/estrutura de TODAS as telas em cache
    - Procure palavras-chave do problema em TODAS elas simultaneamente
    - Exemplo: Usuário quer "criar entrada" → Procure "entrada", "criar", "nova" em todas
@@ -275,7 +275,7 @@ ENQUANTO NÃO CHEGOU AO FINAL DO MENU:
   3. **Se tela JÁ foi visitada nesta sessão**: Pule IMEDIATAMENTE para próxima tela da lista
   
   4. **Se tela NÃO foi visitada**:
-     a) Navegue até a tela usando \`NAVIGATE\`
+     a) Navegue até a tela usando 'NAVIGATE'
      b) Aguarde 1-2 segundos para tela carregar completamente
      c) Pergunte OBRIGATORIAMENTE: "É nesta tela que tem a informação para resolver o seu problema?"
      d) Aguarde resposta do cliente
@@ -320,7 +320,7 @@ SE chegou ao final do menu (tentou TODAS as telas) E ainda não resolveu:
      - Ofereça: "Você pode me explicar o passo a passo para que eu possa aprender e ajudar outros usuários no futuro?"
      - Aguarde o cliente explicar COMPLETAMENTE
      - **SE usuário explicar**:
-       * Use \`contribute_knowledge\` OBRIGATORIAMENTE com:
+       * Use 'contribute_knowledge' OBRIGATORIAMENTE com:
          * Descrição DETALHADA do problema
          * Tela/caminho correto (se o cliente souber)
          * Passo a passo COMPLETO ensinado
@@ -346,7 +346,7 @@ SE chegou ao final do menu (tentou TODAS as telas) E ainda não resolveu:
    - SEMPRE aguarde resposta antes de prosseguir
 
 3. **APRENDIZADO OBRIGATÓRIO E DETALHADO**:
-   - SEMPRE use \`contribute_knowledge\` quando o cliente ensinar algo
+   - SEMPRE use 'contribute_knowledge' quando o cliente ensinar algo
    - O conhecimento gravado DEVE conter:
      * Descrição do problema/demanda
      * Tela/caminho exato
@@ -370,7 +370,7 @@ SE chegou ao final do menu (tentou TODAS as telas) E ainda não resolveu:
 6. **REGRA DE OURO - CONHECIMENTO NO QDRANT**:
    - TODO conhecimento fica no Qdrant, NUNCA no código
    - A IVA só sabe o que está no Qdrant ou foi ensinado pelo cliente
-   - Cada novo aprendizado DEVE ser gravado via \`contribute_knowledge\`
+   - Cada novo aprendizado DEVE ser gravado via 'contribute_knowledge'
 
 7. **APRENDIZADO GRANULAR IMEDIATO (CRÍTICO PARA OTIMIZAÇÃO)**:
    - NÃO espere resolver TODO o problema para gravar conhecimento
@@ -445,5 +445,5 @@ ${cachedScreens?.length > 0 ? `TELAS RECENTES:\n${cachedScreens.map(s => s.scree
 }
 
 module.exports = {
-  buildOperateContextWithQdrant
+   buildOperateContextWithQdrant
 };
