@@ -42,6 +42,16 @@ const IntentClassifier = {
             };
         }
 
+        // 1.6 TEST/PING (Common dev behavior)
+        if (/^(teste|testando|test|123|pisca)(\s|$|,|!|\.)/i.test(msg)) {
+            return {
+                type: 'CONFIRMATION', // Use existing type to avoid breaking consumers
+                priority: 'HIGH',
+                context: 'User is testing connectivity. Respond: "Estou ouvindo! O sistema está operante. Em que posso ajudar?"',
+                isTest: true
+            };
+        }
+
         // 1.6 SOCIAL INTERACTIONS (Prioridade MÁXIMA para humanizar)
 
         // Agradecimentos simples (NÃO são dismissal)
@@ -125,7 +135,8 @@ const IntentClassifier = {
         }
 
         // 5. LEARNING (High Priority - Synonyms supported)
-        const learningRegex = /(aprenda|guarde|memorize|grave|registre|ensinar|conhecimento|entenda|lembre)/i;
+        // STRICTER REGEX: Must verify it's an instruction, not just the word "conhecimento" or "teste"
+        const learningRegex = /^(aprenda|guarde|memorize|grave|registre|ensinar|conhecimento|entenda|lembre)\s/i;
         const learningMatch = learningRegex.test(msg);
         console.log(`[Intent Classifier] Testing LEARNING: "${msg}" -> Match: ${learningMatch}`);
 

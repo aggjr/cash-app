@@ -487,10 +487,11 @@ Antes de retornar a a├º├úo, classifique a inten├º├úo do usu├írio:
    Exemplos: "Criar entrada de R$ 1000", "Exportar relat├│rio", "Filtrar por empresa X"
    Retorne: { "intent": "ACTION_EXECUTION", "action": "NAVIGATE", "target": "screen-id", "message": "..." }
 
-4. LEARNING - Usuário está ensinando uma regra, comando ou conhecimento.
-   Exemplos: "aprenda o seguinte...", "guarde este conhecimento...", "memorize..."
+4. LEARNING - Usuário está EXPLICITAMENTE ensinando uma regra ou comando NOVO.
+   Exemplos válidos: "aprenda que o fluxo agora é X", "guarde este conhecimento: Y", "memorize que Z"
+   NÃO USE para: "teste", "ola", perguntas ou correções simples.
    Retorne: { "intent": "LEARNING", "action": "REPLY", "message": "Entendido! Guardei esse novo conhecimento e vou usá-lo quando você me perguntar." }
-   IMPORTANTE: SEMPRE que o conhecimento for sistêmico (como encontrar um dado ou agir em uma tela), você DEVE chamar a função \`contribute_knowledge\` além de retornar o JSON.
+   IMPORTANTE: Só acione se o usuário estiver claramente instruindo você a aprender.
 
 IMPORTANTE: SEMPRE inclua o campo "intent" na sua resposta JSON!
 
