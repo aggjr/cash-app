@@ -820,6 +820,7 @@ export const ParametrosGeraisManager = (project) => {
             const contents = container.querySelectorAll('.modern-tab-panel');
             const indicator = container.querySelector('.modern-tab-indicator');
             let analyticsLoaded = false;
+            let promptsLoaded = false;
 
             // Function to update indicator position
             const updateIndicator = (activeTab) => {
@@ -873,6 +874,17 @@ export const ParametrosGeraisManager = (project) => {
                         if (targetId === 'content-knowledge' && !knowledgeLoaded) {
                             loadKnowledge();
                             knowledgeLoaded = true;
+                        }
+
+                        // Load prompts manager on first click
+                        if (targetId === 'content-prompts' && !promptsLoaded) {
+                            const promptsContainer = content.querySelector('#prompts-container');
+                            if (promptsContainer) {
+                                promptsContainer.innerHTML = '';
+                                const promptsComponent = IvaPromptsManager();
+                                promptsContainer.appendChild(promptsComponent);
+                                promptsLoaded = true;
+                            }
                         }
                     }
                 });
