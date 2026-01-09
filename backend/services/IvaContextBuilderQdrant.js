@@ -40,6 +40,12 @@ async function buildOperateContextWithQdrant(user, project, screenData, cachedSc
    // Load system prompt from file
    const systemPromptTemplate = await loadPrompt('system');
 
+   // Load optional level prompts (fail safe)
+   let departmentPrompt = '';
+   let userPrompt = '';
+   try { departmentPrompt = await loadPrompt('department'); } catch (e) { }
+   try { userPrompt = await loadPrompt('user'); } catch (e) { }
+
    // Detect formality level
    const jt = (user.job_title || '').toLowerCase();
    const dp = (user.department || '').toLowerCase();
@@ -85,6 +91,14 @@ CONTEXTO TEMPORAL E ACESSO (CRÃTICO):
 - Ãšltimo acesso foi hoje? ${wasGreetedToday(lastAccess) ? 'SIM' : 'NÃƒO'}
 
 ${systemPrompt}
+
+========================================
+NÍVEL DEPARTAMENTO:
+${departmentPrompt || '(Sem instruções específicas)'}
+
+========================================
+NÍVEL USUÁRIO:
+${userPrompt || '(Sem instruções específicas)'}
 `;
 }
 
