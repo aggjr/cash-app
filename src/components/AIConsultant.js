@@ -1149,7 +1149,7 @@ Digite 1, 2 ou 3.`;
                         if (decision.forceClose) {
                             setTimeout(() => {
                                 if (isOpen) toggleChat();
-                            }, 2500);
+                            }, 3000);
                         }
                     } catch (e) {
                         console.error('Greeting error:', e);
@@ -1597,7 +1597,7 @@ Digite 1, 2 ou 3.`;
                 console.log('[IVA] Auto-close requested by decision flag');
                 setTimeout(() => {
                     if (isOpen) toggleChat();
-                }, 2500); // 2.5s delay to hear the final message
+                }, 3000); // 3s delay to hear the final message
             }
 
             return; // Stop here, fulfilled by LLM
