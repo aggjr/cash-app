@@ -271,5 +271,41 @@ export const IvaPromptsManager = () => {
     // Initialize
     loadPrompts();
 
+    // Auto-refresh poll (every 5s)
+    const pollInterval = setInterval(() => {
+        // Only refresh if no unsaved changes
+        const hasChanges = state.editedContent !== (state.prompts[state.activeTab] || '');
+        if (!hasChanges && !state.saving) {
+            // Background load without showing full loading state
+            fetch(`${API_BASE_URL}/iva-prompts`, { headers: getHeaders() })
+                .then(res => res.json())
+                .then(data => {
+                    if (data.prompts) {
+                        const currentRemote = data.prompts[state.activeTab];
+                        const oldRemote = state.prompts[state.activeTab];
+
+                        // Update state
+                        state.prompts = data.prompts;
+
+                        // If the currently viewed tab changed remotely, update editor
+                        if (currentRemote && currentRemote !== oldRemote) {
+                            state.editedContent = currentRemote;
+                            state.message = {
+                                type: 'info',
+                                text: '🔄 O prompt foi atualizado externamente. Exibindo versão mais recente.'
+                            };
+                            render();
+                        }
+                    }
+                })
+                .catch(() => { }); // Silent fail on background poll
+        }
+    }, 5000);
+
+    // Cleanup interval when component is unmounted (if applicable in this framework)
+    // Note: Since this is Vanilla JS injected, we rely on page refresh or parent to cleanup.
+    // Ideally store pollInterval on the container for external cleanup.
+    container._pollInterval = pollInterval;
+
     return container;
 };
