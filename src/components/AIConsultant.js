@@ -383,6 +383,7 @@ export const AIConsultant = () => {
     closeBtn.style.cursor = 'pointer';
     closeBtn.onclick = () => {
         if (window.speechSynthesis) window.speechSynthesis.cancel();
+        wasDismissed = true; // Mark as dismissed for re-engagement
         toggleChat();
     };
 
