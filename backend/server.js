@@ -34,12 +34,6 @@ app.use(cors());
 app.use(bodyParser.json({ limit: '50mb' }));
 app.use(bodyParser.urlencoded({ limit: '50mb', extended: true }));
 
-// Force UTF-8 encoding for all responses
-app.use((req, res, next) => {
-    res.setHeader('Content-Type', 'application/json; charset=utf-8');
-    next();
-});
-
 // GLOBAL REQUEST LOGGER
 const fileLogger = require('./utils/fileLogger');
 app.use((req, res, next) => {
@@ -49,6 +43,12 @@ app.use((req, res, next) => {
 
 // API Router
 const apiRouter = express.Router();
+
+// Force UTF-8 encoding for API responses only
+apiRouter.use((req, res, next) => {
+    res.setHeader('Content-Type', 'application/json; charset=utf-8');
+    next();
+});
 
 apiRouter.use('/auth', authRoutes);
 apiRouter.use('/accounts', accountsRoutes);
