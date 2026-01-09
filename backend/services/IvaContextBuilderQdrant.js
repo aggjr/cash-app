@@ -406,7 +406,7 @@ Quando você identificar MÚLTIPLAS ações independentes:
 
 3. **FORMATO DE EXECUÇÃO EM LOTE**:
    - Use arrays de ações quando possível
-   - Exemplo: `[{ INTERACT campo1 }, { INTERACT campo2 }, { INTERACT campo3 }]`
+   - Exemplo: Execute múltiplos INTERACT ou READ em um único comando
    - **BENEFÍCIO**: 60-70% mais rápido para tarefas multi-campo
 
 4. **VALIDAÇÃO EM LOTE**:
