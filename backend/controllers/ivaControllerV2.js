@@ -624,7 +624,7 @@ Siga rigorosamente as INSTRU├ç├òES DE FLUXO DE EXECU├ç├âO E DESCOBER
             // User-initiated actions should get appropriate response based on intent
             // Import classifier to determine proper intent
             const IvaIntentClassifier = require('../utils/ivaIntentClassifier');
-            const intent = IvaIntentClassifier.classifyIntent(message, conversationHistory);
+            const intent = IvaIntentClassifier.classify(message, conversationHistory);
 
             let defaultMessage = 'Entendido!';
             let intentType = intent.type || 'GENERAL';
