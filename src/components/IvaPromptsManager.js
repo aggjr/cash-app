@@ -1,74 +1,235 @@
-import React, { useState, useEffect } from 'react';
 import api from '../services/api';
 import '../styles/Settings.css';
 
-const IvaPromptsManager = () => {
-    const [prompts, setPrompts] = useState({});
-    const [activeTab, setActiveTab] = useState('system');
-    const [editedContent, setEditedContent] = useState('');
-    const [saving, setSaving] = useState(false);
-    const [message, setMessage] = useState({ type: '', text: '' });
-    const [loading, setLoading] = useState(true);
+export const IvaPromptsManager = () => {
+    // Create container
+    const container = document.createElement('div');
+    container.className = 'iva-prompts-manager';
 
-    useEffect(() => {
-        loadPrompts();
-    }, []);
+    // State
+    const state = {
+        prompts: {},
+        activeTab: 'system',
+        editedContent: '',
+        saving: false,
+        message: { type: '', text: '' },
+        loading: true
+    };
 
-    useEffect(() => {
-        if (prompts[activeTab]) {
-            setEditedContent(prompts[activeTab]);
+    // Render Function
+    const render = () => {
+        // If loading
+        if (state.loading) {
+            container.innerHTML = '<div class="loading">Carregando prompts...</div>';
+            return;
         }
-    }, [activeTab, prompts]);
 
+        const availableTabs = Object.keys(state.prompts);
+        const hasChanges = state.editedContent !== (state.prompts[state.activeTab] || '');
+
+        // Construct HTML
+        container.innerHTML = `
+            <div class="prompts-header">
+                <h3>⚙️ Gerenciamento de Prompts IVA</h3>
+                <p class="prompts-warning">
+                    ⚠️ <strong>Atenção:</strong> Alterações nos prompts afetam imediatamente o comportamento da IVA.
+                    Apenas administradores devem editar.
+                </p>
+            </div>
+
+            ${state.message.text ? `
+                <div class="message message-${state.message.type}">
+                    ${state.message.text}
+                </div>
+            ` : ''}
+
+            <div class="prompts-tabs">
+                ${availableTabs.map(tab => `
+                    <button
+                        class="tab-button ${state.activeTab === tab ? 'active' : ''}"
+                        data-tab="${tab}"
+                    >
+                        ${tab === 'system' ? '📋 System' : '💬 ' + tab}
+                    </button>
+                `).join('')}
+            </div>
+
+            <div class="prompts-editor-container">
+                <div class="editor-toolbar">
+                    <span class="editor-label">
+                        Editando: <strong>${state.activeTab}.txt</strong>
+                    </span>
+                    <div class="editor-stats">
+                        ${state.editedContent.length} caracteres | ${state.editedContent.split('\n').length} linhas
+                        ${hasChanges ? '<span class="unsaved-indicator"> ● Não salvo</span>' : ''}
+                    </div>
+                </div>
+
+                <textarea
+                    class="prompts-editor"
+                    placeholder="Conteúdo do prompt..."
+                    spellcheck="false"
+                    id="prompts-textarea"
+                >${state.editedContent}</textarea>
+
+                <div class="editor-actions">
+                    <button
+                        class="btn-revert"
+                        id="btn-revert"
+                        ${(!hasChanges || state.saving) ? 'disabled' : ''}
+                    >
+                        ↺ Reverter
+                    </button>
+                    <button
+                        class="btn-save"
+                        id="btn-save"
+                        ${(!hasChanges || state.saving) ? 'disabled' : ''}
+                    >
+                        ${state.saving ? '💾 Salvando...' : '💾 Salvar Prompt'}
+                    </button>
+                </div>
+            </div>
+
+            <div class="prompts-footer">
+                <small>
+                    <strong>Dica:</strong> Use ctrl+F para buscar no texto.
+                    Mudanças são aplicadas imediatamente após salvar.
+                </small>
+            </div>
+        `;
+
+        attachListeners();
+    };
+
+    // Event Listeners
+    const attachListeners = () => {
+        // Tab switching
+        const tabs = container.querySelectorAll('.tab-button');
+        tabs.forEach(tab => {
+            tab.addEventListener('click', () => {
+                const newTab = tab.dataset.tab;
+                if (newTab !== state.activeTab) {
+                    state.activeTab = newTab;
+                    state.editedContent = state.prompts[newTab] || '';
+                    state.message = { type: '', text: '' }; // Clear messages on tab switch
+                    render();
+                }
+            });
+        });
+
+        // Textarea input
+        const textarea = container.querySelector('#prompts-textarea');
+        if (textarea) {
+            textarea.addEventListener('input', (e) => {
+                state.editedContent = e.target.value;
+                // Re-render only parts if performance is issue, but full render is safer for sync
+                // For smoother typing, we might strictly update DOM buttons, but let's try full render first.
+                // Actually, full render on every keystroke loses focus. BAD IDEA.
+                // We should only update the stats and buttons.
+                updateUIState();
+            });
+        }
+
+        // Save button
+        const saveBtn = container.querySelector('#btn-save');
+        if (saveBtn) {
+            saveBtn.addEventListener('click', handleSave);
+        }
+
+        // Revert button
+        const revertBtn = container.querySelector('#btn-revert');
+        if (revertBtn) {
+            revertBtn.addEventListener('click', handleRevert);
+        }
+    };
+
+    // UI Partial Update (to avoid losing focus on textarea)
+    const updateUIState = () => {
+        const hasChanges = state.editedContent !== (state.prompts[state.activeTab] || '');
+
+        // Update stats
+        const statsEl = container.querySelector('.editor-stats');
+        if (statsEl) {
+            statsEl.innerHTML = `
+                ${state.editedContent.length} caracteres | ${state.editedContent.split('\n').length} linhas
+                ${hasChanges ? '<span class="unsaved-indicator"> ● Não salvo</span>' : ''}
+            `;
+        }
+
+        // Update buttons
+        const saveBtn = container.querySelector('#btn-save');
+        const revertBtn = container.querySelector('#btn-revert');
+
+        if (saveBtn) saveBtn.disabled = !hasChanges || state.saving;
+        if (revertBtn) revertBtn.disabled = !hasChanges || state.saving;
+    };
+
+    // Logic Functions
     const loadPrompts = async () => {
         try {
-            setLoading(true);
+            state.loading = true;
+            render();
+
             const response = await api.get('/iva-prompts');
-            setPrompts(response.data.prompts || {});
-            setLoading(false);
+            state.prompts = response.data.prompts || {};
+
+            // Set initial content if active tab exists
+            if (state.prompts[state.activeTab]) {
+                state.editedContent = state.prompts[state.activeTab];
+            } else {
+                // If system tab is missing, pick first available
+                const keys = Object.keys(state.prompts);
+                if (keys.length > 0) {
+                    state.activeTab = keys[0];
+                    state.editedContent = state.prompts[keys[0]];
+                }
+            }
+
+            state.loading = false;
+            render();
         } catch (error) {
             console.error('Error loading prompts:', error);
-            setMessage({ type: 'error', text: 'Erro ao carregar prompts' });
-            setLoading(false);
+            state.message = { type: 'error', text: 'Erro ao carregar prompts' };
+            state.loading = false;
+            render();
         }
     };
 
     const handleSave = async () => {
-        if (saving) return;
+        if (state.saving) return;
 
         const confirmed = window.confirm(
-            `Tem certeza que deseja salvar o prompt "${activeTab}"?\n\n` +
+            `Tem certeza que deseja salvar o prompt "${state.activeTab}"?\n\n` +
             'Isso afetará imediatamente o comportamento da IVA para todos os usuários.'
         );
 
         if (!confirmed) return;
 
         try {
-            setSaving(true);
-            setMessage({ type: '', text: '' });
+            state.saving = true;
+            state.message = { type: '', text: '' };
+            render(); // disabled buttons
 
-            await api.put(`/iva-prompts/${activeTab}`, {
-                content: editedContent
+            await api.put(`/iva-prompts/${state.activeTab}`, {
+                content: state.editedContent
             });
 
-            setPrompts(prev => ({
-                ...prev,
-                [activeTab]: editedContent
-            }));
+            state.prompts[state.activeTab] = state.editedContent;
 
-            setMessage({
+            state.message = {
                 type: 'success',
                 text: 'Prompt salvo com sucesso! A IVA está usando o novo comportamento.'
-            });
+            };
 
         } catch (error) {
             console.error('Error saving prompt:', error);
-            setMessage({
+            state.message = {
                 type: 'error',
                 text: error.response?.data?.error || 'Erro ao salvar prompt'
-            });
+            };
         } finally {
-            setSaving(false);
+            state.saving = false;
+            render();
         }
     };
 
@@ -78,92 +239,14 @@ const IvaPromptsManager = () => {
         );
 
         if (confirmed) {
-            setEditedContent(prompts[activeTab] || '');
-            setMessage({ type: 'info', text: 'Alterações descartadas' });
+            state.editedContent = state.prompts[state.activeTab] || '';
+            state.message = { type: 'info', text: 'Alterações descartadas' };
+            render();
         }
     };
 
-    const hasChanges = editedContent !== (prompts[activeTab] || '');
+    // Initialize
+    loadPrompts();
 
-    if (loading) {
-        return <div className="loading">Carregando prompts...</div>;
-    }
-
-    const availableTabs = Object.keys(prompts);
-
-    return (
-        <div className="iva-prompts-manager">
-            <div className="prompts-header">
-                <h3>⚙️ Gerenciamento de Prompts IVA</h3>
-                <p className="prompts-warning">
-                    ⚠️ <strong>Atenção:</strong> Alterações nos prompts afetam imediatamente o comportamento da IVA.
-                    Apenas administradores devem editar.
-                </p>
-            </div>
-
-            {message.text && (
-                <div className={`message message-${message.type}`}>
-                    {message.text}
-                </div>
-            )}
-
-            <div className="prompts-tabs">
-                {availableTabs.map(tab => (
-                    <button
-                        key={tab}
-                        className={`tab-button ${activeTab === tab ? 'active' : ''}`}
-                        onClick={() => setActiveTab(tab)}
-                    >
-                        {tab === 'system' ? '📋 System' : '💬 ' + tab}
-                    </button>
-                ))}
-            </div>
-
-            <div className="prompts-editor-container">
-                <div className="editor-toolbar">
-                    <span className="editor-label">
-                        Editando: <strong>{activeTab}.txt</strong>
-                    </span>
-                    <div className="editor-stats">
-                        {editedContent.length} caracteres | {editedContent.split('\n').length} linhas
-                        {hasChanges && <span className="unsaved-indicator"> ● Não salvo</span>}
-                    </div>
-                </div>
-
-                <textarea
-                    className="prompts-editor"
-                    value={editedContent}
-                    onChange={(e) => setEditedContent(e.target.value)}
-                    placeholder="Conteúdo do prompt..."
-                    spellCheck={false}
-                />
-
-                <div className="editor-actions">
-                    <button
-                        className="btn-revert"
-                        onClick={handleRevert}
-                        disabled={!hasChanges || saving}
-                    >
-                        ↺ Reverter
-                    </button>
-                    <button
-                        className="btn-save"
-                        onClick={handleSave}
-                        disabled={!hasChanges || saving}
-                    >
-                        {saving ? '💾 Salvando...' : '💾 Salvar Prompt'}
-                    </button>
-                </div>
-            </div>
-
-            <div className="prompts-footer">
-                <small>
-                    <strong>Dica:</strong> Use ctrl+F para buscar no texto.
-                    Mudanças são aplicadas imediatamente após salvar.
-                </small>
-            </div>
-        </div>
-    );
+    return container;
 };
-
-export default IvaPromptsManager;
