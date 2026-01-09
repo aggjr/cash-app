@@ -1055,6 +1055,7 @@ Digite 1, 2 ou 3.`;
 
             if (messages.length === 0 || wasDismissed) {
                 console.log('[IVA] Chat opened - generating greeting (Dismissed:', wasDismissed, ')');
+                const isReopening = wasDismissed; // Capture before reset
                 wasDismissed = false; // Reset flag
 
                 if (isFirstSessionInteraction) {
@@ -1110,26 +1111,34 @@ Digite 1, 2 ou 3.`;
                     };
 
                     try {
-                        // System action - will execute update_last_access silently
-                        const decision = await IvaService.decideOperation('IVA_AUTO_GREETING', context, true);
+                        // System action only on first access - will execute update_last_access silently
+                        // On reopening, we want backend to return the help offer message
+                        const useSystemAction = !isReopening;
+                        const decision = await IvaService.decideOperation('IVA_AUTO_GREETING', context, useSystemAction);
 
                         if (thinkingMsg.parentNode) thinkingMsg.parentNode.removeChild(thinkingMsg);
 
                         // If system action returned SILENT, generate greeting on frontend
                         if (decision.action === 'SILENT' || decision.systemAction) {
-                            console.log('[IVA] System action completed silently, generating greeting');
+                            console.log('[IVA] System action completed silently, checking if greeting needed');
 
-                            // Generate appropriate greeting based on time of day
-                            const now = new Date();
-                            const hour = now.getHours();
-                            const greeting = hour >= 5 && hour < 12 ? 'Bom dia' :
-                                hour >= 12 && hour < 19 ? 'Boa tarde' : 'Boa noite';
-                            const user = getUser();
-                            const userName = user?.preferred_name || user?.name?.split(' ')[0] || '';
-                            const greetingMessage = `${greeting}${userName ? ', ' + userName : ''}! Como posso ajudar?`;
+                            // Only generate time-based greeting if this is truly first access of day
+                            // If it's a reopening (wasDismissed was true), backend already handled it
+                            // We can detect this by checking if we're in first session interaction
+                            if (isFirstSessionInteraction) {
+                                // First access of the day - generate time-based greeting
+                                const now = new Date();
+                                const hour = now.getHours();
+                                const greeting = hour >= 5 && hour < 12 ? 'Bom dia' :
+                                    hour >= 12 && hour < 19 ? 'Boa tarde' : 'Boa noite';
+                                const user = getUser();
+                                const userName = user?.preferred_name || user?.name?.split(' ')[0] || '';
+                                const greetingMessage = `${greeting}${userName ? ', ' + userName : ''}! Como posso ajudar?`;
 
-                            addMessage('ai', greetingMessage);
-                            speak(greetingMessage);
+                                addMessage('ai', greetingMessage);
+                                speak(greetingMessage);
+                            }
+                            // If not first session interaction, backend will provide the help offer via REPLY
                         } else if (decision.action === 'REPLY') {
                             addMessage('ai', decision.message);
                             speak(decision.message);
