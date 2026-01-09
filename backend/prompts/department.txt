@@ -1,7 +1,0 @@
-INSTRUÇÕES DE NÍVEL DE DEPARTAMENTO:
-
-(Este espaço é reservado para regras específicas de cada departamento. O conteúdo aqui será inserido no contexto da IVA.)
-
-Exemplos de uso:
-- Se departamento for "Financeiro", priorize linguagem técnica.
-- Se departamento for "Vendas", priorize agilidade.

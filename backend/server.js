@@ -200,6 +200,12 @@ loadErrorCatalog()
     .then(() => require('./migrate_add_user_preferences')()) // NEW: User preferences table
     .then(() => require('./database/migrate_iva_knowledge_layers')()) // NEW: IVA knowledge architecture
     .then(async () => {
+        // Auto-seed prompts (Migration from Files to Qdrant)
+        const QdrantKnowledgeService = require('./services/QdrantKnowledgeService');
+        await QdrantKnowledgeService.seedDefaultPrompts();
+        return;
+    })
+    .then(async () => {
         // 🚀 AUTO-POPULATE QDRANT WITH IVA KNOWLEDGE
         console.log('\n🧠 Checking Qdrant knowledge base...');
         try {
