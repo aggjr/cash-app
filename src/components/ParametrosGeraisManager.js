@@ -2,6 +2,7 @@ import { Dialogs } from './Dialogs.js';
 import { getApiBaseUrl } from '../utils/apiConfig.js';
 import { TabPanel } from './TabPanel.js';
 import { IvaAnalytics } from './IvaAnalytics.js';
+import { IvaPromptsManager } from './IvaPromptsManager.js';
 
 export const ParametrosGeraisManager = (project) => {
     // Create main wrapper for tabs
@@ -412,6 +413,14 @@ export const ParametrosGeraisManager = (project) => {
                     >
                         🧠 Conhecimento IVA
                     </button>
+                    <button 
+                        id="tab-prompts" 
+                        class="modern-tab"
+                        role="tab"
+                        aria-selected="false"
+                    >
+                        📝 Prompts IVA
+                    </button>
                     <div class="modern-tab-indicator"></div>
                 </div>
             </div>
@@ -739,6 +748,11 @@ export const ParametrosGeraisManager = (project) => {
                 <div id="analytics-container" style="background: var(--color-surface); padding: 2rem; border-radius: 12px; border: 1px solid var(--color-border-light);">
                     <p style="color: var(--color-text-muted); text-align: center; padding: 2rem;">Carregando analytics...</p>
                 </div>
+            </div>
+
+            <!-- Tab Content: Prompts (Prompts IVA) -->
+            <div id="content-prompts" class="modern-tab-panel" role="tabpanel" style="display: none;">
+                <div id="prompts-container"></div>
             </div>
 
             <!-- Tab Content: Knowledge (Conhecimento IVA) -->
