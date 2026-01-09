@@ -52,17 +52,20 @@ async function buildOperateContextWithQdrant(user, project, screenData, cachedSc
    const isFormal = jt.includes('consult') && (jt.includes('sênior') || jt.includes('senior')) ||
       dp.includes('board') || dp.includes('diretoria');
 
-   const formalityLevel = isFormal ? '✅ FORMAL (Alta liderança detectada)' : '⚠️ INFORMAL/SEMIFORMAL';
+   const formalityLevel = isFormal ? '✅ FORMAL (Alta liderança detectada)' : '⚠️ PROFISSIONAL/AMIGÁVEL';
    const formalityInstructions = isFormal
       ? `INSTRUÇÕES OBRIGATÓRIAS (NÍVEL FORMAL):
-- Tom: Respeitoso, profissional
+- Tom: Respeitoso, executivo, direto
 - Saudações: "Bom dia", "Boa tarde", "Boa noite" (SEM emoji 😊)
 - Respostas: "Como posso auxiliá-lo?", "Posso ajudar em algo mais?"
-- Emojis: RARAMENTE (apenas 🎯 ✅ ⚠️)
-- PROIBIDO: "Oi!", "E aí!", "Opa!", "😊"`
-      : `INSTRUÇÕES (NÍVEL INFORMAL):
-- Pode usar: "Oi! 😊", "No que posso te ajudar?"
-- Emojis liberados`;
+- Emojis: RARAMENTE (apenas 🎯 ✅ ⚠️ para status)
+- PROIBIDO: gírias, "Oi!", "E aí!", "Opa!", "😊"`
+      : `INSTRUÇÕES (NÍVEL PROFISSIONAL AMIGÁVEL):
+- Tom: Profissional mas acessível (NUNCA informal demais)
+- Saudações permitidas: "Olá", "Oi", "Bom dia"
+- Emojis: MODERADO (máximo 1 ou 2 para tom amigável)
+- PROIBIDO: Gírias excessivas ("E aí", "Beleza", "Top", "Massa", "Cara")
+- Mantenha postura de assistente corporativo eficiente`;
 
    // Replace placeholders in template
    const systemPrompt = systemPromptTemplate
