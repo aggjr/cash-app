@@ -1098,6 +1098,7 @@ Digite 1, 2 ou 3.`;
                 thinkingMsg.innerText = '...';
                 messagesContainer.appendChild(thinkingMsg);
 
+
                 // Send greeting request to backend
                 setTimeout(async () => {
                     const context = {
@@ -1106,11 +1107,27 @@ Digite 1, 2 ou 3.`;
                     };
 
                     try {
-                        const decision = await IvaService.decideOperation('IVA_AUTO_GREETING', context);
+                        // System action - will execute update_last_access silently
+                        const decision = await IvaService.decideOperation('IVA_AUTO_GREETING', context, true);
 
                         if (thinkingMsg.parentNode) thinkingMsg.parentNode.removeChild(thinkingMsg);
 
-                        if (decision.action === 'REPLY') {
+                        // If system action returned SILENT, generate greeting on frontend
+                        if (decision.action === 'SILENT' || decision.systemAction) {
+                            console.log('[IVA] System action completed silently, generating greeting');
+
+                            // Generate appropriate greeting based on time of day
+                            const now = new Date();
+                            const hour = now.getHours();
+                            const greeting = hour >= 5 && hour < 12 ? 'Bom dia' :
+                                hour >= 12 && hour < 19 ? 'Boa tarde' : 'Boa noite';
+                            const user = getUser();
+                            const userName = user?.preferred_name || user?.name?.split(' ')[0] || '';
+                            const greetingMessage = `${greeting}${userName ? ', ' + userName : ''}! Como posso ajudar?`;
+
+                            addMessage('ai', greetingMessage);
+                            speak(greetingMessage);
+                        } else if (decision.action === 'REPLY') {
                             addMessage('ai', decision.message);
                             speak(decision.message);
                         } else if (decision.action === 'NAVIGATE' && decision.target) {
@@ -1139,8 +1156,8 @@ Digite 1, 2 ou 3.`;
                         if (thinkingMsg.parentNode) thinkingMsg.parentNode.removeChild(thinkingMsg);
                         // Fallback based on interaction type
                         const fallbackMsg = isFirstSessionInteraction
-                            ? 'Ol├í! Como posso ajud├í-lo hoje?'
-                            : 'Pois n├úo?';
+                            ? 'Olá! Como posso ajudá-lo hoje?'
+                            : 'Pois não?';
                         addMessage('ai', fallbackMsg);
                     }
                 }, 500);

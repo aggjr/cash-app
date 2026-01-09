@@ -1,7 +1,7 @@
 ﻿import { getApiBaseUrl } from '../utils/apiConfig.js';
 
 export const IvaService = {
-    decideOperation: async (text, context) => {
+    decideOperation: async (text, context, systemAction = false) => {
         try {
             const token = localStorage.getItem('token');
             const API_BASE_URL = getApiBaseUrl();
@@ -20,7 +20,8 @@ export const IvaService = {
                 message: text,
                 currentScreen: context.currentScreen?.id || 'none',
                 screensCount: (context.availableScreens ? Object.values(context.availableScreens) : []).length,
-                hasScreenContext: !!screenContext
+                hasScreenContext: !!screenContext,
+                systemAction
             });
 
             // Get user settings from localStorage
@@ -71,6 +72,7 @@ export const IvaService = {
                     activeScreenContext: context.currentScreenData, // NEW: Semantic Data (The Eyes)
                     userName: user?.name || '', // Full registered name for gender inference
                     preferredName: user?.preferred_name || '', // User's preferred form of address
+                    systemAction, // NEW: Flag for silent system actions
                     userSettings: { // Voice configuration
                         ivaVoiceRate: user?.iva_voice_rate || 70,
                         ivaVoiceMale: user?.iva_voice_male || 0,
