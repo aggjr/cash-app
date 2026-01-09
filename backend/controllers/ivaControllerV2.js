@@ -584,8 +584,13 @@ Siga rigorosamente as INSTRU├ç├òES DE FLUXO DE EXECU├ç├âO E DESCOBER
 
                 if (functionCall.name === 'contribute_knowledge') {
                     const IvaGlobalKnowledge = require('../services/IvaGlobalKnowledge');
-                    await IvaGlobalKnowledge.contribute(args.type, args.data, user.id);
-                    console.log(`[IVA Function Call] ✅ Contributed new knowledge of type: "${args.type}"`);
+
+                    // Map 'rules' alias to 'custom_rules' to prevent errors if LLM hallucinates
+                    let type = args.type;
+                    if (type === 'rules') type = 'custom_rules';
+
+                    await IvaGlobalKnowledge.contribute(type, args.data, user.id);
+                    console.log(`[IVA Function Call] ✅ Contributed new knowledge of type: "${type}"`);
                 }
             } catch (err) {
                 console.error('[IVA Function Call] Γ¥î Error executing function:', err.message);

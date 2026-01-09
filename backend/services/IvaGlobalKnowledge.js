@@ -158,6 +158,13 @@ class IvaGlobalKnowledge {
         } else {
             // Add new
             const newItem = this.createNewItem(data, userId);
+
+            // Ensure array exists
+            if (!knowledge.knowledge[type]) {
+                console.warn(`[IVA Knowledge] Array for type '${type}' not found, initializing empty array.`);
+                knowledge.knowledge[type] = [];
+            }
+
             knowledge.knowledge[type].push(newItem);
             itemToSync = newItem;
             console.log(`[IVA Knowledge] Added new ${type}:`, data.screen_id || data.action_id);
