@@ -25,7 +25,12 @@ const chat = async (req, res, next) => {
         const user = req.user;
 
         if (!message || !message.trim()) {
-            return res.status(400).json({ error: 'Mensagem ├⌐ obrigat├│ria' });
+            return res.status(400).json({ error: 'Mensagem é obrigatória' });
+        }
+
+        // Normalize auto-greeting (Prevents timeout/heavy prompt)
+        if (message === 'IVA_AUTO_GREETING') {
+            message = 'Olá';
         }
 
         // Validate intent before calling LLM (security layer)

@@ -17,7 +17,7 @@ const IntentClassifier = {
             .slice(-1)[0]?.text?.toLowerCase() || '';
 
         // 1. GREETINGS & FAREWELLS (High Priority)
-        if (/^(oi|olá|ola|hey|e aí|eai|bom dia|boa tarde|boa noite)(\s|$|,|!)/i.test(msg)) {
+        if (/^(oi|olá|ola|hey|e aí|eai|bom dia|boa tarde|boa noite|iva_auto_greeting)(\s|$|,|!)/i.test(msg)) {
             return {
                 type: 'GREETING',
                 priority: 'HIGH',
