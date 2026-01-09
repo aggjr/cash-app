@@ -125,7 +125,7 @@ const IntentClassifier = {
         }
 
         // 4. IDENTITY CLARIFICATION ("é a Júlia", "sou o Pedro")
-        if (/(é a|é o|sou a|sou o|me chamo|meu nome é)/i.test(msg)) {
+        if (/(é a|é o|sou a|sou o|me chamo|meu nome é|me chame|me trata|pode me chamar)/i.test(msg)) {
             return {
                 type: 'IDENTITY',
                 priority: 'HIGH',

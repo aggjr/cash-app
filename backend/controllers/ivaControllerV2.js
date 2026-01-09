@@ -640,6 +640,16 @@ Siga rigorosamente as INSTRU├ç├òES DE FLUXO DE EXECU├ç├âO E DESCOBER
             let defaultMessage = 'Entendido!';
             let intentType = intent.type || 'GENERAL';
 
+            // Function-specific confirmations (Better UX than generic 'Entendido')
+            if (functionCall.name === 'save_preferred_name') {
+                const args = JSON.parse(functionCall.arguments);
+                defaultMessage = `Combinado! Vou te chamar de ${args.name} a partir de agora.`;
+            } else if (functionCall.name === 'contribute_knowledge') {
+                defaultMessage = 'Conhecimento registrado com sucesso! Obrigado por me ensinar. 🧠';
+            } else if (functionCall.name === 'save_voice_settings') {
+                defaultMessage = 'Configurações de voz atualizadas!';
+            }
+
             // Customize message based on detected intent
             if (intent.type === 'GREETING') {
                 const hour = new Date().getHours();
