@@ -621,17 +621,41 @@ Siga rigorosamente as INSTRU├ç├òES DE FLUXO DE EXECU├ç├âO E DESCOBER
                 });
             }
 
-            // User-initiated actions should always get a response
-            let defaultMessage = 'Entendido! Salvei sua preferência.';
+            // User-initiated actions should get appropriate response based on intent
+            // Import classifier to determine proper intent
+            const IvaIntentClassifier = require('../utils/ivaIntentClassifier');
+            const intent = IvaIntentClassifier.classifyIntent(message, conversationHistory);
 
-            if (functionCall.name === 'close_chat') {
+            let defaultMessage = 'Entendido!';
+            let intentType = intent.type || 'GENERAL';
+
+            // Customize message based on detected intent
+            if (intent.type === 'GREETING') {
+                const hour = new Date().getHours();
+                const greeting = hour >= 5 && hour < 12 ? 'Bom dia' :
+                    hour >= 12 && hour < 19 ? 'Boa tarde' : 'Boa noite';
+                defaultMessage = `${greeting}! 😊 No que posso te ajudar?`;
+            } else if (intent.type === 'SOCIAL_THANKS') {
+                defaultMessage = 'Por nada! Fico feliz em ajudar! 😊 Precisa de mais alguma coisa?';
+            } else if (intent.type === 'SOCIAL_PRAISE') {
+                defaultMessage = 'Oba! Que bom que gostou! 😊 Posso fazer mais alguma coisa?';
+            } else if (intent.type === 'SOCIAL_CASUAL') {
+                defaultMessage = 'Estou ótima, obrigada! E você? Em que posso ajudar?';
+            } else if (intent.type === 'SOCIAL_FRUSTRATION') {
+                defaultMessage = 'Opa, desculpa! Deixa eu te explicar melhor...';
+            } else if (functionCall.name === 'close_chat') {
                 defaultMessage = 'Até logo! Fechando janela.';
+                intentType = 'FAREWELL';
+            } else if (functionCall.name === 'update_last_access') {
+                // Silent function, should not show message - but if it does, be friendly
+                defaultMessage = 'Oi! 😊 No que posso te ajudar?';
+                intentType = 'GREETING';
             }
 
             const defaultAction = {
                 action: 'REPLY',
                 message: defaultMessage,
-                intent: 'PREFERENCE_UPDATE',
+                intent: intentType,
                 forceClose: req._ivaForceClose || false
             };
             return res.json(defaultAction);
