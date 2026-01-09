@@ -1,10 +1,20 @@
-import api from '../services/api';
+import { getApiBaseUrl } from '../utils/apiConfig.js';
 import '../styles/IvaPromptsManager.css';
 
 export const IvaPromptsManager = () => {
     // Create container
     const container = document.createElement('div');
     container.className = 'iva-prompts-manager';
+    const API_BASE_URL = getApiBaseUrl();
+
+    // Helper for headers
+    const getHeaders = () => {
+        const token = localStorage.getItem('token');
+        return {
+            'Content-Type': 'application/json',
+            'Authorization': `Bearer ${token}`
+        };
+    };
 
     // State
     const state = {
@@ -170,8 +180,14 @@ export const IvaPromptsManager = () => {
             state.loading = true;
             render();
 
-            const response = await api.get('/iva-prompts');
-            state.prompts = response.data.prompts || {};
+            const response = await fetch(`${API_BASE_URL}/iva-prompts`, {
+                headers: getHeaders()
+            });
+
+            if (!response.ok) throw new Error('Failed to load prompts');
+
+            const data = await response.json();
+            state.prompts = data.prompts || {};
 
             // Set initial content if active tab exists
             if (state.prompts[state.activeTab]) {
@@ -210,9 +226,16 @@ export const IvaPromptsManager = () => {
             state.message = { type: '', text: '' };
             render(); // disabled buttons
 
-            await api.put(`/iva-prompts/${state.activeTab}`, {
-                content: state.editedContent
+            const response = await fetch(`${API_BASE_URL}/iva-prompts/${state.activeTab}`, {
+                method: 'PUT',
+                headers: getHeaders(),
+                body: JSON.stringify({ content: state.editedContent })
             });
+
+            if (!response.ok) {
+                const errorData = await response.json();
+                throw new Error(errorData.error || 'Erro ao salvar prompt');
+            }
 
             state.prompts[state.activeTab] = state.editedContent;
 
@@ -225,7 +248,7 @@ export const IvaPromptsManager = () => {
             console.error('Error saving prompt:', error);
             state.message = {
                 type: 'error',
-                text: error.response?.data?.error || 'Erro ao salvar prompt'
+                text: error.message || 'Erro ao salvar prompt'
             };
         } finally {
             state.saving = false;

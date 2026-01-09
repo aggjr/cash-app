@@ -7,10 +7,11 @@ import { IvaPromptsManager } from './IvaPromptsManager.js';
 export const ParametrosGeraisManager = (project) => {
     // Create main wrapper for tabs
     const wrapper = document.createElement('div');
-    wrapper.style.padding = '2rem';
-    wrapper.style.margin = '2rem';
-    wrapper.style.maxWidth = '900px';
-    wrapper.style.height = 'calc(100vh - 200px)';
+    wrapper.style.padding = '1rem';
+    wrapper.style.margin = '1rem';
+    wrapper.style.width = '100%';
+    wrapper.style.maxWidth = '100%';
+    wrapper.style.height = 'calc(100vh - 100px)';
 
     // Create container for "Geral" tab content
     const container = document.createElement('div');
