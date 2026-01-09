@@ -93,7 +93,7 @@ export const IvaPromptsManager = () => {
             <div class="prompts-editor-container">
                 <div class="editor-toolbar">
                     <span class="editor-label">
-                        Editando: <strong>${state.activeTab}.txt</strong>
+                        Editando: <strong>${state.activeTab}</strong>
                     </span>
                     <div class="editor-stats">
                         ${state.editedContent.length} caracteres | ${state.editedContent.split('\n').length} linhas
