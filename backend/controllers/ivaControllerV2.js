@@ -605,10 +605,29 @@ Siga rigorosamente as INSTRU├ç├òES DE FLUXO DE EXECU├ç├âO E DESCOBER
         // If LLM returned only function_call without content, create default response
         if (!responseContent && functionCall) {
             console.log('[IVA Backend] ⚠️ LLM returned only function_call, creating default response');
+
+            // Check if this is an auto-greeting (first interaction)
+            const isAutoGreeting = message === 'IVA_AUTO_GREETING' ||
+                (conversationHistory && conversationHistory.length === 0);
+
+            let defaultMessage = 'Entendido! Salvei sua preferência.';
+
+            if (isAutoGreeting && functionCall.name === 'update_last_access') {
+                // Generate appropriate greeting based on time of day
+                const now = new Date();
+                const hour = now.getHours();
+                const greeting = hour >= 5 && hour < 12 ? 'Bom dia' :
+                    hour >= 12 && hour < 19 ? 'Boa tarde' : 'Boa noite';
+                const userName = userData?.preferred_name || userData?.name?.split(' ')[0] || '';
+                defaultMessage = `${greeting}${userName ? ', ' + userName : ''}! Como posso ajudar?`;
+            } else if (functionCall.name === 'close_chat') {
+                defaultMessage = 'Até logo! Fechando janela.';
+            }
+
             const defaultAction = {
                 action: 'REPLY',
-                message: functionCall.name === 'close_chat' ? 'Até logo! Fechando janela.' : 'Entendido! Salvei sua preferência.',
-                intent: 'PREFERENCE_UPDATE',
+                message: defaultMessage,
+                intent: isAutoGreeting ? 'GREETING' : 'PREFERENCE_UPDATE',
                 forceClose: req._ivaForceClose || false
             };
             return res.json(defaultAction);
