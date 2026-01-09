@@ -34,8 +34,33 @@ export const IvaPromptsManager = () => {
             return;
         }
 
-        const availableTabs = Object.keys(state.prompts);
+        const availableTabsKey = Object.keys(state.prompts);
+
+        // Custom ordering: system -> department -> user
+        const order = ['system', 'department', 'user'];
+        const availableTabs = availableTabsKey.sort((a, b) => {
+            const indexA = order.indexOf(a);
+            const indexB = order.indexOf(b);
+            // If both in list, sort by index
+            if (indexA !== -1 && indexB !== -1) return indexA - indexB;
+            // If one in list, it comes first
+            if (indexA !== -1) return -1;
+            if (indexB !== -1) return 1;
+            // Otherwise alphabetical
+            return a.localeCompare(b);
+        });
+
         const hasChanges = state.editedContent !== (state.prompts[state.activeTab] || '');
+
+        // Label mapping
+        const getTabLabel = (key) => {
+            const map = {
+                'system': '📋 Sistema', // Changed from System
+                'department': '🏢 Departamento',
+                'user': '👤 Usuário'
+            };
+            return map[key] || ('💬 ' + key);
+        };
 
         // Construct HTML
         container.innerHTML = `
@@ -59,7 +84,7 @@ export const IvaPromptsManager = () => {
                         class="tab-button ${state.activeTab === tab ? 'active' : ''}"
                         data-tab="${tab}"
                     >
-                        ${tab === 'system' ? '📋 System' : '💬 ' + tab}
+                        ${getTabLabel(tab)}
                     </button>
                 `).join('')}
             </div>
