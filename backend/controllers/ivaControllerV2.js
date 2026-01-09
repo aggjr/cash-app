@@ -608,8 +608,10 @@ Siga rigorosamente as INSTRU├ç├òES DE FLUXO DE EXECU├ç├âO E DESCOBER
 
             // Check if this is a system action (silent mode)
             const isSystemAction = req.body.systemAction === true;
+            const messageType = req.body.message || '';
 
-            if (isSystemAction) {
+            // CRITICAL: AUTO_GREETING should NEVER be silent, even if systemAction=true
+            if (isSystemAction && messageType !== 'IVA_AUTO_GREETING') {
                 // System actions should not return messages to user
                 console.log('[IVA Backend] System action - no response needed');
                 return res.json({
