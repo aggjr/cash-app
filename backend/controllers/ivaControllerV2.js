@@ -78,6 +78,9 @@ const chat = async (req, res, next) => {
         const IvaUserPreferences = require('../services/IvaUserPreferences');
         const preferredName = await IvaUserPreferences.getPreferredName(userData.id) || userData.name?.split(' ')[0];
 
+        // MERGE QDRANT DATA INTO USERDATA (Critical Fix)
+        userData.preferred_name = preferredName;
+
         console.log('[IVA Operate] Step 3 - User with Qdrant preferences:', JSON.stringify({
             id: userData?.id,
             name: userData?.name,
@@ -498,6 +501,10 @@ Antes de retornar a a├º├úo, classifique a inten├º├úo do usu├írio:
    NÃO USE para: "teste", "ola", perguntas ou correções simples.
    Retorne: { "intent": "LEARNING", "action": "REPLY", "message": "Entendido! Guardei esse novo conhecimento e vou usá-lo quando você me perguntar." }
    IMPORTANTE: Só acione se o usuário estiver claramente instruindo você a aprender.
+
+5. AMBIGUOUS/SHORT - Entradas curtas ou ambíguas (ex: "e?", "hum", "ok", "entendi")
+   Retorne: { "intent": "CLARIFICATION", "action": "REPLY", "message": "Como posso te ajudar com isso?" }
+   PROIBIDO NAVEGAR em inputs curtos/ambíguos.
 
 IMPORTANTE: SEMPRE inclua o campo "intent" na sua resposta JSON!
 
