@@ -460,7 +460,7 @@ Antes de retornar a ação, classifique a intenção do usuário:
 
 1. PREFERENCE_CHANGE - Usuário pede para mudar nome, voz, ou configurações
    Exemplos: "Me chame de Guto", "Mude minha voz", "Pare de falar"
-   OBRIGATÓRIO: Chame a função correspondente (`save_preferred_name`, `save_voice_settings`).
+   OBRIGATÓRIO: Chame a função correspondente (\`save_preferred_name\`, \`save_voice_settings\`).
    NÃO RESPONDA APENAS COM TEXTO. USE A FUNÇÃO.
 
 2. IDENTITY - Usuário pergunta quem você é
