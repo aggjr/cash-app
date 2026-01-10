@@ -53,30 +53,18 @@ const chat = async (req, res, next) => {
             preferred_name: user?.preferred_name
         }));
 
-        // Fetch hierarchical context from DB
-        const [userResult, projectResult] = await Promise.all([
-            db.query('SELECT * FROM users WHERE id = ?', [user.id]),
-            context.projectId ? db.query('SELECT * FROM projects WHERE id = ?', [context.projectId]) : Promise.resolve([[]])
-        ]);
+        // Fetch hierarchical context from DB and Qdrant in PARALLEL
+        const IvaUserPreferences = require('../services/IvaUserPreferences');
 
-        console.log('[IVA Chat] Step 2 - DB Query Result:', JSON.stringify({
-            userResultLength: userResult?.length,
-            userResultFirstLength: userResult?.[0]?.length,
-            userData: userResult?.[0]?.[0] ? {
-                id: userResult[0][0].id,
-                name: userResult[0][0].name,
-                preferred_name: userResult[0][0].preferred_name,
-                job_title: userResult[0][0].job_title,
-                department: userResult[0][0].department
-            } : 'NO DATA'
-        }));
+        const [userResult, projectResult, preferredName] = await Promise.all([
+            db.query('SELECT * FROM users WHERE id = ?', [user.id]),
+            context.projectId ? db.query('SELECT * FROM projects WHERE id = ?', [context.projectId]) : Promise.resolve([[]]),
+            IvaUserPreferences.getPreferredName(user.id)
+        ]);
 
         const userData = userResult[0][0] || user;
         const projectData = projectResult[0][0] || {};
-
-        // Load USER preferences from Qdrant (not MySQL!)
-        const IvaUserPreferences = require('../services/IvaUserPreferences');
-        const preferredName = await IvaUserPreferences.getPreferredName(userData.id) || userData.name?.split(' ')[0];
+        const finalPreferredName = preferredName || userData.name?.split(' ')[0];
 
         // MERGE QDRANT DATA INTO USERDATA (Critical Fix)
         userData.preferred_name = preferredName;
@@ -346,33 +334,19 @@ const operate = async (req, res) => {
             preferred_name: user?.preferred_name
         }));
 
-        // Fetch User and Project Data from DB
-        const [userResult, projectResult] = await Promise.all([
-            db.query('SELECT * FROM users WHERE id = ?', [user.id]),
-            context?.projectId ? db.query('SELECT * FROM projects WHERE id = ?', [context.projectId]) : Promise.resolve([[]])
-        ]);
+        // Fetch User, Project, and Qdrant Data in PARALLEL
+        const IvaUserPreferences = require('../services/IvaUserPreferences');
 
-        console.log('[IVA Operate] Step 2 - DB Query Result:', JSON.stringify({
-            userResultLength: userResult?.length,
-            userResultFirstLength: userResult?.[0]?.length,
-            userData: userResult?.[0]?.[0] ? {
-                id: userResult[0][0].id,
-                name: userResult[0][0].name,
-                preferred_name: userResult[0][0].preferred_name,
-                job_title: userResult[0][0].job_title,
-                department: userResult[0][0].department
-            } : 'NO DATA'
-        }));
+        const [userResult, projectResult, preferredName, lastAccess] = await Promise.all([
+            db.query('SELECT * FROM users WHERE id = ?', [user.id]),
+            context?.projectId ? db.query('SELECT * FROM projects WHERE id = ?', [context.projectId]) : Promise.resolve([[]]),
+            IvaUserPreferences.getPreferredName(user.id),
+            IvaUserPreferences.getLastAccess(user.id)
+        ]);
 
         const userData = userResult[0][0] || user;
         const projectData = projectResult[0][0] || {};
-
-        // Load USER preferences from Qdrant (not MySQL!)
-        const IvaUserPreferences = require('../services/IvaUserPreferences');
-        const preferredName = await IvaUserPreferences.getPreferredName(userData.id) || userData.name?.split(' ')[0];
-
-        // Load last access time for smart greeting
-        const lastAccess = await IvaUserPreferences.getLastAccess(userData.id);
+        const finalPreferredName = preferredName || userData.name?.split(' ')[0];
 
         // ========================================
         // INTENT CLASSIFICATION (EARLY CHECK)
@@ -502,9 +476,11 @@ Antes de retornar a ação, classifique a intenção do usuário:
    Retorne: { "intent": "LEARNING", "action": "REPLY", "message": "Entendido! Guardei esse novo conhecimento e vou usá-lo quando você me perguntar." }
    IMPORTANTE: Só acione se o usuário estiver claramente instruindo você a aprender.
 
-5. AMBIGUOUS/SHORT - Entradas curtas ou ambíguas (ex: "e?", "hum", "ok", "entendi")
-   Retorne: { "intent": "CLARIFICATION", "action": "REPLY", "message": "Como posso te ajudar com isso?" }
-   PROIBIDO NAVEGAR em inputs curtos/ambíguos.
+5. AMBIGUOUS/SHORT - Entradas curtas ou ambíguas (ex: "e?", "hum", "ok", "entendi", "...")
+   - SE O INPUT FOR MENOR QUE 3 CARACTERES E NÃO FOR "SIM" OU "NÃO" (ou variações claras):
+     Retorne: { "intent": "CLARIFICATION", "action": "REPLY", "message": "Como posso te ajudar com isso?" }
+   - PROIBIDO NAVEGAR ou CHAMAR FUNÇÕES em inputs curtos/ambíguos.
+   - PROIBIDO ALUCINAR DADOS. Se não entender, pergunte.
 
 IMPORTANTE: SEMPRE inclua o campo "intent" na sua resposta JSON!
 
@@ -515,8 +491,6 @@ REGRA DE CONTEXTO DE TELA:
   1. O usuário explicitamente pedir para ir para outra tela, OU
   2. Você tentou buscar na tela atual e NÃO encontrou o dado necessário
 - Quando o dado existe na tela atual, use action: "REPLY" com a resposta baseada nos dados da tela
-
-- Quando o dado existe na tela atual, use action: "REPLY" com a resposta baseada nos dados da tela.
 
 6. CICLO INFINITO DE AJUDA (CRÍTICO):
    - SEMPRE termine suas mensagens oferecendo ajuda adicional (exceto em despedidas).

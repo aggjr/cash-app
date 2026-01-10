@@ -50,6 +50,15 @@ export const AIConsultant = () => {
     var IVATimeout = 2000; // Default 2s
     var shouldRestart = false; // Flag for auto-restart
 
+    // PREFETCH STATE (Zero Latency)
+    let prefetchedGreeting = null;
+    let isPrefetching = false;
+    var IVASpeechRec = null;
+    var silenceTimer = null;
+    var accumulatedTranscript = '';
+    var IVATimeout = 2000; // Default 2s
+    var shouldRestart = false; // Flag for auto-restart
+
     // --- State Helpers ---
     const getUser = () => {
         try {
@@ -90,6 +99,43 @@ export const AIConsultant = () => {
             }).catch(e => console.error('Migration sync failed:', e));
         }
     })();
+
+    // --- ZERO LATENCY PREFETCH ---
+    const prefetchGreeting = async () => {
+        const user = getUser();
+        const hasGreetedKey = 'IVA_has_greeted_session_' + (user?.id || 'anon');
+        const hasGreeted = sessionStorage.getItem(hasGreetedKey);
+
+        // Only pre-fetch if we haven't greeted in this session yet
+        // and we are not currently reading/dismissing
+        if (hasGreeted) return;
+
+        console.log('[IVA] ⚡ Prefetching greeting for Zero Latency...');
+        isPrefetching = true;
+
+        try {
+            const context = {
+                currentScreen: IvaKnowledge.activeScreen || 'home',
+                availableScreens: {}
+            };
+
+            // Use systemAction=true so backend knows it's a silent pre-fetch check
+            // BUT backend must return the greeting structure if it generates one
+            const decision = await IvaService.decideOperation('IVA_AUTO_GREETING', context, true);
+
+            if (decision && (decision.action === 'REPLY' || decision.action === 'SILENT' || decision.action === 'NAVIGATE')) {
+                prefetchedGreeting = decision;
+                console.log('[IVA] ⚡ Greeting ready in background.');
+            }
+        } catch (e) {
+            console.warn('[IVA] Prefetch failed', e);
+        } finally {
+            isPrefetching = false;
+        }
+    };
+
+    // Trigger prefetch immediately
+    setTimeout(prefetchGreeting, 1000);
 
     // --- Voice Logic (TTS) ---
     // == TTS Function (MODIFIED TO SUPPORT VOICE TYPES & RATES) ==
@@ -1022,14 +1068,12 @@ Digite 1, 2 ou 3.`;
 
 
     const toggleChat = async () => {
-        // Unlock Audio Context immediately on user interaction to prevent Autoplay blocks
+        // Unlock Audio Context immediately on user interaction
         try {
             if (window.speechSynthesis) window.speechSynthesis.resume();
-
-            // "Prime" the HTML5 Audio for Google TTS by playing a silent buffer
             const silentAudio = new Audio('data:audio/wav;base64,UklGRigAAABXQVZFZm10IBIAAAABAAEARKwAAIhYAQACABAgZGF0YQQAAAAAAA==');
             silentAudio.volume = 0.01;
-            silentAudio.play().catch(() => { }); // Low volume, catch error if strictly blocked
+            silentAudio.play().catch(() => { });
         } catch (e) { console.error('Audio unlock failed', e); }
 
         isOpen = !isOpen;
@@ -1037,152 +1081,106 @@ Digite 1, 2 ou 3.`;
 
         if (isOpen) {
             const user = getUser();
+            console.log('[IVA] Chat opened. Messages:', messages.length);
 
-            console.log('[IVA] Chat opened. Messages count:', messages.length, 'User introduced:', user?.IVA_introduced);
+            // 1. CHECK PREFETCHED GREETING (Zero Latency)
+            if (prefetchedGreeting) {
+                console.log('[IVA] ⚡ Using prefetched greeting!');
+                const decision = prefetchedGreeting;
+                prefetchedGreeting = null; // Consume it
 
-            // Auto-greeting logic
+                // Mark session
+                const hasGreetedKey = 'IVA_has_greeted_session_' + (user?.id || 'anon');
+                sessionStorage.setItem(hasGreetedKey, 'true');
+
+                if (decision.action === 'REPLY') {
+                    addMessage('ai', decision.message);
+                    speak(decision.message);
+                } else if (decision.action === 'NAVIGATE') {
+                    if (decision.message) {
+                        addMessage('ai', decision.message);
+                        speak(decision.message);
+                    }
+                    if (typeof MenuNavigator !== 'undefined') MenuNavigator.navigate(decision.target);
+                }
+                renderMessages();
+                input.focus();
+                return;
+            }
+
+            // Auto-greeting logic (Fallback if no prefetch)
             const hasGreetedKey = 'IVA_has_greeted_session_' + (user?.id || 'anon');
             const lastGreetingDateKey = 'IVA_last_greeting_date_' + (user?.id || 'anon');
-            const lastLoginKey = 'IVA_last_login_' + (user?.id || 'anon');
-
             const hasGreeted = sessionStorage.getItem(hasGreetedKey);
             const today = new Date().toISOString().split('T')[0];
             const lastGreetingDate = localStorage.getItem(lastGreetingDateKey);
-            const isFirstGreetingOfDay = lastGreetingDate !== today;
 
-            // Always greet when opening chat, but style differs
             const isFirstSessionInteraction = !hasGreeted && messages.length === 0;
 
             if (messages.length === 0 || wasDismissed) {
-                console.log('[IVA] Chat opened - generating greeting (Dismissed:', wasDismissed, ')');
-                const isReopening = wasDismissed; // Capture before reset
-                wasDismissed = false; // Reset flag
+                console.log('[IVA] Chat opened - generating greeting. Dismissed:', wasDismissed);
+                const isReopening = wasDismissed;
+                wasDismissed = false;
 
                 if (isFirstSessionInteraction) {
-                    console.log('[IVA] First open in session - full welcome');
                     sessionStorage.setItem(hasGreetedKey, 'true');
                     localStorage.setItem(lastGreetingDateKey, today);
-                } else {
-                    console.log('[IVA] Chat reopened - short greeting');
                 }
 
-                // Calculate time since last visit (only for first session interaction)
-                let timeMessage = '';
-                if (isFirstSessionInteraction) {
-                    const lastLoginIndex = localStorage.getItem(lastLoginKey);
-
-                    if (lastLoginIndex) {
-                        const lastDate = new Date(parseInt(lastLoginIndex));
-                        const now = new Date();
-                        const diffMs = now - lastDate;
-                        const diffMins = Math.floor(diffMs / 60000);
-                        const diffHours = Math.floor(diffMs / 3600000);
-                        const diffDays = Math.floor(diffMs / 86400000);
-
-                        if (diffDays > 0) {
-                            timeMessage = `O usu├írio n├úo entrava h├í ${diffDays} dias.`;
-                        } else if (diffHours > 0) {
-                            timeMessage = `O usu├írio n├úo entrava h├í ${diffHours} horas.`;
-                        } else if (diffMins > 0) {
-                            timeMessage = `O usu├írio esteve aqui h├í apenas ${diffMins} minutos.`;
-                        } else {
-                            timeMessage = `O usu├írio acabou de sair e voltou.`;
-                        }
-                    } else {
-                        timeMessage = '├ë a primeira vez que este usu├írio loga no sistema recentemente.';
-                    }
-
-                    // Update last login
-                    localStorage.setItem(lastLoginKey, Date.now().toString());
-                }
-
-                // Simulate thinking state
                 const thinkingMsg = document.createElement('div');
                 thinkingMsg.className = 'thinking-bubble';
                 thinkingMsg.innerText = '...';
                 messagesContainer.appendChild(thinkingMsg);
 
-
-                // Send greeting request to backend
-                setTimeout(async () => {
+                // ZERO DELAY - Call backend immediately
+                (async () => {
                     const context = {
                         currentScreen: IvaKnowledge.activeScreen,
                         availableScreens: IvaKnowledge.screens
                     };
 
                     try {
-                        // System action only on first access - will execute update_last_access silently
-                        // On reopening, we want backend to return the help offer message
+                        // System action = true if NOT reopening (first load check)
+                        // But here we ARE opening, so we want the help offer.
+                        // If it's a reopen, we definitely want a prompt (false).
+                        // If it's first load but prefetch failed, we still want prompt.
                         const useSystemAction = !isReopening;
-                        const decision = await IvaService.decideOperation('IVA_AUTO_GREETING', context, useSystemAction);
+
+                        // We forced useSystemAction to FALSE here because we are OPENING the chat, 
+                        // so we demand a response now.
+                        const decision = await IvaService.decideOperation('IVA_AUTO_GREETING', context, false);
 
                         if (thinkingMsg.parentNode) thinkingMsg.parentNode.removeChild(thinkingMsg);
 
-                        // If system action returned SILENT, generate greeting on frontend
-                        if (decision.action === 'SILENT' || decision.systemAction) {
-                            console.log('[IVA] System action completed silently, checking if greeting needed');
-
-                            // Only generate time-based greeting if this is truly first access of day
-                            // If it's a reopening (wasDismissed was true), backend already handled it
-                            // We can detect this by checking if we're in first session interaction
-                            if (isFirstSessionInteraction) {
-                                // First access of the day - generate time-based greeting
-                                const now = new Date();
-                                const hour = now.getHours();
-                                const greeting = hour >= 5 && hour < 12 ? 'Bom dia' :
-                                    hour >= 12 && hour < 19 ? 'Boa tarde' : 'Boa noite';
-                                const user = getUser();
-                                const userName = user?.preferred_name || user?.name?.split(' ')[0] || '';
-                                const greetingMessage = `${greeting}${userName ? ', ' + userName : ''}! Como posso ajudar?`;
-
-                                addMessage('ai', greetingMessage);
-                                speak(greetingMessage);
-                            }
-                            // If not first session interaction, backend will provide the help offer via REPLY
-                        } else if (decision.action === 'REPLY') {
+                        if (decision.action === 'REPLY') {
                             addMessage('ai', decision.message);
                             speak(decision.message);
                         } else if (decision.action === 'NAVIGATE' && decision.target) {
-                            // Handle navigation action in greeting
-                            console.log('[IVA] Greeting navigation to:', decision.target);
                             if (decision.message) {
                                 addMessage('ai', decision.message);
                                 speak(decision.message);
                             }
-                            // Execute navigation
-                            if (typeof MenuNavigator !== 'undefined') {
-                                MenuNavigator.navigate(decision.target);
-                            } else {
-                                console.error('[IVA] MenuNavigator not available for navigation');
-                            }
+                            if (typeof MenuNavigator !== 'undefined') MenuNavigator.navigate(decision.target);
                         }
 
-                        // Handle auto-close from greeting
                         if (decision.forceClose) {
                             wasDismissed = true;
-                            setTimeout(() => {
-                                if (isOpen) toggleChat();
-                            }, 3000);
+                            if (isOpen) toggleChat();
                         }
                     } catch (e) {
                         console.error('Greeting error:', e);
                         if (thinkingMsg.parentNode) thinkingMsg.parentNode.removeChild(thinkingMsg);
-                        // Fallback based on interaction type
-                        const fallbackMsg = isFirstSessionInteraction
-                            ? 'Olá! Como posso ajudá-lo hoje?'
-                            : 'Pois não?';
+                        const fallbackMsg = isFirstSessionInteraction ? 'Olá! Como posso ajudar?' : 'Pois não?';
                         addMessage('ai', fallbackMsg);
                     }
-                }, 500);
+                })();
+                // Removed 500ms delay
 
             } else {
-                console.log('[IVA] Messages exist, rendering history');
                 renderMessages();
                 input.focus();
             }
         } else {
-            // Chat is closing - clear navigation indicators
-            console.log('[IVA] Chat closing - clearing navigation indicators');
             IvaNavigationIndicator.clearAll();
         }
     };
@@ -1641,7 +1639,7 @@ Digite 1, 2 ou 3.`;
             }
         }
 
-        // Simulate thinking
+        // Simulate thinking (ZERO DELAY)
         const loadingDiv = document.createElement('div');
         loadingDiv.textContent = '...';
         loadingDiv.style.alignSelf = 'flex-start';
@@ -1650,7 +1648,7 @@ Digite 1, 2 ou 3.`;
         messagesContainer.appendChild(loadingDiv);
         messagesContainer.scrollTop = messagesContainer.scrollHeight;
 
-        setTimeout(async () => {
+        (async () => {
             loadingDiv.remove();
 
             // Handle Navigation Confirmation
