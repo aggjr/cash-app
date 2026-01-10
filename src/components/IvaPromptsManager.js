@@ -1,4 +1,5 @@
 import { getApiBaseUrl } from '../utils/apiConfig.js';
+import { SharedTable } from './SharedTable.js';
 import '../styles/IvaPromptsManager.css';
 
 export const IvaPromptsManager = () => {
@@ -29,7 +30,7 @@ export const IvaPromptsManager = () => {
         // Audit State
         auditLoading: false,
         pendingKnowledge: [],
-        scopeFilter: '',
+        auditTableInstance: null, // SharedTable instance
 
         message: { type: '', text: '' },
         loading: true
@@ -68,8 +69,8 @@ export const IvaPromptsManager = () => {
                 </div>
             ` : ''}
 
-            <div id="mode-content">
-                ${state.mode === 'prompts' ? renderPromptsUI() : renderAuditUI()}
+            <div id="mode-content" style="flex: 1; display: flex; flex-direction: column; overflow: hidden; min-height: 400px;">
+                ${state.mode === 'prompts' ? renderPromptsUI() : '<div id="audit-table-container" style="flex: 1; display: flex; flex-direction: column; overflow: hidden;"></div>'}
             </div>
             
             <div class="prompts-footer">
@@ -82,6 +83,11 @@ export const IvaPromptsManager = () => {
         `;
 
         attachListeners();
+
+        // If in Audit mode, init/render table
+        if (state.mode === 'audit') {
+            initAuditTable();
+        }
     };
 
     // --- PROMPTS UI GEN ---
@@ -145,91 +151,105 @@ export const IvaPromptsManager = () => {
         `;
     };
 
-    // --- AUDIT UI GEN ---
-    const renderAuditUI = () => {
+    // --- AUDIT TABLE LOGIC ---
+    const initAuditTable = () => {
+        const tableContainer = container.querySelector('#audit-table-container');
+        if (!tableContainer) return;
+
         if (state.auditLoading) {
-            return '<div class="loading">Carregando auditoria...</div>';
+            tableContainer.innerHTML = '<div class="loading">Carregando auditoria...</div>';
+            return;
         }
 
-        const filtered = state.pendingKnowledge.filter(item =>
-            !state.scopeFilter || item.layer === state.scopeFilter
-        );
+        // Define Columns
+        const columns = [
+            { key: 'created_at', label: 'Data', type: 'date', width: '100px', align: 'left', sortable: true },
+            {
+                key: 'audit_action', label: 'Tipo', width: '100px', align: 'center', sortable: true,
+                render: (item) => {
+                    const isNew = item.audit_action === 'CREATE';
+                    return isNew
+                        ? '<span class="badge badge-new" style="background:#e3f2fd; color:#1565c0; padding:4px 8px; border-radius:4px; font-size:0.8em;">Novo</span>'
+                        : '<span class="badge badge-update" style="background:#fff3e0; color:#ef6c00; padding:4px 8px; border-radius:4px; font-size:0.8em;">Alteração</span>';
+                }
+            },
+            {
+                key: 'layer', label: 'Escopo', width: '120px', align: 'center', sortable: true,
+                render: (item) => {
+                    const colors = {
+                        'GLOBAL': '#616161',
+                        'department': '#7b1fa2',
+                        'role': '#0288d1',
+                        'user': '#388e3c'
+                    };
+                    const color = colors[item.layer] || colors[item.layer?.toLowerCase()] || '#616161';
+                    return `<span class="badge" style="background:${color}15; color:${color}; padding:4px 8px; border-radius:4px; font-size:0.8em; font-weight:600;">${item.layer}</span>`;
+                }
+            },
+            {
+                key: 'description', label: 'Conhecimento', type: 'text', align: 'left',
+                render: (item) => {
+                    const isNew = item.audit_action === 'CREATE';
+                    if (isNew) {
+                        return `<div style="white-space:pre-wrap; font-size:0.9em; max-height:100px; overflow-y:auto;">${escapeHtml(item.description || item.text || '')}</div>`;
+                    } else {
+                        return `
+                            <div style="font-size:0.9em;">
+                                <div style="color:#d32f2f; margin-bottom:4px; font-size:0.85em;"><strong>Antigo:</strong> ${escapeHtml(item.previous_description || '(Sem histórico)')}</div>
+                                <div style="color:#2e7d32;"><strong>Novo:</strong> ${escapeHtml(item.description || item.text || '')}</div>
+                            </div>
+                        `;
+                    }
+                }
+            },
+            {
+                key: 'actions', label: 'Ações', width: '140px', align: 'center', noFilter: true,
+                render: (item) => {
+                    const div = document.createElement('div');
+                    div.style.display = 'flex';
+                    div.style.gap = '8px';
+                    div.style.justifyContent = 'center';
 
-        return `
-            <div class="audit-container">
-                <div class="audit-toolbar">
-                    <div class="audit-filters">
-                        <select id="audit-scope-filter">
-                            <option value="">Todos os Escopos</option>
-                            <option value="GLOBAL" ${state.scopeFilter === 'GLOBAL' ? 'selected' : ''}>Global</option>
-                            <option value="DEPARTMENT" ${state.scopeFilter === 'DEPARTMENT' ? 'selected' : ''}>Departamento</option>
-                            <option value="ROLE" ${state.scopeFilter === 'ROLE' ? 'selected' : ''}>Cargo</option>
-                        </select>
-                    </div>
-                    <div>
-                        <strong>${filtered.length}</strong> itens pendentes
-                    </div>
-                </div>
+                    const btnApprove = document.createElement('button');
+                    btnApprove.innerHTML = '✅';
+                    btnApprove.title = 'Aprovar';
+                    btnApprove.className = 'action-btn';
+                    btnApprove.style.border = 'none'; btnApprove.style.background = 'transparent'; btnApprove.style.cursor = 'pointer'; btnApprove.style.fontSize = '1.2em';
+                    btnApprove.onclick = () => handleApprove(item.id);
 
-                <div class="audit-table-wrapper">
-                    ${filtered.length === 0 ? `
-                        <div style="text-align:center; padding: 3rem; color: #666;">
-                            🎉 Nenhum item pendente para este filtro!
-                        </div>
-                    ` : `
-                        <table class="audit-table">
-                            <thead>
-                                <tr>
-                                    <th>Data</th>
-                                    <th>Tipo</th>
-                                    <th>Escopo</th>
-                                    <th style="width: 50%;">Conhecimento</th>
-                                    <th>Ações</th>
-                                </tr>
-                            </thead>
-                            <tbody>
-                                ${filtered.map(item => renderAuditRow(item)).join('')}
-                            </tbody>
-                        </table>
-                    `}
-                </div>
-            </div>
-        `;
-    };
+                    const btnEdit = document.createElement('button');
+                    btnEdit.innerHTML = '✏️';
+                    btnEdit.title = 'Editar';
+                    btnEdit.className = 'action-btn';
+                    btnEdit.style.border = 'none'; btnEdit.style.background = 'transparent'; btnEdit.style.cursor = 'pointer'; btnEdit.style.fontSize = '1.2em';
+                    btnEdit.onclick = () => handleEdit(item.id);
 
-    const renderAuditRow = (item) => {
-        const isNew = item.audit_action === 'CREATE';
-        const date = new Date(item.created_at).toLocaleDateString('pt-BR');
+                    const btnReject = document.createElement('button');
+                    btnReject.innerHTML = '❌';
+                    btnReject.title = 'Rejeitar';
+                    btnReject.className = 'action-btn';
+                    btnReject.style.border = 'none'; btnReject.style.background = 'transparent'; btnReject.style.cursor = 'pointer'; btnReject.style.fontSize = '1.2em';
+                    btnReject.onclick = () => handleReject(item.id);
 
-        let contentHtml = '';
-        if (isNew) {
-            contentHtml = `<div class="audit-desc">${escapeHtml(item.description || item.text || '')}</div>`;
-        } else {
-            // Updated item - Show Diff
-            contentHtml = `
-                <div class="audit-desc">
-                    <span class="diff-old">Antigo: ${escapeHtml(item.previous_description || '(Sem histórico)')}</span>
-                    <span class="diff-new">Novo: ${escapeHtml(item.description || item.text || '')}</span>
-                </div>
-            `;
-        }
+                    div.appendChild(btnApprove);
+                    div.appendChild(btnEdit);
+                    div.appendChild(btnReject);
+                    return div;
+                }
+            }
+        ];
 
-        const badgeType = isNew ? '<span class="badge badge-new">Novo</span>' : '<span class="badge badge-update">Alteração</span>';
-        const badgeScope = `<span class="badge badge-scope-${item.layer?.toLowerCase() || 'global'}">${item.layer}</span>`;
+        // Instantiate SharedTable
+        state.auditTableInstance = new SharedTable({
+            container: tableContainer,
+            columns: columns,
+            projectId: null,
+            endpointPrefix: null, // Client-side mode
+            enableSelection: false // No massive selection needed for now
+        });
 
-        return `
-            <tr>
-                <td style="white-space:nowrap; color:#666;">${date}</td>
-                <td>${badgeType}</td>
-                <td>${badgeScope}</td>
-                <td>${contentHtml}</td>
-                <td style="white-space:nowrap;">
-                    <button class="action-btn btn-approve" data-id="${item.id}" title="Aprovar">✅</button>
-                    <button class="action-btn btn-edit" data-id="${item.id}" title="Editar">✏️</button>
-                    <button class="action-btn btn-reject" data-id="${item.id}" title="Rejeitar/Excluir">❌</button>
-                </td>
-            </tr>
-        `;
+        // Render Data
+        state.auditTableInstance.render(state.pendingKnowledge);
     };
 
     const escapeHtml = (text) => {
@@ -253,7 +273,7 @@ export const IvaPromptsManager = () => {
         };
 
         if (state.mode === 'prompts') attachPromptsListeners();
-        else attachAuditListeners();
+        // Audit listeners handled inside table render usually, but top level ones here
     };
 
     const attachPromptsListeners = () => {
@@ -305,28 +325,6 @@ export const IvaPromptsManager = () => {
         if (refreshCtxBtn) refreshCtxBtn.addEventListener('click', loadDebugContext);
     };
 
-    const attachAuditListeners = () => {
-        // Filter
-        const filter = container.querySelector('#audit-scope-filter');
-        if (filter) {
-            filter.addEventListener('change', (e) => {
-                state.scopeFilter = e.target.value;
-                render();
-            });
-        }
-
-        // Actions
-        container.querySelectorAll('.btn-approve').forEach(btn => {
-            btn.addEventListener('click', () => handleApprove(btn.dataset.id));
-        });
-        container.querySelectorAll('.btn-reject').forEach(btn => {
-            btn.addEventListener('click', () => handleReject(btn.dataset.id));
-        });
-        container.querySelectorAll('.btn-edit').forEach(btn => {
-            btn.addEventListener('click', () => handleEdit(btn.dataset.id));
-        });
-    };
-
     // --- LOGIC: PROMPTS ---
     const loadPrompts = async () => {
         try {
@@ -345,7 +343,7 @@ export const IvaPromptsManager = () => {
                 state.editedContent = state.prompts[state.activeTab];
             }
             state.loading = false;
-            // Only render if in prompt mode to avoid switching user context
+            // Only render if in prompt mode
             if (state.mode === 'prompts') render();
         } catch (error) {
             console.error(error);
@@ -375,7 +373,19 @@ export const IvaPromptsManager = () => {
         }
     };
 
-    const loadDebugContext = async () => { /* ... existing ... */ };
+    const loadDebugContext = async () => {
+        try {
+            const response = await fetch(`${API_BASE_URL}/iva/debug-context`, { headers: getHeaders() });
+            if (!response.ok) throw new Error('Failed to load context');
+            const data = await response.text();
+            state.editedContent = data; // It returns Markdown usually
+            const textarea = container.querySelector('#prompts-textarea');
+            if (textarea) textarea.value = data;
+        } catch (e) {
+            state.editedContent = 'Erro ao carregar contexto: ' + e.message;
+            render();
+        }
+    };
 
     // --- LOGIC: AUDIT ---
     const loadPendingKnowledge = async () => {
@@ -394,13 +404,16 @@ export const IvaPromptsManager = () => {
         }
     };
 
-    const handleApprove = async (id) => {
-        if (!confirm('Aprovar este conhecimento?')) return;
+    const handleApprove = async (id, refinedText = null) => {
+        if (!refinedText && !confirm('Aprovar este conhecimento?')) return;
         try {
+            const body = { id };
+            if (refinedText) body.refinedText = refinedText;
+
             const response = await fetch(`${API_BASE_URL}/iva/knowledge/approve`, {
                 method: 'POST',
                 headers: getHeaders(),
-                body: JSON.stringify({ id })
+                body: JSON.stringify(body)
             });
             if (!response.ok) throw new Error('Erro ao aprovar');
 
@@ -439,27 +452,8 @@ export const IvaPromptsManager = () => {
         const newText = prompt('Refinar o conhecimento:', currentText);
 
         if (newText !== null && newText !== currentText) {
-            // Approve with refinement
-            // Or update "pending" state? User objective: "Edit: Allow refinement of knowledge description before approval."
-            // Action usually implies "Edit then Approve" or "Save as Pending"? 
-            // Logic in backend 'approveKnowledge' accepts refinedText.
-            // So here we can just Approve with the new text immediately.
-
             if (confirm('Aprovar com o novo texto editado?')) {
-                try {
-                    const response = await fetch(`${API_BASE_URL}/iva/knowledge/approve`, {
-                        method: 'POST',
-                        headers: getHeaders(),
-                        body: JSON.stringify({ id, refinedText: newText })
-                    });
-                    if (!response.ok) throw new Error('Erro ao aprovar edição');
-
-                    state.pendingKnowledge = state.pendingKnowledge.filter(i => i.id !== id);
-                    state.message = { type: 'success', text: 'Conhecimento editado e aprovado!' };
-                    render();
-                } catch (e) {
-                    alert(e.message);
-                }
+                handleApprove(id, newText);
             }
         }
     };
