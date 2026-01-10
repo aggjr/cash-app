@@ -455,11 +455,15 @@ Reforce o uso das preferências aprendidas (Nome, Voz, Estilo).`
 
             // Search/Scroll (using scroll to get all rules, or search with blank query?)
             // Scroll is better for "Give me everything matching filter"
-            const result = await VectorSearchService.scroll(filter, 20);
+            // We increase limit to 50 and filter "pending" in JS to support legacy data (missing field)
+            const result = await VectorSearchService.scroll(filter, 50);
 
             if (result && result.points) {
                 // Deduplicate and format
-                return result.points.map(p => p.payload.text || p.payload.description).filter(Boolean);
+                return result.points
+                    .filter(p => p.payload.audit_status !== 'pending') // Exclude pending
+                    .map(p => p.payload.text || p.payload.description)
+                    .filter(Boolean);
             }
         } catch (err) {
             console.error(`[Qdrant Knowledge] Error loading learned rules for ${scope}:`, err.message);

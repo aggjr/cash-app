@@ -180,6 +180,20 @@ class VectorSearchService {
     }
 
     /**
+     * Deletar por UUID direto
+     */
+    async deletePointByUuid(uuid) {
+        try {
+            console.log(`[VectorSearch] Deleting point UUID: ${uuid}`);
+            await this.request('POST', `/collections/${this.collectionName}/points/delete`, {
+                points: [uuid],
+            });
+        } catch (error) {
+            console.error('[VectorSearch] Error deleting point by UUID:', error.message);
+        }
+    }
+
+    /**
      * Helper para gerar UUID válido a partir de string ID
      * Qdrant aceita apenas UUID ou integer, não strings arbitrárias
      */

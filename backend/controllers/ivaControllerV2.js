@@ -115,7 +115,8 @@ const chat = async (req, res, next) => {
 
         // Get time context
         const now = new Date();
-        const hour = now.getHours();
+        // FIX: Force Brazil Timezone (UTC-3)
+        const hour = parseInt(new Intl.DateTimeFormat('pt-BR', { hour: 'numeric', hour12: false, timeZone: 'America/Sao_Paulo' }).format(now));
         const timeOfDay = hour >= 5 && hour < 12 ? 'manh├ú' : hour >= 12 && hour < 19 ? 'tarde' : 'noite';
 
         // Build contextual system prompt based on intent
@@ -321,7 +322,8 @@ const operate = async (req, res) => {
         // Get state and time context
         const ivaIntroduced = user?.iva_introduced || false;
         const now = new Date();
-        const hour = now.getHours();
+        // FIX: Force Brazil Timezone (UTC-3)
+        const hour = parseInt(new Intl.DateTimeFormat('pt-BR', { hour: 'numeric', hour12: false, timeZone: 'America/Sao_Paulo' }).format(now));
         const timeOfDay = hour >= 5 && hour < 12 ? 'manh├ú' : hour >= 12 && hour < 19 ? 'tarde' : 'noite';
 
         // ========================================
@@ -351,7 +353,21 @@ const operate = async (req, res) => {
         // ========================================
         // INTENT CLASSIFICATION (EARLY CHECK)
         // ========================================
+        if (message === 'IVA_AUTO_GREETING') {
+            message = 'Olá, boa noite'; // Force natural greeting for better Intent Classification
+        }
+
+        // ========================================
+        // INTENT CLASSIFICATION (EARLY CHECK)
+        // ========================================
         const intent = IntentClassifier.classify(message, conversationHistory || []);
+
+        console.log('[IVA Operate] Preferred Name Debug:', {
+            qdrant: preferredName,
+            userDB: userData.name,
+            final: finalPreferredName,
+            userId: user.id
+        });
 
         if (intent.type === 'LEARNING') {
             console.log('[IVA Operate] ≡ƒºá Learning intent detected, bypassing normal loop');
@@ -662,19 +678,24 @@ Siga rigorosamente as INSTRUÇÕES DE FLUXO DE EXECUÇÃO E DESCOBERTA enviadas 
             let defaultMessage = 'Entendido!';
             let intentType = intent.type || 'GENERAL';
 
+            let userUpdates = null;
+
             // Function-specific confirmations (Better UX than generic 'Entendido')
             if (functionCall.name === 'save_preferred_name') {
                 const args = JSON.parse(functionCall.arguments);
                 defaultMessage = `Combinado! Vou te chamar de ${args.name} a partir de agora.`;
+                userUpdates = { preferred_name: args.name };
             } else if (functionCall.name === 'contribute_knowledge') {
                 defaultMessage = 'Conhecimento registrado com sucesso! Obrigado por me ensinar. 🧠';
             } else if (functionCall.name === 'save_voice_settings') {
+                const args = JSON.parse(functionCall.arguments);
                 defaultMessage = 'Configurações de voz atualizadas!';
+                userUpdates = args;
             }
 
             // Customize message based on detected intent
             if (intent.type === 'GREETING') {
-                const hour = new Date().getHours();
+                const hour = parseInt(new Intl.DateTimeFormat('pt-BR', { hour: 'numeric', hour12: false, timeZone: 'America/Sao_Paulo' }).format(new Date()));
                 const greeting = hour >= 5 && hour < 12 ? 'Bom dia' :
                     hour >= 12 && hour < 19 ? 'Boa tarde' : 'Boa noite';
 
@@ -683,8 +704,8 @@ Siga rigorosamente as INSTRUÇÕES DE FLUXO DE EXECUÇÃO E DESCOBERTA enviadas 
                 const isExecutive = jobTitle.includes('diretor') || jobTitle.includes('ceo') || jobTitle.includes('presidente') || jobTitle.includes('head');
                 const isFormal = isExecutive || (userData?.department === 'Diretoria');
 
-                // Name logic
-                const name = userData?.preferred_name || userData?.name?.split(' ')[0] || '';
+                // Name logic (FIX: Prioritize Qdrant preferredName)
+                const name = preferredName || userData?.preferred_name || userData?.name?.split(' ')[0] || '';
                 const prefix = isFormal ? (userData?.gender === 'F' ? 'Sra.' : 'Sr.') : '';
                 const displayName = isFormal ? `${prefix} ${name}` : name;
 
@@ -712,7 +733,8 @@ Siga rigorosamente as INSTRUÇÕES DE FLUXO DE EXECUÇÃO E DESCOBERTA enviadas 
                 action: 'REPLY',
                 message: defaultMessage,
                 intent: intentType,
-                forceClose: req._ivaForceClose || false
+                forceClose: req._ivaForceClose || false,
+                userUpdates // Pass updates to frontend
             };
             return res.json(defaultAction);
         }
@@ -749,6 +771,46 @@ Siga rigorosamente as INSTRUÇÕES DE FLUXO DE EXECUÇÃO E DESCOBERTA enviadas 
             // Handle raw { action: "NAVIGATE", target: "screen" } vs { action: "NAVIGATE", screen: "screen" }
             else if (action.action === 'NAVIGATE' && !action.screen && action.target) {
                 action.screen = action.target;
+            }
+
+            // --- LEARNING FALLBACK (Critical Fix) ---
+            // If LLM says intent is LEARNING but didn't call the function, we do it manually
+            if (action.intent === 'LEARNING') {
+                console.log('[IVA Backend] 🧠 Learning Intent detected in JSON response (Fallback)');
+
+                const IvaGlobalKnowledge = require('../services/IvaGlobalKnowledge');
+                const IvaIntentClassifier = require('../utils/ivaIntentClassifier');
+
+                // Smart Scope Detection (same as line 378)
+                const isPersonal = /(minha|meu|eu |gosto de|prefiro|sou|estou)/i.test(message);
+                const scope = isPersonal ? 'USER' : 'SYSTEM';
+
+                // Prevent duplicates if function call already handled it
+                const alreadyHandled = !!functionCall && functionCall.name === 'contribute_knowledge';
+
+                if (!alreadyHandled) {
+                    try {
+                        const description = message.replace(/(iva|aprenda|guarde|memorize|grave|registre|ensinar|conhecimento|que|para|:|"|')/gi, '').trim();
+
+                        await IvaGlobalKnowledge.contribute('custom_rules', {
+                            description: description,
+                            keywords: IvaGlobalKnowledge.extractKeywords(description)
+                        }, {
+                            userId: user.id,
+                            scope: scope,
+                            department: user.department,
+                            role: user.job_title
+                        });
+                        console.log(`[IVA Fallback] ✅ Saved knowledge: "${description.substring(0, 30)}..." (Scope: ${scope})`);
+
+                        // Override response if specific message needed
+                        if (!action.message) {
+                            action.message = "Entendido! Guardei esse novo conhecimento e vou usá-lo quando você me perguntar.";
+                        }
+                    } catch (err) {
+                        console.error('[IVA Fallback] ❌ Error saving knowledge:', err);
+                    }
+                }
             }
 
             res.json(action);
@@ -806,10 +868,54 @@ const backfillKnowledge = async (req, res) => {
 };
 
 
+// --- KNOWLEDGE AUDIT ENDPOINTS ---
+
+const getPendingKnowledge = async (req, res) => {
+    try {
+        const { scope } = req.query;
+        // If scope is provided, filter by it. If not, return all.
+        // Frontend sends 'role' for layer filtering usually.
+        const pending = await IvaGlobalKnowledge.getPendingKnowledge(scope);
+        res.json(pending);
+    } catch (error) {
+        console.error('Error fetching pending knowledge:', error);
+        res.status(500).json({ error: 'Erro ao buscar conhecimento pendente' });
+    }
+};
+
+const approveKnowledge = async (req, res) => {
+    try {
+        const { id, refinedText } = req.body;
+        if (!id) return res.status(400).json({ error: 'ID is required' });
+
+        await IvaGlobalKnowledge.approveKnowledge(id, refinedText);
+        res.json({ success: true, message: 'Conhecimento aprovado!' });
+    } catch (error) {
+        console.error('Error approving knowledge:', error);
+        res.status(500).json({ error: 'Erro ao aprovar conhecimento' });
+    }
+};
+
+const rejectKnowledge = async (req, res) => {
+    try {
+        const { id } = req.body;
+        if (!id) return res.status(400).json({ error: 'ID is required' });
+
+        await IvaGlobalKnowledge.rejectKnowledge(id);
+        res.json({ success: true, message: 'Conhecimento rejeitado!' });
+    } catch (error) {
+        console.error('Error rejecting knowledge:', error);
+        res.status(500).json({ error: 'Erro ao rejeitar conhecimento' });
+    }
+};
+
 module.exports = {
     chat,
     operate,
-    backfillKnowledge
+    backfillKnowledge,
+    getPendingKnowledge,
+    approveKnowledge,
+    rejectKnowledge
 };
 
 

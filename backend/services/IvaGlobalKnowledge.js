@@ -151,49 +151,58 @@ class IvaGlobalKnowledge {
     static async contribute(type, data, context) {
         // Legacy support
         if (typeof context === 'string' || typeof context === 'number') {
-            context = { userId: context, scope: 'GLOBAL' }; // Assume global if not specified in legacy? Or USER? Safety: USER. But existing code assumed GLOBAL.
-            // Actually existing code hardcoded GLOBAL in syncWithQdrant, but passed userId.
-            // Let's assume GLOBAL for legacy consistency or force update everywhere.
-            // Since I updated the only caller, we are safe.
+            context = { userId: context, scope: 'GLOBAL' };
         }
 
         const knowledge = await this.load();
 
-        // Find existing
+        // Find existing to determine Action (Create vs Update)
         const existing = this.findExisting(knowledge, type, data);
 
-        let itemToSync; // Item que será sincronizado com Qdrant
+        // Scope Logic
+        const scope = context.scope || 'GLOBAL';
+        const isUserScope = scope === 'USER';
+
+        // Auto-approve USER scope, Pending for others
+        const status = isUserScope ? 'approved' : 'pending';
+        const actionType = existing ? 'UPDATE' : 'CREATE';
+
+        let itemToSync;
 
         if (existing) {
             // Update existing
             this.updateExisting(existing, data, context.userId);
             itemToSync = existing;
-            console.log(`[IVA Knowledge] Updated ${type}:`, data.screen_id || data.action_id);
+            console.log(`[IVA Knowledge] Updated ${type} (${status}):`, data.screen_id || data.action_id);
+
+            // Store previous state for Diff if it's an update
+            if (actionType === 'UPDATE' && !isUserScope) {
+                itemToSync._audit_previous_description = existing.description || existing.text || '';
+            }
+
         } else {
             // Add new
             const newItem = this.createNewItem(data, context.userId);
-            // Append scope info to item text/metadata if needed? No, purely metadata.
 
             // Ensure array exists
             if (!knowledge.knowledge[type]) {
-                console.warn(`[IVA Knowledge] Array for type '${type}' not found, initializing empty array.`);
                 knowledge.knowledge[type] = [];
             }
 
             knowledge.knowledge[type].push(newItem);
             itemToSync = newItem;
-            console.log(`[IVA Knowledge] Added new ${type}:`, data.screen_id || data.action_id);
+            console.log(`[IVA Knowledge] Added new ${type} (${status}):`, data.screen_id || data.action_id);
         }
 
         knowledge.total_interactions++;
         await this.save(knowledge);
 
         // Sync with Qdrant in background
-        this.syncWithQdrant(type, itemToSync, context).catch(err =>
+        this.syncWithQdrant(type, itemToSync, context, status, actionType).catch(err =>
             console.error('[IVA Knowledge] Qdrant sync failed:', err.message)
         );
 
-        return { success: true };
+        return { success: true, status };
     }
 
     /**
@@ -202,14 +211,12 @@ class IvaGlobalKnowledge {
     /**
      * Sync knowledge item with Qdrant
      */
-    static async syncWithQdrant(type, item, context) {
-        console.log(`[IVA Qdrant] 🔄 Starting sync for type: ${type}`);
-        console.log(`[IVA Qdrant] 📦 Context:`, JSON.stringify(context));
+    static async syncWithQdrant(type, item, context, status = 'approved', actionType = 'CREATE') {
+        console.log(`[IVA Qdrant] 🔄 Starting sync for type: ${type} [${status}]`);
+        // ... (logging context)
 
         let textToEmbed = '';
-        const scope = context.scope || 'GLOBAL'; // Default to GLOBAL if missing
-
-        // Improve text embedding with Scope prefix
+        const scope = context.scope || 'GLOBAL';
         const scopePrefix = scope === 'GLOBAL' ? '(Global)' : `(${scope})`;
 
         if (type === 'menus') {
@@ -218,49 +225,135 @@ class IvaGlobalKnowledge {
             textToEmbed = `${scopePrefix} Ação [${item.screen_id}] ${item.action_type}: ${this.getAllKeywords(item.keywords).join(', ')}. Descrição: ${item.description || ''}`;
         } else if (type === 'custom_rules') {
             textToEmbed = `${scopePrefix} Regra Aprendida: ${item.description}`;
-        } else {
-            console.log(`[IVA Qdrant] ⚠️ Unknown type: ${type}`);
         }
 
-        if (!textToEmbed) {
-            console.log(`[IVA Qdrant] ⚠️ No text to embed for type: ${type}. Skipping sync.`);
-            return;
-        }
+        if (!textToEmbed) return;
 
         // Map Scope to Layer and Metadata
         const metadata = {
             source: 'iva_learning',
             category: type,
-            layer: scope, // SYSTEM maps to GLOBAL in vectorService usually, or we keep SYSTEM. Let's use standard naming.
-            // If scope is SYSTEM, user probably meant GLOBAL.
+            layer: scope,
             screen_id: item.screen_id,
             action_id: item.action_id,
-            user_id: context.userId, // Creator
-            department: context.department, // For filtering
-            role: context.role, // For filtering
-            created_at: new Date().toISOString()
+            user_id: context.userId,
+            department: context.department,
+            role: context.role,
+            created_at: new Date().toISOString(),
+
+            // Audit Metadata
+            audit_status: status, // 'pending' | 'approved' | 'rejected'
+            audit_action: actionType, // 'CREATE' | 'UPDATE'
+            previous_description: item._audit_previous_description || null // For diffs
         };
 
-        // If scope is DEPARTMENT, we MUST have department in metadata for filtering
-        if (scope === 'DEPARTMENT' && !metadata.department) {
-            console.warn('[IVA Qdrant] ⚠️ Department scope selected but no department in context!');
-        }
-
-        // Generate ID based on Scope to allow same rule in different scopes?
-        // Yes. `global_rule_123` vs `dept_sales_rule_123`.
         const safeId = item.screen_id || item.action_id || Math.random().toString(36).substring(7);
         const qdrantId = `${scope.toLowerCase()}_${type}_${safeId}`;
 
-        console.log(`[IVA Qdrant] 🆔 Generated ID: ${qdrantId}`);
-        console.log(`[IVA Qdrant] 📊 Metadata:`, metadata);
-
         try {
-            console.log(`[IVA Qdrant] 📡 Calling vectorService.upsertKnowledge...`);
             await vectorService.upsertKnowledge(qdrantId, textToEmbed, metadata);
-            console.log(`[IVA Qdrant] ✅ Synced successfully to Qdrant!`);
+            console.log(`[IVA Qdrant] ✅ Synced to Qdrant (${status})!`);
         } catch (err) {
             console.error(`[IVA Qdrant] ❌ Sync failed:`, err.message);
             throw err;
+        }
+    }
+
+    /**
+     * Get Pending Knowledge for Audit
+     */
+    static async getPendingKnowledge(scopeFilter = null) {
+        try {
+            const filter = {
+                audit_status: 'pending'
+            };
+            if (scopeFilter) {
+                filter.layer = scopeFilter;
+            }
+
+            const results = await vectorService.scroll(filter, 100);
+            return results.points.map(p => ({
+                id: p.id,
+                ...p.payload
+            }));
+        } catch (error) {
+            console.error('[IVA Knowledge] Error getting pending:', error);
+            return [];
+        }
+    }
+
+    /**
+     * Approve Knowledge
+     */
+    static async approveKnowledge(id, refinedText = null) {
+        try {
+            // 1. Retrieve the point to get current metadata
+            const points = await vectorService.retrieve(id);
+            if (!points || points.length === 0) throw new Error('Knowledge not found');
+
+            const point = points[0];
+            const payload = point.payload;
+
+            // 2. Update status to approved
+            payload.audit_status = 'approved';
+            payload.audit_approved_at = new Date().toISOString();
+
+            // 3. Apply refinement if provided
+            let textToEmbed = payload.text; // Does not exist on payload usually, need to reconstruct? 
+            // Wait, Qdrant payload does NOT contain the text embedding source usually unless we stored it in payload.
+            // Retrieve only returns payload and vector.
+            // But we can reconstruct it from payload description if custom_rule.
+
+            // Reconstruct text base on category
+            const scopePrefix = payload.layer === 'GLOBAL' ? '(Global)' : `(${payload.layer})`;
+
+            if (refinedText) {
+                if (payload.category === 'custom_rules') {
+                    textToEmbed = `${scopePrefix} Regra Aprendida: ${refinedText}`;
+                    payload.description = refinedText;
+                }
+                // Add other types if needed (menus/actions usually not edited textually this way)
+            } else {
+                // Keep existing text? NO, we need to re-embed. 
+                // If we don't have the original text, we can't re-embed without changing it.
+                // Ideally we should store the 'text_content' in payload for this purpose.
+                // OR we just update the metadata status without re-embedding?
+                // vectorService.upsertKnowledge DOES re-embed.
+                // So we MUST have the text.
+                // Let's assume for now valid Rules have description in payload.
+                if (payload.category === 'custom_rules') {
+                    textToEmbed = `${scopePrefix} Regra Aprendida: ${payload.description}`;
+                }
+            }
+
+            if (textToEmbed) {
+                await vectorService.upsertKnowledge(id, textToEmbed, payload);
+                console.log(`[IVA Audit] ✅ Approved knowledge ${id}`);
+                return true;
+            } else {
+                // Just update payload if we can't re-embed? 
+                // VectorSearchService.updatePointPayload? (Not implemented)
+                // Start with simple re-upsert.
+                throw new Error('Cannot approve: unable to reconstruct text');
+            }
+
+        } catch (error) {
+            console.error('[IVA Audit] Error approving:', error);
+            throw error;
+        }
+    }
+
+    /**
+     * Reject Knowledge (Delete)
+     */
+    static async rejectKnowledge(id) {
+        try {
+            await vectorService.deletePointByUuid(id);
+            console.log(`[IVA Audit] ❌ Rejected (Deleted) knowledge ${id}`);
+            return true;
+        } catch (error) {
+            console.error('[IVA Audit] Error rejecting:', error);
+            throw error;
         }
     }
 

@@ -53,10 +53,64 @@ class IvaUserPreferences {
                 }
             );
             console.log(`[IVA Preferences] [OK] Preferred name saved to Qdrant`);
+
+            // --- SELF-HEALING: Purge conflicting rules associated with old names
+            await this.purgeConflictingRules(userId, name);
+
             return true;
         } catch (err) {
             console.error(`[IVA Preferences] ❌ Error saving preferred name:`, err.message);
             return false;
+        }
+    }
+
+    /**
+     * Purge conflicting name rules from USER scope
+     */
+    static async purgeConflictingRules(userId, newName) {
+        console.log(`[IVA Preferences] 🧹 Purging conflicting name rules for user ${userId}...`);
+        try {
+            // 1. Fetch all custom_rules for this user
+            const results = await VectorSearchService.scroll({
+                layer: 'USER',
+                category: 'custom_rules',
+                user_id: userId
+            }, 50); // Limit 50 should be enough for name rules
+
+            // 2. Filter for name-related rules
+            // Match: "meu nome", "chame de", "guto", "augusto" (if different from new name)
+            const keywordRegex = /(meu nome|chame de|trate como|sou o|apelido)/i;
+            const newNameParts = newName.toLowerCase().split(' ');
+
+            const pointsToDelete = results.points.filter(p => {
+                const text = (p.payload.description || p.payload.text || '').toLowerCase();
+
+                // Matches "my name is..." pattern
+                const isNameRule = keywordRegex.test(text);
+
+                // If it's a name rule, check if it contradicts the NEW name
+                if (isNameRule) {
+                    const matchesNewName = newNameParts.some(part => text.includes(part));
+                    // If rule doesn't mention the new name, it's likely OLD/Legacy/Conflicting -> DELETE
+                    // E.g. New="Augusto", Rule="Sou Guto" -> Delete
+                    // E.g. New="Augusto", Rule="Sou Augusto" -> Keep (or delete to avoid dupes? Let's delete to be safe)
+                    return true; // Aggressive cleanup: Delete ALL name rules, rely on 'preferred_name' preference only.
+                }
+                return false;
+            });
+
+            if (pointsToDelete.length > 0) {
+                console.log(`[IVA Preferences] Found ${pointsToDelete.length} conflicting name rules. Deleting...`);
+                for (const point of pointsToDelete) {
+                    await VectorSearchService.deletePointByUuid(point.id);
+                    console.log(`[IVA Preferences] 🗑️ Deleted rule: "${point.payload.description}"`);
+                }
+            } else {
+                console.log(`[IVA Preferences] No conflicting name rules found.`);
+            }
+
+        } catch (err) {
+            console.error(`[IVA Preferences] Error purging conflicts:`, err.message);
         }
     }
 

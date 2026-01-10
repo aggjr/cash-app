@@ -407,14 +407,6 @@ export const ParametrosGeraisManager = (project) => {
                         📊 Gerencial IVA
                     </button>
                     <button 
-                        id="tab-knowledge" 
-                        class="modern-tab"
-                        role="tab"
-                        aria-selected="false"
-                    >
-                        🧠 Conhecimento IVA
-                    </button>
-                    <button 
                         id="tab-prompts" 
                         class="modern-tab"
                         role="tab"
@@ -757,56 +749,7 @@ export const ParametrosGeraisManager = (project) => {
             </div>
 
             <!-- Tab Content: Knowledge (Conhecimento IVA) -->
-            <div id="content-knowledge" class="modern-tab-panel" role="tabpanel" style="display: none;">
-                <h2 style="margin-bottom: 1.5rem;">🧠 Conhecimento da IVA</h2>
-                
-                <!-- Search and Filters -->
-                <div style="background: white; padding: 1.5rem; border-radius: 12px; margin-bottom: 1.5rem; border: 1px solid #e5e7eb;">
-                    <div style="display: flex; gap: 1rem; margin-bottom: 1rem;">
-                        <input 
-                            type="text" 
-                            id="knowledge-search" 
-                            placeholder="🔍 Buscar conhecimento..."
-                            style="flex: 1; padding: 0.75rem; border: 1px solid #d1d5db; border-radius: 8px; font-size: 0.95rem;"
-                        >
-                        <select 
-                            id="knowledge-category-filter"
-                            style="padding: 0.75rem; border: 1px solid #d1d5db; border-radius: 8px; font-size: 0.95rem; min-width: 150px;"
-                        >
-                            <option value="">Todas Categorias</option>
-                            <option value="ACTION">Ações</option>
-                            <option value="NAVIGATION">Navegação</option>
-                            <option value="CUSTOM">Regras Personalizadas</option>
-                        </select>
-                        <select 
-                            id="knowledge-layer-filter"
-                            style="padding: 0.75rem; border: 1px solid #d1d5db; border-radius: 8px; font-size: 0.95rem; min-width: 150px;"
-                        >
-                            <option value="">Todas Camadas</option>
-                            <option value="GLOBAL">Global</option>
-                            <option value="MODULE">Módulo</option>
-                            <option value="PROJECT">Projeto</option>
-                            <option value="USER">Usuário</option>
-                        </select>
-                    </div>
-                    <div style="display: flex; justify-content: space-between; align-items: center;">
-                        <div id="knowledge-count" style="color: #666; font-size: 0.9rem;">
-                            Carregando...
-                        </div>
-                        <button 
-                            id="knowledge-refresh"
-                            style="padding: 0.5rem 1rem; background: #00425F; color: white; border: none; border-radius: 6px; cursor: pointer; font-size: 0.9rem;"
-                        >
-                            🔄 Atualizar
-                        </button>
-                    </div>
-                </div>
 
-                <!-- Knowledge Cards Container -->
-                <div id="knowledge-container" style="display: grid; grid-template-columns: repeat(auto-fill, minmax(350px, 1fr)); gap: 1rem;">
-                    <p style="color: #666; text-align: center; padding: 2rem; grid-column: 1 / -1;">Carregando conhecimento...</p>
-                </div>
-            </div>
 
             <script>
                 // Tab switching logic
@@ -871,11 +814,7 @@ export const ParametrosGeraisManager = (project) => {
                             }
                         }
 
-                        // Load knowledge on first click
-                        if (targetId === 'content-knowledge' && !knowledgeLoaded) {
-                            loadKnowledge();
-                            knowledgeLoaded = true;
-                        }
+
 
                         // Load prompts manager on first click
                         if (targetId === 'content-prompts' && !promptsLoaded) {
@@ -892,149 +831,7 @@ export const ParametrosGeraisManager = (project) => {
             });
 
             // Knowledge loading and rendering
-            let knowledgeLoaded = false;
-            let allKnowledge = [];
 
-            async function loadKnowledge() {
-                try {
-                    const response = await fetch(`${API_BASE_URL}/iva/knowledge`, {
-                        headers: { 'Authorization': `Bearer ${localStorage.getItem('token')}` }
-                    });
-
-                    if (!response.ok) throw new Error('Failed to load knowledge');
-
-                    allKnowledge = await response.json();
-                    renderKnowledge(allKnowledge);
-
-                } catch (error) {
-                    console.error('Error loading knowledge:', error);
-                    document.getElementById('knowledge-container').innerHTML = `
-                        <p style="color: #ef4444; text-align: center; padding: 2rem; grid-column: 1 / -1;">
-                            ❌ Erro ao carregar conhecimento. Tente novamente.
-                        </p>
-                    `;
-                }
-            }
-
-            function renderKnowledge(knowledge) {
-                const container = document.getElementById('knowledge-container');
-                const countEl = document.getElementById('knowledge-count');
-
-                if (!knowledge || knowledge.length === 0) {
-                    container.innerHTML = `
-                        <div style="grid-column: 1 / -1; text-align: center; padding: 3rem; background: white; border-radius: 12px; border: 1px solid #e5e7eb;">
-                            <div style="font-size: 3rem; margin-bottom: 1rem;">🧠</div>
-                            <h3 style="color: #374151; margin-bottom: 0.5rem;">Nenhum conhecimento encontrado</h3>
-                            <p style="color: #6b7280;">A IVA ainda não aprendeu nada ou os filtros não retornaram resultados.</p>
-                        </div>
-                    `;
-                    countEl.textContent = '0 itens';
-                    return;
-                }
-
-                countEl.textContent = `${knowledge.length} ${knowledge.length === 1 ? 'item' : 'itens'}`;
-
-                container.innerHTML = knowledge.map(k => `
-                    <div style="background: white; border: 1px solid #e5e7eb; border-radius: 12px; padding: 1.5rem; transition: all 0.2s; cursor: default;" 
-                         onmouseenter="this.style.boxShadow='0 4px 12px rgba(0,0,0,0.1)'; this.style.borderColor='#00425F';"
-                         onmouseleave="this.style.boxShadow='none'; this.style.borderColor='#e5e7eb';">
-                        
-                        <div style="display: flex; justify-content: space-between; align-items: start; margin-bottom: 1rem;">
-                            <div style="flex: 1;">
-                                <div style="font-size: 0.75rem; color: #6b7280; text-transform: uppercase; letter-spacing: 0.05em; margin-bottom: 0.5rem;">
-                                    ${getCategoryIcon(k.category)} ${k.category}
-                                </div>
-                                <div style="font-weight: 600; color: #111827; line-height: 1.4;">
-                                    ${escapeHtml(k.description)}
-                                </div>
-                            </div>
-                            <div style="background: ${getLayerColor(k.layer)}; color: white; padding: 0.25rem 0.75rem; border-radius: 999px; font-size: 0.75rem; font-weight: 600; white-space: nowrap; margin-left: 1rem;">
-                                ${k.layer}
-                            </div>
-                        </div>
-                        
-                        ${k.keywords && k.keywords.length > 0 ? `
-                            <div style="margin-bottom: 1rem;">
-                                <div style="font-size: 0.75rem; color: #6b7280; margin-bottom: 0.5rem;">🏷️ Keywords:</div>
-                                <div style="display: flex; flex-wrap: wrap; gap: 0.5rem;">
-                                    ${k.keywords.map(kw => `
-                                        <span style="background: #f3f4f6; color: #374151; padding: 0.25rem 0.75rem; border-radius: 999px; font-size: 0.8rem;">
-                                            ${escapeHtml(kw)}
-                                        </span>
-                                    `).join('')}
-                                </div>
-                            </div>
-                        ` : ''}
-                        
-                        <div style="display: flex; justify-content: space-between; align-items: center; padding-top: 1rem; border-top: 1px solid #f3f4f6; font-size: 0.85rem; color: #6b7280;">
-                            <div>
-                                📊 Uso: <strong style="color: #374151;">${k.usage_count || 0}x</strong>
-                                ${k.success_rate ? ` | Taxa: <strong style="color: #10b981;">${(k.success_rate * 100).toFixed(0)}%</strong>` : ''}
-                            </div>
-                            <div>
-                                📅 ${k.created_at ? new Date(k.created_at).toLocaleDateString('pt-BR') : 'N/A'}
-                            </div>
-                        </div>
-                    </div>
-                `).join('');
-            }
-
-            function getCategoryIcon(category) {
-                const icons = {
-                    'ACTION': '⚡',
-                    'NAVIGATION': '🧭',
-                    'CUSTOM': '📝',
-                    'MENU': '📋'
-                };
-                return icons[category] || '📌';
-            }
-
-            function getLayerColor(layer) {
-                const colors = {
-                    'GLOBAL': '#10b981',
-                    'MODULE': '#3b82f6',
-                    'PROJECT': '#8b5cf6',
-                    'USER': '#f59e0b'
-                };
-                return colors[layer] || '#6b7280';
-            }
-
-            function escapeHtml(text) {
-                const div = document.createElement('div');
-                div.textContent = text;
-                return div.innerHTML;
-            }
-
-            // Search and filter handlers
-            document.getElementById('knowledge-search')?.addEventListener('input', (e) => {
-                const search = e.target.value.toLowerCase();
-                const category = document.getElementById('knowledge-category-filter').value;
-                const layer = document.getElementById('knowledge-layer-filter').value;
-
-                const filtered = allKnowledge.filter(k => {
-                    const matchesSearch = !search ||
-                        k.description.toLowerCase().includes(search) ||
-                        (k.keywords && k.keywords.some(kw => kw.toLowerCase().includes(search)));
-                    const matchesCategory = !category || k.category === category;
-                    const matchesLayer = !layer || k.layer === layer;
-                    return matchesSearch && matchesCategory && matchesLayer;
-                });
-
-                renderKnowledge(filtered);
-            });
-
-            document.getElementById('knowledge-category-filter')?.addEventListener('change', () => {
-                document.getElementById('knowledge-search').dispatchEvent(new Event('input'));
-            });
-
-            document.getElementById('knowledge-layer-filter')?.addEventListener('change', () => {
-                document.getElementById('knowledge-search').dispatchEvent(new Event('input'));
-            });
-
-            document.getElementById('knowledge-refresh')?.addEventListener('click', () => {
-                knowledgeLoaded = false;
-                loadKnowledge();
-            });
 
             // Update indicator on window resize
             window.addEventListener('resize', () => {
