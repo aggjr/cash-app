@@ -141,18 +141,29 @@ ${formalityInstructions}
       console.error('[ContextBuilder] Error generating dynamic rules:', err);
    }
 
-   // Replace placeholders in template (Clean up system prompt if placeholders exist)
-   const systemPrompt = systemPromptTemplate
-      .replace(/\{\{\s*USER_JOB_TITLE\s*\}\}/g, user.job_title || 'Não informado')
-      .replace(/\{\{\s*USER_DEPARTMENT\s*\}\}/g, user.department || 'Não informado')
-      .replace(/\{\{\s*FORMALITY_LEVEL\s*\}\}/g, '') // Remove from system
-      .replace(/\{\{\s*FORMALITY_INSTRUCTIONS\s*\}\}/g, '') // Remove from system
-      .replace(/\{\{\s*USER_PREFERRED_NAME\s*\}\}/g, user.preferred_name || user.name || 'você')
-      .replace(/\{\{\s*PROJECT_NAME\s*\}\}/g, project.name || 'projeto atual')
-      .replace(/\{\{\s*SCREEN_ID\s*\}\}/g, screenData?.screenId || 'tela não identificada')
-      .replace(/\{\{\s*ISO_DATE\s*\}\}/g, isoDate)
-      .replace(/\{\{\s*SCREEN_DATA\s*\}\}/g, screenData ? `DADOS DA TELA ATUAL:\n${JSON.stringify(screenData, null, 2)}` : 'Nenhum dado disponível')
-      .replace(/\{\{\s*CACHED_SCREENS\s*\}\}/g, cachedScreens?.length > 0 ? `TELAS RECENTES:\n${cachedScreens.map(s => s.screenId).join(', ')}` : '');
+   // Helper to replace placeholders
+   const applyPlaceholders = (text) => {
+      if (!text) return '';
+      return text
+         .replace(/\{\{\s*USER_JOB_TITLE\s*\}\}/gi, user.job_title || 'Não informado')
+         .replace(/\{\{\s*USER_DEPARTMENT\s*\}\}/gi, user.department || 'Não informado')
+         .replace(/\{\{\s*FORMALITY_LEVEL\s*\}\}/gi, '')
+         .replace(/\{\{\s*FORMALITY_INSTRUCTIONS\s*\}\}/gi, '')
+         .replace(/\{\{\s*USER_PREFERRED_NAME\s*\}\}/gi, user.preferred_name || user.name || 'você')
+         .replace(/\{\{\s*PROJECT_NAME\s*\}\}/gi, project.name || 'projeto atual')
+         .replace(/\{\{\s*SCREEN_ID\s*\}\}/gi, screenData?.screenId || 'tela não identificada')
+         .replace(/\{\{\s*ISO_DATE\s*\}\}/gi, isoDate)
+         .replace(/\{\{\s*SCREEN_DATA\s*\}\}/gi, screenData ? `DADOS DA TELA ATUAL:\n${JSON.stringify(screenData, null, 2)}` : 'Nenhum dado disponível')
+         .replace(/\{\{\s*CACHED_SCREENS\s*\}\}/gi, cachedScreens?.length > 0 ? `TELAS RECENTES:\n${cachedScreens.map(s => s.screenId).join(', ')}` : '');
+   };
+
+   // Apply to all layers
+   const systemPrompt = applyPlaceholders(systemPromptTemplate);
+   modulePrompt = applyPlaceholders(modulePrompt);
+   companyPrompt = applyPlaceholders(companyPrompt);
+   departmentPrompt = applyPlaceholders(departmentPrompt);
+   rolePrompt = applyPlaceholders(rolePrompt);
+   userPrompt = applyPlaceholders(userPrompt);
 
    return `
 DIRETRIZ MESTRA (MAPEAR & APRENDER):

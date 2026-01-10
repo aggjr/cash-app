@@ -52,7 +52,7 @@ class IvaUserPreferences {
                     updated_at: new Date().toISOString()
                 }
             );
-            console.log(`[IVA Preferences] ✅ Preferred name saved to Qdrant`);
+            console.log(`[IVA Preferences] [OK] Preferred name saved to Qdrant`);
             return true;
         } catch (err) {
             console.error(`[IVA Preferences] ❌ Error saving preferred name:`, err.message);
