@@ -279,7 +279,7 @@ Confirme de forma clara e natural que você aprendeu.
 
 const operate = async (req, res) => {
     try {
-        const { message, conversationHistory, context, screenContext, currentScreen, availableScreens, userSettings } = req.body;
+        let { message, conversationHistory, context, screenContext, currentScreen, availableScreens, userSettings } = req.body;
         const user = req.user;
 
         console.log('[IVA Operate] ≡ƒÜÇ VERSION: Function Calling Enabled (v2.1)');
