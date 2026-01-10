@@ -139,10 +139,10 @@ const chat = async (req, res, next) => {
         switch (intent.type) {
             case 'LEARNING':
                 systemPrompt = `
-Voc├¬ est├í em modo de aprendizado ativo. O usu├írio quer te ensinar uma nova regra ou conhecimento.
-Extraia a ess├¬ncia do que est├í sendo ensinado.
-Se for uma regra de onde encontrar dados (como na tela de previs├úo), formalize-a.
-Confirme de forma clara e natural que voc├¬ aprendeu.
+Você está em modo de aprendizado ativo. O usuário quer te ensinar uma nova regra ou conhecimento.
+Extraia a essência do que está sendo ensinado.
+Se for uma regra de onde encontrar dados (como na tela de previsão), formalize-a.
+Confirme de forma clara e natural que você aprendeu.
 `;
                 // Trigger learning process in background
                 IvaGlobalKnowledge.contribute('custom_rules', {
@@ -392,7 +392,7 @@ const operate = async (req, res) => {
             return res.json({
                 intent: 'LEARNING',
                 action: 'REPLY',
-                message: 'Entendido! Guardei esse novo conhecimento e vou us├í-lo quando voc├¬ me perguntar.'
+                message: 'Entendido! Guardei esse novo conhecimento e vou usá-lo quando você me perguntar.'
             });
         }
 
@@ -480,20 +480,20 @@ const operate = async (req, res) => {
         // ADD INTENT CLASSIFICATION INSTRUCTION
         systemPrompt += `
 
-CLASSIFICA├ç├âO DE INTEN├ç├âO (OBRIGAT├ôRIO):
-Antes de retornar a a├º├úo, classifique a inten├º├úo do usu├írio:
+CLASSIFICAÇÃO DE INTENÇÃO (OBRIGATÓRIO):
+Antes de retornar a ação, classifique a intenção do usuário:
 
-1. NAVIGATION_ONLY - Usu├írio quer apenas encontrar/ver uma tela
-   Exemplos: "Onde cadastro usu├írios?", "Como acesso relat├│rios?", "Onde fica configura├º├╡es?"
-   Retorne: { "intent": "NAVIGATION_ONLY", "action": "NAVIGATE", "target": "screen-id", "message": "Navegando para [nome da tela]. ├ë nesta tela que est├í a informa├º├úo que voc├¬ procura?" }
-   IMPORTANTE: SEMPRE use a pergunta de valida├º├úo ao navegar para uma nova tela em busca de informa├º├úo.
+1. NAVIGATION_ONLY - Usuário quer apenas encontrar/ver uma tela
+   Exemplos: "Onde cadastro usuários?", "Como acesso relatórios?", "Onde fica configurações?"
+   Retorne: { "intent": "NAVIGATION_ONLY", "action": "NAVIGATE", "target": "screen-id", "message": "Navegando para [nome da tela]. É nesta tela que está a informação que você procura?" }
+   IMPORTANTE: SEMPRE use a pergunta de validação ao navegar para uma nova tela em busca de informação.
 
-2. DATA_SEEKING - Usu├írio quer informa├º├úo espec├¡fica/dados ou an├ílise de valores
-   Exemplos: "Quanto recebi em dezembro?", "Qual o saldo?", "Qual ser├í meu fluxo de caixa daqui a 10 dias?", "Ver previs├úo de fechamento"
+2. DATA_SEEKING - Usuário quer informação específica/dados ou análise de valores
+   Exemplos: "Quanto recebi em dezembro?", "Qual o saldo?", "Qual será meu fluxo de caixa daqui a 10 dias?", "Ver previsão de fechamento"
    Retorne: { "intent": "DATA_SEEKING", "action": "NAVIGATE", "target": "screen-id", "message": "..." }
 
-3. ACTION_EXECUTION - Usu├írio quer executar uma a├º├úo espec├¡fica
-   Exemplos: "Criar entrada de R$ 1000", "Exportar relat├│rio", "Filtrar por empresa X"
+3. ACTION_EXECUTION - Usuário quer executar uma ação específica
+   Exemplos: "Criar entrada de R$ 1000", "Exportar relatório", "Filtrar por empresa X"
    Retorne: { "intent": "ACTION_EXECUTION", "action": "NAVIGATE", "target": "screen-id", "message": "..." }
 
 4. LEARNING - Usuário está EXPLICITAMENTE ensinando uma regra ou comando NOVO.
@@ -509,16 +509,16 @@ Antes de retornar a a├º├úo, classifique a inten├º├úo do usu├írio:
 IMPORTANTE: SEMPRE inclua o campo "intent" na sua resposta JSON!
 
 REGRA DE CONTEXTO DE TELA:
-- Se o usu├írio CONFIRMOU que est├í na tela certa (ex: "├⌐ nesta tela", "exatamente", "sim"), N├âO navegue para outra tela
-- SEMPRE tente buscar os dados na tela atual PRIMEIRO antes de sugerir navega├º├úo
-- S├│ sugira navegar para outra tela se:
-  1. O usu├írio explicitamente pedir para ir para outra tela, OU
-  2. Voc├¬ tentou buscar na tela atual e N├âO encontrou o dado necess├írio
+- Se o usuário CONFIRMOU que está na tela certa (ex: "é nesta tela", "exatamente", "sim"), NÃO navegue para outra tela
+- SEMPRE tente buscar os dados na tela atual PRIMEIRO antes de sugerir navegação
+- Só sugira navegar para outra tela se:
+  1. O usuário explicitamente pedir para ir para outra tela, OU
+  2. Você tentou buscar na tela atual e NÃO encontrou o dado necessário
 - Quando o dado existe na tela atual, use action: "REPLY" com a resposta baseada nos dados da tela
 
 - Quando o dado existe na tela atual, use action: "REPLY" com a resposta baseada nos dados da tela.
 
-Siga rigorosamente as INSTRU├ç├òES DE FLUXO DE EXECU├ç├âO E DESCOBERTA enviadas pelo Context Builder.
+Siga rigorosamente as INSTRUÇÕES DE FLUXO DE EXECUÇÃO E DESCOBERTA enviadas pelo Context Builder.
 `;
 
         // INJECT GLOBAL KNOWLEDGE
