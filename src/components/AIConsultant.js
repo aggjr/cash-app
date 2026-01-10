@@ -1607,397 +1607,215 @@ Digite 1, 2 ou 3.`;
                     addMessage('ai', msg);
                 }
 
-                // Send follow-up query to analyze updated data
-                if (followUpQuery) {
-                    const analysisMsg = document.createElement('div');
-                    analysisMsg.className = 'thinking-bubble';
-                    analysisMsg.innerText = 'Analisando dados atualizados...';
-                    messagesContainer.appendChild(analysisMsg);
-                    messagesContainer.scrollTop = messagesContainer.scrollHeight;
 
+
+
+
+
+
+            // Check for auto-close flag from backend
+            if (decision.forceClose) {
+                console.log('[IVA] Auto-close requested by decision flag');
+                wasDismissed = true; // Mark as dismissed so next open triggers greeting
+                setTimeout(() => {
+                    if (isOpen) toggleChat();
+                }, 3000); // 3s delay to hear the final message
+            }
+
+        } catch (err) {
+            console.error('[IVA] Operation error:', err);
+            if (thinkingMsg.parentNode) thinkingMsg.parentNode.removeChild(thinkingMsg);
+            addMessage('ai', 'Erro ao processar comando.');
+        }
+
+
+
+        return; // Stop here, fulfilled by LLM
+    }
+
+    /* REGEX BLOCKS REMOVED - REPLACED BY LLM ABOVE */
+    // DEBUG: Reset Command
+    if (text === '/reset') {
+        const user = getUser();
+        if (user) {
+            user.IVA_introduced = false;
+            user.IVA_voice_enabled = null; // Reset voice pref
+            user.preferred_name = null; // Reset name pref
+            localStorage.setItem('user', JSON.stringify(user));
+            // Also update backend if possible, but for now local is enough to trigger flow locally next reload
+            // Or better, let's just trigger it now:
+
+            addMessage('ai', 'ΓÖ╗∩╕Å Reiniciando apresenta├º├úo...');
+            setTimeout(() => {
+                messages.length = 0; // Clear history
+                pendingAction = null;
+                startIntroductionFlow();
+            }, 1000);
+            return;
+        }
+    }
+
+    // Simulate thinking (ZERO DELAY)
+    const loadingDiv = document.createElement('div');
+    loadingDiv.textContent = '...';
+    loadingDiv.style.alignSelf = 'flex-start';
+    loadingDiv.style.marginLeft = '1rem';
+    loadingDiv.style.color = '#6b7280';
+    messagesContainer.appendChild(loadingDiv);
+    messagesContainer.scrollTop = messagesContainer.scrollHeight;
+
+    (async () => {
+        loadingDiv.remove();
+
+        // Handle Navigation Confirmation
+        if (pendingAction === 'nav_confirm') {
+            const isPositive = IvaConversation.isPositiveResponse(text);
+            if (isPositive) {
+                const msg = "├ôtimo! Fico feliz que encontrei o que voc├¬ procurava. O que voc├¬ gostaria de analisar ou fazer nesta tela?";
+                addMessage('ai', msg);
+                speak(msg);
+                pendingAction = null;
+                return;
+            } else if (IvaConversation.isNegativeResponse(text)) {
+                const msg = "Entendi. Desculpe por n├úo ser o que voc├¬ esperava. O que voc├¬ gostaria de ver ent├úo? Posso tentar buscar de outra forma.";
+                addMessage('ai', msg);
+                speak(msg);
+                pendingAction = null;
+                return;
+            }
+            // If not clearly positive/negative, let LLM handle it but clear lock
+            pendingAction = null;
+        }
+
+        // Handle Tour Offer
+        if (pendingAction === 'tour_offer') {
+            const choice = text.trim();
+
+            if (choice.includes('1') || /vis[a├ú]o|r[a├í]pid[oa]|quick|curto|breve/i.test(text)) {
+                // Overview tour
+                addMessage('ai', '├ôtimo! Vou mostrar uma vis├úo geral r├ípida. Iniciando...');
+
+                // Mark as introduced before tour
+                await savePreferences({ IVAIntroduced: 1 });
+
+                // Import and start tour
+                const { IvaTour } = await import('../iva/IvaTour.js');
+                setTimeout(() => {
+                    IvaTour.start('overview');
+                }, 2000);
+
+                pendingAction = null;
+                return;
+
+            } else if (choice.includes('2') || /complet[oa]|guiad[oa]|full|detalhad[oa]|inteiro|longo/i.test(text)) {
+                // Full tour - LLM will handle gender-appropriate language
+                addMessage('ai', 'Excelente escolha! Vou gui├í-lo(a) por todo o sistema em detalhes. Vamos l├í!');
+
+                // Mark as introduced before tour
+                await savePreferences({ IVAIntroduced: 1 });
+
+                // Import and start tour
+                const { IvaTour } = await import('../iva/IvaTour.js');
+                setTimeout(() => {
+                    IvaTour.start('full');
+                }, 2000);
+
+                pendingAction = null;
+                return;
+
+            } else if (choice.includes('3') || /pular|n[a├ú]o|sozinho|explorar|cancelar|sair/i.test(text)) {
+                // Skip tour
+                addMessage('ai', 'Sem problemas! Fique ├á vontade para explorar. Estarei aqui caso precise de ajuda!');
+
+                // Mark as introduced
+                await savePreferences({ IVAIntroduced: 1 });
+
+                pendingAction = null;
+
+                // Process pending loan if exists
+                if (loanContext && loanResolver) {
+                    setTimeout(() => processPendingLoanCategorization(), 2000);
+                }
+                return;
+
+            } else {
+                // Invalid choice
+                addMessage('ai', 'N├úo entendi. Por favor, diga se prefere **R├ípido**, **Completo** ou se quer **Pular** o tour.');
+                return;
+            }
+        }
+
+        // Intercept Introduction Flow
+        if (pendingAction && pendingAction.startsWith('intro_')) {
+            if (pendingAction === 'intro_llm') {
+                await handleIntroductionLLM(text);
+            } else {
+                await handleIntroductionResponse(text);
+            }
+            return;
+        }
+
+        // Command: Change Timeout
+        const lowerText = text.toLowerCase();
+        if (lowerText.includes('mudar') && lowerText.includes('tempo') && (lowerText.includes('espera') || lowerText.includes('segundos'))) {
+            // Extract number
+            const match = text.match(/\d+/);
+            if (match) {
+                const newSeconds = parseInt(match[0]);
+                if (newSeconds >= 3 && newSeconds <= 60) {
                     try {
-                        const analysisResponse = await fetch(`${API_BASE_URL}/IVA/operate`, {
-                            method: 'POST',
+                        const res = await fetch(`${API_BASE_URL}/settings/IVA_timeout`, {
+                            method: 'PUT',
                             headers: getHeaders(),
-                            body: JSON.stringify({
-                                message: `AN├üLISE: ${followUpQuery}`,
-                                context: {
-                                    ...context,
-                                    screenContext: updatedScreenContext
-                                }
-                            })
+                            body: JSON.stringify({ value: newSeconds })
                         });
-
-                        const analysisDecision = await analysisResponse.json();
-
-                        if (analysisMsg.parentNode) analysisMsg.parentNode.removeChild(analysisMsg);
-
-                        if (analysisDecision.action === 'REPLY') {
-                            addMessage('ai', analysisDecision.message);
-                            speak(analysisDecision.message);
+                        if (res.ok) {
+                            IVATimeout = newSeconds * 1000;
+                            const msg = `Entendido. Alterei meu tempo de espera para **${newSeconds} segundos**.`;
+                            addMessage('ai', msg);
+                            speak(msg);
+                            return;
                         }
-                    } catch (error) {
-                        console.error('[IVA INTERACT] Analysis error:', error);
-                        if (analysisMsg.parentNode) analysisMsg.parentNode.removeChild(analysisMsg);
-                    }
+                    } catch (e) { console.error(e); }
                 }
-
-                // GENERIC USER SYNC (Fix for persistence issues)
-                if (decision.userUpdates) {
-                    console.log('[IVA] Syncing user data from backend:', decision.userUpdates);
-                    updateLocalUser(decision.userUpdates);
-
-                    // If preferred_name changed, force update current session checks
-                    if (decision.userUpdates.preferred_name) {
-                        const user = getUser();
-                        // Optional: Clear session greeting to force re-greet with new name next time?
-                        // sessionStorage.removeItem('IVA_has_greeted_session_' + user.id);
-                    }
-                }
-
-                renderMessages();
-                input.focus();
-                return;
             }
-            else if (decision.action === 'GUIDE') {
-    // Visual Guide: Navigate + Highlight elements + Explain
-    const { navigation, highlights, explanation, tips } = decision;
-
-    console.log('[IVA GUIDE]', decision);
-
-    // Show explanation
-    addMessage('ai', explanation);
-    speak(explanation);
-
-    // Navigate if needed
-    if (navigation && navigation.target) {
-        await IvaActions.navigate(navigation.target);
-        await new Promise(r => setTimeout(r, 1000)); // Wait for screen to load
-    }
-
-    // Highlight elements
-    if (highlights && highlights.length > 0) {
-        IvaHighlighter.highlightElements(highlights);
-
-        // Show tips if available
-        if (tips && tips.length > 0) {
-            const tipsMessage = '\n\n' + tips.join('\n');
-            addMessage('ai', tipsMessage);
-        }
-
-        // Auto-clear highlights on next user interaction
-        const clearHandler = () => {
-            IvaHighlighter.clearAll();
-            document.removeEventListener('click', clearHandler);
-        };
-        document.addEventListener('click', clearHandler);
-    }
-}
-else if (['NAVIGATE', 'FILL_FORM', 'CLICK_ACTION'].includes(decision.action)) {
-    const result = await IvaActions.handle(decision.action, decision);
-
-
-
-    if (result.success) {
-        if (decision.action === 'NAVIGATE') {
-            // Use LLM-generated message (adaptive verbosity)
-            const navigationMsg = decision.message || 'Navegando...';
-            addMessage('ai', navigationMsg);
-            speak(navigationMsg);
-
-            // Track navigation for familiarity learning
-            try {
-                await fetch(`${API_BASE_URL}/IVA/track-navigation`, {
-                    method: 'POST',
-                    headers: getHeaders(),
-                    body: JSON.stringify({ screen: decision.target })
-                });
-                console.log('[IVA] Navigation tracked:', decision.target);
-            } catch (trackError) {
-                console.error('[IVA] Tracking failed (non-critical):', trackError);
-            }
-
-            // CRITICAL: Wait for screen to load and re-extract screen context
-            // This allows subsequent INTERACT actions to work on the new screen
-            await new Promise(r => setTimeout(r, 1500)); // Wait for navigation + render
-
-            // Re-extract screen context for the newly loaded screen
-            const newScreenContext = ScreenContextExtractor.extract();
-            console.log('[IVA] Screen context after navigation:', newScreenContext);
-
-            // Update screenContext in closure so next decision uses updated context
-            screenContext = newScreenContext;
-
-            // Also update availableActions for new screen
-            if (screenContext && screenContext.screenId) {
-                screenContext.availableActions = IvaScreenActions.getAvailableActions(screenContext.screenId);
-                console.log('[IVA] Available actions on new screen:', screenContext.availableActions);
-            }
-
-            /* DISABLED FOR NOW - CAUSING RECURSION ISSUES
-            // --- AUTONOMY LOOP (The Eyes -> The Brain) ---
-            const navigationMsg = 'Cheguei. Deixe-me analisar os dados desta tela...';
-            addMessage('ai', navigationMsg);
-            speak(navigationMsg);
- 
-            // Verify if it's main dashboard to avoid loop or generic analysis
-            if (decision.screen === 'dashboard') {
-                const m = 'Estou no painel principal via vis├úo geral.';
-                addMessage('ai', m);
-                speak(m);
-                return;
-            }
- 
-            // Wait for screen to load and context to update (2.5s)
-            setTimeout(async () => {
-                console.log('[IVA Autonomy] Triggering post-navigation analysis...');
- 
-                // Create a visual "Analyzing" indicator
-                const analyzingDiv = document.createElement('div');
-                analyzingDiv.innerHTML = '<i>≡ƒöì Analisando dados da tela...</i>';
-                analyzingDiv.style.color = '#6b7280';
-                analyzingDiv.style.marginLeft = '10px';
-                messagesContainer.appendChild(analyzingDiv);
-                messagesContainer.scrollTop = messagesContainer.scrollHeight;
- 
-                try {
-                    // Recursive call to LLM with updated context
-                    // specific "system instruction" style message
-                    const analysisRequest = `SYSTEM_EVENT: NAVIGATION_COMPLETE to ${decision.screen}. 
-                    ACTION: Analyze the 'activeScreenContext' data immediately based on the user's previous intention. 
-                    Ignore "how can I help", just give the answer/analysis.`;
- 
-                    // Re-uses sendMessage logic but bypassing UI input
-                    // We need to call the internal decision logic directly to avoid user bubble
- 
-                    // 1. Gather NEW Context (Post-Navigation)
-                    const newContext = {
-                        currentScreen: IvaKnowledge.activeScreen,
-                        currentScreenData: IvaKnowledge.activeScreenData,
-                        availableScreens: IvaKnowledge.screens
-                    };
- 
-                    const nextDecision = await IvaService.decideOperation(analysisRequest, newContext);
- 
-                    if (analyzingDiv.parentNode) analyzingDiv.parentNode.removeChild(analyzingDiv);
- 
-                    if (nextDecision.action === 'REPLY') {
-                        addMessage('ai', nextDecision.message);
-                        speak(nextDecision.message);
-                    } else {
-                        // Chain actions (Rare, but possible)
-                        // For now, just report the action
-                        const m = nextDecision.message || 'An├ílise conclu├¡da. O que mais deseja?';
-                        addMessage('ai', m);
-                        speak(m);
-                    }
- 
-                } catch (e) {
-                    console.error('[IVA Autonomy] Error:', e);
-                    if (analyzingDiv.parentNode) analyzingDiv.parentNode.removeChild(analyzingDiv);
-                    addMessage('ai', 'N├úo consegui ler os dados da tela automaticamente. Pode me perguntar novamente?');
-                }
-            }, 2500);
-            */
-
-        } else {
-            // Generic Success for non-navigation
-            const followUps = ['Feito. O que mais?', 'Pronto.', 'Algo mais?'];
-            const followUp = followUps[Math.floor(Math.random() * followUps.length)];
-            const msg = (result.message || 'A├º├úo realizada.') + ' ' + followUp;
+            const msg = "Para alterar o tempo, diga algo como 'Mudar tempo de espera para 5 segundos'. (M├¡nimo 3s, M├íximo 60s)";
             addMessage('ai', msg);
             speak(msg);
-        }
-    } else {
-        const msg = result.message || 'N├úo consegui realizar a a├º├úo.';
-        addMessage('ai', msg);
-        speak(msg);
-    }
-} else {
-    console.warn('Unknown decision action:', decision.action);
-    const msg = 'N├úo entendi o que fazer.';
-    addMessage('ai', msg);
-}
-
-// Check for auto-close flag from backend
-if (decision.forceClose) {
-    console.log('[IVA] Auto-close requested by decision flag');
-    wasDismissed = true; // Mark as dismissed so next open triggers greeting
-    setTimeout(() => {
-        if (isOpen) toggleChat();
-    }, 3000); // 3s delay to hear the final message
-}
-
-            } catch (err) {
-    console.error('[IVA] Operation error:', err);
-    if (thinkingMsg.parentNode) thinkingMsg.parentNode.removeChild(thinkingMsg);
-    addMessage('ai', 'Erro ao processar comando.');
-}
-
-
-
-return; // Stop here, fulfilled by LLM
-        }
-
-/* REGEX BLOCKS REMOVED - REPLACED BY LLM ABOVE */
-// DEBUG: Reset Command
-if (text === '/reset') {
-    const user = getUser();
-    if (user) {
-        user.IVA_introduced = false;
-        user.IVA_voice_enabled = null; // Reset voice pref
-        user.preferred_name = null; // Reset name pref
-        localStorage.setItem('user', JSON.stringify(user));
-        // Also update backend if possible, but for now local is enough to trigger flow locally next reload
-        // Or better, let's just trigger it now:
-
-        addMessage('ai', 'ΓÖ╗∩╕Å Reiniciando apresenta├º├úo...');
-        setTimeout(() => {
-            messages.length = 0; // Clear history
-            pendingAction = null;
-            startIntroductionFlow();
-        }, 1000);
-        return;
-    }
-}
-
-// Simulate thinking (ZERO DELAY)
-const loadingDiv = document.createElement('div');
-loadingDiv.textContent = '...';
-loadingDiv.style.alignSelf = 'flex-start';
-loadingDiv.style.marginLeft = '1rem';
-loadingDiv.style.color = '#6b7280';
-messagesContainer.appendChild(loadingDiv);
-messagesContainer.scrollTop = messagesContainer.scrollHeight;
-
-(async () => {
-    loadingDiv.remove();
-
-    // Handle Navigation Confirmation
-    if (pendingAction === 'nav_confirm') {
-        const isPositive = IvaConversation.isPositiveResponse(text);
-        if (isPositive) {
-            const msg = "├ôtimo! Fico feliz que encontrei o que voc├¬ procurava. O que voc├¬ gostaria de analisar ou fazer nesta tela?";
-            addMessage('ai', msg);
-            speak(msg);
-            pendingAction = null;
-            return;
-        } else if (IvaConversation.isNegativeResponse(text)) {
-            const msg = "Entendi. Desculpe por n├úo ser o que voc├¬ esperava. O que voc├¬ gostaria de ver ent├úo? Posso tentar buscar de outra forma.";
-            addMessage('ai', msg);
-            speak(msg);
-            pendingAction = null;
             return;
         }
-        // If not clearly positive/negative, let LLM handle it but clear lock
-        pendingAction = null;
-    }
 
-    // Handle Tour Offer
-    if (pendingAction === 'tour_offer') {
-        const choice = text.trim();
-
-        if (choice.includes('1') || /vis[a├ú]o|r[a├í]pid[oa]|quick|curto|breve/i.test(text)) {
-            // Overview tour
-            addMessage('ai', '├ôtimo! Vou mostrar uma vis├úo geral r├ípida. Iniciando...');
-
-            // Mark as introduced before tour
-            await savePreferences({ IVAIntroduced: 1 });
-
-            // Import and start tour
-            const { IvaTour } = await import('../iva/IvaTour.js');
-            setTimeout(() => {
-                IvaTour.start('overview');
-            }, 2000);
-
-            pendingAction = null;
-            return;
-
-        } else if (choice.includes('2') || /complet[oa]|guiad[oa]|full|detalhad[oa]|inteiro|longo/i.test(text)) {
-            // Full tour - LLM will handle gender-appropriate language
-            addMessage('ai', 'Excelente escolha! Vou gui├í-lo(a) por todo o sistema em detalhes. Vamos l├í!');
-
-            // Mark as introduced before tour
-            await savePreferences({ IVAIntroduced: 1 });
-
-            // Import and start tour
-            const { IvaTour } = await import('../iva/IvaTour.js');
-            setTimeout(() => {
-                IvaTour.start('full');
-            }, 2000);
-
-            pendingAction = null;
-            return;
-
-        } else if (choice.includes('3') || /pular|n[a├ú]o|sozinho|explorar|cancelar|sair/i.test(text)) {
-            // Skip tour
-            addMessage('ai', 'Sem problemas! Fique ├á vontade para explorar. Estarei aqui caso precise de ajuda!');
-
-            // Mark as introduced
-            await savePreferences({ IVAIntroduced: 1 });
-
-            pendingAction = null;
-
-            // Process pending loan if exists
-            if (loanContext && loanResolver) {
-                setTimeout(() => processPendingLoanCategorization(), 2000);
-            }
-            return;
-
-        } else {
-            // Invalid choice
-            addMessage('ai', 'N├úo entendi. Por favor, diga se prefere **R├ípido**, **Completo** ou se quer **Pular** o tour.');
-            return;
-        }
-    }
-
-    // Intercept Introduction Flow
-    if (pendingAction && pendingAction.startsWith('intro_')) {
-        if (pendingAction === 'intro_llm') {
-            await handleIntroductionLLM(text);
-        } else {
-            await handleIntroductionResponse(text);
-        }
-        return;
-    }
-
-    // Command: Change Timeout
-    const lowerText = text.toLowerCase();
-    if (lowerText.includes('mudar') && lowerText.includes('tempo') && (lowerText.includes('espera') || lowerText.includes('segundos'))) {
-        // Extract number
-        const match = text.match(/\d+/);
-        if (match) {
-            const newSeconds = parseInt(match[0]);
-            if (newSeconds >= 3 && newSeconds <= 60) {
-                try {
-                    const res = await fetch(`${API_BASE_URL}/settings/IVA_timeout`, {
-                        method: 'PUT',
-                        headers: getHeaders(),
-                        body: JSON.stringify({ value: newSeconds })
-                    });
-                    if (res.ok) {
-                        IVATimeout = newSeconds * 1000;
-                        const msg = `Entendido. Alterei meu tempo de espera para **${newSeconds} segundos**.`;
-                        addMessage('ai', msg);
-                        speak(msg);
-                        return;
+        // Intercept Loan Flows
+        if (pendingAction && pendingAction.startsWith('loan_')) {
+            if (pendingAction === 'loan_cat_confirm') {
+                const lowerText = text.toLowerCase();
+                let responseText = '';
+                if (lowerText.includes('sim') || lowerText.includes('ok') || lowerText.includes('concordo')) {
+                    responseText = "Confirmado. Processando o contrato...";
+                    if (loanResolver) {
+                        loanResolver({
+                            feeCategoryId: loanContext.suggestions.fees.id,
+                            interestCategoryId: loanContext.suggestions.interest.id
+                        });
+                        loanResolver = null;
+                        pendingAction = null;
+                        setTimeout(() => { if (isOpen) toggleChat(); }, 2000);
                     }
-                } catch (e) { console.error(e); }
-            }
-        }
-        const msg = "Para alterar o tempo, diga algo como 'Mudar tempo de espera para 5 segundos'. (M├¡nimo 3s, M├íximo 60s)";
-        addMessage('ai', msg);
-        speak(msg);
-        return;
-    }
-
-    // Intercept Loan Flows
-    if (pendingAction && pendingAction.startsWith('loan_')) {
-        if (pendingAction === 'loan_cat_confirm') {
-            const lowerText = text.toLowerCase();
-            let responseText = '';
-            if (lowerText.includes('sim') || lowerText.includes('ok') || lowerText.includes('concordo')) {
-                responseText = "Confirmado. Processando o contrato...";
+                } else {
+                    responseText = "Entendido. Qual categoria deseja usar para as **Tarifas**?";
+                    pendingAction = 'loan_cat_ask_fees';
+                }
+                addMessage('ai', responseText);
+                speak(responseText);
+            } else if (pendingAction === 'loan_cat_ask_fees') {
+                loanContext.customFeeName = text;
+                const responseText = `Certo, **${text}**. E para os **Juros**?`;
+                pendingAction = 'loan_cat_ask_interest';
+                addMessage('ai', responseText);
+                speak(responseText);
+            } else if (pendingAction === 'loan_cat_ask_interest') {
+                loanContext.customInterestName = text;
+                const responseText = "Registrado. Finalizando o contrato.";
                 if (loanResolver) {
                     loanResolver({
                         feeCategoryId: loanContext.suggestions.fees.id,
@@ -2007,39 +1825,15 @@ messagesContainer.scrollTop = messagesContainer.scrollHeight;
                     pendingAction = null;
                     setTimeout(() => { if (isOpen) toggleChat(); }, 2000);
                 }
-            } else {
-                responseText = "Entendido. Qual categoria deseja usar para as **Tarifas**?";
-                pendingAction = 'loan_cat_ask_fees';
+                addMessage('ai', responseText);
+                speak(responseText);
             }
-            addMessage('ai', responseText);
-            speak(responseText);
-        } else if (pendingAction === 'loan_cat_ask_fees') {
-            loanContext.customFeeName = text;
-            const responseText = `Certo, **${text}**. E para os **Juros**?`;
-            pendingAction = 'loan_cat_ask_interest';
-            addMessage('ai', responseText);
-            speak(responseText);
-        } else if (pendingAction === 'loan_cat_ask_interest') {
-            loanContext.customInterestName = text;
-            const responseText = "Registrado. Finalizando o contrato.";
-            if (loanResolver) {
-                loanResolver({
-                    feeCategoryId: loanContext.suggestions.fees.id,
-                    interestCategoryId: loanContext.suggestions.interest.id
-                });
-                loanResolver = null;
-                pendingAction = null;
-                setTimeout(() => { if (isOpen) toggleChat(); }, 2000);
-            }
-            addMessage('ai', responseText);
-            speak(responseText);
+            return;
         }
-        return;
-    }
 
-    // Old fallback chat logic removed - now handled by IvaService above
-}, 800);
-    };
+        // Old fallback chat logic removed - now handled by IvaService above
+    }, 800);
+};
 
 // --- Autonomous Loop State ---
 const loopState = {
