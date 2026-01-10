@@ -64,6 +64,11 @@ const ivaFunctions = [
                     enum: ['menus', 'actions', 'custom_rules'],
                     description: 'O tipo de conhecimento sendo adicionado'
                 },
+                scope: {
+                    type: 'string',
+                    enum: ['SYSTEM', 'DEPARTMENT', 'ROLE', 'USER'],
+                    description: 'Quem deve ver este conhecimento? SYSTEM=Todos, DEPARTMENT=Só meu departamento, ROLE=Só meu cargo, USER=Só eu.'
+                },
                 data: {
                     type: 'object',
                     description: 'Os dados do conhecimento. Para menus: {screen_id, keywords: {primary: []}, purpose}. Para actions: {screen_id, action_type, keywords: {primary: []}, description}. Para rules: {description}.',
@@ -81,7 +86,7 @@ const ivaFunctions = [
                     }
                 }
             },
-            required: ['type', 'data']
+            required: ['type', 'data', 'scope']
         }
     }
 ];

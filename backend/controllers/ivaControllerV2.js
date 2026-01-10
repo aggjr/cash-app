@@ -594,8 +594,16 @@ Siga rigorosamente as INSTRUÇÕES DE FLUXO DE EXECUÇÃO E DESCOBERTA enviadas 
                     let type = args.type;
                     if (type === 'rules') type = 'custom_rules';
 
-                    await IvaGlobalKnowledge.contribute(type, args.data, user.id);
-                    console.log(`[IVA Function Call] ✅ Contributed new knowledge of type: "${type}"`);
+                    // Prepare context for scoped knowledge
+                    const knowledgeContext = {
+                        userId: user.id,
+                        scope: args.scope || 'USER', // Default to safe scope
+                        department: user.department,
+                        role: user.job_title
+                    };
+
+                    await IvaGlobalKnowledge.contribute(type, args.data, knowledgeContext);
+                    console.log(`[IVA Function Call] ✅ Contributed new knowledge: ${type} (Scope: ${knowledgeContext.scope})`);
                 }
             } catch (err) {
                 console.error('[IVA Function Call] Γ¥î Error executing function:', err.message);

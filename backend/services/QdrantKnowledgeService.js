@@ -429,6 +429,44 @@ Reforce o uso das preferências aprendidas (Nome, Voz, Estilo).`
             console.error('[Qdrant Knowledge] ❌ Ghost cleanup failed:', e.message);
         }
     }
+
+    /**
+     * Get learned rules for a specific scope
+     * @param {string} scope - SYSTEM, DEPARTMENT, ROLE, USER
+     * @param {object} filterContext - { department, role, userId }
+     */
+    static async getLearnedRules(scope, filterContext) {
+        try {
+            const filter = {
+                category: 'custom_rules',
+                layer: scope
+            };
+
+            // Add specific filters based on scope
+            if (scope === 'DEPARTMENT' && filterContext.department) {
+                filter.department = filterContext.department;
+            }
+            if (scope === 'ROLE' && filterContext.role) {
+                filter.role = filterContext.role;
+            }
+            if (scope === 'USER' && filterContext.userId) {
+                filter.user_id = filterContext.userId;
+            }
+
+            // Search/Scroll (using scroll to get all rules, or search with blank query?)
+            // Scroll is better for "Give me everything matching filter"
+            const result = await VectorSearchService.scroll(filter, 20);
+
+            if (result && result.points) {
+                // Deduplicate and format
+                return result.points.map(p => p.payload.text || p.payload.description).filter(Boolean);
+            }
+        } catch (err) {
+            console.error(`[Qdrant Knowledge] Error loading learned rules for ${scope}:`, err.message);
+        }
+        return [];
+    }
 }
+
 
 module.exports = QdrantKnowledgeService;

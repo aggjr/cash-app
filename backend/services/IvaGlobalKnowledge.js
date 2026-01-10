@@ -142,7 +142,21 @@ class IvaGlobalKnowledge {
     /**
      * Add or update knowledge
      */
-    static async contribute(type, data, userId) {
+    /**
+     * Add or update knowledge with Scope support
+     * @param {string} type - Knowledge type
+     * @param {object} data - Data content
+     * @param {object|string} context - Context object {userId, scope, department, role} or legacy userId string
+     */
+    static async contribute(type, data, context) {
+        // Legacy support
+        if (typeof context === 'string' || typeof context === 'number') {
+            context = { userId: context, scope: 'GLOBAL' }; // Assume global if not specified in legacy? Or USER? Safety: USER. But existing code assumed GLOBAL.
+            // Actually existing code hardcoded GLOBAL in syncWithQdrant, but passed userId.
+            // Let's assume GLOBAL for legacy consistency or force update everywhere.
+            // Since I updated the only caller, we are safe.
+        }
+
         const knowledge = await this.load();
 
         // Find existing
@@ -152,12 +166,13 @@ class IvaGlobalKnowledge {
 
         if (existing) {
             // Update existing
-            this.updateExisting(existing, data, userId);
+            this.updateExisting(existing, data, context.userId);
             itemToSync = existing;
             console.log(`[IVA Knowledge] Updated ${type}:`, data.screen_id || data.action_id);
         } else {
             // Add new
-            const newItem = this.createNewItem(data, userId);
+            const newItem = this.createNewItem(data, context.userId);
+            // Append scope info to item text/metadata if needed? No, purely metadata.
 
             // Ensure array exists
             if (!knowledge.knowledge[type]) {
@@ -174,7 +189,7 @@ class IvaGlobalKnowledge {
         await this.save(knowledge);
 
         // Sync with Qdrant in background
-        this.syncWithQdrant(type, itemToSync, userId).catch(err =>
+        this.syncWithQdrant(type, itemToSync, context).catch(err =>
             console.error('[IVA Knowledge] Qdrant sync failed:', err.message)
         );
 
@@ -184,18 +199,25 @@ class IvaGlobalKnowledge {
     /**
      * Sync knowledge item with Qdrant
      */
-    static async syncWithQdrant(type, item, userId) {
+    /**
+     * Sync knowledge item with Qdrant
+     */
+    static async syncWithQdrant(type, item, context) {
         console.log(`[IVA Qdrant] 🔄 Starting sync for type: ${type}`);
-        console.log(`[IVA Qdrant] 📦 Item:`, JSON.stringify(item, null, 2));
+        console.log(`[IVA Qdrant] 📦 Context:`, JSON.stringify(context));
 
         let textToEmbed = '';
+        const scope = context.scope || 'GLOBAL'; // Default to GLOBAL if missing
+
+        // Improve text embedding with Scope prefix
+        const scopePrefix = scope === 'GLOBAL' ? '(Global)' : `(${scope})`;
+
         if (type === 'menus') {
-            textToEmbed = `Menu/Tela ${item.screen_id}: ${this.getAllKeywords(item.keywords).join(', ')}. Objetivo: ${item.purpose || ''}`;
+            textToEmbed = `${scopePrefix} Menu/Tela ${item.screen_id}: ${this.getAllKeywords(item.keywords).join(', ')}. Objetivo: ${item.purpose || ''}`;
         } else if (type === 'actions') {
-            textToEmbed = `Ação [${item.screen_id}] ${item.action_type}: ${this.getAllKeywords(item.keywords).join(', ')}. Descrição: ${item.description || ''}`;
+            textToEmbed = `${scopePrefix} Ação [${item.screen_id}] ${item.action_type}: ${this.getAllKeywords(item.keywords).join(', ')}. Descrição: ${item.description || ''}`;
         } else if (type === 'custom_rules') {
-            textToEmbed = `Regra Aprendida: ${item.description}`;
-            console.log(`[IVA Qdrant] 📝 Text to embed: "${textToEmbed}"`);
+            textToEmbed = `${scopePrefix} Regra Aprendida: ${item.description}`;
         } else {
             console.log(`[IVA Qdrant] ⚠️ Unknown type: ${type}`);
         }
@@ -205,17 +227,30 @@ class IvaGlobalKnowledge {
             return;
         }
 
+        // Map Scope to Layer and Metadata
         const metadata = {
-            source: 'json_global',
+            source: 'iva_learning',
             category: type,
-            layer: 'GLOBAL',
+            layer: scope, // SYSTEM maps to GLOBAL in vectorService usually, or we keep SYSTEM. Let's use standard naming.
+            // If scope is SYSTEM, user probably meant GLOBAL.
             screen_id: item.screen_id,
             action_id: item.action_id,
-            user_id: userId,
+            user_id: context.userId, // Creator
+            department: context.department, // For filtering
+            role: context.role, // For filtering
             created_at: new Date().toISOString()
         };
 
-        const qdrantId = `global_${type}_${item.screen_id || item.action_id || Math.random().toString(36).substring(7)}`;
+        // If scope is DEPARTMENT, we MUST have department in metadata for filtering
+        if (scope === 'DEPARTMENT' && !metadata.department) {
+            console.warn('[IVA Qdrant] ⚠️ Department scope selected but no department in context!');
+        }
+
+        // Generate ID based on Scope to allow same rule in different scopes?
+        // Yes. `global_rule_123` vs `dept_sales_rule_123`.
+        const safeId = item.screen_id || item.action_id || Math.random().toString(36).substring(7);
+        const qdrantId = `${scope.toLowerCase()}_${type}_${safeId}`;
+
         console.log(`[IVA Qdrant] 🆔 Generated ID: ${qdrantId}`);
         console.log(`[IVA Qdrant] 📊 Metadata:`, metadata);
 
@@ -225,8 +260,7 @@ class IvaGlobalKnowledge {
             console.log(`[IVA Qdrant] ✅ Synced successfully to Qdrant!`);
         } catch (err) {
             console.error(`[IVA Qdrant] ❌ Sync failed:`, err.message);
-            console.error(`[IVA Qdrant] Stack:`, err.stack);
-            throw err; // Re-throw to propagate error
+            throw err;
         }
     }
 

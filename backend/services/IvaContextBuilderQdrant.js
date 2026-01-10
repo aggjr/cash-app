@@ -29,6 +29,14 @@ async function buildOperateContextWithQdrant(user, project, screenData, cachedSc
    const personality = await QdrantKnowledgeService.getPersonality();
    const systemInfo = await QdrantKnowledgeService.getSystemInfo();
 
+   // Fetch Learned Rules for all scopes in PARALLEL
+   const [globalRules, deptRules, roleRules, personalRules] = await Promise.all([
+      QdrantKnowledgeService.getLearnedRules('SYSTEM', {}),
+      user.department ? QdrantKnowledgeService.getLearnedRules('DEPARTMENT', { department: user.department }) : Promise.resolve([]),
+      user.job_title ? QdrantKnowledgeService.getLearnedRules('ROLE', { role: user.job_title }) : Promise.resolve([]),
+      QdrantKnowledgeService.getLearnedRules('USER', { userId: user.id })
+   ]);
+
    const hour = new Date().getHours();
    const timeOfDay = hour >= 5 && hour < 12 ? 'manhã'
       : hour >= 12 && hour < 19 ? 'tarde'
@@ -164,6 +172,7 @@ ${systemPrompt}
 ========================================
 NÍVEL MÓDULO (CASH):
 ${modulePrompt || '(Sem instruções específicas)'}
+${globalRules.length > 0 ? '\n--- CONHECIMENTO APRENDIDO (GLOBAL):\n' + globalRules.map(r => `• ${r}`).join('\n') : ''}
 
 ========================================
 NÍVEL EMPRESA (${project.name || 'Cliente'}):
@@ -174,16 +183,19 @@ NÍVEL DEPARTAMENTO:
 ${departmentPrompt || '(Sem instruções específicas)'}
 
 ${dynamicDeptRules ? `--- CONTEXTO ESPECÍFICO DEPARTAMENTO (${user.department}):\n${dynamicDeptRules}` : ''}
+${deptRules.length > 0 ? '\n--- REGRAS APRENDIDAS (DEPARTAMENTO):\n' + deptRules.map(r => `• ${r}`).join('\n') : ''}
 
 ========================================
 NÍVEL CARGO (Job Title: ${user.job_title || 'N/A'}):
 ${rolePrompt || '(Sem instruções específicas)'}
 
 ${dynamicRoleRules ? `--- CONTEXTO ESPECÍFICO CARGO (${user.job_title}):\n${dynamicRoleRules}` : ''}
+${roleRules.length > 0 ? '\n--- REGRAS APRENDIDAS (CARGO):\n' + roleRules.map(r => `• ${r}`).join('\n') : ''}
 
 ========================================
 NÍVEL USUÁRIO:
 ${userPrompt || '(Sem instruções específicas)'}
+${personalRules.length > 0 ? '\n--- SUAS NOTAS PESSOAIS APRENDIDAS:\n' + personalRules.map(r => `• ${r}`).join('\n') : ''}
 `;
 }
 
