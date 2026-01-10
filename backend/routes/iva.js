@@ -16,6 +16,9 @@ router.get('/debug-prefs/:userId', async (req, res) => {
     }
 });
 
+// GET /api/IVA/debug-context - Get projected system context
+router.get('/debug-context', auth, ivaController.getDebugContext);
+
 // POST /api/IVA/chat - Chat with IVA using LLM
 router.post('/chat', auth, ivaController.chat);
 

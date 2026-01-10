@@ -909,13 +909,39 @@ const rejectKnowledge = async (req, res) => {
     }
 };
 
+
+const getDebugContext = async (req, res) => {
+    try {
+        const user = req.user;
+        const IvaUserPreferences = require('../services/IvaUserPreferences');
+        const lastAccess = await IvaUserPreferences.getLastAccess(user.id);
+
+        const context = await IvaContextBuilder.buildOperateContextWithQdrant(
+            user,
+            { name: 'DEBUG_PROJECT' },
+            { screenId: 'DEBUG_MODE', pageTitle: 'Modo de Depuração' },
+            [],
+            'DEBUG',
+            lastAccess,
+            []
+        );
+
+        res.setHeader('Content-Type', 'text/plain');
+        res.send(context);
+    } catch (error) {
+        console.error('Error generating debug context:', error);
+        res.status(500).send('Erro ao gerar contexto: ' + error.message);
+    }
+};
+
 module.exports = {
     chat,
     operate,
     backfillKnowledge,
     getPendingKnowledge,
     approveKnowledge,
-    rejectKnowledge
+    rejectKnowledge,
+    getDebugContext
 };
 
 
