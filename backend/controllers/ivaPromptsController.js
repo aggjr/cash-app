@@ -1,4 +1,7 @@
 const { loadPrompt, savePrompt, listPrompts } = require('../services/promptLoader');
+const IvaContextBuilderQdrant = require('../services/IvaContextBuilderQdrant');
+const IvaUserPreferences = require('../services/IvaUserPreferences');
+const db = require('../config/database');
 
 /**
  * Get all IVA prompts
@@ -64,7 +67,56 @@ const updatePrompt = async (req, res) => {
     }
 };
 
+
+/**
+ * Get resolved context for debugging (The "Consolidated" view)
+ */
+const getDebugResolvedContext = async (req, res) => {
+    try {
+        const user = req.user;
+        const projectId = req.query.projectId || null;
+
+        // Fetch User and Project data similar to ivaControllerV2
+        const [projectResult, preferredName, lastAccess] = await Promise.all([
+            projectId ? db.query('SELECT * FROM projects WHERE id = ?', [projectId]) : Promise.resolve([[]]),
+            IvaUserPreferences.getPreferredName(user.id),
+            IvaUserPreferences.getLastAccess(user.id)
+        ]);
+
+        const projectData = projectResult[0][0] || { name: 'Geral (Sem Projeto)' };
+        const finalPreferredName = preferredName || user.name?.split(' ')[0];
+
+        // 1. Mock minimal screen data
+        const screenData = { screenId: 'DEBUG_VIEW', description: 'Visualizando em modo debug' };
+        const cachedScreens = [];
+
+        // 2. Mock intent (GENERAL to see full prompt)
+        const intent = { type: 'GENERAL' };
+
+        // 3. Update user object with preference
+        const userWithPref = { ...user, preferred_name: finalPreferredName };
+
+        // 4. Build Context
+        const resolvedPrompt = await IvaContextBuilderQdrant.buildOperateContextWithQdrant(
+            userWithPref,
+            projectData,
+            screenData,
+            cachedScreens,
+            intent,
+            lastAccess,
+            [] // Empty history
+        );
+
+        res.json({ success: true, resolvedPrompt });
+
+    } catch (error) {
+        console.error('[IVA Debug] Error resolving context:', error);
+        res.status(500).json({ error: 'Erro ao gerar contexto consolidado' });
+    }
+};
+
 module.exports = {
     getAllPrompts,
-    updatePrompt
+    updatePrompt,
+    getDebugResolvedContext
 };

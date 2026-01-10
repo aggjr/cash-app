@@ -363,6 +363,9 @@ REGRA DE PROFUNDIDADE POR SENIORIDADE:
 Reforce o uso das preferências aprendidas (Nome, Voz, Estilo).`
         };
 
+        // RUN GHOST CLEANUP TRIGGER
+        await QdrantKnowledgeService.cleanUpGhostPrompts();
+
         for (const [type, content] of Object.entries(defaults)) {
             const existing = await QdrantKnowledgeService.getPrompt(type);
 
@@ -376,6 +379,54 @@ Reforce o uso das preferências aprendidas (Nome, Voz, Estilo).`
             } else {
                 console.log(`[Qdrant Knowledge] ✅ Prompt "${type}" exists.`);
             }
+        }
+    }
+    static async cleanUpGhostPrompts() {
+        console.log('[Qdrant Knowledge] 👻 checking for ghost prompts...');
+        try {
+            // Get all prompts using the service methods (requires internal list listing logic)
+            // Re-using the listPrompts logic here for safety
+            const filter = { category: "core_prompt" };
+            const result = await VectorSearchService.scroll(filter, 100);
+
+            if (!result || !result.points) return;
+
+            const points = result.points;
+            const canonical = ['system', 'module', 'company', 'department', 'role', 'user'];
+
+            // Find ghosts
+            const ghostPoints = points.filter(p => !canonical.includes(p.payload.type));
+
+            if (ghostPoints.length === 0) {
+                console.log('[Qdrant Knowledge] ✅ No ghost prompts found.');
+                return;
+            }
+
+            console.log(`[Qdrant Knowledge]Found ${ghostPoints.length} ghosts to migrate.`);
+
+            for (const pt of ghostPoints) {
+                const ghostId = pt.payload.type;
+                const content = pt.payload.content;
+
+                let target = null;
+                if (ghostId.startsWith('role_') || ghostId.includes('cargo')) target = 'role';
+                else if (ghostId.startsWith('department_') || ghostId.includes('depto')) target = 'department';
+
+                if (target && content && content.length > 5) {
+                    console.log(`[Qdrant Knowledge] ➡️ Moving ${ghostId} to ${target}...`);
+                    const currentTarget = await QdrantKnowledgeService.getPrompt(target);
+                    // Append
+                    const newContent = `${currentTarget}\n\n[MIGRATED FROM ${ghostId.toUpperCase()}]:\n${content}`;
+                    await QdrantKnowledgeService.savePrompt(target, newContent);
+                }
+
+                // DELETE (using vector service directly)
+                console.log(`[Qdrant Knowledge] 🗑️ Deleting ghost: ${ghostId}`);
+                await VectorSearchService.deleteKnowledge(`prompt_${ghostId}`);
+            }
+
+        } catch (e) {
+            console.error('[Qdrant Knowledge] ❌ Ghost cleanup failed:', e.message);
         }
     }
 }

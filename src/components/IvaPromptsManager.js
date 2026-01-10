@@ -34,20 +34,17 @@ export const IvaPromptsManager = () => {
             return;
         }
 
-        const availableTabsKey = Object.keys(state.prompts);
+        const availableTabsKey = [...Object.keys(state.prompts), 'consolidated'];
 
         // Custom ordering: system -> module -> company -> department -> role -> user
-        const order = ['system', 'module', 'company', 'department', 'role', 'user'];
-        const availableTabs = availableTabsKey.sort((a, b) => {
-            const indexA = order.indexOf(a);
-            const indexB = order.indexOf(b);
-            // If both in list, sort by index
-            if (indexA !== -1 && indexB !== -1) return indexA - indexB;
-            // If one in list, it comes first
-            if (indexA !== -1) return -1;
-            if (indexB !== -1) return 1;
-            // Otherwise alphabetical
-            return a.localeCompare(b);
+        // Custom ordering: system -> module -> company -> department -> role -> user
+        const allowedTabs = ['system', 'module', 'company', 'department', 'role', 'user', 'consolidated'];
+
+        // Filter out any unexpected tabs (like dynamic role_admin etc)
+        const filteredTabs = availableTabsKey.filter(key => allowedTabs.includes(key));
+
+        const availableTabs = filteredTabs.sort((a, b) => {
+            return allowedTabs.indexOf(a) - allowedTabs.indexOf(b);
         });
 
         const hasChanges = state.editedContent !== (state.prompts[state.activeTab] || '');
@@ -60,7 +57,9 @@ export const IvaPromptsManager = () => {
                 'company': '🏢 Empresa',
                 'department': '📂 Departamento',
                 'role': '💼 Cargo',
-                'user': '👤 Usuário'
+                'role': '💼 Cargo',
+                'user': '👤 Usuário',
+                'consolidated': '🧠 Contexto Real (Debug)'
             };
             return map[key] || ('💬 ' + key);
         };
@@ -99,7 +98,7 @@ export const IvaPromptsManager = () => {
                     </span>
                     <div class="editor-stats">
                         ${state.editedContent.length} caracteres | ${state.editedContent.split('\n').length} linhas
-                        ${hasChanges ? '<span class="unsaved-indicator"> ● Não salvo</span>' : ''}
+                        ${state.activeTab === 'consolidated' ? '<span class="readonly-indicator"> ● Somente Leitura</span>' : (hasChanges ? '<span class="unsaved-indicator"> ● Não salvo</span>' : '')}
                     </div>
                 </div>
 
@@ -108,9 +107,15 @@ export const IvaPromptsManager = () => {
                     placeholder="Conteúdo do prompt..."
                     spellcheck="false"
                     id="prompts-textarea"
+                    ${state.activeTab === 'consolidated' ? 'readonly style="background:#f8fafc; color:#334155;"' : ''}
                 >${state.editedContent}</textarea>
 
                 <div class="editor-actions">
+                    ${state.activeTab === 'consolidated' ? `
+                        <button class="btn-revert" id="btn-refresh-context" style="background:#0ea5e9; color:white;">
+                            🔄 Recarregar Contexto
+                        </button>
+                    ` : `
                     <button
                         class="btn-revert"
                         id="btn-revert"
@@ -125,6 +130,7 @@ export const IvaPromptsManager = () => {
                     >
                         ${state.saving ? '💾 Salvando...' : '💾 Salvar Prompt'}
                     </button>
+                    `}
                 </div>
             </div>
 
@@ -148,7 +154,12 @@ export const IvaPromptsManager = () => {
                 const newTab = tab.dataset.tab;
                 if (newTab !== state.activeTab) {
                     state.activeTab = newTab;
-                    state.editedContent = state.prompts[newTab] || '';
+                    if (newTab === 'consolidated') {
+                        state.editedContent = 'Carregando contexto em tempo real...';
+                        loadDebugContext();
+                    } else {
+                        state.editedContent = state.prompts[newTab] || '';
+                    }
                     state.message = { type: '', text: '' }; // Clear messages on tab switch
                     render();
                 }
@@ -178,6 +189,12 @@ export const IvaPromptsManager = () => {
         const revertBtn = container.querySelector('#btn-revert');
         if (revertBtn) {
             revertBtn.addEventListener('click', handleRevert);
+        }
+
+        // Refresh context button
+        const refreshCtxBtn = container.querySelector('#btn-refresh-context');
+        if (refreshCtxBtn) {
+            refreshCtxBtn.addEventListener('click', loadDebugContext);
         }
     };
 
@@ -236,6 +253,32 @@ export const IvaPromptsManager = () => {
             state.message = { type: 'error', text: 'Erro ao carregar prompts' };
             state.loading = false;
             render();
+        }
+    };
+
+    const loadDebugContext = async () => {
+        try {
+            state.editedContent = 'Carregando contexto real do usuário...';
+            // Force update UI via DOM instead of full render to avoid flickering if possible, but render is safer
+            const textarea = container.querySelector('#prompts-textarea');
+            if (textarea) textarea.value = state.editedContent;
+
+            const response = await fetch(`${API_BASE_URL}/iva-prompts/debug-context`, {
+                headers: getHeaders()
+            });
+
+            if (!response.ok) throw new Error('Failed to load debug context');
+
+            const data = await response.json();
+            state.editedContent = data.resolvedPrompt || '(Contexto vazio)';
+
+            // If we are still on that tab, render
+            if (state.activeTab === 'consolidated') render();
+
+        } catch (error) {
+            console.error('Error loading debug context:', error);
+            state.editedContent = `Erro ao carregar contexto: ${error.message}`;
+            if (state.activeTab === 'consolidated') render();
         }
     };
 

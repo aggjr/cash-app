@@ -3,12 +3,44 @@ const router = express.Router();
 const ivaController = require('../controllers/ivaControllerV2');
 const auth = require('../middleware/auth');
 const IvaGlobalKnowledge = require('../services/IvaGlobalKnowledge');
+const IvaUserPreferences = require('../services/IvaUserPreferences');
+
+// GET /api/IVA/debug-prefs/:userId - Check saved preferences
+router.get('/debug-prefs/:userId', async (req, res) => {
+    try {
+        const userId = req.params.userId;
+        const prefs = await IvaUserPreferences.getAllPreferences(userId);
+        res.json({ userId, prefs });
+    } catch (error) {
+        res.status(500).json({ error: error.message });
+    }
+});
 
 // POST /api/IVA/chat - Chat with IVA using LLM
 router.post('/chat', auth, ivaController.chat);
 
 // POST /api/IVA/operate - Decide operational action (Navigate, Click, Fill)
 router.post('/operate', auth, ivaController.operate);
+
+// GET /api/IVA/debug-ghosts - List ghost prompts
+router.get('/debug-ghosts', async (req, res) => {
+    try {
+        const QdrantKnowledgeService = require('../services/QdrantKnowledgeService');
+        const prompts = await QdrantKnowledgeService.listPrompts();
+
+        const canonical = ['system', 'module', 'company', 'department', 'role', 'user'];
+        const ghosts = prompts.filter(p => !canonical.includes(p));
+
+        const ghostData = {};
+        for (const ghost of ghosts) {
+            ghostData[ghost] = await QdrantKnowledgeService.getPrompt(ghost);
+        }
+
+        res.json({ ghosts: ghostData, all: prompts });
+    } catch (error) {
+        res.status(500).json({ error: error.message });
+    }
+});
 
 // POST /api/IVA/backfill-knowledge - Trigger knowledge backfill (Temporary/Admin)
 router.post('/backfill-knowledge', ivaController.backfillKnowledge);

@@ -430,7 +430,7 @@ const operate = async (req, res) => {
         // Update userData with Qdrant preferredName (override MySQL value)
         const userDataWithQdrant = {
             ...userData,
-            preferred_name: preferredName // From Qdrant, not MySQL
+            preferred_name: finalPreferredName // From Qdrant or MySQL fallback
         };
 
         // Use Qdrant-based context builder (simplified)
@@ -457,7 +457,16 @@ const operate = async (req, res) => {
 CLASSIFICAÇÃO DE INTENÇÃO (OBRIGATÓRIO):
 Antes de retornar a ação, classifique a intenção do usuário:
 
-1. NAVIGATION_ONLY - Usuário quer apenas encontrar/ver uma tela
+
+1. PREFERENCE_CHANGE - Usuário pede para mudar nome, voz, ou configurações
+   Exemplos: "Me chame de Guto", "Mude minha voz", "Pare de falar"
+   OBRIGATÓRIO: Chame a função correspondente (`save_preferred_name`, `save_voice_settings`).
+   NÃO RESPONDA APENAS COM TEXTO. USE A FUNÇÃO.
+
+2. IDENTITY - Usuário pergunta quem você é
+   Retorne: { "intent": "IDENTITY", "action": "REPLY", "message": "Sou a IVA..." }
+
+3. NAVIGATION_ONLY - Usuário quer apenas encontrar/ver uma tela
    Exemplos: "Onde cadastro usuários?", "Como acesso relatórios?", "Onde fica configurações?"
    Retorne: { "intent": "NAVIGATION_ONLY", "action": "NAVIGATE", "target": "screen-id", "message": "Navegando para [nome da tela]. É nesta tela que está a informação que você procura?" }
    IMPORTANTE: SEMPRE use a pergunta de validação ao navegar para uma nova tela em busca de informação.
@@ -545,6 +554,10 @@ Siga rigorosamente as INSTRUÇÕES DE FLUXO DE EXECUÇÃO E DESCOBERTA enviadas 
 
         // Handle function calls from LLM
         const functionCall = completion.choices[0].message.function_call;
+
+        console.log('[IVA Debug] LLM Finish Reason:', completion.choices[0].finish_reason);
+        console.log('[IVA Debug] LLM Function Call Object:', functionCall ? JSON.stringify(functionCall) : 'null');
+
         if (functionCall) {
             console.log('[IVA Function Call] LLM requested function:', functionCall.name);
             console.log('[IVA Function Call] Arguments:', functionCall.arguments);
