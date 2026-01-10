@@ -747,9 +747,48 @@ Siga rigorosamente as INSTRU├ç├òES DE FLUXO DE EXECU├ç├âO E DESCOBER
 };
 
 
+// --- TEMPORARY BACKFILL ENDPOINT ---
+const backfillKnowledge = async (req, res) => {
+    console.log('🚀 Starting Knowledge Backfill via Endpoint...');
+    res.json({ message: 'Backfill started in background...' });
+
+    try {
+        const IvaKnowledgeGenerator = require('../services/IvaKnowledgeGenerator');
+
+        // 1. Get all unique Departments
+        const [departments] = await db.promise().query(
+            "SELECT DISTINCT department FROM users WHERE department IS NOT NULL AND department != ''"
+        );
+        console.log(`📊 Found ${departments.length} unique departments.`);
+
+        for (const row of departments) {
+            console.log(`Processing Department: ${row.department}`);
+            await IvaKnowledgeGenerator.ensureContextRules('department', row.department);
+            await new Promise(r => setTimeout(r, 1000));
+        }
+
+        // 2. Get all unique Job Titles (Roles)
+        const [roles] = await db.promise().query(
+            "SELECT DISTINCT job_title FROM users WHERE job_title IS NOT NULL AND job_title != ''"
+        );
+        console.log(`📊 Found ${roles.length} unique roles.`);
+
+        for (const row of roles) {
+            console.log(`Processing Role: ${row.job_title}`);
+            await IvaKnowledgeGenerator.ensureContextRules('role', row.job_title);
+            await new Promise(r => setTimeout(r, 1000));
+        }
+        console.log('✅ Backfill Complete!');
+    } catch (error) {
+        console.error('❌ Backfill failed:', error);
+    }
+};
+
+
 module.exports = {
     chat,
-    operate
+    operate,
+    backfillKnowledge
 };
 
 

@@ -10,6 +10,9 @@ router.post('/chat', auth, ivaController.chat);
 // POST /api/IVA/operate - Decide operational action (Navigate, Click, Fill)
 router.post('/operate', auth, ivaController.operate);
 
+// POST /api/IVA/backfill-knowledge - Trigger knowledge backfill (Temporary/Admin)
+router.post('/backfill-knowledge', ivaController.backfillKnowledge);
+
 // POST /api/IVA/learn - Record knowledge (active learning)
 router.post('/learn', auth, async (req, res) => {
     try {
