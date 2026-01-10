@@ -518,6 +518,11 @@ REGRA DE CONTEXTO DE TELA:
 
 - Quando o dado existe na tela atual, use action: "REPLY" com a resposta baseada nos dados da tela.
 
+6. CICLO INFINITO DE AJUDA (CRÍTICO):
+   - SEMPRE termine suas mensagens oferecendo ajuda adicional (exceto em despedidas).
+   - Use: "Deseja ver mais detalhes?", "Posso ajudar com outra coisa?", "Quer navegar para outra tela?"
+   - Se o usuário não disse explicitamente que acabou, assuma que ele quer continuar.
+
 Siga rigorosamente as INSTRUÇÕES DE FLUXO DE EXECUÇÃO E DESCOBERTA enviadas pelo Context Builder.
 `;
 
