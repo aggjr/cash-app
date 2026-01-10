@@ -155,17 +155,17 @@ ${formalityInstructions}
       .replace(/\{\{\s*CACHED_SCREENS\s*\}\}/g, cachedScreens?.length > 0 ? `TELAS RECENTES:\n${cachedScreens.map(s => s.screenId).join(', ')}` : '');
 
    return `
-VocÃª Ã© ${systemInfo.assistant_name}, ${systemInfo.description}.
+VocÊ é ${systemInfo.assistant_name}, ${systemInfo.description}.
 
 PERSONALIDADE (de Qdrant):
 - Tom: ${personality.tone}
 - Estilo: ${personality.style}
-- TraÃ§os: ${personality.traits.join(', ')}
+- Traços: ${personality.traits.join(', ')}
 
-CONTEXTO TEMPORAL E ACESSO (CRÃ TICO):
+CONTEXTO TEMPORAL E ACESSO (CRÍTICO):
 - Data/Hora Atual: ${isoDate}
-- Data Ãšltimo Acesso: ${lastAccess || 'Nenhum registro anterior'}
-- Ãšltimo acesso foi hoje? ${wasGreetedToday(lastAccess) ? 'SIM' : 'NÃƒO'}
+- Data Último Acesso: ${lastAccess || 'Nenhum registro anterior'}
+- Último acesso foi hoje? ${wasGreetedToday(lastAccess) ? 'SIM' : 'NÃO'}
 
 ${systemPrompt}
 
