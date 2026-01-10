@@ -202,6 +202,30 @@ ${JSON.stringify(screenData, null, 2)}`);
       sections.push(`TELAS RECENTES:\n${cachedScreens.map(s => s.screenId).join(', ')}`);
    }
 
+   // --- SPECIAL INSTRUCTION FOR AUTO-GREETING ---
+   if (isAutoGreeting) {
+      const screenTitle = screenData ? screenData.pageTitle : null;
+
+      let greetingInstruction = `
+INSTRUÇÃO DE SAUDAÇÃO (PRIORIDADE MÁXIMA):
+O usuário acabou de abrir o chat.
+1. Inicie com um cumprimento caloroso usando o Nome Preferido.`;
+
+      if (screenTitle) {
+         greetingInstruction += `
+2. Mencione explicitamente que percebeu que ele está na tela "${screenTitle}".
+3. Pergunte: "Deseja ajuda com esta tela ou gostaria de tratar de outro assunto?"`;
+      } else {
+         greetingInstruction += `
+2. Coloque-se à disposição para ajudar com qualquer módulo do sistema (Financeiro, Vendas, etc).`;
+      }
+
+      greetingInstruction += `
+4. NÃO use pronomes vagos como "com isso". Seja específico.`;
+
+      sections.push(greetingInstruction);
+   }
+
    // 6. JOIN SECTIONS
    // Filter out empty strings just in case, and join with double format
    return sections.filter(Boolean).join('\n\n========================================\n\n');
