@@ -280,6 +280,7 @@ Confirme de forma clara e natural que você aprendeu.
 const operate = async (req, res) => {
     try {
         let { message, conversationHistory, context, screenContext, currentScreen, availableScreens, userSettings } = req.body;
+        const originalMessage = message;
         const user = req.user;
 
         console.log('[IVA Operate] ≡ƒÜÇ VERSION: Function Calling Enabled (v2.1)');
@@ -329,6 +330,7 @@ const operate = async (req, res) => {
         // ========================================
         // DEBUG: User Data Loading (Operate)
         // ========================================
+        const perfStart = Date.now();
         console.log('[IVA Operate] Step 1 - req.user:', JSON.stringify({
             id: user?.id,
             name: user?.name,
@@ -339,15 +341,20 @@ const operate = async (req, res) => {
         // Fetch User, Project, and Qdrant Data in PARALLEL
         const IvaUserPreferences = require('../services/IvaUserPreferences');
 
+        console.log('[IVA Perf] Starting Parallel Data Fetch...');
         const [userResult, projectResult, preferredName, lastAccess] = await Promise.all([
             db.query('SELECT * FROM users WHERE id = ?', [user.id]),
             context?.projectId ? db.query('SELECT * FROM projects WHERE id = ?', [context.projectId]) : Promise.resolve([[]]),
             IvaUserPreferences.getPreferredName(user.id),
             IvaUserPreferences.getLastAccess(user.id)
         ]);
+        console.log(`[IVA Perf] Parallel Data Fetch Complete (${Date.now() - perfStart}ms)`);
 
-        const userData = userResult[0][0] || user;
-        const projectData = projectResult[0][0] || {};
+        const userData = (userResult && userResult[0] && userResult[0][0]) || user;
+        if (!userData) {
+            console.error('[IVA Code Critical] User data is NULL. Using req.user fallback.');
+        }
+        const projectData = (projectResult && projectResult[0] && projectResult[0][0]) || {};
         const finalPreferredName = preferredName || userData.name?.split(' ')[0];
 
         // ========================================
@@ -356,6 +363,8 @@ const operate = async (req, res) => {
         if (message === 'IVA_AUTO_GREETING') {
             message = 'Olá, boa noite'; // Force natural greeting for better Intent Classification
         }
+
+        const isAutoGreeting = (originalMessage === 'IVA_AUTO_GREETING');
 
         // ========================================
         // INTENT CLASSIFICATION (EARLY CHECK)
@@ -460,15 +469,25 @@ const operate = async (req, res) => {
         };
 
         // Use Qdrant-based context builder (simplified)
-        let systemPrompt = await IvaContextBuilder.buildOperateContextWithQdrant(
-            userDataWithQdrant,
-            projectData,
-            screenData,
-            cachedScreens,
-            intent,
-            lastAccess, // Pass last access for smart greeting
-            conversationHistory // Pass history for linguistic analysis
-        );
+        let systemPrompt = '';
+        try {
+            console.log('[IVA Perf] Starting Context Builder...');
+            const ctxStart = Date.now();
+            systemPrompt = await IvaContextBuilder.buildOperateContextWithQdrant(
+                userDataWithQdrant,
+                projectData,
+                screenData,
+                cachedScreens,
+                intent,
+                lastAccess,
+                conversationHistory,
+                isAutoGreeting
+            );
+            console.log(`[IVA Perf] Context Builder Complete (${Date.now() - ctxStart}ms)`);
+        } catch (ctxError) {
+            console.error('[IVA Code Critical] Context Builder Failed:', ctxError);
+            systemPrompt = 'Erro crítico ao construir contexto. Aja como assistente genérico.';
+        }
 
 
         // Qdrant knowledge already injected in buildOperateContextWithQdrant
@@ -539,13 +558,20 @@ REGRA DE CONTEXTO DE TELA:
 Siga rigorosamente as INSTRUÇÕES DE FLUXO DE EXECUÇÃO E DESCOBERTA enviadas pelo Context Builder.
 `;
 
-        // INJECT GLOBAL KNOWLEDGE
-        const IvaGlobalKnowledge = require('../services/IvaGlobalKnowledge');
-        const globalKnowledge = await IvaGlobalKnowledge.load();
-        const knowledgePrompt = IvaGlobalKnowledge.formatForPrompt(globalKnowledge);
-
-        // Prepend knowledge to system prompt
-        systemPrompt = knowledgePrompt + systemPrompt;
+        // INJECT GLOBAL KNOWLEDGE (Menus, Actions)
+        // Optimization: Skip for Auto-Greeting to speed up load time
+        if (!isAutoGreeting) {
+            try {
+                const IvaGlobalKnowledge = require('../services/IvaGlobalKnowledge');
+                const globalKnowledge = await IvaGlobalKnowledge.load();
+                const knowledgePrompt = IvaGlobalKnowledge.formatForPrompt(globalKnowledge);
+                systemPrompt = knowledgePrompt + systemPrompt;
+            } catch (gkError) {
+                console.error('[IVA Code] Global Knowledge Load Failed (continuing):', gkError);
+            }
+        } else {
+            console.log('[IVA Optimization] Skipping Global Knowledge for Auto-Greeting');
+        }
 
         const history = conversationHistory || [];
         const messages = [

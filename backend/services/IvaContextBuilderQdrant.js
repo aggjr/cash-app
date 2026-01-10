@@ -25,39 +25,62 @@ function wasGreetedToday(lastAccess) {
 /**
  * Build system prompt with Qdrant knowledge (Clean Text approach)
  */
-async function buildOperateContextWithQdrant(user, project, screenData, cachedScreens, intent, lastAccess, conversationHistory) {
+async function buildOperateContextWithQdrant(user, project, screenData, cachedScreens, intent, lastAccess, conversationHistory, isAutoGreeting = false) {
    // 1. Fetch Core Knowledge (Parallel)
    const [personality, systemInfo, globalRules] = await Promise.all([
       QdrantKnowledgeService.getPersonality(),
       QdrantKnowledgeService.getSystemInfo(),
-      QdrantKnowledgeService.getLearnedRules('SYSTEM', {})
+      !isAutoGreeting ? QdrantKnowledgeService.getLearnedRules('SYSTEM', {}) : Promise.resolve([])
    ]);
 
    // 2. Fetch Scoped Knowledge (Parallel - Conditional)
    const promises = [];
-   if (user.department) promises.push(QdrantKnowledgeService.getLearnedRules('DEPARTMENT', { department: user.department }));
-   else promises.push(Promise.resolve([]));
 
-   if (user.job_title) promises.push(QdrantKnowledgeService.getLearnedRules('ROLE', { role: user.job_title }));
-   else promises.push(Promise.resolve([]));
+   if (!isAutoGreeting) {
+      console.log('[ContextBuilder] Fetching scoped rules...');
+      if (user.department) promises.push(QdrantKnowledgeService.getLearnedRules('DEPARTMENT', { department: user.department }));
+      else promises.push(Promise.resolve([]));
 
+      if (user.job_title) promises.push(QdrantKnowledgeService.getLearnedRules('ROLE', { role: user.job_title }));
+      else promises.push(Promise.resolve([]));
+   } else {
+      console.log('[ContextBuilder] Skipping scoped rules for Auto-Greeting');
+      promises.push(Promise.resolve([])); // Dept
+      promises.push(Promise.resolve([])); // Role
+   }
+
+   // Always fetch user rules for personal preferences (like "Don't verify things")
    promises.push(QdrantKnowledgeService.getLearnedRules('USER', { userId: user.id }));
 
+   const rulesStart = Date.now();
    const [deptRules, roleRules, personalRules] = await Promise.all(promises);
+   console.log(`[ContextBuilder] Scoped Rules Fetched (${Date.now() - rulesStart}ms)`);
 
    // 3. Load Base Prompts (Qdrant)
-   // We only strictly need 'system'. others can be rules.
-   const systemPromptTemplate = await loadPrompt('system');
 
-   // Optional: Load specific instructions for levels IF they exist (not placeholders)
-   // We treat them as "Context Instructions" rather than full prompts
-   const [moduleInst, companyInst, deptInst, roleInst, userInst] = await Promise.all([
-      loadPrompt('module'),
-      loadPrompt('company'),
-      loadPrompt('department'),
-      loadPrompt('role'),
-      loadPrompt('user')
-   ]);
+   // OPTIMIZATION: For Auto-Greeting, we ONLY load 'system' (for basic ID) and 'user' (for preferences)
+   // We SKIP Module, Company, Dept, Role prompts which are huge.
+
+   let systemPromptTemplate = '';
+   let moduleInst = '', companyInst = '', deptInst = '', roleInst = '', userInst = '';
+
+   if (!isAutoGreeting) {
+      [systemPromptTemplate, moduleInst, companyInst, deptInst, roleInst, userInst] = await Promise.all([
+         loadPrompt('system'),
+         loadPrompt('module'),
+         loadPrompt('company'),
+         loadPrompt('department'),
+         loadPrompt('role'),
+         loadPrompt('user')
+      ]);
+   } else {
+      console.log('[ContextBuilder] Skipping heavy prompts for Auto-Greeting');
+      // Load minimal context for greeting
+      [systemPromptTemplate, userInst] = await Promise.all([
+         loadPrompt('system'), // Need system for basic ID
+         loadPrompt('user')    // Need user for style preferences
+      ]);
+   }
 
    // 4. PREPARE CONTEXT VARIABLES
    const now = new Date();
