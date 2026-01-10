@@ -942,6 +942,7 @@ const getDebugContext = async (req, res) => {
         const IvaUserPreferences = require('../services/IvaUserPreferences');
         const lastAccess = await IvaUserPreferences.getLastAccess(user.id);
 
+        // FORCE FULL CONTEXT (isAutoGreeting = false) to show user what is making it heavy
         const context = await IvaContextBuilder.buildOperateContextWithQdrant(
             user,
             { name: 'DEBUG_PROJECT' },
@@ -949,7 +950,8 @@ const getDebugContext = async (req, res) => {
             [],
             'DEBUG',
             lastAccess,
-            []
+            [],
+            false // isAutoGreeting = false (Load EVERYTHING)
         );
 
         res.setHeader('Content-Type', 'text/plain');
