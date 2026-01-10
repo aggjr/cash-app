@@ -135,10 +135,10 @@ const IntentClassifier = {
         }
 
         // 5. LEARNING (High Priority - Synonyms supported)
-        // STRICTER REGEX: Must verify it's an instruction. Matches "aprenda " or "aprenda," or "aprenda!"
-        const learningRegex = /^(aprenda|guarde|memorize|grave|registre|ensinar|conhecimento|entenda|lembre)[\s\.,!?:;]+/i;
+        // STRICTER REGEX: Must verify it's an instruction. Matches "aprenda " or "aprenda," or "aprenda!". Also matches personal facts "minha cor preferida é"
+        const learningRegex = /^(aprenda|guarde|memorize|grave|registre|ensinar|conhecimento|entenda|lembre)|(minha cor|meu time|eu gosto|eu prefiro|meu hobby|minha comida)/i;
         const learningMatch = learningRegex.test(msg);
-        console.log(`[Intent Classifier] Testing LEARNING: "${msg}" -> Match: ${learningMatch}`);
+        console.log(`[Intent Classifier] Testing LEARNING/PERSONAL: "${msg}" -> Match: ${learningMatch}`);
 
         if (learningMatch) {
             console.log(`[Intent Classifier] ✅ LEARNING intent detected!`);

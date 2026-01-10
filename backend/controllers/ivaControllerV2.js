@@ -358,10 +358,20 @@ const operate = async (req, res) => {
 
             // Trigger learning in background
             const IvaGlobalKnowledge = require('../services/IvaGlobalKnowledge');
+
+            // Smart Scope Detection
+            const isPersonal = /(minha|meu|eu |gosto de|prefiro|sou|estou)/i.test(message);
+            const scope = isPersonal ? 'USER' : 'SYSTEM';
+
             await IvaGlobalKnowledge.contribute('custom_rules', {
                 description: message.replace(/(iva|aprenda|guarde|memorize|grave|registre|ensinar|conhecimento|que|pergunta|original|:|"|')/gi, '').trim(),
                 keywords: IntentClassifier.extractKeywords ? IntentClassifier.extractKeywords(message) : IvaGlobalKnowledge.extractKeywords(message)
-            }, user.id).catch(e => console.error('[IVA Learning] Error:', e));
+            }, {
+                userId: user.id,
+                scope: scope,
+                department: user.department,
+                role: user.job_title
+            }).catch(e => console.error('[IVA Learning] Error:', e));
 
             return res.json({
                 intent: 'LEARNING',
@@ -480,8 +490,12 @@ Antes de retornar a ação, classifique a intenção do usuário:
    Retorne: { "intent": "ACTION_EXECUTION", "action": "NAVIGATE", "target": "screen-id", "message": "..." }
 
 4. LEARNING - Usuário está EXPLICITAMENTE ensinando uma regra ou comando NOVO.
-   Exemplos válidos: "aprenda que o fluxo agora é X", "guarde este conhecimento: Y", "memorize que Z"
+   Exemplos válidos: "aprenda que o fluxo agora é X", "guarde este conhecimento: Y", "minha cor preferida é azul"
    NÃO USE para: "teste", "ola", perguntas ou correções simples.
+   OBRIGATÓRIO: Defina o SCOPE:
+   - 'USER': para gostos pessoais (cores, times, nomes).
+   - 'DEPARTMENT': para regras de fluxo do setor.
+   - 'SYSTEM': para verdades universais da empresa.
    Retorne: { "intent": "LEARNING", "action": "REPLY", "message": "Entendido! Guardei esse novo conhecimento e vou usá-lo quando você me perguntar." }
    IMPORTANTE: Só acione se o usuário estiver claramente instruindo você a aprender.
 
