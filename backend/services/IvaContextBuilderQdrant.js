@@ -143,16 +143,16 @@ ${formalityInstructions}
 
    // Replace placeholders in template (Clean up system prompt if placeholders exist)
    const systemPrompt = systemPromptTemplate
-      .replace(/\{\{USER_JOB_TITLE\}\}/g, user.job_title || 'Não informado')
-      .replace(/\{\{USER_DEPARTMENT\}\}/g, user.department || 'Não informado')
-      .replace(/\{\{FORMALITY_LEVEL\}\}/g, '') // Remove from system
-      .replace(/\{\{FORMALITY_INSTRUCTIONS\}\}/g, '') // Remove from system
-      .replace(/\{\{USER_PREFERRED_NAME\}\}/g, user.preferred_name || user.name || 'você')
-      .replace(/\{\{PROJECT_NAME\}\}/g, project.name || 'projeto atual')
-      .replace(/\{\{SCREEN_ID\}\}/g, screenData?.screenId || 'tela não identificada')
-      .replace(/\{\{ISO_DATE\}\}/g, isoDate)
-      .replace(/\{\{SCREEN_DATA\}\}/g, screenData ? `DADOS DA TELA ATUAL:\n${JSON.stringify(screenData, null, 2)}` : 'Nenhum dado disponível')
-      .replace(/\{\{CACHED_SCREENS\}\}/g, cachedScreens?.length > 0 ? `TELAS RECENTES:\n${cachedScreens.map(s => s.screenId).join(', ')}` : '');
+      .replace(/\{\{\s*USER_JOB_TITLE\s*\}\}/g, user.job_title || 'Não informado')
+      .replace(/\{\{\s*USER_DEPARTMENT\s*\}\}/g, user.department || 'Não informado')
+      .replace(/\{\{\s*FORMALITY_LEVEL\s*\}\}/g, '') // Remove from system
+      .replace(/\{\{\s*FORMALITY_INSTRUCTIONS\s*\}\}/g, '') // Remove from system
+      .replace(/\{\{\s*USER_PREFERRED_NAME\s*\}\}/g, user.preferred_name || user.name || 'você')
+      .replace(/\{\{\s*PROJECT_NAME\s*\}\}/g, project.name || 'projeto atual')
+      .replace(/\{\{\s*SCREEN_ID\s*\}\}/g, screenData?.screenId || 'tela não identificada')
+      .replace(/\{\{\s*ISO_DATE\s*\}\}/g, isoDate)
+      .replace(/\{\{\s*SCREEN_DATA\s*\}\}/g, screenData ? `DADOS DA TELA ATUAL:\n${JSON.stringify(screenData, null, 2)}` : 'Nenhum dado disponível')
+      .replace(/\{\{\s*CACHED_SCREENS\s*\}\}/g, cachedScreens?.length > 0 ? `TELAS RECENTES:\n${cachedScreens.map(s => s.screenId).join(', ')}` : '');
 
    return `
 VocÃª Ã© ${systemInfo.assistant_name}, ${systemInfo.description}.

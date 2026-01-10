@@ -77,14 +77,17 @@ const getDebugResolvedContext = async (req, res) => {
         const projectId = req.query.projectId || null;
 
         // Fetch User and Project data similar to ivaControllerV2
-        const [projectResult, preferredName, lastAccess] = await Promise.all([
+        // Fetch User and Project data similar to ivaControllerV2
+        const [projectResult, preferredName, lastAccess, userResult] = await Promise.all([
             projectId ? db.query('SELECT * FROM projects WHERE id = ?', [projectId]) : Promise.resolve([[]]),
             IvaUserPreferences.getPreferredName(user.id),
-            IvaUserPreferences.getLastAccess(user.id)
+            IvaUserPreferences.getLastAccess(user.id),
+            db.query('SELECT * FROM users WHERE id = ?', [user.id])
         ]);
 
         const projectData = projectResult[0][0] || { name: 'Geral (Sem Projeto)' };
-        const finalPreferredName = preferredName || user.name?.split(' ')[0];
+        const fullUser = userResult[0][0] || user; // Hydrated user
+        const finalPreferredName = preferredName || fullUser.name?.split(' ')[0];
 
         // 1. Mock minimal screen data
         const screenData = { screenId: 'DEBUG_VIEW', description: 'Visualizando em modo debug' };
@@ -94,7 +97,7 @@ const getDebugResolvedContext = async (req, res) => {
         const intent = { type: 'GENERAL' };
 
         // 3. Update user object with preference
-        const userWithPref = { ...user, preferred_name: finalPreferredName };
+        const userWithPref = { ...fullUser, preferred_name: finalPreferredName };
 
         // 4. Build Context
         const resolvedPrompt = await IvaContextBuilderQdrant.buildOperateContextWithQdrant(
