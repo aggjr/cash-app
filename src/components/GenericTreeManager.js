@@ -187,6 +187,9 @@ export const createTreeManager = (tableName, title, term = 'Categoria', onClose 
                 }
             });
 
+            // Auto-save the initial state including new items to ensure they persist as checked
+            autoSaveView();
+
             if (loadingEl) loadingEl.style.display = 'none';
             if (containerEl) containerEl.style.display = 'block';
 
@@ -279,6 +282,7 @@ export const createTreeManager = (tableName, title, term = 'Categoria', onClose 
             };
             uncheckParentIfNeeded(id);
         }
+        autoSaveView();
         renderTree();
     };
 
@@ -289,12 +293,32 @@ export const createTreeManager = (tableName, title, term = 'Categoria', onClose 
         } else {
             checkedNodes.clear();
         }
+        autoSaveView();
         renderTree();
     };
 
     const toggleHideUnchecked = () => {
         hideUnchecked = !hideUnchecked;
+        autoSaveView();
         renderTree();
+    };
+
+    const autoSaveView = async () => {
+        try {
+            const dataToSave = {
+                checkedNodes: Array.from(checkedNodes),
+                hideUnchecked: hideUnchecked
+            };
+            const prefKey = `tree_selection_${tableName}`;
+            // Fire and forget, but with error logging
+            fetch(`${API_BASE_URL}/user-preferences/${prefKey}`, {
+                method: 'POST',
+                headers: getHeaders(),
+                body: JSON.stringify({ value: dataToSave })
+            }).catch(err => console.error('Error auto-saving view:', err));
+        } catch (error) {
+            console.error('Error preparing auto-save:', error);
+        }
     };
 
     const triggerSearch = () => {
@@ -788,11 +812,6 @@ export const createTreeManager = (tableName, title, term = 'Categoria', onClose 
                 🔍
             </button>
 
-            <button onclick="window.treeActions_${tableName}.saveView()" 
-                    class="btn-secondary"
-                    style="padding: 0.5rem; min-width: 36px; margin-left: 5px; display: flex; justify-content: center; align-items: center;"
-                    title="Salvar Visualização Padrão">
-            💾
             </button>
         </div>
         
@@ -915,38 +934,9 @@ export const createTreeManager = (tableName, title, term = 'Categoria', onClose 
                 },
                 export: exportToCSV,
                 // Save current view (selection) to server
-                saveView: async () => {
-                    try {
-                        const dataToSave = {
-                            checkedNodes: Array.from(checkedNodes),
-                            hideUnchecked: hideUnchecked
-                        };
-
-                        const prefKey = `tree_selection_${tableName}`;
-                        const response = await fetch(`${API_BASE_URL}/user-preferences/${prefKey}`, {
-                            method: 'POST',
-                            headers: getHeaders(),
-                            body: JSON.stringify({ value: dataToSave })
-                        });
-
-                        if (!response.ok) {
-                            throw new Error('Failed to save preference');
-                        }
-
-                        if (typeof Dialogs !== 'undefined' && Dialogs.alert) {
-                            Dialogs.alert('A visualização atual (seleção e filtros) foi salva e será usada como padrão em todos os seus dispositivos.', 'Visualização Salva');
-                        } else {
-                            alert('Visualização salva com sucesso!');
-                        }
-                    } catch (error) {
-                        console.error('Erro ao salvar visualização:', error);
-                        if (typeof Dialogs !== 'undefined' && Dialogs.alert) {
-                            Dialogs.alert('Erro ao salvar visualização no servidor.', 'Erro');
-                        } else {
-                            alert('Erro ao salvar visualização.');
-                        }
-                    }
-                }
+                // Auto-save is now internal, explicit save removed
+                // Keeping empty saveView just in case of stale references
+                saveView: async () => { }
             };
 
             loadTreeData();
