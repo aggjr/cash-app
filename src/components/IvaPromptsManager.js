@@ -187,7 +187,7 @@ export const IvaPromptsManager = () => {
                 }
             },
             {
-                key: 'description', label: 'Conhecimento', type: 'text', align: 'left',
+                key: 'description', label: 'Conhecimento (Fato)', type: 'text', align: 'left',
                 render: (item) => {
                     const isNew = item.audit_action === 'CREATE';
                     if (isNew) {
@@ -200,6 +200,15 @@ export const IvaPromptsManager = () => {
                             </div>
                         `;
                     }
+                }
+            },
+            {
+                key: 'proposed_prompt', label: 'Prompt Proposto', type: 'text', align: 'left',
+                render: (item) => {
+                    // If backend didn't provide proposed_prompt (legacy), try to fallback or show placeholder
+                    const prompt = item.proposed_prompt || '(Será gerado ao aprovar)';
+                    const isGenerated = !item.proposed_prompt;
+                    return `<div style="white-space:pre-wrap; font-size:0.9em; font-family:monospace; color:${isGenerated ? '#999' : '#333'}; max-height:100px; overflow-y:auto;">${escapeHtml(prompt)}</div>`;
                 }
             },
             {
@@ -467,15 +476,17 @@ export const IvaPromptsManager = () => {
         const item = state.pendingKnowledge.find(i => i.id === id);
         if (!item) return;
 
-        const currentText = item.description || item.text || '';
+        // Edit the PROPOSED PROMPT if available, otherwise description
+        const currentText = item.proposed_prompt || item.description || item.text || '';
+
         // Using standard prompt for text input for now as implementing a custom input modal is outside scope,
         // but confirmation of the edit will use the custom modal.
-        const newText = prompt('Refinar o conhecimento:', currentText);
+        const newText = prompt('Editar o Prompt Final (Qdrant):', currentText);
 
         if (newText !== null && newText !== currentText) {
             const confirmed = await showConfirmationModal(
                 'Confirmar Edição',
-                'Deseja aprovar o conhecimento com o novo texto editado?'
+                'Deseja aprovar o conhecimento com este <strong>novo prompt</strong>?<br><br>Isso substituirá o texto que será gravado no aprendizado da IVA.'
             );
             if (confirmed) {
                 handleApprove(id, newText);

@@ -251,7 +251,8 @@ class IvaGlobalKnowledge {
             // Audit Metadata
             audit_status: status, // 'pending' | 'approved' | 'rejected'
             audit_action: actionType, // 'CREATE' | 'UPDATE'
-            previous_description: item._audit_previous_description || null // For diffs
+            previous_description: item._audit_previous_description || null, // For diffs
+            proposed_prompt: textToEmbed // Store the actual text used for embedding
         };
 
         const safeId = item.screen_id || item.action_id || Math.random().toString(36).substring(7);
@@ -306,32 +307,36 @@ class IvaGlobalKnowledge {
             payload.audit_approved_at = new Date().toISOString();
 
             // 3. Apply refinement if provided
-            let textToEmbed = payload.text; // Does not exist on payload usually, need to reconstruct? 
-            // Wait, Qdrant payload does NOT contain the text embedding source usually unless we stored it in payload.
-            // Retrieve only returns payload and vector.
-            // But we can reconstruct it from payload description if custom_rule.
+            let textToEmbed = refinedText || payload.proposed_prompt;
 
-            // Reconstruct text base on category
+            // Define scope prefix for reconstruction/update
             const scopePrefix = payload.layer === 'GLOBAL' ? '(Global)' : `(${payload.layer})`;
 
-            if (refinedText) {
+            // If no text found (legacy) or refined provided, reconstruct/update
+            if (!textToEmbed || refinedText) {
                 if (payload.category === 'custom_rules') {
-                    textToEmbed = `${scopePrefix} Regra Aprendida: ${refinedText}`;
-                    payload.description = refinedText;
-                }
-                // Add other types if needed (menus/actions usually not edited textually this way)
-            } else {
-                // Keep existing text? NO, we need to re-embed. 
-                // If we don't have the original text, we can't re-embed without changing it.
-                // Ideally we should store the 'text_content' in payload for this purpose.
-                // OR we just update the metadata status without re-embedding?
-                // vectorService.upsertKnowledge DOES re-embed.
-                // So we MUST have the text.
-                // Let's assume for now valid Rules have description in payload.
-                if (payload.category === 'custom_rules') {
-                    textToEmbed = `${scopePrefix} Regra Aprendida: ${payload.description}`;
+                    // Start with refined text or description
+                    const content = refinedText || payload.description;
+
+                    // If refined, update description too for consistency
+                    if (refinedText) {
+                        payload.description = refinedText;
+                        // For custom rules, the prompt IS the description essentially, plus metadata
+                        textToEmbed = `${scopePrefix} Regra Aprendida: ${refinedText}`;
+                    } else {
+                        // Legacy reconstruction
+                        textToEmbed = `${scopePrefix} Regra Aprendida: ${payload.description}`;
+                    }
+                } else if (payload.category === 'menus') {
+                    // Menus usually don't have descriptions editable this way, but if they did:
+                    textToEmbed = `${scopePrefix} Menu/Tela ${payload.screen_id}: ${this.getAllKeywords(payload.keywords).join(', ')}. Objetivo: ${payload.purpose || ''}`;
+                } else if (payload.category === 'actions') {
+                    textToEmbed = `${scopePrefix} Ação [${payload.screen_id}] ${payload.action_type}: ${this.getAllKeywords(payload.keywords).join(', ')}. Descrição: ${payload.description || ''}`;
                 }
             }
+
+            // Ensure we update proposed_prompt in payload for future reference
+            payload.proposed_prompt = textToEmbed;
 
             if (textToEmbed) {
                 await vectorService.upsertKnowledge(id, textToEmbed, payload);
