@@ -721,88 +721,98 @@ export const createTreeManager = (tableName, title, term = 'Categoria', onClose 
         const allChecked = totalNodes > 0 && checkedNodes.size === totalNodes;
 
         container.innerHTML = `
-    <div class="tree-header" style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1.5rem;">
-      <h2 style="margin: 0;">${title}</h2>
-      <div style="display: flex; gap: 0.75rem; align-items: center;">
-        <div class="header-actions" style="display: flex; gap: 0.5rem;">
-          <button class="btn-secondary" onclick="window.treeActions_${tableName}.print()" title="Imprimir / Salvar PDF">🖨️ PDF</button>
-          <button class="btn-secondary" onclick="window.treeActions_${tableName}.export()" title="Exportar para Excel">📊 Excel</button>
-          <button class="btn-primary" onclick="window.treeActions_${tableName}.addRoot()">+ Nova ${term}</button>
-        </div>
-        ${onClose ? `
-          <button onclick="window.treeActions_${tableName}.close()" 
-                  style="background: none; border: none; font-size: 1.5rem; cursor: pointer; color: var(--color-text-muted); padding: 0.25rem; display: flex; align-items: center; justify-content: center; margin-left: 0.5rem;" 
-                  title="Fechar">
-            ✕
-          </button>
-        ` : ''}
-      </div>
-    </div>
-    
-    <div class="tree-controls" style="display: flex; gap: 1rem; align-items: center; padding: 0.5rem var(--row-padding-horizontal); background: var(--color-bg-secondary); border-radius: 8px; margin-bottom: 1rem;">
-      <div style="display: flex; align-items: center; gap: 0.5rem;">
-        <div style="width: 20px; display: flex; justify-content: center; flex-shrink: 0;">
-            <input type="checkbox" 
-                   id="master-checkbox-${tableName}" 
-                   ${allChecked ? 'checked' : ''}
-                   onchange="window.treeActions_${tableName}.toggleAll(this.checked)"
-                   style="cursor: pointer; width: 14px; height: 14px; margin: 0;"
-            />
-        </div>
-        <label for="master-checkbox-${tableName}" style="cursor: pointer; font-weight: 500; margin: 0;">Selecionar Todos</label>
-      </div>
-
-      <button class="btn-secondary" 
-              onclick="window.treeActions_${tableName}.toggleHide()"
-              title="Ocultar itens desmarcados da visualização"
-              style="white-space: nowrap; ${hideUnchecked ? 'background: var(--color-primary); color: white;' : ''}">
-        ${hideUnchecked ? '👁️ Mostrar Todos' : '🚫 Ocultar Desmarcados'}
-      </button>
-
-      <!-- Search Section: Fixed Width + Save View Button -->
-      <!-- Order: [Input + X] -> Mag -> Save -->
-      <div style="display: flex; align-items: center; gap: 0.5rem; position: relative; border-left: 1px solid var(--color-border-light); padding-left: 1rem;">
-        
-        <div style="position: relative; display: flex; align-items: center;">
-            <input type="text" 
-                   id="search-input-${tableName}" 
-                   placeholder="Buscar..."
-                   value="${searchQuery}"
-                   onkeydown="if(event.key === 'Enter') window.treeActions_${tableName}.triggerSearch()"
-                   style="width: 350px; padding: 0.5rem 2.5rem 0.5rem 0.5rem; border: 1px solid var(--color-border-light); border-radius: 6px; font-size: 0.9rem;"
-            />
-            ${searchQuery ? `
-              <button onclick="document.getElementById('search-input-${tableName}').value = ''; window.treeActions_${tableName}.triggerSearch();" 
-                      style="position: absolute; right: 5px; top: 50%; transform: translateY(-50%); background: none; border: none; cursor: pointer; color: var(--color-text-muted); font-size: 1rem; display: flex; align-items: center; justify-content: center; width: 24px; height: 24px;" 
-                      title="Limpar busca">
-                  ✕
-              </button>
+    <div style="position: sticky; top: 0; background-color: #fff; z-index: 20; padding-bottom: 10px; border-bottom: 1px solid var(--color-border-light); margin-bottom: 1rem;">
+        <div class="tree-header" style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1.5rem; padding-top: 5px;">
+        <h2 style="margin: 0;">${title}</h2>
+        <div style="display: flex; gap: 0.75rem; align-items: center;">
+            <div class="header-actions" style="display: flex; gap: 0.5rem;">
+            <button class="btn-secondary" onclick="window.treeActions_${tableName}.print()" title="Imprimir / Salvar PDF">🖨️ PDF</button>
+            <button class="btn-secondary" onclick="window.treeActions_${tableName}.export()" title="Exportar para Excel">📊 Excel</button>
+            <button class="btn-primary" onclick="window.treeActions_${tableName}.addRoot()">+ Nova ${term}</button>
+            </div>
+            ${onClose ? `
+            <button onclick="window.treeActions_${tableName}.close()" 
+                    style="background: none; border: none; font-size: 1.5rem; cursor: pointer; color: var(--color-text-muted); padding: 0.25rem; display: flex; align-items: center; justify-content: center; margin-left: 0.5rem;" 
+                    title="Fechar">
+                ✕
+            </button>
             ` : ''}
         </div>
+        </div>
+        
+        <div class="tree-controls" style="display: flex; gap: 1rem; align-items: center; padding: 0.5rem var(--row-padding-horizontal); background: var(--color-bg-secondary); border-radius: 8px;">
+        <div style="display: flex; align-items: center; gap: 0.5rem;">
+            <div style="width: 20px; display: flex; justify-content: center; flex-shrink: 0;">
+                <input type="checkbox" 
+                    id="master-checkbox-${tableName}" 
+                    ${allChecked ? 'checked' : ''}
+                    onchange="window.treeActions_${tableName}.toggleAll(this.checked)"
+                    style="cursor: pointer; width: 14px; height: 14px; margin: 0;"
+                />
+            </div>
+            <label for="master-checkbox-${tableName}" style="cursor: pointer; font-weight: 500; margin: 0;">Selecionar Todos</label>
+        </div>
 
-        <button onclick="window.treeActions_${tableName}.triggerSearch()" 
-                class="btn-secondary"
-                style="padding: 0.5rem; min-width: 36px; display: flex; justify-content: center; align-items: center;"
-                title="Buscar">
-            🔍
+        <button class="btn-secondary" 
+                onclick="window.treeActions_${tableName}.toggleHide()"
+                title="Ocultar itens desmarcados da visualização"
+                style="white-space: nowrap; ${hideUnchecked ? 'background: var(--color-primary); color: white;' : ''}">
+            ${hideUnchecked ? '👁️ Mostrar Todos' : '🚫 Ocultar Desmarcados'}
         </button>
 
-        <button onclick="window.treeActions_${tableName}.saveView()" 
-                class="btn-secondary"
-                style="padding: 0.5rem; min-width: 36px; margin-left: 5px; display: flex; justify-content: center; align-items: center;"
-                title="Salvar Visualização Padrão">
-          💾
-        </button>
-      </div>
-      
-      <div style="flex: 1; text-align: right; font-size: 0.85rem; color: var(--color-text-muted); white-space: nowrap;">
-        ${visibleCount} de ${totalNodes} itens
-      </div>
+        <!-- Search Section: Fixed Width + Save View Button -->
+        <!-- Order: [Input + X] -> Mag -> Save -->
+        <div style="display: flex; align-items: center; gap: 0.5rem; position: relative; border-left: 1px solid var(--color-border-light); padding-left: 1rem;">
+            
+            <div style="position: relative; display: flex; align-items: center;">
+                <input type="text" 
+                    id="search-input-${tableName}" 
+                    placeholder="Buscar..."
+                    value="${searchQuery}"
+                    onkeydown="if(event.key === 'Enter') window.treeActions_${tableName}.triggerSearch()"
+                    style="width: 350px; padding: 0.5rem 2.5rem 0.5rem 0.5rem; border: 1px solid var(--color-border-light); border-radius: 6px; font-size: 0.9rem;"
+                />
+                ${searchQuery ? `
+                <button onclick="document.getElementById('search-input-${tableName}').value = ''; window.treeActions_${tableName}.triggerSearch();" 
+                        style="position: absolute; right: 5px; top: 50%; transform: translateY(-50%); background: none; border: none; cursor: pointer; color: var(--color-text-muted); font-size: 1rem; display: flex; align-items: center; justify-content: center; width: 24px; height: 24px;" 
+                        title="Limpar busca">
+                    ✕
+                </button>
+                ` : ''}
+            </div>
+
+            <button onclick="window.treeActions_${tableName}.triggerSearch()" 
+                    class="btn-secondary"
+                    style="padding: 0.5rem; min-width: 36px; display: flex; justify-content: center; align-items: center;"
+                    title="Buscar">
+                🔍
+            </button>
+
+            <button onclick="window.treeActions_${tableName}.saveView()" 
+                    class="btn-secondary"
+                    style="padding: 0.5rem; min-width: 36px; margin-left: 5px; display: flex; justify-content: center; align-items: center;"
+                    title="Salvar Visualização Padrão">
+            💾
+            </button>
+        </div>
+        
+        <div style="flex: 1; text-align: right; font-size: 0.85rem; color: var(--color-text-muted); white-space: nowrap;">
+            ${visibleCount} de ${totalNodes} itens
+        </div>
+        </div>
     </div>
-    
-    <div class="tree-wrapper" id="tree-root-dropzone">
-      ${treeData.map(node => renderNode(node)).join('')}
-      ${(treeData.filter(node => shouldShowNode(node)).length === 0) ? '<div style="padding:1rem; color:var(--color-text-muted);">Nenhum item encontrado.</div>' : ''}
+        
+    <div class="tree-content" id="tree-root-dropzone" style="padding-top: 0.5rem;">
+        ${allNodeIds.length === 0 ? `
+            <div style="text-align: center; padding: 2rem; color: var(--color-text-muted);">
+              Nenhum item encontrado. Clique em "+ Nova ${term}" para começar.
+            </div>
+          ` : `
+            ${
+            // Logic to render root nodes (order is already handled in buildTree)
+            treeData.map(root => renderNode(root)).join('')
+            }
+          `}
     </div>
   `;
 

@@ -27,17 +27,40 @@ export const IvaService = {
             // Get user settings from localStorage
             const user = JSON.parse(localStorage.getItem('user') || '{}');
 
-            // Try multiple sources for projectId
-            const projectId = user?.default_project_id ||
-                user?.defaultProjectId ||
-                localStorage.getItem('selectedProjectId') ||
-                localStorage.getItem('projectId');
+            // RESOLUTION STRATEGY: Prioritize 'currentProject' (Sidebar source of truth)
+            let projectId = null;
+
+            // 1. Try 'currentProject' (Primary - consistent with Sidebar)
+            try {
+                const currentProjectRaw = localStorage.getItem('currentProject');
+                // Ensure it's not the string "undefined" or "null" and is not empty
+                if (currentProjectRaw && currentProjectRaw !== 'undefined' && currentProjectRaw !== 'null') {
+                    const currentProject = JSON.parse(currentProjectRaw);
+                    if (currentProject && currentProject.id) {
+                        projectId = currentProject.id;
+                    }
+                }
+            } catch (e) {
+                console.warn('[ivaService] Error parsing currentProject:', e);
+            }
+
+            // 2. Fallbacks (Legacy or User Defaults)
+            if (!projectId) {
+                const rawSelected = localStorage.getItem('selectedProjectId');
+                const rawProject = localStorage.getItem('projectId');
+
+                projectId = user?.default_project_id ||
+                    user?.defaultProjectId ||
+                    (rawSelected && rawSelected !== 'null' && rawSelected !== 'undefined' ? rawSelected : null) ||
+                    (rawProject && rawProject !== 'null' && rawProject !== 'undefined' ? rawProject : null);
+            }
 
             console.log('[ivaService] ProjectId resolution:', {
                 fromUser_default_project_id: user?.default_project_id,
                 fromUser_defaultProjectId: user?.defaultProjectId,
                 fromLocalStorage_selectedProjectId: localStorage.getItem('selectedProjectId'),
                 fromLocalStorage_projectId: localStorage.getItem('projectId'),
+                currentProjectRaw: localStorage.getItem('currentProject'), // Explicitly log this
                 finalProjectId: projectId
             });
 

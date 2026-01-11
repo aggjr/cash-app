@@ -146,12 +146,21 @@ class IvaGlobalKnowledge {
      * Add or update knowledge with Scope support
      * @param {string} type - Knowledge type
      * @param {object} data - Data content
-     * @param {object|string} context - Context object {userId, scope, department, role} or legacy userId string
+     * @param {object|string} context - Context object {userId, scope, department, role, projectId} or legacy userId string
      */
     static async contribute(type, data, context) {
         // Legacy support
         if (typeof context === 'string' || typeof context === 'number') {
             context = { userId: context, scope: 'GLOBAL' };
+        }
+
+        // Validate Critical Context
+        if (!context.userId) {
+            console.warn(`[IVA Knowledge] ⚠️ Contribution missing userId. Using 'system' default.`);
+            context.userId = 'system';
+        }
+        if (!context.projectId && context.scope === 'PROJECT') {
+            console.warn(`[IVA Knowledge] ⚠️ PROJECT scope contribution missing projectId. This may cause retrieval issues.`);
         }
 
         const knowledge = await this.load();
@@ -208,12 +217,9 @@ class IvaGlobalKnowledge {
     /**
      * Sync knowledge item with Qdrant
      */
-    /**
-     * Sync knowledge item with Qdrant
-     */
     static async syncWithQdrant(type, item, context, status = 'approved', actionType = 'CREATE') {
         console.log(`[IVA Qdrant] 🔄 Starting sync for type: ${type} [${status}]`);
-        // ... (logging context)
+        console.log(`[IVA Qdrant] Context: User=${context.userId}, Project=${context.projectId}, Scope=${context.scope}`);
 
         let textToEmbed = '';
         const scope = context.scope || 'GLOBAL';
@@ -237,6 +243,7 @@ class IvaGlobalKnowledge {
             screen_id: item.screen_id,
             action_id: item.action_id,
             user_id: context.userId,
+            project_id: context.projectId || null, // Ensure explicit null if undefined
             department: context.department,
             role: context.role,
             created_at: new Date().toISOString(),
@@ -252,7 +259,7 @@ class IvaGlobalKnowledge {
 
         try {
             await vectorService.upsertKnowledge(qdrantId, textToEmbed, metadata);
-            console.log(`[IVA Qdrant] ✅ Synced to Qdrant (${status})!`);
+            console.log(`[IVA Qdrant] ✅ Synced to Qdrant (${status})! ID: ${qdrantId}`);
         } catch (err) {
             console.error(`[IVA Qdrant] ❌ Sync failed:`, err.message);
             throw err;

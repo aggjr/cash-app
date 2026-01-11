@@ -1,15 +1,204 @@
 ﻿/**
- * Refactored IvaContextBuilder to use Qdrant for dynamic knowledge
- * This file patches the existing IvaContextBuilder to use QdrantKnowledgeService
+ * IvaContextBuilderQdrant.js
+ * 
+ * Implements the IVA Core Identity and Context Structure.
+ * Uses Qdrant for dynamic knowledge retrieval and populates the standardized IVA template.
  */
 
 const QdrantKnowledgeService = require('./QdrantKnowledgeService');
-const IvaKnowledgeGenerator = require('./IvaKnowledgeGenerator');
+const IvaGlobalKnowledge = require('./IvaGlobalKnowledge'); // Import for {{MODULE_KNOWLEDGE}}
 const { loadPrompt } = require('./promptLoader');
 
+const IVA_CORE_PROMPT_TEMPLATE = `
+# IVA - Assistente Virtual Inteligente do ERP FOCCUS
+
+## IDENTIDADE CORE
+Você é a IA central do ERP FOCCUS, orquestrando todo o ecossistema empresarial.
+- **Missão**: Apoiar usuários na execução de tarefas do sistema
+- **Personalidade**: Profissional, empática, proativa e entusiasmada
+- **Regra de Ouro**: Nunca invente dados. Se não sabe, pergunte.
+
+---
+
+## CONTEXTO HIERÁRQUICO
+
+### 🏢 Nível Empresa
+- **Empresa**: {{PROJECT_NAME}} (ID: {{PROJECT_ID}})
+- **Regras de Negócio**: {{COMPANY_RULES}}
+
+### 📦 Nível Módulo
+- **Módulos Disponíveis**: Financeiro, Produção, Vendas, RH, CRM
+- **Regras Específicas**: {{MODULE_RULES}}
+
+### 👤 Nível Usuário
+- **Nome**: {{USER_PREFERRED_NAME}} (ID: {{USER_ID}})
+- **Cargo**: {{USER_JOB_TITLE}}
+- **Departamento**: {{USER_DEPARTMENT}}
+- **Preferências**: {{USER_PREFERENCES}}
+
+### 📍 Contexto Atual
+- **Tela**: {{SCREEN_ID}}
+- **Data/Hora**: {{ISO_DATE}}
+- **Último Acesso**: {{LAST_ACCESS}}
+
+---
+
+## COMPORTAMENTO DE INTERAÇÃO
+
+### Regra do Loop Infinito de Ajuda
+**Você está em um ciclo perpétuo**: Ajudar → Perguntar se precisa mais → Ajudar → ...
+
+**Apenas saia do loop quando**:
+- Usuário disser explicitamente "não preciso mais", "tchau", "obrigado, é só"
+- Usuário fechar a interface
+
+### Saudações Inteligentes
+
+**Primeiro acesso do usuário no sistema**:
+\`\`\`
+Olá! 👋 Sou a IVA, sua assistente virtual no FOCCUS.
+Estou aqui para ajudar você em qualquer tarefa do sistema.
+No que posso te ajudar hoje?
+\`\`\`
+
+**Primeiro acesso do dia** (usuário já conhece o sistema):
+\`\`\`
+[Bom dia/Boa tarde/Boa noite], {{USER_PREFERRED_NAME}}! 
+Como posso te ajudar?
+\`\`\`
+
+**Demais interações do dia**:
+- **NÃO repita saudações**
+- Vá direto ao ponto se usuário fizer pergunta
+- Se usuário apenas chamar ("oi"), responda: "Oi! No que posso ajudar? 😊"
+
+---
+
+## PROTOCOLO DE ATENDIMENTO
+
+### 1️⃣ Detectar Tipo de Interação
+
+**A. Interação Social** (prioridade máxima)
+- Saudação → Responda calorosamente + ofereça ajuda
+- Agradecimento → "Por nada! 😊 Posso fazer mais alguma coisa?"
+- Elogio → "Oba! Que bom! 🎉 Precisa de mais ajuda?"
+- Frustração → Empatia primeiro, depois explique
+
+**B. Pergunta/Demanda**
+- **NUNCA** repita "No que posso ajudar?" se usuário já perguntou algo
+- Processe a demanda imediatamente
+
+### 2️⃣ Resolver com Inteligência
+
+**Atalhos Rápidos** (responda sem navegar):
+- "Qual meu nome?" → {{USER_PREFERRED_NAME}}
+- "Qual minha empresa?" → {{PROJECT_NAME}} (ID: {{PROJECT_ID}})
+- "Que horas/dia?" → {{ISO_DATE}}
+- "Onde estou?" → {{SCREEN_ID}}
+- "O que é X?" → Busque definição conceitual (Qdrant)
+
+**Demandas Complexas**:
+1. **Entenda primeiro**: Se não estiver 100% claro, pergunte
+   - "Você quer ver, criar ou editar?"
+   - "Para qual período?"
+   
+2. **Se não souber**:
+   - ✅ "Não sei onde está essa funcionalidade. Você pode me mostrar?"
+   - ✅ Aprenda depois com \`contribute_knowledge\`
+   - ❌ NUNCA finja que sabe
+
+3. **Após explicar/executar**:
+   - Pergunte: "Ficou claro?" / "Faz sentido?"
+   - Se "não" → Aprofunde com exemplos/analogias
+   - Se "sim" → Volte ao loop de ajuda
+
+### 3️⃣ Fechar o Ciclo
+\`\`\`
+Conseguiu entender? Posso te ajudar em mais alguma coisa?
+\`\`\`
+
+---
+
+## ATITUDE FUNDAMENTAL
+
+### ✅ Sempre Demonstre
+- ✨ Entusiasmo genuíno ("Oba! Deixa eu te ajudar...")
+- 🎯 Engajamento ativo (não seja passiva)
+- 🔍 Curiosidade quando não souber
+- 💪 Proatividade (antecipe necessidades)
+
+### ❌ Nunca Seja
+- Robótica ou técnica demais
+- Apática ("Ok.", "Não sei.")
+- Silenciosa quando não sabe algo
+
+---
+
+## TOM DE VOZ POR NÍVEL
+
+### Executivo/Gerencial (C-Level, Diretores)
+- Formal: "Olá, Sr./Sra. {{NAME}}"
+- Emojis raros (apenas ✓ ✗ ⚠️)
+- Conciso e direto
+
+### Profissional (Coordenadores, Analistas)
+- Cordial: "Olá, {{NAME}}"
+- Emojis moderados (😊 👍 🎯)
+- Equilibrado entre técnico e amigável
+
+### Operacional (Assistentes, Operadores)
+- Descontraído: "Oi, {{NAME}}!"
+- Emojis permitidos (😊 🎉 👏 ⚡)
+- Didático e paciente
+
+---
+
+## DADOS DISPONÍVEIS
+
+{{SCREEN_DATA}}
+{{CACHED_SCREENS}}
+{{MODULE_KNOWLEDGE}}
+
+---
+
+## MEMÓRIA PESSOAL
+{{USER_MEMORY}}
+
+---
+
+## EXEMPLOS DE FLUXO
+
+**❌ ERRADO**:
+\`\`\`
+User: Como faço para criar uma venda?
+IVA: Oi! 😊 No que posso te ajudar?
+\`\`\`
+
+**✅ CORRETO**:
+\`\`\`
+User: Como faço para criar uma venda?
+IVA: Para criar uma venda, vá em Vendas > Nova Venda.
+Preencha os dados do cliente e produtos. 
+Ficou claro? Posso ajudar em mais alguma coisa?
+\`\`\`
+
+**✅ CORRETO (quando não sabe)**:
+\`\`\`
+User: Como faço para gerar consolidadas?
+IVA: Não sei onde está essa funcionalidade no sistema.
+Você poderia me mostrar onde fica? Assim aprendo e 
+posso te ajudar melhor da próxima vez! 😊
+\`\`\`
+`;
+
 /**
- * Check if user was greeted today
+ * Helper: Format rules array into bullet points
  */
+function formatRules(rules, emptyMsg = '(Nenhuma regra específica)') {
+   if (!rules || rules.length === 0) return emptyMsg;
+   return rules.map(r => `• ${r}`).join('\n');
+}
+
 /**
  * Check if user was greeted today
  */
@@ -23,212 +212,132 @@ function wasGreetedToday(lastAccess) {
 }
 
 /**
- * Build system prompt with Qdrant knowledge (Clean Text approach)
+ * Build system prompt with Qdrant knowledge using the New IVA Structure
  */
 async function buildOperateContextWithQdrant(user, project, screenData, cachedScreens, intent, lastAccess, conversationHistory, isAutoGreeting = false) {
-   // 1. Fetch Core Knowledge (Parallel)
-   const [personality, systemInfo, globalRules] = await Promise.all([
-      QdrantKnowledgeService.getPersonality(),
-      QdrantKnowledgeService.getSystemInfo(),
-      !isAutoGreeting ? QdrantKnowledgeService.getLearnedRules('SYSTEM', {}) : Promise.resolve([])
-   ]);
 
-   // 2. Fetch Scoped Knowledge (Parallel - Conditional)
+   console.log('[IVA Context] Building context with new structure...');
+   console.log(`[IVA Context] User: ${user.id} (${user.name}), Project: ${project?.id || 'N/A'}`);
+
+   // 1. Fetch Knowledge and Rules (Parallel)
    const promises = [];
 
+   // Always fetch essential rules
+   promises.push(QdrantKnowledgeService.getLearnedRules('SYSTEM', {}));
+   promises.push(QdrantKnowledgeService.getLearnedRules('USER', { userId: user.id }));
+
+   // Fetch scoped rules if not auto-greeting (optimization)
    if (!isAutoGreeting) {
-      console.log('[ContextBuilder] Fetching scoped rules...');
       if (user.department) promises.push(QdrantKnowledgeService.getLearnedRules('DEPARTMENT', { department: user.department }));
       else promises.push(Promise.resolve([]));
 
       if (user.job_title) promises.push(QdrantKnowledgeService.getLearnedRules('ROLE', { role: user.job_title }));
       else promises.push(Promise.resolve([]));
+
+      // Fetch PROJECT rules if project exists
+      if (project && (project.id || project.code)) {
+         promises.push(QdrantKnowledgeService.getLearnedRules('PROJECT', { projectId: project.id }));
+      } else {
+         promises.push(Promise.resolve([]));
+      }
+
+      // Load Global Knowledge (Menus/Actions)
+      promises.push(IvaGlobalKnowledge.load().then(k => IvaGlobalKnowledge.formatForPrompt(k)));
    } else {
-      console.log('[ContextBuilder] Skipping scoped rules for Auto-Greeting');
       promises.push(Promise.resolve([])); // Dept
       promises.push(Promise.resolve([])); // Role
+      promises.push(Promise.resolve([])); // Project
+      promises.push(Promise.resolve('')); // Global Knowledge (Skip for speed)
    }
 
-   // Always fetch user rules for personal preferences (like "Don't verify things")
-   promises.push(QdrantKnowledgeService.getLearnedRules('USER', { userId: user.id }));
+   // Base prompts (User instructions)
+   promises.push(loadPrompt('user')); // To get specific user instruction snippets if any
+   promises.push(loadPrompt('company'));
+   promises.push(loadPrompt('module'));
 
-   const rulesStart = Date.now();
-   const [deptRules, roleRules, personalRules] = await Promise.all(promises);
-   console.log(`[ContextBuilder] Scoped Rules Fetched (${Date.now() - rulesStart}ms)`);
+   const start = Date.now();
+   const [
+      systemRules,
+      userRules,
+      deptRules,
+      roleRules,
+      projectRules,
+      moduleKnowledgeString,
+      userPrompt,
+      companyPrompt,
+      modulePrompt
+   ] = await Promise.all(promises);
 
-   // 3. Load Base Prompts (Qdrant)
+   console.log(`[IVA Context] Data fetch complete (${Date.now() - start}ms)`);
 
-   // OPTIMIZATION: For Auto-Greeting, we ONLY load 'system' (for basic ID) and 'user' (for preferences)
-   // We SKIP Module, Company, Dept, Role prompts which are huge.
-
-   let systemPromptTemplate = '';
-   let moduleInst = '', companyInst = '', deptInst = '', roleInst = '', userInst = '';
-
-   if (!isAutoGreeting) {
-      [systemPromptTemplate, moduleInst, companyInst, deptInst, roleInst, userInst] = await Promise.all([
-         loadPrompt('system'),
-         loadPrompt('module'),
-         loadPrompt('company'),
-         loadPrompt('department'),
-         loadPrompt('role'),
-         loadPrompt('user')
-      ]);
-   } else {
-      console.log('[ContextBuilder] Skipping heavy prompts for Auto-Greeting');
-      // Load minimal context for greeting
-      [systemPromptTemplate, userInst] = await Promise.all([
-         loadPrompt('system'), // Need system for basic ID
-         loadPrompt('user')    // Need user for style preferences
-      ]);
-   }
-
-   // 4. PREPARE CONTEXT VARIABLES
+   // 2. Prepare Variables
    const now = new Date();
-   // FIX: Force Brazil Timezone (UTC-3) for correct greeting
-   const hour = parseInt(new Intl.DateTimeFormat('pt-BR', {
-      hour: 'numeric',
-      hour12: false,
-      timeZone: 'America/Sao_Paulo'
-   }).format(now));
-
-   // Also format isoDate to show local time in the prompt if useful,
-   // but ISO is usually fine. We'll keep ISO for machine parsing,
-   // but maybe add a "Local Time" field for the LLM to understand context better.
+   const isoDate = now.toISOString();
+   // Brazil Time for display
    const localTime = new Intl.DateTimeFormat('pt-BR', {
       dateStyle: 'full',
       timeStyle: 'medium',
       timeZone: 'America/Sao_Paulo'
    }).format(now);
 
-   const isoDate = now.toISOString();
-   const isToday = wasGreetedToday(lastAccess);
+   const preferredName = user.preferred_name || user.name || 'Usuário';
 
-   // Formality Analysis
-   const pn = (user.preferred_name || '').trim();
-   const jt = (user.job_title || '').toLowerCase();
-   const dp = (user.department || '').toLowerCase();
+   // --- MAP TO TEMPLATE ---
 
-   // Heuristic: Honorifics
-   const hasFormalHonorific = /^(Dr|Dra|Sr|Sra|Prof|Professor|Professora)(\.|\s)/i.test(pn);
+   let prompt = IVA_CORE_PROMPT_TEMPLATE;
 
-   // Heuristic: Executive Roles
-   const isExecutive = jt.includes('diretor') || jt.includes('ceo') || jt.includes('presidente') ||
-      dp.includes('board') || dp.includes('diretoria');
+   // 2.1 PROJECT & COMPANY RULES
+   prompt = prompt.replace('{{PROJECT_NAME}}', project.name || 'CASH ERP');
+   prompt = prompt.replace('{{PROJECT_ID}}', project.id || 'N/A');
 
-   const isFormal = hasFormalHonorific || isExecutive;
+   const companyRulesList = [
+      ...(companyPrompt ? [companyPrompt] : []),
+      ...(projectRules.length > 0 ? [`[Regras do Projeto ${project.id || ''}]`, ...projectRules] : []),
+      ...systemRules
+   ];
+   prompt = prompt.replace('{{COMPANY_RULES}}', formatRules(companyRulesList));
 
-   const formalityLevel = isFormal ? 'FORMAL' : 'PROFISSIONAL';
-   const formalityInstruction = isFormal
-      ? 'Tom: Respeitoso, executivo. "Bom dia Sr/Sra". Evite emojis.'
-      : 'Tom: Profissional mas acessível. "Olá", "Oi". Emojis moderados permitidos.';
+   // 2.2 MODULE RULES (Global Instructions + Dept + Role + Module Prompts)
+   const moduleRulesList = [
+      ...(modulePrompt ? [modulePrompt] : []),
+      ...(deptRules.length > 0 ? [`[Setor ${user.department || 'Geral'}]`, ...deptRules] : []),
+      ...(roleRules.length > 0 ? [`[Cargo ${user.job_title || 'Geral'}]`, ...roleRules] : [])
+   ];
+   prompt = prompt.replace('{{MODULE_RULES}}', formatRules(moduleRulesList));
 
-   // 5. BUILD PROMPT SECTIONS (Array Builder Pattern)
-   const sections = [];
+   // 2.3 USER CONTEXT
+   prompt = prompt.replace(/{{USER_PREFERRED_NAME}}/g, preferredName); // Global replace
+   prompt = prompt.replace(/{{NAME}}/g, preferredName); // Replace explicit {{NAME}} in tone section
+   prompt = prompt.replace('{{USER_JOB_TITLE}}', user.job_title || 'Não definido');
+   prompt = prompt.replace('{{USER_DEPARTMENT}}', user.department || 'Geral');
+   prompt = prompt.replace('{{USER_ID}}', user.id || 'N/A');
 
-   // --- HEADER & IDENTITY ---
-   sections.push(`DIRETRIZ MESTRA ID: ${systemInfo.assistant_name}
-Missão: ${systemInfo.description}
-Personalidade: ${personality.tone} (${personality.style})
-Traços: ${personality.traits.join(', ')}`);
+   const userPreferencesList = [
+      userPrompt || '',
+      // Add voice settings info if available in user object
+      user.iva_voice_enabled ? `[Voz Ativada: Velocidade ${user.iva_voice_rate || 1.0}x]` : '[Voz Desativada]'
+   ].filter(Boolean);
+   prompt = prompt.replace('{{USER_PREFERENCES}}', userPreferencesList.join('\n') || 'Padrão');
 
-   // --- USER CONTEXT ---
-   sections.push(`CONTEXTO DO USUÁRIO:
-Nome Preferido: ${user.preferred_name || user.name || 'User'}
-Cargo: ${user.job_title || 'N/A'}
-Departamento: ${user.department || 'N/A'}
---
-Formalidade Detectada: ${formalityLevel}
-Instrução: ${formalityInstruction}`);
+   // 2.4 CURRENT CONTEXT
+   prompt = prompt.replace(/{{SCREEN_ID}}/g, screenData ? screenData.screenId : 'Nenhuma (Dashboard/Home)');
+   prompt = prompt.replace(/{{ISO_DATE}}/g, `${localTime} (${isoDate})`);
+   prompt = prompt.replace('{{LAST_ACCESS}}', lastAccess ? new Date(lastAccess).toLocaleString('pt-BR') : 'Primeiro Acesso');
 
-   // --- TEMPORAL CONTEXT ---
-   sections.push(`TEMPO:
-Agora: ${isoDate}
-Último Acesso: ${lastAccess || 'Nunca'} (Hoje? ${isToday ? 'SIM' : 'NÃO'})`);
+   // 2.5 DATA AVAILABLE
+   prompt = prompt.replace('{{SCREEN_DATA}}', screenData ? `### DADOS DA TELA:\n${JSON.stringify(screenData, null, 2)}` : '(Sem dados de tela ativa)');
 
-   // --- BASE INSTRUCTIONS (System Prompt) ---
-   if (systemPromptTemplate) {
-      sections.push(`INSTRUÇÕES DO SISTEMA:\n${systemPromptTemplate}`);
-   }
+   const cachedList = cachedScreens && cachedScreens.length > 0
+      ? cachedScreens.map(s => `- ${s.screenId}`).join('\n')
+      : '(Nenhuma recente)';
+   prompt = prompt.replace('{{CACHED_SCREENS}}', `### TELAS RECENTES:\n${cachedList}`);
 
-   // --- KNOWLEDGE LAYERS (Only add if content exists) ---
+   prompt = prompt.replace('{{MODULE_KNOWLEDGE}}', moduleKnowledgeString || '(Conhecimento global carregado sob demanda)');
 
-   // MODULE LEVEL
-   if (moduleInst || globalRules.length > 0) {
-      let block = `NÍVEL MÓDULO (GLOBAL):`;
-      if (moduleInst) block += `\n${moduleInst}`;
-      if (globalRules.length > 0) block += `\n\nREGRAS GLOBAIS APRENDIDAS:\n${globalRules.map(r => `• ${r}`).join('\n')}`;
-      sections.push(block);
-   }
+   // 2.6 PERSONAL MEMORY
+   prompt = prompt.replace('{{USER_MEMORY}}', formatRules(userRules, 'O usuário não ensinou nada específico ainda.'));
 
-   // COMPANY LEVEL
-   if (companyInst) {
-      sections.push(`NÍVEL EMPRESA (${project.name || 'Atual'}):\n${companyInst}`);
-   }
-
-   // DEPARTMENT LEVEL
-   if (user.department && (deptInst || deptRules.length > 0)) {
-      let block = `NÍVEL DEPARTAMENTO (${user.department}):`;
-      if (deptInst) block += `\n${deptInst}`;
-      if (deptRules.length > 0) block += `\n\nREGRAS DO SETOR:\n${deptRules.map(r => `• ${r}`).join('\n')}`;
-      sections.push(block);
-   }
-
-   // ROLE LEVEL
-   if (user.job_title && (roleInst || roleRules.length > 0)) {
-      let block = `NÍVEL CARGO (${user.job_title}):`;
-      if (roleInst) block += `\n${roleInst}`;
-      if (roleRules.length > 0) block += `\n\nREGRAS DO CARGO:\n${roleRules.map(r => `• ${r}`).join('\n')}`;
-      sections.push(block);
-   }
-
-   // USER LEVEL
-   if (userInst || personalRules.length > 0) {
-      let block = `NÍVEL PESSOAL (PREFERÊNCIAS):`;
-      if (userInst) block += `\n${userInst}`;
-      if (personalRules.length > 0) block += `\n\nMEMÓRIA PESSOAL:\n${personalRules.map(r => `• ${r}`).join('\n')}`;
-      sections.push(block);
-   }
-
-   // --- SCREEN CONTEXT (Current Visual) ---
-   if (screenData) {
-      sections.push(`DADOS DA TELA ATUAL (${screenData.screenId}):
-${JSON.stringify(screenData, null, 2)}`);
-   } else {
-      sections.push(`(Nenhuma tela ativa analisada no momento)`);
-   }
-
-   // --- CACHED CONTEXT ---
-   if (cachedScreens && cachedScreens.length > 0) {
-      sections.push(`TELAS RECENTES:\n${cachedScreens.map(s => s.screenId).join(', ')}`);
-   }
-
-   // --- SPECIAL INSTRUCTION FOR AUTO-GREETING ---
-   if (isAutoGreeting) {
-      const screenTitle = screenData ? screenData.pageTitle : null;
-
-      let greetingInstruction = `
-INSTRUÇÃO DE SAUDAÇÃO (PRIORIDADE MÁXIMA):
-O usuário acabou de abrir o chat.
-1. Inicie com um cumprimento caloroso usando o Nome Preferido.`;
-
-      if (screenTitle) {
-         greetingInstruction += `
-2. Mencione explicitamente que percebeu que ele está na tela "${screenTitle}".
-3. Pergunte: "Deseja ajuda com esta tela ou gostaria de tratar de outro assunto?"`;
-      } else {
-         greetingInstruction += `
-2. Coloque-se à disposição para ajudar com qualquer módulo do sistema (Financeiro, Vendas, etc).`;
-      }
-
-      greetingInstruction += `
-4. NÃO use pronomes vagos como "com isso". Seja específico.`;
-
-      sections.push(greetingInstruction);
-   }
-
-   // 6. JOIN SECTIONS
-   // Filter out empty strings just in case, and join with double format
-   return sections.filter(Boolean).join('\n\n========================================\n\n');
+   return prompt;
 }
 
 module.exports = {

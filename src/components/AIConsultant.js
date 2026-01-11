@@ -15,7 +15,7 @@ import { IvaLearning } from '../iva/IvaLearning.js';
 import { IvaConversation } from '../iva/IvaConversation.js';
 
 export const AIConsultant = () => {
-    console.log('AIConsultant: Version 2.1 (Iva UI Interactions fixed)');
+    console.log('AIConsultant: Version 2.2 (Project Context Fix)');
     const API_BASE_URL = getApiBaseUrl();
     const getHeaders = () => {
         const token = localStorage.getItem('token');
@@ -1613,185 +1613,209 @@ Digite 1, 2 ou 3.`;
 
 
 
-            // Check for auto-close flag from backend
-            if (decision.forceClose) {
-                console.log('[IVA] Auto-close requested by decision flag');
-                wasDismissed = true; // Mark as dismissed so next open triggers greeting
-                setTimeout(() => {
-                    if (isOpen) toggleChat();
-                }, 3000); // 3s delay to hear the final message
+                // Check for auto-close flag from backend
+                if (decision.forceClose) {
+                    console.log('[IVA] Auto-close requested by decision flag');
+                    wasDismissed = true; // Mark as dismissed so next open triggers greeting
+                    setTimeout(() => {
+                        if (isOpen) toggleChat();
+                    }, 3000); // 3s delay to hear the final message
+                }
+
+            } catch (err) {
+                console.error('[IVA] Operation error:', err);
+                if (thinkingMsg.parentNode) thinkingMsg.parentNode.removeChild(thinkingMsg);
+                addMessage('ai', 'Erro ao processar comando.');
             }
 
-        } catch (err) {
-            console.error('[IVA] Operation error:', err);
-            if (thinkingMsg.parentNode) thinkingMsg.parentNode.removeChild(thinkingMsg);
-            addMessage('ai', 'Erro ao processar comando.');
+
+
+            return; // Stop here, fulfilled by LLM
         }
 
+        /* REGEX BLOCKS REMOVED - REPLACED BY LLM ABOVE */
+        // DEBUG: Reset Command
+        if (text === '/reset') {
+            const user = getUser();
+            if (user) {
+                user.IVA_introduced = false;
+                user.IVA_voice_enabled = null; // Reset voice pref
+                user.preferred_name = null; // Reset name pref
+                localStorage.setItem('user', JSON.stringify(user));
+                // Also update backend if possible, but for now local is enough to trigger flow locally next reload
+                // Or better, let's just trigger it now:
 
-
-        return; // Stop here, fulfilled by LLM
-    }
-
-    /* REGEX BLOCKS REMOVED - REPLACED BY LLM ABOVE */
-    // DEBUG: Reset Command
-    if (text === '/reset') {
-        const user = getUser();
-        if (user) {
-            user.IVA_introduced = false;
-            user.IVA_voice_enabled = null; // Reset voice pref
-            user.preferred_name = null; // Reset name pref
-            localStorage.setItem('user', JSON.stringify(user));
-            // Also update backend if possible, but for now local is enough to trigger flow locally next reload
-            // Or better, let's just trigger it now:
-
-            addMessage('ai', 'ΓÖ╗∩╕Å Reiniciando apresenta├º├úo...');
-            setTimeout(() => {
-                messages.length = 0; // Clear history
-                pendingAction = null;
-                startIntroductionFlow();
-            }, 1000);
-            return;
-        }
-    }
-
-    // Simulate thinking (ZERO DELAY)
-    const loadingDiv = document.createElement('div');
-    loadingDiv.textContent = '...';
-    loadingDiv.style.alignSelf = 'flex-start';
-    loadingDiv.style.marginLeft = '1rem';
-    loadingDiv.style.color = '#6b7280';
-    messagesContainer.appendChild(loadingDiv);
-    messagesContainer.scrollTop = messagesContainer.scrollHeight;
-
-    (async () => {
-        loadingDiv.remove();
-
-        // Handle Navigation Confirmation
-        if (pendingAction === 'nav_confirm') {
-            const isPositive = IvaConversation.isPositiveResponse(text);
-            if (isPositive) {
-                const msg = "├ôtimo! Fico feliz que encontrei o que voc├¬ procurava. O que voc├¬ gostaria de analisar ou fazer nesta tela?";
-                addMessage('ai', msg);
-                speak(msg);
-                pendingAction = null;
-                return;
-            } else if (IvaConversation.isNegativeResponse(text)) {
-                const msg = "Entendi. Desculpe por n├úo ser o que voc├¬ esperava. O que voc├¬ gostaria de ver ent├úo? Posso tentar buscar de outra forma.";
-                addMessage('ai', msg);
-                speak(msg);
-                pendingAction = null;
+                addMessage('ai', 'ΓÖ╗∩╕Å Reiniciando apresenta├º├úo...');
+                setTimeout(() => {
+                    messages.length = 0; // Clear history
+                    pendingAction = null;
+                    startIntroductionFlow();
+                }, 1000);
                 return;
             }
-            // If not clearly positive/negative, let LLM handle it but clear lock
-            pendingAction = null;
         }
 
-        // Handle Tour Offer
-        if (pendingAction === 'tour_offer') {
-            const choice = text.trim();
+        // Simulate thinking (ZERO DELAY)
+        const loadingDiv = document.createElement('div');
+        loadingDiv.textContent = '...';
+        loadingDiv.style.alignSelf = 'flex-start';
+        loadingDiv.style.marginLeft = '1rem';
+        loadingDiv.style.color = '#6b7280';
+        messagesContainer.appendChild(loadingDiv);
+        messagesContainer.scrollTop = messagesContainer.scrollHeight;
 
-            if (choice.includes('1') || /vis[a├ú]o|r[a├í]pid[oa]|quick|curto|breve/i.test(text)) {
-                // Overview tour
-                addMessage('ai', '├ôtimo! Vou mostrar uma vis├úo geral r├ípida. Iniciando...');
+        (async () => {
+            loadingDiv.remove();
 
-                // Mark as introduced before tour
-                await savePreferences({ IVAIntroduced: 1 });
-
-                // Import and start tour
-                const { IvaTour } = await import('../iva/IvaTour.js');
-                setTimeout(() => {
-                    IvaTour.start('overview');
-                }, 2000);
-
+            // Handle Navigation Confirmation
+            if (pendingAction === 'nav_confirm') {
+                const isPositive = IvaConversation.isPositiveResponse(text);
+                if (isPositive) {
+                    const msg = "├ôtimo! Fico feliz que encontrei o que voc├¬ procurava. O que voc├¬ gostaria de analisar ou fazer nesta tela?";
+                    addMessage('ai', msg);
+                    speak(msg);
+                    pendingAction = null;
+                    return;
+                } else if (IvaConversation.isNegativeResponse(text)) {
+                    const msg = "Entendi. Desculpe por n├úo ser o que voc├¬ esperava. O que voc├¬ gostaria de ver ent├úo? Posso tentar buscar de outra forma.";
+                    addMessage('ai', msg);
+                    speak(msg);
+                    pendingAction = null;
+                    return;
+                }
+                // If not clearly positive/negative, let LLM handle it but clear lock
                 pendingAction = null;
-                return;
+            }
 
-            } else if (choice.includes('2') || /complet[oa]|guiad[oa]|full|detalhad[oa]|inteiro|longo/i.test(text)) {
-                // Full tour - LLM will handle gender-appropriate language
-                addMessage('ai', 'Excelente escolha! Vou gui├í-lo(a) por todo o sistema em detalhes. Vamos l├í!');
+            // Handle Tour Offer
+            if (pendingAction === 'tour_offer') {
+                const choice = text.trim();
 
-                // Mark as introduced before tour
-                await savePreferences({ IVAIntroduced: 1 });
+                if (choice.includes('1') || /vis[a├ú]o|r[a├í]pid[oa]|quick|curto|breve/i.test(text)) {
+                    // Overview tour
+                    addMessage('ai', '├ôtimo! Vou mostrar uma vis├úo geral r├ípida. Iniciando...');
 
-                // Import and start tour
-                const { IvaTour } = await import('../iva/IvaTour.js');
-                setTimeout(() => {
-                    IvaTour.start('full');
-                }, 2000);
+                    // Mark as introduced before tour
+                    await savePreferences({ IVAIntroduced: 1 });
 
-                pendingAction = null;
-                return;
+                    // Import and start tour
+                    const { IvaTour } = await import('../iva/IvaTour.js');
+                    setTimeout(() => {
+                        IvaTour.start('overview');
+                    }, 2000);
 
-            } else if (choice.includes('3') || /pular|n[a├ú]o|sozinho|explorar|cancelar|sair/i.test(text)) {
-                // Skip tour
-                addMessage('ai', 'Sem problemas! Fique ├á vontade para explorar. Estarei aqui caso precise de ajuda!');
+                    pendingAction = null;
+                    return;
 
-                // Mark as introduced
-                await savePreferences({ IVAIntroduced: 1 });
+                } else if (choice.includes('2') || /complet[oa]|guiad[oa]|full|detalhad[oa]|inteiro|longo/i.test(text)) {
+                    // Full tour - LLM will handle gender-appropriate language
+                    addMessage('ai', 'Excelente escolha! Vou gui├í-lo(a) por todo o sistema em detalhes. Vamos l├í!');
 
-                pendingAction = null;
+                    // Mark as introduced before tour
+                    await savePreferences({ IVAIntroduced: 1 });
 
-                // Process pending loan if exists
-                if (loanContext && loanResolver) {
-                    setTimeout(() => processPendingLoanCategorization(), 2000);
+                    // Import and start tour
+                    const { IvaTour } = await import('../iva/IvaTour.js');
+                    setTimeout(() => {
+                        IvaTour.start('full');
+                    }, 2000);
+
+                    pendingAction = null;
+                    return;
+
+                } else if (choice.includes('3') || /pular|n[a├ú]o|sozinho|explorar|cancelar|sair/i.test(text)) {
+                    // Skip tour
+                    addMessage('ai', 'Sem problemas! Fique ├á vontade para explorar. Estarei aqui caso precise de ajuda!');
+
+                    // Mark as introduced
+                    await savePreferences({ IVAIntroduced: 1 });
+
+                    pendingAction = null;
+
+                    // Process pending loan if exists
+                    if (loanContext && loanResolver) {
+                        setTimeout(() => processPendingLoanCategorization(), 2000);
+                    }
+                    return;
+
+                } else {
+                    // Invalid choice
+                    addMessage('ai', 'N├úo entendi. Por favor, diga se prefere **R├ípido**, **Completo** ou se quer **Pular** o tour.');
+                    return;
+                }
+            }
+
+            // Intercept Introduction Flow
+            if (pendingAction && pendingAction.startsWith('intro_')) {
+                if (pendingAction === 'intro_llm') {
+                    await handleIntroductionLLM(text);
+                } else {
+                    await handleIntroductionResponse(text);
                 }
                 return;
+            }
 
-            } else {
-                // Invalid choice
-                addMessage('ai', 'N├úo entendi. Por favor, diga se prefere **R├ípido**, **Completo** ou se quer **Pular** o tour.');
+            // Command: Change Timeout
+            const lowerText = text.toLowerCase();
+            if (lowerText.includes('mudar') && lowerText.includes('tempo') && (lowerText.includes('espera') || lowerText.includes('segundos'))) {
+                // Extract number
+                const match = text.match(/\d+/);
+                if (match) {
+                    const newSeconds = parseInt(match[0]);
+                    if (newSeconds >= 3 && newSeconds <= 60) {
+                        try {
+                            const res = await fetch(`${API_BASE_URL}/settings/IVA_timeout`, {
+                                method: 'PUT',
+                                headers: getHeaders(),
+                                body: JSON.stringify({ value: newSeconds })
+                            });
+                            if (res.ok) {
+                                IVATimeout = newSeconds * 1000;
+                                const msg = `Entendido. Alterei meu tempo de espera para **${newSeconds} segundos**.`;
+                                addMessage('ai', msg);
+                                speak(msg);
+                                return;
+                            }
+                        } catch (e) { console.error(e); }
+                    }
+                }
+                const msg = "Para alterar o tempo, diga algo como 'Mudar tempo de espera para 5 segundos'. (M├¡nimo 3s, M├íximo 60s)";
+                addMessage('ai', msg);
+                speak(msg);
                 return;
             }
-        }
 
-        // Intercept Introduction Flow
-        if (pendingAction && pendingAction.startsWith('intro_')) {
-            if (pendingAction === 'intro_llm') {
-                await handleIntroductionLLM(text);
-            } else {
-                await handleIntroductionResponse(text);
-            }
-            return;
-        }
-
-        // Command: Change Timeout
-        const lowerText = text.toLowerCase();
-        if (lowerText.includes('mudar') && lowerText.includes('tempo') && (lowerText.includes('espera') || lowerText.includes('segundos'))) {
-            // Extract number
-            const match = text.match(/\d+/);
-            if (match) {
-                const newSeconds = parseInt(match[0]);
-                if (newSeconds >= 3 && newSeconds <= 60) {
-                    try {
-                        const res = await fetch(`${API_BASE_URL}/settings/IVA_timeout`, {
-                            method: 'PUT',
-                            headers: getHeaders(),
-                            body: JSON.stringify({ value: newSeconds })
-                        });
-                        if (res.ok) {
-                            IVATimeout = newSeconds * 1000;
-                            const msg = `Entendido. Alterei meu tempo de espera para **${newSeconds} segundos**.`;
-                            addMessage('ai', msg);
-                            speak(msg);
-                            return;
+            // Intercept Loan Flows
+            if (pendingAction && pendingAction.startsWith('loan_')) {
+                if (pendingAction === 'loan_cat_confirm') {
+                    const lowerText = text.toLowerCase();
+                    let responseText = '';
+                    if (lowerText.includes('sim') || lowerText.includes('ok') || lowerText.includes('concordo')) {
+                        responseText = "Confirmado. Processando o contrato...";
+                        if (loanResolver) {
+                            loanResolver({
+                                feeCategoryId: loanContext.suggestions.fees.id,
+                                interestCategoryId: loanContext.suggestions.interest.id
+                            });
+                            loanResolver = null;
+                            pendingAction = null;
+                            setTimeout(() => { if (isOpen) toggleChat(); }, 2000);
                         }
-                    } catch (e) { console.error(e); }
-                }
-            }
-            const msg = "Para alterar o tempo, diga algo como 'Mudar tempo de espera para 5 segundos'. (M├¡nimo 3s, M├íximo 60s)";
-            addMessage('ai', msg);
-            speak(msg);
-            return;
-        }
-
-        // Intercept Loan Flows
-        if (pendingAction && pendingAction.startsWith('loan_')) {
-            if (pendingAction === 'loan_cat_confirm') {
-                const lowerText = text.toLowerCase();
-                let responseText = '';
-                if (lowerText.includes('sim') || lowerText.includes('ok') || lowerText.includes('concordo')) {
-                    responseText = "Confirmado. Processando o contrato...";
+                    } else {
+                        responseText = "Entendido. Qual categoria deseja usar para as **Tarifas**?";
+                        pendingAction = 'loan_cat_ask_fees';
+                    }
+                    addMessage('ai', responseText);
+                    speak(responseText);
+                } else if (pendingAction === 'loan_cat_ask_fees') {
+                    loanContext.customFeeName = text;
+                    const responseText = `Certo, **${text}**. E para os **Juros**?`;
+                    pendingAction = 'loan_cat_ask_interest';
+                    addMessage('ai', responseText);
+                    speak(responseText);
+                } else if (pendingAction === 'loan_cat_ask_interest') {
+                    loanContext.customInterestName = text;
+                    const responseText = "Registrado. Finalizando o contrato.";
                     if (loanResolver) {
                         loanResolver({
                             feeCategoryId: loanContext.suggestions.fees.id,
@@ -1801,421 +1825,397 @@ Digite 1, 2 ou 3.`;
                         pendingAction = null;
                         setTimeout(() => { if (isOpen) toggleChat(); }, 2000);
                     }
-                } else {
-                    responseText = "Entendido. Qual categoria deseja usar para as **Tarifas**?";
-                    pendingAction = 'loan_cat_ask_fees';
+                    addMessage('ai', responseText);
+                    speak(responseText);
                 }
-                addMessage('ai', responseText);
-                speak(responseText);
-            } else if (pendingAction === 'loan_cat_ask_fees') {
-                loanContext.customFeeName = text;
-                const responseText = `Certo, **${text}**. E para os **Juros**?`;
-                pendingAction = 'loan_cat_ask_interest';
-                addMessage('ai', responseText);
-                speak(responseText);
-            } else if (pendingAction === 'loan_cat_ask_interest') {
-                loanContext.customInterestName = text;
-                const responseText = "Registrado. Finalizando o contrato.";
-                if (loanResolver) {
-                    loanResolver({
-                        feeCategoryId: loanContext.suggestions.fees.id,
-                        interestCategoryId: loanContext.suggestions.interest.id
-                    });
-                    loanResolver = null;
-                    pendingAction = null;
-                    setTimeout(() => { if (isOpen) toggleChat(); }, 2000);
-                }
-                addMessage('ai', responseText);
-                speak(responseText);
+                return;
             }
-            return;
+
+            // Old fallback chat logic removed - now handled by IvaService above
+        }, 800);
+    };
+
+    // --- Autonomous Loop State ---
+    const loopState = {
+        active: false,
+        iteration: 0,
+        maxActionsPerScreen: 5, // Max actions to try on same screen
+        originalQuery: '',
+        currentScreen: null,
+        extractedData: null,
+        awaitingUserResponse: false,
+        flowType: null // 'NAVIGATION_ONLY', 'DATA_SEEKING', 'ACTION_EXECUTION'
+    };
+
+    // --- Conversational Learning State (Phase 4) ---
+    const learningState = {
+        active: false,
+        step: null, // 'SCREEN_CONFIRMATION' | 'DATA_LOCATION' | 'EXTRACTION_METHOD'
+        context: null,
+        awaitingResponse: false,
+        attemptedActions: []
+    };
+
+    const stopAutonomousLoop = () => {
+        if (loopState.active) {
+            console.log('[IVA Loop] ≡ƒ¢æ STOPPING AUTONOMOUS LOOP (User control assumed)');
+            loopState.active = false;
         }
+    };
 
-        // Old fallback chat logic removed - now handled by IvaService above
-    }, 800);
-};
+    /**
+     * Executes autonomous loop based on user query
+     */
+    const executeAutonomousLoop = async (userQuery, intentType) => {
+        loopState.active = true;
+        loopState.originalQuery = userQuery;
+        loopState.flowType = intentType;
+        loopState.iteration = 0;
 
-// --- Autonomous Loop State ---
-const loopState = {
-    active: false,
-    iteration: 0,
-    maxActionsPerScreen: 5, // Max actions to try on same screen
-    originalQuery: '',
-    currentScreen: null,
-    extractedData: null,
-    awaitingUserResponse: false,
-    flowType: null // 'NAVIGATION_ONLY', 'DATA_SEEKING', 'ACTION_EXECUTION'
-};
+        console.log('========================================');
+        console.log('[IVA Loop] AUTONOMOUS LOOP STARTED');
+        console.log('[IVA Loop] Intent Type:', intentType);
+        console.log('[IVA Loop] User Query:', userQuery);
+        console.log('[IVA Loop] Timestamp:', new Date().toISOString());
+        console.log('========================================');
 
-// --- Conversational Learning State (Phase 4) ---
-const learningState = {
-    active: false,
-    step: null, // 'SCREEN_CONFIRMATION' | 'DATA_LOCATION' | 'EXTRACTION_METHOD'
-    context: null,
-    awaitingResponse: false,
-    attemptedActions: []
-};
+        try {
+            switch (intentType) {
+                case 'NAVIGATION_ONLY':
+                    await executeNavigationFlow(userQuery);
+                    break;
 
-const stopAutonomousLoop = () => {
-    if (loopState.active) {
-        console.log('[IVA Loop] ≡ƒ¢æ STOPPING AUTONOMOUS LOOP (User control assumed)');
-        loopState.active = false;
-    }
-};
+                case 'DATA_SEEKING':
+                    await executeDataSeekingFlow(userQuery);
+                    break;
 
-/**
- * Executes autonomous loop based on user query
- */
-const executeAutonomousLoop = async (userQuery, intentType) => {
-    loopState.active = true;
-    loopState.originalQuery = userQuery;
-    loopState.flowType = intentType;
-    loopState.iteration = 0;
+                case 'ACTION_EXECUTION':
+                    // Assuming executeActionFlow exists elsewhere or will be added
+                    // await executeActionFlow(userQuery);
+                    break;
 
-    console.log('========================================');
-    console.log('[IVA Loop] AUTONOMOUS LOOP STARTED');
-    console.log('[IVA Loop] Intent Type:', intentType);
-    console.log('[IVA Loop] User Query:', userQuery);
-    console.log('[IVA Loop] Timestamp:', new Date().toISOString());
-    console.log('========================================');
-
-    try {
-        switch (intentType) {
-            case 'NAVIGATION_ONLY':
-                await executeNavigationFlow(userQuery);
-                break;
-
-            case 'DATA_SEEKING':
-                await executeDataSeekingFlow(userQuery);
-                break;
-
-            case 'ACTION_EXECUTION':
-                // Assuming executeActionFlow exists elsewhere or will be added
-                // await executeActionFlow(userQuery);
-                break;
-
-            default:
-                // Fallback to data seeking (most complete)
-                await executeDataSeekingFlow(userQuery);
+                default:
+                    // Fallback to data seeking (most complete)
+                    await executeDataSeekingFlow(userQuery);
+            }
+        } catch (error) {
+            console.error('========================================');
+            console.error('[IVA Loop] CRITICAL ERROR');
+            console.error('[IVA Loop] Error Type:', error.name);
+            console.error('[IVA Loop] Error Message:', error.message);
+            console.error('[IVA Loop] Stack Trace:', error.stack);
+            console.error('[IVA Loop] User Query:', userQuery);
+            console.error('[IVA Loop] Intent Type:', intentType);
+            console.error('[IVA Loop] Loop State:', JSON.stringify(loopState));
+            console.error('========================================');
+            addMessage('ai', 'Desculpe, ocorreu um erro ao processar sua solicita├º├úo.');
+        } finally {
+            loopState.active = false;
+            // Mark navigation as finished so manual navigation can be detected correctly
+            if (window.IvaNavigationIndicator) {
+                window.IvaNavigationIndicator.isEvaNavigating = false;
+            }
         }
-    } catch (error) {
-        console.error('========================================');
-        console.error('[IVA Loop] CRITICAL ERROR');
-        console.error('[IVA Loop] Error Type:', error.name);
-        console.error('[IVA Loop] Error Message:', error.message);
-        console.error('[IVA Loop] Stack Trace:', error.stack);
-        console.error('[IVA Loop] User Query:', userQuery);
-        console.error('[IVA Loop] Intent Type:', intentType);
-        console.error('[IVA Loop] Loop State:', JSON.stringify(loopState));
-        console.error('========================================');
-        addMessage('ai', 'Desculpe, ocorreu um erro ao processar sua solicita├º├úo.');
-    } finally {
-        loopState.active = false;
-        // Mark navigation as finished so manual navigation can be detected correctly
-        if (window.IvaNavigationIndicator) {
-            window.IvaNavigationIndicator.isEvaNavigating = false;
-        }
-    }
-};
+    };
 
-/**
- * Navigation-only flow: Find and show screen
- */
-const executeNavigationFlow = async (userQuery) => {
-    console.log('[IVA Navigation Flow] Starting navigation-only flow');
+    /**
+     * Navigation-only flow: Find and show screen
+     */
+    const executeNavigationFlow = async (userQuery) => {
+        console.log('[IVA Navigation Flow] Starting navigation-only flow');
 
-    // Get all menu items
-    const menuStructure = MenuNavigator.getMenuStructure();
-    const allScreens = menuStructure.flatMenu || [];
+        // Get all menu items
+        const menuStructure = MenuNavigator.getMenuStructure();
+        const allScreens = menuStructure.flatMenu || [];
 
-    console.log('[IVA Navigation Flow] Available screens:', allScreens.length);
-    console.log('[IVA Navigation Flow] Screens:', allScreens.map(s => s.id || s.name).join(', '));
+        console.log('[IVA Navigation Flow] Available screens:', allScreens.length);
+        console.log('[IVA Navigation Flow] Screens:', allScreens.map(s => s.id || s.name).join(', '));
 
-    // Ask LLM to find appropriate screen
-    const decision = await IvaService.decideOperation(
-        `PERGUNTA: "${userQuery}"
+        // Ask LLM to find appropriate screen
+        const decision = await IvaService.decideOperation(
+            `PERGUNTA: "${userQuery}"
              TELAS DISPON├ìVEIS: ${JSON.stringify(allScreens)}
              
              Qual tela ├⌐ apropriada para esta pergunta?
              Retorne: { action: "NAVIGATE", target: "screen-id", message: "..." }
              Se n├úo encontrar: { action: "NO_SCREEN", message: "..." }`,
-        { menuStructure }
-    );
+            { menuStructure }
+        );
 
-    if (decision.action === 'NO_SCREEN') {
-        console.log('[IVA Navigation Flow] No appropriate screen found');
-        console.log('[IVA Navigation Flow] LLM Response:', JSON.stringify(decision));
-        addMessage('ai', decision.message || 'Desculpe, n├úo encontrei uma tela apropriada para isso.');
-        loopState.active = false;
-        return;
-    }
-
-    if (!loopState.active) {
-        console.log('[IVA Navigation Flow] ≡ƒ¢æ Loop cancelled before navigation.');
-        return;
-    }
-
-    // Navigate
-    console.log('[IVA Navigation Flow] Navigating to screen:', decision.target);
-    await IvaActions.navigate(decision.target);
-    console.log('[IVA Navigation Flow] Navigation complete, waiting for render...');
-    await new Promise(r => setTimeout(r, 1500));
-    console.log('[IVA Navigation Flow] Render complete');
-
-    // CONVERSATIONAL CONFIRMATION
-    const screenName = IvaConversation.getScreenName(decision.target);
-    const confirmMsg = IvaConversation.getNavigationConfirmation(screenName);
-    addMessage('ai', confirmMsg);
-    speak(confirmMsg);
-
-    pendingAction = 'nav_confirm';
-
-    // RECORD LEARNING
-    await IvaLearning.recordMenuKnowledge(
-        userQuery,
-        decision.target,
-        getMenuPath(decision.target),
-        true
-    );
-
-    // Wait for user confirmation
-    loopState.awaitingConfirmation = true;
-    loopState.confirmedScreen = decision.target;
-    loopState.awaitingUserResponse = true;
-    loopState.active = false;
-};
-
-/**
- * Get menu path from screen ID
- */
-const getMenuPath = (screenId) => {
-    return screenId; // Simple implementation for now
-};
-
-/**
- * Data-seeking flow: Navigate, extract, filter, present
- */
-const executeDataSeekingFlow = async (userQuery) => {
-    console.log('[IVA Data Flow] Starting autonomous data-seeking loop');
-    // Get all screens and rank by relevance
-    const menuStructure = MenuNavigator.getMenuStructure();
-    const allScreens = menuStructure.flatMenu || [];
-    console.log('[IVA Data Flow] Max screens to try:', allScreens.length);
-    console.log('[IVA Data Flow] Iteration:', loopState.iteration);
-
-    // SAFETY: Max global iterations (reduced to prevent loops)
-    if (loopState.iteration >= 5) {
-        console.log('[IVA Data Flow] Γ¥î Max global iterations reached (5)');
-        const failMsg = 'Desculpe, tentei em v├írias telas mas n├úo consegui encontrar essa informa├º├úo. Poderia reformular sua pergunta ou me dizer em qual tela espec├¡fica voc├¬ quer que eu procure?';
-        addMessage('ai', failMsg);
-        speak(failMsg);
-        loopState.active = false;
-        loopState.awaitingUserResponse = true;
-        return;
-    }
-
-    loopState.iteration++;
-
-    console.log('[IVA Data Flow] Total screens available:', allScreens.length);
-
-    const rankingDecision = await IvaService.decideOperation(
-        `PERGUNTA: "${userQuery}"
-             TELAS DISPON├ìVEIS: ${JSON.stringify(allScreens)}
-             
-             Ranqueie TODAS as telas por relev├óncia (0-1).
-             Retorne: { screens: [{ id: "...", relevance: 0.95 }, ...] }`,
-        { menuStructure }
-    );
-
-    const rankedScreens = (rankingDecision.screens || [])
-        .sort((a, b) => b.relevance - a.relevance)
-        .filter(s => s.relevance >= 0.3); // Only try screens with >30% relevance
-
-    console.log('[IVA Data Flow] ========== SCREEN RANKING ==========');
-    console.log('[IVA Data Flow] Screens ranked:', rankedScreens.length);
-    rankedScreens.forEach((s, i) => {
-        console.log(`[IVA Data Flow] ${i + 1}. ${s.id} - Relevance: ${(s.relevance * 100).toFixed(1)}%`);
-    });
-    console.log('[IVA Data Flow] ====================================');
-
-    // Try screens by relevance (interactive approach)
-    // IVA will try the most relevant screen first, then ask user before trying next
-    console.log(`[IVA Data Flow] Found ${rankedScreens.length} relevant screens (>30% relevance)`);
-
-    for (const screen of rankedScreens) {
-        if (!loopState.active) {
-            console.log('[IVA Data Flow] ≡ƒ¢æ Loop cancelled, stopping search.');
-            return;
-        }
-        console.log('----------------------------------------');
-        console.log(`[IVA Data Flow] Attempting screen ${rankedScreens.indexOf(screen) + 1}/${rankedScreens.length}`);
-        console.log(`[IVA Data Flow] Screen ID: ${screen.id}`);
-        console.log(`[IVA Data Flow] Relevance: ${(screen.relevance * 100).toFixed(1)}%`);
-
-        await IvaActions.navigate(screen.id);
-        console.log(`[IVA Data Flow] Navigation to ${screen.id} complete`);
-        await new Promise(r => setTimeout(r, 1500));
-        console.log(`[IVA Data Flow] Screen ${screen.id} rendered`);
-
-        loopState.currentScreen = screen.id;
-
-        // Try to extract data or execute actions
-        const result = await tryExtractOrAct(userQuery, screen.id);
-
-        if (result.success) {
-            console.log(`[IVA Data Flow] Γ£à SUCCESS on screen: ${screen.id}`);
-            console.log(`[IVA Data Flow] Result type: ${result.type}`);
-
-            // RECORD LEARNING
-            await IvaLearning.recordMenuKnowledge(
-                userQuery,
-                screen.id,
-                getMenuPath(screen.id),
-                true
-            );
-
+        if (decision.action === 'NO_SCREEN') {
+            console.log('[IVA Navigation Flow] No appropriate screen found');
+            console.log('[IVA Navigation Flow] LLM Response:', JSON.stringify(decision));
+            addMessage('ai', decision.message || 'Desculpe, n├úo encontrei uma tela apropriada para isso.');
             loopState.active = false;
             return;
         }
 
-        // No data/actions on this screen, try next
-        console.log(`[IVA Data Flow] Γ¥î No data/actions on ${screen.id}`);
-        console.log(`[IVA Data Flow] Reason: ${result.reason}`);
-        console.log(`[IVA Data Flow] Moving to next screen...`);
-    }
-
-    // Exhausted all screens
-    console.log('[IVA Data Flow] ========== SEARCH EXHAUSTED ==========');
-    console.log('[IVA Data Flow] Searched screens:', rankedScreens.length);
-    console.log('[IVA Data Flow] No data found in any screen');
-    console.log('[IVA Data Flow] ======================================');
-    addMessage('ai', 'Pesquisei em todas as telas relevantes mas n├úo encontrei o que voc├¬ precisa. Pode reformular a pergunta?');
-    loopState.active = false;
-};
-
-/**
- * Try to extract data or execute actions on current screen
- */
-const tryExtractOrAct = async (userQuery, screenId) => {
-    console.log(`[IVA Extract/Act] ========== SCREEN: ${screenId} ==========`);
-    console.log(`[IVA Extract/Act] Max actions per screen: ${loopState.maxActionsPerScreen}`);
-
-    let actionIterations = 0;
-
-    while (actionIterations < loopState.maxActionsPerScreen) {
         if (!loopState.active) {
-            console.log('[IVA Extract/Act] ≡ƒ¢æ Loop cancelled, stopping action extraction.');
-            return { success: false, reason: 'CANCELLED' };
+            console.log('[IVA Navigation Flow] ≡ƒ¢æ Loop cancelled before navigation.');
+            return;
         }
-        console.log(`[IVA Extract/Act] --- Iteration ${actionIterations + 1}/${loopState.maxActionsPerScreen} ---`);
 
-        // Extract screen data
-        const screenContext = ScreenContextExtractor.extract();
-        loopState.extractedData = screenContext;
+        // Navigate
+        console.log('[IVA Navigation Flow] Navigating to screen:', decision.target);
+        await IvaActions.navigate(decision.target);
+        console.log('[IVA Navigation Flow] Navigation complete, waiting for render...');
+        await new Promise(r => setTimeout(r, 1500));
+        console.log('[IVA Navigation Flow] Render complete');
 
-        console.log(`[IVA Extract/Act] Screen context extracted:`, {
-            screenId: screenContext?.screenId,
-            hasVisibleData: !!screenContext?.visibleData,
-            dataKeys: screenContext?.visibleData ? Object.keys(screenContext.visibleData) : []
+        // CONVERSATIONAL CONFIRMATION
+        const screenName = IvaConversation.getScreenName(decision.target);
+        const confirmMsg = IvaConversation.getNavigationConfirmation(screenName);
+        addMessage('ai', confirmMsg);
+        speak(confirmMsg);
+
+        pendingAction = 'nav_confirm';
+
+        // RECORD LEARNING
+        await IvaLearning.recordMenuKnowledge(
+            userQuery,
+            decision.target,
+            getMenuPath(decision.target),
+            true
+        );
+
+        // Wait for user confirmation
+        loopState.awaitingConfirmation = true;
+        loopState.confirmedScreen = decision.target;
+        loopState.awaitingUserResponse = true;
+        loopState.active = false;
+    };
+
+    /**
+     * Get menu path from screen ID
+     */
+    const getMenuPath = (screenId) => {
+        return screenId; // Simple implementation for now
+    };
+
+    /**
+     * Data-seeking flow: Navigate, extract, filter, present
+     */
+    const executeDataSeekingFlow = async (userQuery) => {
+        console.log('[IVA Data Flow] Starting autonomous data-seeking loop');
+        // Get all screens and rank by relevance
+        const menuStructure = MenuNavigator.getMenuStructure();
+        const allScreens = menuStructure.flatMenu || [];
+        console.log('[IVA Data Flow] Max screens to try:', allScreens.length);
+        console.log('[IVA Data Flow] Iteration:', loopState.iteration);
+
+        // SAFETY: Max global iterations (reduced to prevent loops)
+        if (loopState.iteration >= 5) {
+            console.log('[IVA Data Flow] Γ¥î Max global iterations reached (5)');
+            const failMsg = 'Desculpe, tentei em v├írias telas mas n├úo consegui encontrar essa informa├º├úo. Poderia reformular sua pergunta ou me dizer em qual tela espec├¡fica voc├¬ quer que eu procure?';
+            addMessage('ai', failMsg);
+            speak(failMsg);
+            loopState.active = false;
+            loopState.awaitingUserResponse = true;
+            return;
+        }
+
+        loopState.iteration++;
+
+        console.log('[IVA Data Flow] Total screens available:', allScreens.length);
+
+        const rankingDecision = await IvaService.decideOperation(
+            `PERGUNTA: "${userQuery}"
+             TELAS DISPON├ìVEIS: ${JSON.stringify(allScreens)}
+             
+             Ranqueie TODAS as telas por relev├óncia (0-1).
+             Retorne: { screens: [{ id: "...", relevance: 0.95 }, ...] }`,
+            { menuStructure }
+        );
+
+        const rankedScreens = (rankingDecision.screens || [])
+            .sort((a, b) => b.relevance - a.relevance)
+            .filter(s => s.relevance >= 0.3); // Only try screens with >30% relevance
+
+        console.log('[IVA Data Flow] ========== SCREEN RANKING ==========');
+        console.log('[IVA Data Flow] Screens ranked:', rankedScreens.length);
+        rankedScreens.forEach((s, i) => {
+            console.log(`[IVA Data Flow] ${i + 1}. ${s.id} - Relevance: ${(s.relevance * 100).toFixed(1)}%`);
         });
+        console.log('[IVA Data Flow] ====================================');
 
-        // Ask LLM if data answers question
-        const dataDecision = await IvaService.decideOperation(
-            `PERGUNTA ORIGINAL: "${userQuery}"
+        // Try screens by relevance (interactive approach)
+        // IVA will try the most relevant screen first, then ask user before trying next
+        console.log(`[IVA Data Flow] Found ${rankedScreens.length} relevant screens (>30% relevance)`);
+
+        for (const screen of rankedScreens) {
+            if (!loopState.active) {
+                console.log('[IVA Data Flow] ≡ƒ¢æ Loop cancelled, stopping search.');
+                return;
+            }
+            console.log('----------------------------------------');
+            console.log(`[IVA Data Flow] Attempting screen ${rankedScreens.indexOf(screen) + 1}/${rankedScreens.length}`);
+            console.log(`[IVA Data Flow] Screen ID: ${screen.id}`);
+            console.log(`[IVA Data Flow] Relevance: ${(screen.relevance * 100).toFixed(1)}%`);
+
+            await IvaActions.navigate(screen.id);
+            console.log(`[IVA Data Flow] Navigation to ${screen.id} complete`);
+            await new Promise(r => setTimeout(r, 1500));
+            console.log(`[IVA Data Flow] Screen ${screen.id} rendered`);
+
+            loopState.currentScreen = screen.id;
+
+            // Try to extract data or execute actions
+            const result = await tryExtractOrAct(userQuery, screen.id);
+
+            if (result.success) {
+                console.log(`[IVA Data Flow] Γ£à SUCCESS on screen: ${screen.id}`);
+                console.log(`[IVA Data Flow] Result type: ${result.type}`);
+
+                // RECORD LEARNING
+                await IvaLearning.recordMenuKnowledge(
+                    userQuery,
+                    screen.id,
+                    getMenuPath(screen.id),
+                    true
+                );
+
+                loopState.active = false;
+                return;
+            }
+
+            // No data/actions on this screen, try next
+            console.log(`[IVA Data Flow] Γ¥î No data/actions on ${screen.id}`);
+            console.log(`[IVA Data Flow] Reason: ${result.reason}`);
+            console.log(`[IVA Data Flow] Moving to next screen...`);
+        }
+
+        // Exhausted all screens
+        console.log('[IVA Data Flow] ========== SEARCH EXHAUSTED ==========');
+        console.log('[IVA Data Flow] Searched screens:', rankedScreens.length);
+        console.log('[IVA Data Flow] No data found in any screen');
+        console.log('[IVA Data Flow] ======================================');
+        addMessage('ai', 'Pesquisei em todas as telas relevantes mas n├úo encontrei o que voc├¬ precisa. Pode reformular a pergunta?');
+        loopState.active = false;
+    };
+
+    /**
+     * Try to extract data or execute actions on current screen
+     */
+    const tryExtractOrAct = async (userQuery, screenId) => {
+        console.log(`[IVA Extract/Act] ========== SCREEN: ${screenId} ==========`);
+        console.log(`[IVA Extract/Act] Max actions per screen: ${loopState.maxActionsPerScreen}`);
+
+        let actionIterations = 0;
+
+        while (actionIterations < loopState.maxActionsPerScreen) {
+            if (!loopState.active) {
+                console.log('[IVA Extract/Act] ≡ƒ¢æ Loop cancelled, stopping action extraction.');
+                return { success: false, reason: 'CANCELLED' };
+            }
+            console.log(`[IVA Extract/Act] --- Iteration ${actionIterations + 1}/${loopState.maxActionsPerScreen} ---`);
+
+            // Extract screen data
+            const screenContext = ScreenContextExtractor.extract();
+            loopState.extractedData = screenContext;
+
+            console.log(`[IVA Extract/Act] Screen context extracted:`, {
+                screenId: screenContext?.screenId,
+                hasVisibleData: !!screenContext?.visibleData,
+                dataKeys: screenContext?.visibleData ? Object.keys(screenContext.visibleData) : []
+            });
+
+            // Ask LLM if data answers question
+            const dataDecision = await IvaService.decideOperation(
+                `PERGUNTA ORIGINAL: "${userQuery}"
                  DADOS VIS├ìVEIS: ${JSON.stringify(screenContext.visibleData)}
                  
                  Esses dados respondem completamente a pergunta?
                  Se SIM: { hasData: true, message: "resposta formatada" }
                  Se N├âO: { hasData: false, reason: "..." }`,
-            { screenContext }
-        );
-
-        if (dataDecision.hasData) {
-            // SUCCESS! Found data
-            console.log(`[IVA Extract/Act] Γ£à DATA FOUND!`);
-            console.log(`[IVA Extract/Act] LLM confirmed data answers question`);
-            console.log(`[IVA Extract/Act] Response length: ${dataDecision.message?.length} chars`);
-
-            addMessage('ai', dataDecision.message);
-            speak(dataDecision.message);
-
-            addMessage('ai', 'Isso responde sua pergunta?');
-            pendingAction = 'nav_confirm';
-            loopState.awaitingUserResponse = true;
-
-            // RECORD DATA LEARNING
-            await IvaLearning.recordDataKnowledge(
-                userQuery,
-                screenId,
-                'visibleData',
-                'extracted',
-                true
+                { screenContext }
             );
 
-            return { success: true, type: 'DATA_FOUND' };
-        }
+            if (dataDecision.hasData) {
+                // SUCCESS! Found data
+                console.log(`[IVA Extract/Act] Γ£à DATA FOUND!`);
+                console.log(`[IVA Extract/Act] LLM confirmed data answers question`);
+                console.log(`[IVA Extract/Act] Response length: ${dataDecision.message?.length} chars`);
 
-        console.log(`[IVA Extract/Act] Γ¥î No data found, reason: ${dataDecision.reason || 'not specified'}`);
-        console.log(`[IVA Extract/Act] Discovering available actions...`);
+                addMessage('ai', dataDecision.message);
+                speak(dataDecision.message);
 
-        // No data, discover actions
-        const discoveredActions = IvaActionDiscovery.discoverAllActions();
+                addMessage('ai', 'Isso responde sua pergunta?');
+                pendingAction = 'nav_confirm';
+                loopState.awaitingUserResponse = true;
 
-        console.log(`[IVA Extract/Act] Actions discovered: ${discoveredActions.length}`);
-        if (discoveredActions.length > 0) {
-            console.log(`[IVA Extract/Act] Action types:`,
-                discoveredActions.reduce((acc, a) => {
-                    acc[a.type] = (acc[a.type] || 0) + 1;
-                    return acc;
-                }, {})
-            );
-        }
+                // RECORD DATA LEARNING
+                await IvaLearning.recordDataKnowledge(
+                    userQuery,
+                    screenId,
+                    'visibleData',
+                    'extracted',
+                    true
+                );
 
-        if (discoveredActions.length === 0) {
-            console.log(`[IVA Extract/Act] ΓÜá∩╕Å No actions available on this screen`);
-            return { success: false, reason: 'NO_ACTIONS' };
-        }
+                return { success: true, type: 'DATA_FOUND' };
+            }
 
-        // Ask LLM which action to execute
-        const actionsForLLM = IvaActionFormatter.formatForLLM(discoveredActions);
+            console.log(`[IVA Extract/Act] Γ¥î No data found, reason: ${dataDecision.reason || 'not specified'}`);
+            console.log(`[IVA Extract/Act] Discovering available actions...`);
 
-        const actionDecision = await IvaService.decideOperation(
-            `PERGUNTA: "${userQuery}"
+            // No data, discover actions
+            const discoveredActions = IvaActionDiscovery.discoverAllActions();
+
+            console.log(`[IVA Extract/Act] Actions discovered: ${discoveredActions.length}`);
+            if (discoveredActions.length > 0) {
+                console.log(`[IVA Extract/Act] Action types:`,
+                    discoveredActions.reduce((acc, a) => {
+                        acc[a.type] = (acc[a.type] || 0) + 1;
+                        return acc;
+                    }, {})
+                );
+            }
+
+            if (discoveredActions.length === 0) {
+                console.log(`[IVA Extract/Act] ΓÜá∩╕Å No actions available on this screen`);
+                return { success: false, reason: 'NO_ACTIONS' };
+            }
+
+            // Ask LLM which action to execute
+            const actionsForLLM = IvaActionFormatter.formatForLLM(discoveredActions);
+
+            const actionDecision = await IvaService.decideOperation(
+                `PERGUNTA: "${userQuery}"
                  A├ç├òES DISPON├ìVEIS: ${JSON.stringify(actionsForLLM)}
                  
                  Qual a├º├úo pode trazer os dados necess├írios?
                  Se encontrou: { action: "EXECUTE", actionId: "...", params: {...}, message: "..." }
                  Se n├úo encontrou: { action: "NO_SUITABLE_ACTION" }`,
-            { discoveredActions: actionsForLLM }
-        );
+                { discoveredActions: actionsForLLM }
+            );
 
 
-        if (actionDecision.action === 'NO_SUITABLE_ACTION') {
-            console.log(`[IVA Extract/Act] ΓÜá∩╕Å LLM found no suitable action`);
+            if (actionDecision.action === 'NO_SUITABLE_ACTION') {
+                console.log(`[IVA Extract/Act] ΓÜá∩╕Å LLM found no suitable action`);
 
-            // PHASE 4: Enter Conversational Learning Mode
-            if (!learningState.active) {
-                console.log('[IVA Learning] ≡ƒÄô Entering conversational learning mode');
+                // PHASE 4: Enter Conversational Learning Mode
+                if (!learningState.active) {
+                    console.log('[IVA Learning] ≡ƒÄô Entering conversational learning mode');
 
-                learningState.active = true;
-                learningState.step = 'DATA_LOCATION';
-                learningState.context = {
-                    query: userQuery,
-                    screen: screenId,
-                    attemptedActions: discoveredActions.map(a => ({
-                        id: a.id,
-                        type: a.type,
-                        label: a.label
-                    }))
-                };
-                learningState.awaitingResponse = true;
+                    learningState.active = true;
+                    learningState.step = 'DATA_LOCATION';
+                    learningState.context = {
+                        query: userQuery,
+                        screen: screenId,
+                        attemptedActions: discoveredActions.map(a => ({
+                            id: a.id,
+                            type: a.type,
+                            label: a.label
+                        }))
+                    };
+                    learningState.awaitingResponse = true;
 
-                // Stop autonomous loop
-                loopState.active = false;
+                    // Stop autonomous loop
+                    loopState.active = false;
 
-                // Ask user for guidance
-                // Ask user for guidance
-                const question = `Estou na tela "${screenId}" procurando por "${userQuery}", mas não encontrei uma ação adequada.
+                    // Ask user for guidance
+                    // Ask user for guidance
+                    const question = `Estou na tela "${screenId}" procurando por "${userQuery}", mas não encontrei uma ação adequada.
                     
 Você pode me ajudar? Onde exatamente está essa informação?
 
@@ -2224,209 +2224,209 @@ Por exemplo:
 • "No card de resumo no topo"
 • "Precisa aplicar filtro primeiro"`;
 
-                addMessage('ai', question);
-                speak(question);
+                    addMessage('ai', question);
+                    speak(question);
 
-                return { success: false, reason: 'LEARNING_MODE_ACTIVATED' };
+                    return { success: false, reason: 'LEARNING_MODE_ACTIVATED' };
+                }
+
+                return { success: false, reason: 'NO_SUITABLE_ACTION' };
             }
 
-            return { success: false, reason: 'NO_SUITABLE_ACTION' };
+            // Execute action
+            actionIterations++;
+            console.log(`[IVA Extract/Act] ≡ƒÄ» Executing action: ${actionDecision.actionId}`);
+            console.log(`[IVA Extract/Act] Action params:`, actionDecision.params);
+
+            const actionToExecute = discoveredActions.find(a => a.id === actionDecision.actionId);
+
+            if (!actionToExecute) {
+                console.error(`[IVA Extract/Act] Γ¥î Action not found in discovered actions: ${actionDecision.actionId}`);
+                console.error(`[IVA Extract/Act] Available actions:`, discoveredActions.map(a => a.id));
+                continue;
+            }
+
+            console.log(`[IVA Extract/Act] Action details:`, {
+                id: actionToExecute.id,
+                type: actionToExecute.type,
+                label: actionToExecute.label
+            });
+
+            addMessage('ai', actionDecision.message || 'Executando a├º├úo...');
+
+            const result = await IvaActionExecutor.executeAction(actionToExecute, actionDecision.params);
+
+            if (!result.success) {
+                console.error(`[IVA Extract/Act] Γ¥î Action execution failed: ${result.error}`);
+                continue;
+            }
+
+            console.log(`[IVA Extract/Act] Γ£à Action executed successfully`);
+            console.log(`[IVA Extract/Act] Waiting for UI update...`);
+
+            // RECORD ACTION LEARNING
+            await IvaLearning.recordActionKnowledge(
+                userQuery,
+                screenId,
+                actionToExecute,
+                true
+            );
+
+            // Wait for UI to update
+            await new Promise(r => setTimeout(r, 1000));
+
+            console.log(`[IVA Extract/Act] UI updated, re-extracting data...`);
+
+            // Loop continues to extract data again
         }
 
-        // Execute action
-        actionIterations++;
-        console.log(`[IVA Extract/Act] ≡ƒÄ» Executing action: ${actionDecision.actionId}`);
-        console.log(`[IVA Extract/Act] Action params:`, actionDecision.params);
+        // Max actions reached
+        console.log(`[IVA Extract/Act] ΓÜá∩╕Å Max actions (${loopState.maxActionsPerScreen}) reached`);
+        return { success: false, reason: 'MAX_ACTIONS_REACHED' };
+    };
 
-        const actionToExecute = discoveredActions.find(a => a.id === actionDecision.actionId);
+    /**
+     * Action execution flow: Navigate and execute specific action
+     */
+    const executeActionFlow = async (userQuery) => {
+        console.log('[IVA Action Flow] Starting action execution flow');
+        console.log('[IVA Action Flow] Objective:', userQuery);
 
-        if (!actionToExecute) {
-            console.error(`[IVA Extract/Act] Γ¥î Action not found in discovered actions: ${actionDecision.actionId}`);
-            console.error(`[IVA Extract/Act] Available actions:`, discoveredActions.map(a => a.id));
-            continue;
-        }
+        // Find appropriate screen
+        const menuStructure = MenuNavigator.getMenuStructure();
 
-        console.log(`[IVA Extract/Act] Action details:`, {
-            id: actionToExecute.id,
-            type: actionToExecute.type,
-            label: actionToExecute.label
-        });
+        console.log('[IVA Action Flow] Finding appropriate screen...');
 
-        addMessage('ai', actionDecision.message || 'Executando a├º├úo...');
-
-        const result = await IvaActionExecutor.executeAction(actionToExecute, actionDecision.params);
-
-        if (!result.success) {
-            console.error(`[IVA Extract/Act] Γ¥î Action execution failed: ${result.error}`);
-            continue;
-        }
-
-        console.log(`[IVA Extract/Act] Γ£à Action executed successfully`);
-        console.log(`[IVA Extract/Act] Waiting for UI update...`);
-
-        // RECORD ACTION LEARNING
-        await IvaLearning.recordActionKnowledge(
-            userQuery,
-            screenId,
-            actionToExecute,
-            true
-        );
-
-        // Wait for UI to update
-        await new Promise(r => setTimeout(r, 1000));
-
-        console.log(`[IVA Extract/Act] UI updated, re-extracting data...`);
-
-        // Loop continues to extract data again
-    }
-
-    // Max actions reached
-    console.log(`[IVA Extract/Act] ΓÜá∩╕Å Max actions (${loopState.maxActionsPerScreen}) reached`);
-    return { success: false, reason: 'MAX_ACTIONS_REACHED' };
-};
-
-/**
- * Action execution flow: Navigate and execute specific action
- */
-const executeActionFlow = async (userQuery) => {
-    console.log('[IVA Action Flow] Starting action execution flow');
-    console.log('[IVA Action Flow] Objective:', userQuery);
-
-    // Find appropriate screen
-    const menuStructure = MenuNavigator.getMenuStructure();
-
-    console.log('[IVA Action Flow] Finding appropriate screen...');
-
-    const navDecision = await IvaService.decideOperation(
-        `OBJETIVO: ${userQuery}
+        const navDecision = await IvaService.decideOperation(
+            `OBJETIVO: ${userQuery}
              TELAS DISPON├ìVEIS: ${JSON.stringify(menuStructure.flatMenu)}
              
              Qual tela permite executar esta a├º├úo?
              Retorne: { action: "NAVIGATE", target: "screen-id" }`,
-        { menuStructure }
-    );
+            { menuStructure }
+        );
 
-    if (!loopState.active) {
-        console.log('[IVA Action Flow] ≡ƒ¢æ Loop cancelled before navigation.');
-        return;
-    }
+        if (!loopState.active) {
+            console.log('[IVA Action Flow] ≡ƒ¢æ Loop cancelled before navigation.');
+            return;
+        }
 
-    await IvaActions.navigate(navDecision.target);
-    await new Promise(r => setTimeout(r, 1500));
+        await IvaActions.navigate(navDecision.target);
+        await new Promise(r => setTimeout(r, 1500));
 
-    // Discover actions
-    const discoveredActions = IvaActionDiscovery.discoverAllActions();
-    const actionsForLLM = IvaActionFormatter.formatForLLM(discoveredActions);
+        // Discover actions
+        const discoveredActions = IvaActionDiscovery.discoverAllActions();
+        const actionsForLLM = IvaActionFormatter.formatForLLM(discoveredActions);
 
-    // Ask LLM which action to execute
-    const actionDecision = await IvaService.decideOperation(
-        `OBJETIVO: ${userQuery}
+        // Ask LLM which action to execute
+        const actionDecision = await IvaService.decideOperation(
+            `OBJETIVO: ${userQuery}
              A├ç├òES DISPON├ìVEIS: ${JSON.stringify(actionsForLLM)}
              
              Qual a├º├úo executar?
              Retorne: { action: "EXECUTE", actionId: "...", params: {...} }`,
-        { discoveredActions: actionsForLLM }
-    );
+            { discoveredActions: actionsForLLM }
+        );
 
-    if (!loopState.active) {
-        console.log('[IVA Action Flow] ≡ƒ¢æ Loop cancelled before action execution.');
-        return;
-    }
-
-    if (actionDecision.action !== 'EXECUTE') {
-        addMessage('ai', 'Desculpe, n├úo encontrei uma a├º├úo apropriada para isso.');
-        loopState.active = false;
-        return;
-    }
-
-    // Execute action
-    const actionToExecute = discoveredActions.find(a => a.id === actionDecision.actionId);
-    const result = await IvaActionExecutor.executeAction(actionToExecute, actionDecision.params);
-
-    if (result.success) {
-        addMessage('ai', result.message || 'A├º├úo executada com sucesso!');
-        speak('A├º├úo executada com sucesso!');
-    } else {
-        addMessage('ai', `Erro ao executar a├º├úo: ${result.error}`);
-    }
-
-    loopState.active = false;
-};
-
-// --- Semantic Screen Reading "The Eyes" ---
-const updateScreenContext = (contextData) => {
-    // Store in global knowledge
-    IvaKnowledge.activeScreenData = contextData;
-    console.log('[IVA Vision] Screen Context Updated:', contextData);
-};
-
-// Public API
-const startLoanCategorization = async (data) => {
-    return new Promise(async (resolve) => {
-        const user = getUser();
-
-        // Check if user has completed introduction
-        if (!user?.IVA_introduced) {
-            // Store the loan data and resolver for after introduction
-            loanResolver = resolve;
-            loanContext = data;
-
-            // Start introduction flow if chat is not open
-            if (!isOpen) {
-                toggleChat();
-            }
-
-            // The introduction flow will call processPendingLoanCategorization when done
+        if (!loopState.active) {
+            console.log('[IVA Action Flow] ≡ƒ¢æ Loop cancelled before action execution.');
             return;
         }
 
-        // User already introduced, proceed directly
-        loanResolver = resolve;
-        loanContext = data;
-
-        if (!isOpen) toggleChat();
-
-        // Fetch Suggestions
-        try {
-            const [feeRes, intRes] = await Promise.all([
-                fetch(`${API_BASE_URL}/loans/suggest-category?projectId=${data.projectId}&type=fees`, { headers: getHeaders() }),
-                fetch(`${API_BASE_URL}/loans/suggest-category?projectId=${data.projectId}&type=interest`, { headers: getHeaders() })
-            ]);
-            const feeSugg = await feeRes.json();
-            const intSugg = await intRes.json();
-
-            loanContext.suggestions = { fees: feeSugg, interest: intSugg };
-
-            const msg = `Detectei um contrato com taxas de **${new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(data.feeAmount)}**.\n\nSugiro classificar as **Tarifas** em: *"${feeSugg.name}"* e os **Juros** em: *"${intSugg.name}"*.\n\nO(a) senhor(a) concorda?`;
-
-            addMessage('ai', msg);
-            speak(msg.replace(/\*\*/g, '').replace(/\*/g, ''));
-            pendingAction = 'loan_cat_confirm';
-
-        } catch (e) {
-            console.error(e);
-            resolve(null);
+        if (actionDecision.action !== 'EXECUTE') {
+            addMessage('ai', 'Desculpe, n├úo encontrei uma a├º├úo apropriada para isso.');
+            loopState.active = false;
+            return;
         }
-    });
-};
 
-window.IVA = {
-    startLoanCategorization,
-    updateScreenContext // Exposed for screens to broadcast data
-};
+        // Execute action
+        const actionToExecute = discoveredActions.find(a => a.id === actionDecision.actionId);
+        const result = await IvaActionExecutor.executeAction(actionToExecute, actionDecision.params);
 
-window.IVAConsultant = {
-    addMessage,
-    speak,
-    toggleChat,
-    isOpen: () => isOpen,
-    stopAutonomousLoop
-};
+        if (result.success) {
+            addMessage('ai', result.message || 'A├º├úo executada com sucesso!');
+            speak('A├º├úo executada com sucesso!');
+        } else {
+            addMessage('ai', `Erro ao executar a├º├úo: ${result.error}`);
+        }
 
-// Alias for backward compatibility during transition from EVA to IVA
-window.EVA = window.IVA;
-window.FOCCUS = window.IVA;
+        loopState.active = false;
+    };
 
-return container;
+    // --- Semantic Screen Reading "The Eyes" ---
+    const updateScreenContext = (contextData) => {
+        // Store in global knowledge
+        IvaKnowledge.activeScreenData = contextData;
+        console.log('[IVA Vision] Screen Context Updated:', contextData);
+    };
+
+    // Public API
+    const startLoanCategorization = async (data) => {
+        return new Promise(async (resolve) => {
+            const user = getUser();
+
+            // Check if user has completed introduction
+            if (!user?.IVA_introduced) {
+                // Store the loan data and resolver for after introduction
+                loanResolver = resolve;
+                loanContext = data;
+
+                // Start introduction flow if chat is not open
+                if (!isOpen) {
+                    toggleChat();
+                }
+
+                // The introduction flow will call processPendingLoanCategorization when done
+                return;
+            }
+
+            // User already introduced, proceed directly
+            loanResolver = resolve;
+            loanContext = data;
+
+            if (!isOpen) toggleChat();
+
+            // Fetch Suggestions
+            try {
+                const [feeRes, intRes] = await Promise.all([
+                    fetch(`${API_BASE_URL}/loans/suggest-category?projectId=${data.projectId}&type=fees`, { headers: getHeaders() }),
+                    fetch(`${API_BASE_URL}/loans/suggest-category?projectId=${data.projectId}&type=interest`, { headers: getHeaders() })
+                ]);
+                const feeSugg = await feeRes.json();
+                const intSugg = await intRes.json();
+
+                loanContext.suggestions = { fees: feeSugg, interest: intSugg };
+
+                const msg = `Detectei um contrato com taxas de **${new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(data.feeAmount)}**.\n\nSugiro classificar as **Tarifas** em: *"${feeSugg.name}"* e os **Juros** em: *"${intSugg.name}"*.\n\nO(a) senhor(a) concorda?`;
+
+                addMessage('ai', msg);
+                speak(msg.replace(/\*\*/g, '').replace(/\*/g, ''));
+                pendingAction = 'loan_cat_confirm';
+
+            } catch (e) {
+                console.error(e);
+                resolve(null);
+            }
+        });
+    };
+
+    window.IVA = {
+        startLoanCategorization,
+        updateScreenContext // Exposed for screens to broadcast data
+    };
+
+    window.IVAConsultant = {
+        addMessage,
+        speak,
+        toggleChat,
+        isOpen: () => isOpen,
+        stopAutonomousLoop
+    };
+
+    // Alias for backward compatibility during transition from EVA to IVA
+    window.EVA = window.IVA;
+    window.FOCCUS = window.IVA;
+
+    return container;
 };
 
