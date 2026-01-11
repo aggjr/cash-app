@@ -314,8 +314,12 @@ export const IvaPromptsManager = () => {
         if (saveBtn) saveBtn.addEventListener('click', handleSavePrompt);
 
         const revertBtn = container.querySelector('#btn-revert');
-        if (revertBtn) revertBtn.addEventListener('click', () => {
-            if (confirm('Descartar alterações?')) {
+        if (revertBtn) revertBtn.addEventListener('click', async () => {
+            const confirmed = await showConfirmationModal(
+                'Reverter Alterações',
+                'Tem certeza que deseja descartar todas as alterações não salvas?'
+            );
+            if (confirmed) {
                 state.editedContent = state.prompts[state.activeTab] || '';
                 render();
             }
@@ -352,7 +356,12 @@ export const IvaPromptsManager = () => {
     };
 
     const handleSavePrompt = async () => {
-        if (!confirm(`Salvar prompt "${state.activeTab}"?`)) return;
+        const confirmed = await showConfirmationModal(
+            'Salvar Prompt',
+            `Deseja realmente salvar as alterações no prompt "<strong>${state.activeTab}</strong>"?<br><br>As mudanças entram em vigor imediatamente.`
+        );
+        if (!confirmed) return;
+
         try {
             state.saving = true;
             render();
@@ -405,7 +414,11 @@ export const IvaPromptsManager = () => {
     };
 
     const handleApprove = async (id, refinedText = null) => {
-        if (!refinedText && !confirm('Aprovar este conhecimento?')) return;
+        if (!refinedText) {
+            const confirmed = await showConfirmationModal('Aprovar Conhecimento', 'Tem certeza que deseja aprovar e incorporar este conhecimento à base da IVA?');
+            if (!confirmed) return;
+        }
+
         try {
             const body = { id };
             if (refinedText) body.refinedText = refinedText;
@@ -427,7 +440,13 @@ export const IvaPromptsManager = () => {
     };
 
     const handleReject = async (id) => {
-        if (!confirm('Rejeitar e EXCLUIR este conhecimento?')) return;
+        const confirmed = await showConfirmationModal(
+            'Rejeitar Conhecimento',
+            'Tem certeza que deseja <strong>rejeitar e excluir</strong> permanentemente este item?',
+            'Rejeitar e Excluir'
+        );
+        if (!confirmed) return;
+
         try {
             const response = await fetch(`${API_BASE_URL}/iva/knowledge/reject`, {
                 method: 'POST',
@@ -449,13 +468,62 @@ export const IvaPromptsManager = () => {
         if (!item) return;
 
         const currentText = item.description || item.text || '';
+        // Using standard prompt for text input for now as implementing a custom input modal is outside scope,
+        // but confirmation of the edit will use the custom modal.
         const newText = prompt('Refinar o conhecimento:', currentText);
 
         if (newText !== null && newText !== currentText) {
-            if (confirm('Aprovar com o novo texto editado?')) {
+            const confirmed = await showConfirmationModal(
+                'Confirmar Edição',
+                'Deseja aprovar o conhecimento com o novo texto editado?'
+            );
+            if (confirmed) {
                 handleApprove(id, newText);
             }
         }
+    };
+
+    // --- UI HELPERS ---
+    const showConfirmationModal = async (title, message, confirmText = 'Confirmar', cancelText = 'Cancelar') => {
+        return new Promise((resolve) => {
+            const overlay = document.createElement('div');
+            overlay.className = 'dialog-overlay';
+            overlay.style.zIndex = '100000'; // High Z-Index
+
+            const modal = document.createElement('div');
+            modal.className = 'account-modal animate-float-in';
+            modal.style.maxWidth = '400px';
+            modal.style.padding = '0';
+            modal.style.boxShadow = '0 25px 50px -12px rgba(0, 0, 0, 0.25)';
+
+            modal.innerHTML = `
+                <div class="account-modal-header" style="background: white; border-bottom: 1px solid #e5e7eb; padding: 1.25rem 1.5rem; display: flex; align-items: center; gap: 10px;">
+                     <h3 style="margin: 0; font-size: 1.25rem; font-weight: 600;">${title}</h3>
+                </div>
+                <div class="account-modal-body" style="padding: 1.5rem; color: #4B5563; font-size: 1rem; line-height: 1.5;">
+                    ${message}
+                </div>
+                <div class="account-modal-footer" style="background: #F9FAFB; border-top: 1px solid #e5e7eb; padding: 1rem 1.5rem; display: flex; justify-content: flex-end; gap: 0.75rem; border-radius: 0 0 8px 8px;">
+                    <button class="btn-secondary" id="modal-cancel">
+                        ${cancelText}
+                    </button>
+                    <button class="btn-primary" id="modal-confirm">
+                         ${confirmText}
+                    </button>
+                </div>
+            `;
+
+            overlay.appendChild(modal);
+            document.body.appendChild(overlay);
+
+            const close = (result) => {
+                document.body.removeChild(overlay);
+                resolve(result);
+            };
+
+            modal.querySelector('#modal-cancel').onclick = () => close(false);
+            modal.querySelector('#modal-confirm').onclick = () => close(true);
+        });
     };
 
     // Initialize
