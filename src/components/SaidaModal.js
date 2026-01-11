@@ -223,14 +223,14 @@ export const SaidaModal = {
 
                             <!-- Row 3.5: Payment Method Radio Buttons (Span 6) -->
                             <!-- Row 3.5: Payment Method Radio Buttons (Span 4 - Left Side) -->
-                            <div class="form-group" style="grid-column: span 4;">
+                            <div class="form-group" style="grid-column: span 4; margin-bottom: 0;">
                                 <label style="margin-bottom: 0.25rem; display: block;">Forma de Saída</label>
-                                <div style="display: grid; grid-template-columns: repeat(4, 1fr); gap: 0.5rem; padding: 0 0 0.5rem 0;">
+                                <div style="display: grid; grid-template-columns: repeat(4, 1fr); gap: 0.25rem; padding: 0;">
                                     ${['Pix', 'Ted', 'DOC', 'Boleto', 'Verificar', 'Dinheiro', 'Cartão'].map(opt => `
                                         <div style="display: flex; align-items: center; gap: 0.3rem;">
                                             <input type="radio" name="forma_pagamento" id="fp-${opt}" value="${opt}" 
                                                 ${saida?.forma_pagamento === opt ? 'checked' : ''} style="cursor: pointer;">
-                                            <label for="fp-${opt}" style="margin: 0; cursor: pointer; font-weight: normal; font-size: 0.9rem;">${opt}</label>
+                                            <label for="fp-${opt}" style="margin: 0; cursor: pointer; font-weight: normal; font-size: 0.9rem; white-space: nowrap;">${opt}</label>
                                         </div>
                                     `).join('')}
                                 </div>
@@ -253,7 +253,7 @@ export const SaidaModal = {
                             </div>
 
                             <!-- Row 4: Description (Span 4 - Left Side - Below Payment Method) -->
-                            <div class="form-group" style="grid-column: span 4; display: flex; flex-direction: column; min-height: 150px;">
+                            <div class="form-group" style="grid-column: span 4; display: flex; flex-direction: column; min-height: 150px; margin-top: 0.5rem;">
                                 <label for="saida-descricao">Descrição</label>
                                 <textarea id="saida-descricao" class="form-input" placeholder="Opcional" style="resize: none; flex: 1; box-sizing: border-box; font-family: inherit;">${saida?.descricao || ''}</textarea>
                             </div>

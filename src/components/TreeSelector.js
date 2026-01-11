@@ -28,6 +28,9 @@ export const TreeSelector = {
                 gap: 5px;
                 height: 36px;
                 flex-shrink: 0;
+                box-sizing: border-box;
+                width: 100%;
+                overflow: hidden;
             }
             .ts-search-input {
                 flex: 1;

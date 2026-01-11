@@ -444,6 +444,8 @@ exports.updateIncome = async (req, res, next) => {
             active
         } = req.body;
 
+        let updatedCount = 0;
+
         connection = await db.getConnection();
         await connection.beginTransaction();
 
@@ -496,6 +498,7 @@ exports.updateIncome = async (req, res, next) => {
                     'UPDATE entradas SET data_prevista_recebimento = ? WHERE id = ?',
                     [newDate, inst.id]
                 );
+                updatedCount++;
                 console.log(`✅ Parcela ${inst.installment_number} atualizada para ${newDate}`);
             }
         }
@@ -571,6 +574,7 @@ exports.updateIncome = async (req, res, next) => {
                 `UPDATE entradas SET ${updates.join(', ')} WHERE id = ?`,
                 values
             );
+            updatedCount++;
         }
 
         // Update balances if value or account changed
@@ -620,6 +624,7 @@ exports.updateIncome = async (req, res, next) => {
                 WHERE id = ?`,
                 [groupId, totalInstallments, installmentInterval, installmentCustomDays || null, id]
             );
+            updatedCount++;
 
             // Create remaining installments (2 to N)
             for (let i = 2; i <= totalInstallments; i++) {
