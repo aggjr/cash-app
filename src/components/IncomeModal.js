@@ -263,27 +263,22 @@ export const IncomeModal = {
                             </div>
 
                             <!-- Row 3.5: Payment Method Radio Buttons (Span 6) -->
-                            <div class="form-group" style="grid-column: span 6;">
+                            <!-- Row 3.5: Payment Method Radio Buttons (Span 4 - Left Side) -->
+                            <div class="form-group" style="grid-column: span 4;">
                                 <label>Forma de Entrada</label>
-                                <div style="display: flex; flex-wrap: wrap; gap: 1.5rem; padding: 0.5rem 0;">
+                                <div style="display: flex; flex-wrap: wrap; gap: 0.5rem; padding: 0.5rem 0;">
                                     ${['Pix', 'Ted', 'DOC', 'Boleto', 'Verificar', 'Dinheiro', 'Cartão'].map(opt => `
-                                        <div style="display: flex; align-items: center; gap: 0.3rem;">
+                                        <div style="display: flex; align-items: center; gap: 0.3rem; min-width: 80px;">
                                             <input type="radio" name="forma_pagamento" id="fp-${opt}" value="${opt}" 
                                                 ${income?.forma_pagamento === opt ? 'checked' : ''} style="cursor: pointer;">
-                                            <label for="fp-${opt}" style="margin: 0; cursor: pointer; font-weight: normal;">${opt}</label>
+                                            <label for="fp-${opt}" style="margin: 0; cursor: pointer; font-weight: normal; font-size: 0.9rem;">${opt}</label>
                                         </div>
                                     `).join('')}
                                 </div>
                             </div>
 
-                            <!-- Row 4: Description (Span 4) and Tree (Span 4) Side-by-Side Symmetrical (Full width) -->
-                            
-                            <div class="form-group" style="grid-column: span 4; display: flex; flex-direction: column; min-height: 150px;">
-                                <label for="income-descricao">Descrição</label>
-                                <textarea id="income-descricao" class="form-input" placeholder="Opcional" style="resize: none; flex: 1; box-sizing: border-box; font-family: inherit;">${income?.descricao || ''}</textarea>
-                            </div>
-
-                            <div class="form-group" style="grid-column: span 4; display: flex; flex-direction: column; min-height: 150px;">
+                            <!-- Tree Selector (Span 4 - Right Side - Spanning 2 Rows) -->
+                            <div class="form-group" style="grid-column: span 4; grid-row: span 2; display: flex; flex-direction: column; min-height: 300px;">
                                 <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 0.25rem;">
                                     <label style="margin: 0;">Tipo de Entrada <span class="required">*</span></label>
                                     <button id="btn-manage-tipo-entrada" type="button" 
@@ -296,6 +291,12 @@ export const IncomeModal = {
                                 </div>
                                 <div id="tree-selector-container" style="flex: 1;"></div>
                                 <input type="hidden" id="income-tipo-entrada-id" value="${income?.tipo_entrada_id || ''}" />
+                            </div>
+
+                            <!-- Row 4: Description (Span 4 - Left Side - Below Payment Method) -->
+                            <div class="form-group" style="grid-column: span 4; display: flex; flex-direction: column; min-height: 150px;">
+                                <label for="income-descricao">Descrição</label>
+                                <textarea id="income-descricao" class="form-input" placeholder="Opcional" style="resize: none; flex: 1; box-sizing: border-box; font-family: inherit;">${income?.descricao || ''}</textarea>
                             </div>
 
                         </div>

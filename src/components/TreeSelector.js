@@ -20,23 +20,25 @@ export const TreeSelector = {
                 overflow: hidden;
             }
             .ts-search-container {
-                padding: 8px;
+                padding: 4px 8px;
                 border-bottom: 1px solid var(--color-border-light);
                 background: white;
                 display: flex;
                 align-items: center;
                 gap: 5px;
+                height: 36px;
+                flex-shrink: 0;
             }
             .ts-search-input {
                 flex: 1;
                 border: none;
                 outline: none;
                 font-size: 0.85rem;
-                padding: 4px;
+                padding: 2px 4px;
             }
             .ts-search-icon {
                 color: #9CA3AF;
-                font-size: 0.9rem;
+                font-size: 0.85rem;
             }
             .ts-clear-btn {
                 background: none;
