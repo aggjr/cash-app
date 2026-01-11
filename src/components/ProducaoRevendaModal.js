@@ -223,9 +223,10 @@ export const ProducaoRevendaModal = {
 
                             <!-- Row 3.5: Payment Method Radio Buttons (Span 6) -->
                             <!-- Row 3.5: Payment Method Radio Buttons (Span 4 - Left Side) -->
+                            <!-- Row 3.5: Payment Method Radio Buttons (Span 4 - Left Side) -->
                             <div class="form-group" style="grid-column: span 4; margin-bottom: 0;">
                                 <label style="margin-bottom: 0.25rem; display: block;">Forma de Pagamento</label>
-                                <div style="display: grid; grid-template-columns: repeat(4, 1fr); gap: 0.25rem; padding: 0;">
+                                <div style="display: flex; flex-wrap: wrap; gap: 0.5rem 1rem; padding: 0;">
                                     ${['Pix', 'Ted', 'DOC', 'Boleto', 'Verificar', 'Dinheiro', 'Cartão'].map(opt => `
                                         <div style="display: flex; align-items: center; gap: 0.3rem;">
                                             <input type="radio" name="forma_pagamento" id="fp-${opt}" value="${opt}" 
@@ -237,7 +238,7 @@ export const ProducaoRevendaModal = {
                             </div>
 
                             <!-- Tree Selector (Span 4 - Right Side - Spanning 2 Rows) -->
-                            <div class="form-group" style="grid-column: span 4; grid-row: span 2; display: flex; flex-direction: column; min-height: 300px;">
+                            <div class="form-group" style="grid-column: span 4; grid-row: span 2; display: flex; flex-direction: column; min-height: 300px; padding-left: 0.5rem;">
                                 <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 0.25rem;">
                                     <label style="margin: 0;">Tipo de Compras <span class="required">*</span></label>
                                     <button id="btn-manage-tipo-compras" type="button" 
@@ -253,7 +254,7 @@ export const ProducaoRevendaModal = {
                             </div>
 
                             <!-- Row 4: Description (Span 4 - Left Side - Below Payment Method) -->
-                            <div class="form-group" style="grid-column: span 4; display: flex; flex-direction: column; min-height: 150px; margin-top: 0.5rem;">
+                            <div class="form-group" style="grid-column: span 4; display: flex; flex-direction: column; min-height: 150px; margin-top: 0;">
                                 <label for="producao-revenda-descricao">Descrição</label>
                                 <textarea id="producao-revenda-descricao" class="form-input" placeholder="Opcional" style="resize: none; flex: 1; box-sizing: border-box; font-family: inherit;">${producaoRevenda?.descricao || ''}</textarea>
                             </div>
