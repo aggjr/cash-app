@@ -1090,9 +1090,13 @@ Digite 1, 2 ou 3.`;
                 const decision = prefetchedGreeting;
                 prefetchedGreeting = null; // Consume it
 
-                // Mark session
                 const hasGreetedKey = 'IVA_has_greeted_session_' + (user?.id || 'anon');
+                const lastGreetingDateKey = 'IVA_last_greeting_date_' + (user?.id || 'anon');
+                const today = new Date().toISOString().split('T')[0];
+
+                // Mark session and update daily date
                 sessionStorage.setItem(hasGreetedKey, 'true');
+                localStorage.setItem(lastGreetingDateKey, today);
 
                 if (decision.action === 'REPLY') {
                     addMessage('ai', decision.message);
@@ -1531,7 +1535,7 @@ Digite 1, 2 ou 3.`;
                             const navigationMsg = 'Cheguei. Deixe-me analisar os dados desta tela...';
                             addMessage('ai', navigationMsg);
                             speak(navigationMsg);
-
+    
                             // Verify if it's main dashboard to avoid loop or generic analysis
                             if (decision.screen === 'dashboard') {
                                 const m = 'Estou no painel principal via vis├úo geral.';
@@ -1539,11 +1543,11 @@ Digite 1, 2 ou 3.`;
                                 speak(m);
                                 return;
                             }
-
+    
                             // Wait for screen to load and context to update (2.5s)
                             setTimeout(async () => {
                                 console.log('[IVA Autonomy] Triggering post-navigation analysis...');
-
+    
                                 // Create a visual "Analyzing" indicator
                                 const analyzingDiv = document.createElement('div');
                                 analyzingDiv.innerHTML = '<i>≡ƒöì Analisando dados da tela...</i>';
@@ -1551,28 +1555,28 @@ Digite 1, 2 ou 3.`;
                                 analyzingDiv.style.marginLeft = '10px';
                                 messagesContainer.appendChild(analyzingDiv);
                                 messagesContainer.scrollTop = messagesContainer.scrollHeight;
-
+    
                                 try {
                                     // Recursive call to LLM with updated context
                                     // specific "system instruction" style message
                                     const analysisRequest = `SYSTEM_EVENT: NAVIGATION_COMPLETE to ${decision.screen}.
                                     ACTION: Analyze the 'activeScreenContext' data immediately based on the user's previous intention.
                                     Ignore "how can I help", just give the answer/analysis.`;
-
+    
                                     // Re-uses sendMessage logic but bypassing UI input
                                     // We need to call the internal decision logic directly to avoid user bubble
-
+    
                                     // 1. Gather NEW Context (Post-Navigation)
                                     const newContext = {
                                         currentScreen: IvaKnowledge.activeScreen,
                                         currentScreenData: IvaKnowledge.activeScreenData,
                                         availableScreens: IvaKnowledge.screens
                                     };
-
+    
                                     const nextDecision = await IvaService.decideOperation(analysisRequest, newContext);
-
+    
                                     if (analyzingDiv.parentNode) analyzingDiv.parentNode.removeChild(analyzingDiv);
-
+    
                                     if (nextDecision.action === 'REPLY') {
                                         addMessage('ai', nextDecision.message);
                                         speak(nextDecision.message);
@@ -1583,7 +1587,7 @@ Digite 1, 2 ou 3.`;
                                         addMessage('ai', m);
                                         speak(m);
                                     }
-
+    
                                 } catch (e) {
                                     console.error('[IVA Autonomy] Error:', e);
                                     if (analyzingDiv.parentNode) analyzingDiv.parentNode.removeChild(analyzingDiv);
@@ -2140,6 +2144,68 @@ Digite 1, 2 ou 3.`;
                 // SUCCESS! Found data
                 console.log(`[IVA Extract/Act] ✅ DATA FOUND!`);
                 console.log(`[IVA Extract/Act] LLM confirmed data answers question`);
+
+                // AUTO-LEARNING TRIGGER
+                if (dataDecision.hasData && dataDecision.message && dataDecision.message.length > 5) {
+                    (async () => {
+                        try {
+                            /*
+                            // Infer if it's personal data
+                            const isPersonal = /(meu|minha|eu|sou)/i.test(userQuery);
+                            const scope = isPersonal ? 'USER' : 'SYSTEM';
+                            
+                            // Send to Learning API
+                            console.log('[IVA Learning] 🎓 Auto-memorizing found data...');
+                            await fetch(`${API_BASE_URL}/IVA/learn`, {
+                                method: 'POST',
+                                headers: getHeaders(),
+                                body: JSON.stringify({
+                                    type: 'custom_rules', // Use custom_rules for Qdrant Injection
+                                    data: {
+                                        description: `Quando perguntado sobre "${userQuery}", a resposta encontrada na tela ${screenId} foi: ${dataDecision.message}`,
+                                        keywords: IvaLearning.extractKeywords(userQuery),
+                                        context: screenId
+                                    },
+                                    context: {
+                                        scope: scope,
+                                        projectId: IvaKnowledge.currentProjectId || 0
+                                    }
+                                })
+                            });
+                            */
+                            // Use existing recordDataKnowledge but with enhanced description for rule generation?
+                            // Or just stick to the plan: use explicit custom_rules injection here as shown above?
+                            // User requested "ensure data is recorded in memory".
+                            // The existing IvaLearning.recordDataKnowledge records to 'data_structures', which might not be picked up by the 'custom_rules' retrieval in Qdrant Context Builder.
+                            // I should explicitly inject a 'custom_rule' here as conceived in the plan.
+
+                            const isPersonal = /(meu|minha|eu|sou)/i.test(userQuery);
+                            const scope = isPersonal ? 'USER' : 'SYSTEM';
+                            const projectId = typeof IvaKnowledge !== 'undefined' ? IvaKnowledge.currentProjectId : ((getUser() || {}).last_project_id || 0);
+
+                            console.log('[IVA Learning] 🎓 Auto-memorizing found data as Rule...');
+                            await fetch(`${API_BASE_URL}/IVA/learn`, {
+                                method: 'POST',
+                                headers: getHeaders(),
+                                body: JSON.stringify({
+                                    type: 'custom_rules',
+                                    data: {
+                                        description: `Para a pergunta "${userQuery}", a resposta é: ${dataDecision.message}`,
+                                        keywords: IvaLearning.extractKeywords(userQuery),
+                                        context: screenId
+                                    },
+                                    context: {
+                                        scope: scope,
+                                        projectId: projectId,
+                                        userId: (getUser() || {}).id
+                                    }
+                                })
+                            });
+                        } catch (err) {
+                            console.error('[IVA Learning] Auto-learn failed:', err);
+                        }
+                    })();
+                }
                 console.log(`[IVA Extract/Act] Response length: ${dataDecision.message?.length} chars`);
 
                 addMessage('ai', dataDecision.message);
