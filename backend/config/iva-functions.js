@@ -37,14 +37,7 @@ const ivaFunctions = [
             }
         }
     },
-    {
-        name: 'update_last_access',
-        description: 'Registra a data e hora atual como o último acesso do usuário à IVA. Deve ser chamado obrigatoriamente no primeiro contato de cada dia para que o sistema saiba que o usuário já foi cumprimentado hoje.',
-        parameters: {
-            type: 'object',
-            properties: {}
-        }
-    },
+
     {
         name: 'close_chat',
         description: 'Encerra a conversa e fecha a janela do chat da IVA. Deve ser chamado quando o usuário disser explicitamente que não precisa de mais ajuda, se despedir, ou confirmar que resolveu seu problema.',

@@ -724,7 +724,7 @@ Siga rigorosamente as INSTRUÇÕES DE FLUXO DE EXECUÇÃO E DESCOBERTA enviadas 
                 defaultMessage = `Combinado! Vou te chamar de ${args.name} a partir de agora.`;
                 userUpdates = { preferred_name: args.name };
             } else if (functionCall.name === 'contribute_knowledge') {
-                defaultMessage = 'Conhecimento registrado com sucesso! Obrigado por me ensinar. 🧠';
+                defaultMessage = 'Conhecimento registrado! 🧠 Ele passará por uma validação antes de entrar na base definitiva. Posso te ajudar com mais alguma coisa?';
             } else if (functionCall.name === 'save_voice_settings') {
                 const args = JSON.parse(functionCall.arguments);
                 defaultMessage = 'Configurações de voz atualizadas!';
@@ -761,10 +761,6 @@ Siga rigorosamente as INSTRUÇÕES DE FLUXO DE EXECUÇÃO E DESCOBERTA enviadas 
             } else if (functionCall.name === 'close_chat') {
                 defaultMessage = 'Até logo! Fechando janela.';
                 intentType = 'FAREWELL';
-            } else if (functionCall.name === 'update_last_access') {
-                // Silent function, should not show message - but if it does, be friendly
-                defaultMessage = 'Oi! 😊 No que posso te ajudar?';
-                intentType = 'GREETING';
             }
 
             const defaultAction = {
@@ -798,6 +794,15 @@ Siga rigorosamente as INSTRUÇÕES DE FLUXO DE EXECUÇÃO E DESCOBERTA enviadas 
             console.log('[IVA Backend] =======================================');
 
             // NORMALIZE LLM OUTPUT
+            // Handle { REPLY: "message" } format
+            if (!action.action && action.REPLY) {
+                action = { action: 'REPLY', message: action.REPLY };
+            }
+
+            // AUTO-UPDATE LAST ACCESS (Replacement for function call)
+            // We update it silently for every meaningful interaction
+            const IvaUserPreferences = require('../services/IvaUserPreferences');
+            await IvaUserPreferences.updateLastAccess(user.id);
             // Handle { REPLY: "message" } format
             if (!action.action && action.REPLY) {
                 action = { action: 'REPLY', message: action.REPLY };
