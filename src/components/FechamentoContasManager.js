@@ -955,9 +955,160 @@ export const FechamentoContasManager = (project) => {
         }
 
         if (btnPdf) {
-            btnPdf.onclick = () => {
-                PrintHelper.autoConfigureOrientation('.fechamento-table-wrapper table');
-                window.print();
+            btnPdf.onclick = async () => {
+                try {
+                    showToast('Gerando PDF...', 'info');
+
+                    // 1. Load jsPDF and AutoTable
+                    if (!window.jspdf) {
+                        await new Promise((resolve, reject) => {
+                            const script = document.createElement('script');
+                            script.src = 'https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js';
+                            script.onload = resolve;
+                            script.onerror = reject;
+                            document.head.appendChild(script);
+                        });
+                    }
+                    if (!window.jspdf.jsPDF.API.autoTable) {
+                        await new Promise((resolve, reject) => {
+                            const script = document.createElement('script');
+                            script.src = 'https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.5.31/jspdf.plugin.autotable.min.js';
+                            script.onload = resolve;
+                            script.onerror = reject;
+                            document.head.appendChild(script);
+                        });
+                    }
+
+                    const { jsPDF } = window.jspdf;
+                    const doc = new jsPDF({ orientation: 'landscape' });
+
+                    const columns = getColumnList();
+                    const monthTotals = new Array(columns.length).fill(0);
+
+                    // 2. Prepare Data
+                    // Headers
+                    const head = [[
+                        'Empresa',
+                        'Conta Bancária',
+                        ...columns.map(d => formatDateHeader(d))
+                    ]];
+
+                    // Body
+                    const body = [];
+                    const companyGroups = {};
+                    accounts.forEach(acc => {
+                        if (!companyGroups[acc.company_id]) {
+                            companyGroups[acc.company_id] = { name: acc.company_name, accounts: [] };
+                        }
+                        companyGroups[acc.company_id].accounts.push(acc);
+                    });
+
+                    Object.values(companyGroups).forEach((group, gIdx) => {
+                        // Company Row (or merged logic simulation)
+                        // In PDF list, we'll just list columns.
+                        // To verify "Merge": AutoTable supports rowSpan.
+
+                        group.accounts.forEach((acc, aIdx) => {
+                            const row = [];
+
+                            // Col 0: Empresa (Only first row of group)
+                            if (aIdx === 0) {
+                                row.push({ content: group.name, rowSpan: group.accounts.length, styles: { valign: 'middle', fontStyle: 'bold' } });
+                            }
+
+                            // Col 1: Conta
+                            row.push(acc.name);
+
+                            // Data Cols
+                            let currentBalance = initialBalances[acc.id] || 0;
+                            columns.forEach((d, cIdx) => {
+                                let key = '';
+                                if (viewMode === 'monthly') {
+                                    key = `${d.getFullYear()}-${(d.getMonth() + 1).toString().padStart(2, '0')}`;
+                                } else {
+                                    const dd = d.getDate().toString().padStart(2, '0');
+                                    const mm = (d.getMonth() + 1).toString().padStart(2, '0');
+                                    key = `${d.getFullYear()}-${mm}-${dd}`;
+                                }
+
+                                const delta = (movementsData[acc.id] && movementsData[acc.id][key]) ? movementsData[acc.id][key] : 0;
+                                currentBalance += delta;
+
+                                if (monthTotals[cIdx] === undefined) monthTotals[cIdx] = 0;
+                                monthTotals[cIdx] += currentBalance;
+
+                                row.push(formatCurrency(currentBalance));
+                            });
+
+                            body.push(row);
+                        });
+                    });
+
+                    // Total Row
+                    const totalRow = [
+                        { content: 'TOTAL', colSpan: 2, styles: { halign: 'center', fontStyle: 'bold', fillColor: [0, 66, 95], textColor: 255 } },
+                        ...monthTotals.map(val => ({
+                            content: formatCurrency(val),
+                            styles: { fontStyle: 'bold', textColor: val >= 0 ? [16, 185, 129] : [239, 68, 68] }
+                        }))
+                    ];
+                    body.push(totalRow);
+
+                    // 3. Generate Table
+                    doc.autoTable({
+                        head: head,
+                        body: body,
+                        theme: 'grid',
+                        styles: {
+                            fontSize: 8,
+                            cellPadding: 2,
+                        },
+                        headStyles: {
+                            fillColor: [0, 66, 95],
+                            textColor: 255,
+                            fontStyle: 'bold',
+                            halign: 'center',
+                            valign: 'middle'
+                        },
+                        columnStyles: {
+                            0: { cellWidth: 35, fillColor: [0, 66, 95], textColor: 255 }, // Empresa (Fixed look)
+                            1: { cellWidth: 40, fillColor: [0, 66, 95], textColor: 255 }, // Conta (Fixed look)
+                            // Rest auto
+                        },
+                        didParseCell: function (data) {
+                            // Colorize negative numbers in data cells (cols > 1 and not total row's special cells)
+                            if (data.section === 'body' && data.column.index > 1 && data.row.index < body.length - 1) {
+                                // We are parsing formatted strings "R$ ...", so we need check text
+                                const text = data.cell.raw;
+                                if (typeof text === 'string' && text.includes('-R$')) {
+                                    data.cell.styles.textColor = [239, 68, 68]; // Red
+                                } else if (typeof text === 'number' && text < 0) {
+                                    data.cell.styles.textColor = [239, 68, 68];
+                                } else if (typeof text === 'string' && !text.includes('-') && text !== 'R$ 0,00') {
+                                    // Green? User prompt didn't specify green for PDF but Excel has it. Let's add it.
+                                    data.cell.styles.textColor = [16, 185, 129];
+                                }
+                            }
+                        },
+                        startY: 20,
+                        margin: { top: 20 },
+                        didDrawPage: function (data) {
+                            // Header
+                            doc.setFontSize(14);
+                            doc.text('Fechamento de Contas', 14, 15);
+                            doc.setFontSize(10);
+                            const info = `Gerado em: ${new Date().toLocaleDateString()} - Visão: ${viewMode === 'monthly' ? 'Mensal' : 'Diária'}`;
+                            doc.text(info, data.settings.margin.left, 10);
+                        }
+                    });
+
+                    doc.save('fechamento_contas.pdf');
+                    showToast('PDF gerado com sucesso!', 'success');
+
+                } catch (error) {
+                    console.error('Error generating PDF:', error);
+                    showToast('Erro ao gerar PDF', 'error');
+                }
             };
         }
     }, 100);
