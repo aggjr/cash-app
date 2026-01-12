@@ -110,6 +110,61 @@ export const IvaHighlight = {
             this.highlightSelector(selector, { ...options, duration: delay * 2 });
             await new Promise(resolve => setTimeout(resolve, delay));
         }
+    },
+
+    // Highlight specific text on screen (Data Search)
+    highlightText(text, options = {}) {
+        console.log(`[ivaHighlight] Searching for text: "${text}"`);
+        if (!text || text.length < 2) return 0;
+
+        const walker = document.createTreeWalker(
+            document.body,
+            NodeFilter.SHOW_TEXT,
+            null,
+            false
+        );
+
+        let count = 0;
+        let node;
+        const matches = [];
+
+        // 1. Find matches in DOM
+        while (node = walker.nextNode()) {
+            // Ignore hidden/script/style tags
+            if (['SCRIPT', 'STYLE', 'NOSCRIPT'].includes(node.parentElement.tagName)) continue;
+
+            if (node.textContent.toLowerCase().includes(text.toLowerCase())) {
+                const element = node.parentElement;
+
+                // Check visibility
+                if (element.offsetParent !== null) {
+                    matches.push(element);
+                }
+            }
+        }
+
+        // 2. Filter best matches (avoid massive containers)
+        // We prefer leaf nodes (td, span, div with no children)
+        const bestMatches = matches.filter(el => {
+            // Heuristic: If element has too much text vs the search term, it might be a big container
+            return el.textContent.length < (text.length * 5) || el.tagName === 'TD' || el.tagName === 'SPAN' || el.tagName === 'INPUT';
+        });
+
+        // 3. Highlight them
+        bestMatches.forEach(el => {
+            this.highlight(el, { ...options, pulse: true });
+            count++;
+        });
+
+        if (count > 0) {
+            console.log(`[ivaHighlight] Found and highlighted ${count} occurrences of "${text}"`);
+            // Scroll to first match
+            bestMatches[0].scrollIntoView({ behavior: 'smooth', block: 'center' });
+        } else {
+            console.warn(`[ivaHighlight] Text "${text}" not found in visible DOM.`);
+        }
+
+        return count;
     }
 };
 

@@ -32,6 +32,15 @@ export const IvaActions = {
                             import('./IvaNavigationIndicator.js').then(module => {
                                 module.IvaNavigationIndicator.markNavigationPath(payload.target);
                             });
+
+                            // DATA HIGHLIGHT (New)
+                            if (payload.highlight) {
+                                console.log('[Iva] Triggering data highlight for:', payload.highlight);
+                                setTimeout(() => {
+                                    IvaHighlight.highlightText(payload.highlight, { duration: 5000 });
+                                }, 1500); // Wait bit more for table data to render
+                            }
+
                         } catch (error) {
                             console.error('[Iva] Error showing indicators:', error);
                         }

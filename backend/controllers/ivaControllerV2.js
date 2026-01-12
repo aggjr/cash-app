@@ -816,6 +816,14 @@ Siga rigorosamente as INSTRUÇÕES DE FLUXO DE EXECUÇÃO E DESCOBERTA enviadas 
                 action.screen = action.target;
             }
 
+            // Pass 'highlight' field if present (New Feature)
+            if (action.highlight) {
+                // Ensure target is preserved if this was a NAVIGATE action
+                if (action.action === 'NAVIGATE') {
+                    // It's already fine, frontend uses action object
+                }
+            }
+
             // --- LEARNING FALLBACK (Critical Fix) ---
             // If LLM says intent is LEARNING but didn't call the function, we do it manually
             if (action.intent === 'LEARNING') {
