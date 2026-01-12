@@ -479,18 +479,13 @@ export const IvaPromptsManager = () => {
         // Edit the PROPOSED PROMPT if available, otherwise description
         const currentText = item.proposed_prompt || item.description || item.text || '';
 
-        // Using standard prompt for text input for now as implementing a custom input modal is outside scope,
-        // but confirmation of the edit will use the custom modal.
-        const newText = prompt('Editar o Prompt Final (Qdrant):', currentText);
+        // Use custom input modal
+        const newText = await showInputModal('Editar Prompt Final', currentText);
 
         if (newText !== null && newText !== currentText) {
-            const confirmed = await showConfirmationModal(
-                'Confirmar Edição',
-                'Deseja aprovar o conhecimento com este <strong>novo prompt</strong>?<br><br>Isso substituirá o texto que será gravado no aprendizado da IVA.'
-            );
-            if (confirmed) {
-                handleApprove(id, newText);
-            }
+            // User confirmed inside the Input Modal, so just proceed to Approve
+            // No double confirmation needed as the input modal action is "Salvar e Aprovar"
+            handleApprove(id, newText);
         }
     };
 
@@ -505,10 +500,12 @@ export const IvaPromptsManager = () => {
             modal.className = 'account-modal animate-float-in';
             modal.style.maxWidth = '400px';
             modal.style.padding = '0';
+            modal.style.display = 'flex';
+            modal.style.flexDirection = 'column';
             modal.style.boxShadow = '0 25px 50px -12px rgba(0, 0, 0, 0.25)';
 
             modal.innerHTML = `
-                <div class="account-modal-header" style="background: white; border-bottom: 1px solid #e5e7eb; padding: 1.25rem 1.5rem; display: flex; align-items: center; gap: 10px;">
+                <div class="account-modal-header" style="background: white; border-bottom: 1px solid #e5e7eb; padding: 1.25rem 1.5rem; display: flex; align-items: center; gap: 10px; border-radius: 8px 8px 0 0;">
                      <h3 style="margin: 0; font-size: 1.25rem; font-weight: 600;">${title}</h3>
                 </div>
                 <div class="account-modal-body" style="padding: 1.5rem; color: #4B5563; font-size: 1rem; line-height: 1.5;">
@@ -536,6 +533,58 @@ export const IvaPromptsManager = () => {
             modal.querySelector('#modal-confirm').onclick = () => close(true);
         });
     };
+
+    const showInputModal = async (title, initialValue = '', confirmText = 'Salvar e Aprovar', cancelText = 'Cancelar') => {
+        return new Promise((resolve) => {
+            const overlay = document.createElement('div');
+            overlay.className = 'dialog-overlay';
+            overlay.style.zIndex = '100000'; // High Z-Index
+
+            const modal = document.createElement('div');
+            modal.className = 'account-modal animate-float-in';
+            modal.style.maxWidth = '500px';
+            modal.style.width = '90%';
+            modal.style.padding = '0';
+            modal.style.display = 'flex';
+            modal.style.flexDirection = 'column';
+            modal.style.boxShadow = '0 25px 50px -12px rgba(0, 0, 0, 0.25)';
+
+            modal.innerHTML = `
+                <div class="account-modal-header" style="background: white; border-bottom: 1px solid #e5e7eb; padding: 1.25rem 1.5rem; display: flex; align-items: center; gap: 10px; border-radius: 8px 8px 0 0;">
+                     <h3 style="margin: 0; font-size: 1.25rem; font-weight: 600;">${title}</h3>
+                </div>
+                <div class="account-modal-body" style="padding: 1.5rem; color: #4B5563; font-size: 1rem; line-height: 1.5;">
+                    <label style="display:block; margin-bottom: 0.5rem; font-weight: 500; color: #374151;">Prompt Final para o Qdrant:</label>
+                    <textarea id="modal-input" style="width: 100%; min-height: 120px; padding: 0.75rem; border: 1px solid #D1D5DB; border-radius: 6px; font-family: monospace; font-size: 0.9em; resize: vertical; box-sizing: border-box;">${escapeHtml(initialValue)}</textarea>
+                    <p style="margin-top: 0.5rem; font-size: 0.85rem; color: #6B7280;">Este texto será gravado como a "verdade" no cérebro da IVA. Use com cuidado.</p>
+                </div>
+                <div class="account-modal-footer" style="background: #F9FAFB; border-top: 1px solid #e5e7eb; padding: 1rem 1.5rem; display: flex; justify-content: flex-end; gap: 0.75rem; border-radius: 0 0 8px 8px;">
+                    <button class="btn-secondary" id="modal-cancel">
+                        ${cancelText}
+                    </button>
+                    <button class="btn-primary" id="modal-confirm">
+                         ${confirmText}
+                    </button>
+                </div>
+            `;
+
+            overlay.appendChild(modal);
+            document.body.appendChild(overlay);
+
+            const textarea = modal.querySelector('#modal-input');
+            textarea.focus();
+            textarea.setSelectionRange(textarea.value.length, textarea.value.length);
+
+            const close = (result) => {
+                document.body.removeChild(overlay);
+                resolve(result);
+            };
+
+            modal.querySelector('#modal-cancel').onclick = () => close(null);
+            modal.querySelector('#modal-confirm').onclick = () => close(textarea.value);
+        });
+    };
+
 
     // Initialize
     loadPrompts();
