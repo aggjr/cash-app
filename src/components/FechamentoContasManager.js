@@ -163,6 +163,7 @@ export const FechamentoContasManager = (project) => {
                 // Reset dates to reasonable monthly defaults if needed, or keep current
                 // Reload controls to switch pickers
                 container.innerHTML = '';
+                hierarchicalFilter = null; // Force re-init of filter
                 // Re-render
                 renderHeader();
                 container.appendChild(renderControls());
@@ -177,6 +178,7 @@ export const FechamentoContasManager = (project) => {
                 updateToggle();
                 // Reload controls
                 container.innerHTML = '';
+                hierarchicalFilter = null; // Force re-init of filter
                 renderHeader();
                 container.appendChild(renderControls());
                 loadData();
