@@ -863,7 +863,7 @@ export const AIConsultant = () => {
             }
 
             if (!understood) {
-                const msg = "Desculpe, n├úo entendi. Prefere **├íudio** ou **somente texto**?";
+                const msg = "Desculpe, não entendi. Prefere **áudio** ou **somente texto**?";
                 addMessage('ai', msg);
                 speak(msg);
                 return;
@@ -877,8 +877,8 @@ export const AIConsultant = () => {
 
             pendingAction = null;
             const msg = enableVoice
-                ? `Perfeito. Responderei por ├íudio sempre que poss├¡vel. \n\nAh, meu tempo de espera padr├úo ├⌐ de **${IVATimeout / 1000} segundos**, mas o senhor pode me pedir para alterar quando quiser.`
-                : `Combinado. Manterei nossa comunica├º├úo apenas por texto. \n\nAh, meu tempo de espera padr├úo ├⌐ de **${IVATimeout / 1000} segundos**, mas o senhor pode me pedir para alterar quando quiser.`;
+                ? `Perfeito. Responderei por áudio sempre que possível. \n\nAh, meu tempo de espera padrão é de **${IVATimeout / 1000} segundos**, mas o senhor pode me pedir para alterar quando quiser.`
+                : `Combinado. Manterei nossa comunicação apenas por texto. \n\nAh, meu tempo de espera padrão é de **${IVATimeout / 1000} segundos**, mas o senhor pode me pedir para alterar quando quiser.`;
 
             addMessage('ai', msg);
             if (enableVoice) speak(msg);
@@ -1048,7 +1048,7 @@ export const AIConsultant = () => {
 
 Agora, gostaria de conhecer o sistema?
 
-**1** - Vis├úo Geral R├ípida (2-3 minutos)
+**1** - Visão Geral Rápida (2-3 minutos)
 **2** - Tour Completo Guiado (10-15 minutos)  
 **3** - Pular e explorar sozinho
 
@@ -1149,7 +1149,7 @@ Digite 1, 2 ou 3.`;
 
                     try {
                         // System action = true if NOT reopening (first load check)
-                        // But here we ARE opening, so we want the help offer.
+                        // But here we ARE opening, so we demand a response now.
                         // If it's a reopen, we definitely want a prompt (false).
                         // If it's first load but prefetch failed, we still want prompt.
                         const useSystemAction = !isReopening;
@@ -1297,7 +1297,7 @@ Digite 1, 2 ou 3.`;
                 }
                 else if (decision.action === 'START_TOUR') {
                     // LLM provides gender-aware tour offer message
-                    const msg = decision.message || 'Posso mostrar um tour do sistema. Qual prefere: r├ípido ou completo?';
+                    const msg = decision.message || 'Posso mostrar um tour do sistema. Qual prefere: rápido ou completo?';
                     addMessage('ai', msg);
                     speak(msg.replace(/\n/g, ' '));
 
@@ -1327,7 +1327,7 @@ Digite 1, 2 ou 3.`;
                         speak(msg);
                     } catch (error) {
                         console.error('[IVA] Error updating voice rate:', error);
-                        const errorMsg = 'Desculpe, n├úo consegui ajustar a velocidade.';
+                        const errorMsg = 'Desculpe, não consegui ajustar a velocidade.';
                         addMessage('ai', errorMsg);
                         speak(errorMsg);
                     }
@@ -1355,7 +1355,7 @@ Digite 1, 2 ou 3.`;
                         speak(msg);
                     } catch (error) {
                         console.error('[IVA] Error updating voice gender:', error);
-                        const errorMsg = 'Desculpe, n├úo consegui mudar a voz.';
+                        const errorMsg = 'Desculpe, não consegui mudar a voz.';
                         addMessage('ai', errorMsg);
                         speak(errorMsg);
                     }
@@ -1377,7 +1377,7 @@ Digite 1, 2 ou 3.`;
                         console.log('[IVA] Voice enabled:', decision.enabled);
 
                         // Show confirmation
-                        const msg = decision.message || `├üudio ${decision.enabled ? 'ativado' : 'desativado'}.`;
+                        const msg = decision.message || `Áudio ${decision.enabled ? 'ativado' : 'desativado'}.`;
                         addMessage('ai', msg);
 
                         // Only speak if enabling
@@ -1386,7 +1386,7 @@ Digite 1, 2 ou 3.`;
                         }
                     } catch (error) {
                         console.error('[IVA] Error updating voice enabled:', error);
-                        const errorMsg = 'Desculpe, n├úo consegui alterar o ├íudio.';
+                        const errorMsg = 'Desculpe, não consegui alterar o áudio.';
                         addMessage('ai', errorMsg);
                     }
                 }
@@ -1408,7 +1408,7 @@ Digite 1, 2 ou 3.`;
                     );
 
                     if (!result.success) {
-                        const errorMsg = `Desculpe, n├úo consegui executar essa a├º├úo: ${result.error}`;
+                        const errorMsg = `Desculpe, não consegui executar essa ação: ${result.error}`;
                         addMessage('ai', errorMsg);
                         speak(errorMsg);
                         return;
@@ -1433,7 +1433,7 @@ Digite 1, 2 ou 3.`;
                                 method: 'POST',
                                 headers: getHeaders(),
                                 body: JSON.stringify({
-                                    message: `AN├üLISE: ${followUpQuery}`,
+                                    message: `ANÁLISE: ${followUpQuery}`,
                                     context: {
                                         ...context,
                                         screenContext: updatedScreenContext
@@ -1538,7 +1538,7 @@ Digite 1, 2 ou 3.`;
     
                             // Verify if it's main dashboard to avoid loop or generic analysis
                             if (decision.screen === 'dashboard') {
-                                const m = 'Estou no painel principal via vis├úo geral.';
+                                const m = 'Estou no painel principal via visão geral.';
                                 addMessage('ai', m);
                                 speak(m);
                                 return;
@@ -1583,7 +1583,7 @@ Digite 1, 2 ou 3.`;
                                     } else {
                                         // Chain actions (Rare, but possible)
                                         // For now, just report the action
-                                        const m = nextDecision.message || 'An├ílise conclu├¡da. O que mais deseja?';
+                                        const m = nextDecision.message || 'Análise concluída. O que mais deseja?';
                                         addMessage('ai', m);
                                         speak(m);
                                     }
@@ -1591,7 +1591,7 @@ Digite 1, 2 ou 3.`;
                                 } catch (e) {
                                     console.error('[IVA Autonomy] Error:', e);
                                     if (analyzingDiv.parentNode) analyzingDiv.parentNode.removeChild(analyzingDiv);
-                                    addMessage('ai', 'N├úo consegui ler os dados da tela automaticamente. Pode me perguntar novamente?');
+                                    addMessage('ai', 'Não consegui ler os dados da tela automaticamente. Pode me perguntar novamente?');
                                 }
                             }, 2500);
                             */
@@ -1600,18 +1600,18 @@ Digite 1, 2 ou 3.`;
                             // Generic Success for non-navigation
                             const followUps = ['Feito. O que mais?', 'Pronto.', 'Algo mais?'];
                             const followUp = followUps[Math.floor(Math.random() * followUps.length)];
-                            const msg = (result.message || 'A├º├úo realizada.') + ' ' + followUp;
+                            const msg = (result.message || 'Ação realizada.') + ' ' + followUp;
                             addMessage('ai', msg);
                             speak(msg);
                         }
                     } else {
-                        const msg = result.message || 'N├úo consegui realizar a a├º├úo.';
+                        const msg = result.message || 'Não consegui realizar a ação.';
                         addMessage('ai', msg);
                         speak(msg);
                     }
                 } else {
                     console.warn('Unknown decision action:', decision.action);
-                    const msg = 'N├úo entendi o que fazer.';
+                    const msg = 'Não entendi o que fazer.';
                     addMessage('ai', msg);
                 }
 
@@ -1653,7 +1653,7 @@ Digite 1, 2 ou 3.`;
                 // Also update backend if possible, but for now local is enough to trigger flow locally next reload
                 // Or better, let's just trigger it now:
 
-                addMessage('ai', 'ΓÖ╗∩╕Å Reiniciando apresenta├º├úo...');
+                addMessage('ai', '🗓️ Reiniciando apresentação...');
                 setTimeout(() => {
                     messages.length = 0; // Clear history
                     pendingAction = null;
@@ -1699,9 +1699,9 @@ Digite 1, 2 ou 3.`;
             if (pendingAction === 'tour_offer') {
                 const choice = text.trim();
 
-                if (choice.includes('1') || /vis[a├ú]o|r[a├í]pid[oa]|quick|curto|breve/i.test(text)) {
+                if (choice.includes('1') || /vis[aã]o|r[aá]pid[oa]|quick|curto|breve/i.test(text)) {
                     // Overview tour
-                    addMessage('ai', '├ôtimo! Vou mostrar uma vis├úo geral r├ípida. Iniciando...');
+                    addMessage('ai', 'Ótimo! Vou mostrar uma visão geral rápida. Iniciando...');
 
                     // Mark as introduced before tour
                     await savePreferences({ IVAIntroduced: 1 });
@@ -1717,7 +1717,7 @@ Digite 1, 2 ou 3.`;
 
                 } else if (choice.includes('2') || /complet[oa]|guiad[oa]|full|detalhad[oa]|inteiro|longo/i.test(text)) {
                     // Full tour - LLM will handle gender-appropriate language
-                    addMessage('ai', 'Excelente escolha! Vou gui├í-lo(a) por todo o sistema em detalhes. Vamos l├í!');
+                    addMessage('ai', 'Excelente escolha! Vou guiá-lo(a) por todo o sistema em detalhes. Vamos lá!');
 
                     // Mark as introduced before tour
                     await savePreferences({ IVAIntroduced: 1 });
@@ -1731,9 +1731,9 @@ Digite 1, 2 ou 3.`;
                     pendingAction = null;
                     return;
 
-                } else if (choice.includes('3') || /pular|n[a├ú]o|sozinho|explorar|cancelar|sair/i.test(text)) {
+                } else if (choice.includes('3') || /pular|n[aã]o|sozinho|explorar|cancelar|sair/i.test(text)) {
                     // Skip tour
-                    addMessage('ai', 'Sem problemas! Fique ├á vontade para explorar. Estarei aqui caso precise de ajuda!');
+                    addMessage('ai', 'Sem problemas! Fique à vontade para explorar. Estarei aqui caso precise de ajuda!');
 
                     // Mark as introduced
                     await savePreferences({ IVAIntroduced: 1 });
@@ -1748,7 +1748,7 @@ Digite 1, 2 ou 3.`;
 
                 } else {
                     // Invalid choice
-                    addMessage('ai', 'N├úo entendi. Por favor, diga se prefere **R├ípido**, **Completo** ou se quer **Pular** o tour.');
+                    addMessage('ai', 'Não entendi. Por favor, diga se prefere **Rápido**, **Completo** ou se quer **Pular** o tour.');
                     return;
                 }
             }
@@ -1787,7 +1787,7 @@ Digite 1, 2 ou 3.`;
                         } catch (e) { console.error(e); }
                     }
                 }
-                const msg = "Para alterar o tempo, diga algo como 'Mudar tempo de espera para 5 segundos'. (M├¡nimo 3s, M├íximo 60s)";
+                const msg = "Para alterar o tempo, diga algo como 'Mudar tempo de espera para 5 segundos'. (Mínimo 3s, Máximo 60s)";
                 addMessage('ai', msg);
                 speak(msg);
                 return;
@@ -1866,7 +1866,7 @@ Digite 1, 2 ou 3.`;
 
     const stopAutonomousLoop = () => {
         if (loopState.active) {
-            console.log('[IVA Loop] ≡ƒ¢æ STOPPING AUTONOMOUS LOOP (User control assumed)');
+            console.log('[IVA Loop] 🛑 STOPPING AUTONOMOUS LOOP (User control assumed)');
             loopState.active = false;
         }
     };
@@ -1916,7 +1916,7 @@ Digite 1, 2 ou 3.`;
             console.error('[IVA Loop] Intent Type:', intentType);
             console.error('[IVA Loop] Loop State:', JSON.stringify(loopState));
             console.error('========================================');
-            addMessage('ai', 'Desculpe, ocorreu um erro ao processar sua solicita├º├úo.');
+            addMessage('ai', 'Desculpe, ocorreu um erro ao processar sua solicitação.');
         } finally {
             loopState.active = false;
             // Mark navigation as finished so manual navigation can be detected correctly
@@ -1942,19 +1942,19 @@ Digite 1, 2 ou 3.`;
         // Ask LLM to find appropriate screen
         const decision = await IvaService.decideOperation(
             `PERGUNTA: "${userQuery}"
-             TELAS DISPON├ìVEIS: ${JSON.stringify(allScreens)}
+             TELAS DISPONÍVEIS: ${JSON.stringify(allScreens)}
              
-             Qual tela ├⌐ apropriada para esta pergunta?
+             Qual tela é apropriada para esta pergunta?
              Retorne: { action: "NAVIGATE", target: "screen-id", message: "...", highlight: "texto para destacar" }
-             Se n├úo encontrar: { action: "NO_SCREEN", message: "..." }
-             Obs: 'highlight' ├⌐ opcional. Use se o usu├írio pediu item espec├¡fico (ex: "gastos do Cliente X").`,
+             Se não encontrar: { action: "NO_SCREEN", message: "..." }
+             Obs: 'highlight' é opcional. Use se o usuário pediu item específico (ex: "gastos do Cliente X").`,
             { menuStructure }
         );
 
         if (decision.action === 'NO_SCREEN') {
             console.log('[IVA Navigation Flow] No appropriate screen found');
             console.log('[IVA Navigation Flow] LLM Response:', JSON.stringify(decision));
-            addMessage('ai', decision.message || 'Desculpe, n├úo encontrei uma tela apropriada para isso.');
+            addMessage('ai', decision.message || 'Desculpe, não encontrei uma tela apropriada para isso.');
             loopState.active = false;
             return;
         }
@@ -2032,8 +2032,8 @@ Digite 1, 2 ou 3.`;
 
         // SAFETY: Max global iterations (reduced to prevent loops)
         if (loopState.iteration >= 5) {
-            console.log('[IVA Data Flow] Γ¥î Max global iterations reached (5)');
-            const failMsg = 'Desculpe, tentei em v├írias telas mas n├úo consegui encontrar essa informa├º├úo. Poderia reformular sua pergunta ou me dizer em qual tela espec├¡fica voc├¬ quer que eu procure?';
+            console.log('[IVA Data Flow] ⚠️ Max global iterations reached (5)');
+            const failMsg = 'Desculpe, tentei em várias telas mas não consegui encontrar essa informação. Poderia reformular sua pergunta ou me dizer em qual tela específica você quer que eu procure?';
             addMessage('ai', failMsg);
             speak(failMsg);
             loopState.active = false;
@@ -2047,9 +2047,9 @@ Digite 1, 2 ou 3.`;
 
         const rankingDecision = await IvaService.decideOperation(
             `PERGUNTA: "${userQuery}"
-             TELAS DISPON├ìVEIS: ${JSON.stringify(allScreens)}
+             TELAS DISPONÍVEIS: ${JSON.stringify(allScreens)}
              
-             Ranqueie TODAS as telas por relev├óncia (0-1).
+             Ranqueie TODAS as telas por relevância (0-1).
              Retorne: { screens: [{ id: "...", relevance: 0.95 }, ...] }`,
             { menuStructure }
         );
@@ -2071,7 +2071,7 @@ Digite 1, 2 ou 3.`;
 
         for (const screen of rankedScreens) {
             if (!loopState.active) {
-                console.log('[IVA Data Flow] ≡ƒ¢æ Loop cancelled, stopping search.');
+                console.log('[IVA Data Flow] 🛑 Loop cancelled, stopping search.');
                 return;
             }
             console.log('----------------------------------------');
@@ -2090,7 +2090,7 @@ Digite 1, 2 ou 3.`;
             const result = await tryExtractOrAct(userQuery, screen.id);
 
             if (result.success) {
-                console.log(`[IVA Data Flow] Γ£à SUCCESS on screen: ${screen.id}`);
+                console.log(`[IVA Data Flow] ✅ SUCCESS on screen: ${screen.id}`);
                 console.log(`[IVA Data Flow] Result type: ${result.type}`);
 
                 // RECORD LEARNING
@@ -2106,7 +2106,7 @@ Digite 1, 2 ou 3.`;
             }
 
             // No data/actions on this screen, try next
-            console.log(`[IVA Data Flow] Γ¥î No data/actions on ${screen.id}`);
+            console.log(`[IVA Data Flow] ⚠️ No data/actions on ${screen.id}`);
             console.log(`[IVA Data Flow] Reason: ${result.reason}`);
             console.log(`[IVA Data Flow] Moving to next screen...`);
         }
@@ -2116,7 +2116,7 @@ Digite 1, 2 ou 3.`;
         console.log('[IVA Data Flow] Searched screens:', rankedScreens.length);
         console.log('[IVA Data Flow] No data found in any screen');
         console.log('[IVA Data Flow] ======================================');
-        addMessage('ai', 'Pesquisei em todas as telas relevantes mas n├úo encontrei o que voc├¬ precisa. Pode reformular a pergunta?');
+        addMessage('ai', 'Pesquisei em todas as telas relevantes mas não encontrei o que você precisa. Pode reformular a pergunta?');
         loopState.active = false;
     };
 
@@ -2131,7 +2131,7 @@ Digite 1, 2 ou 3.`;
 
         while (actionIterations < loopState.maxActionsPerScreen) {
             if (!loopState.active) {
-                console.log('[IVA Extract/Act] ≡ƒ¢æ Loop cancelled, stopping action extraction.');
+                console.log('[IVA Extract/Act] 🛑 Loop cancelled, stopping action extraction.');
                 return { success: false, reason: 'CANCELLED' };
             }
             console.log(`[IVA Extract/Act] --- Iteration ${actionIterations + 1}/${loopState.maxActionsPerScreen} ---`);
@@ -2250,7 +2250,7 @@ Digite 1, 2 ou 3.`;
                 return { success: true, type: 'DATA_FOUND' };
             }
 
-            console.log(`[IVA Extract/Act] Γ¥î No data found, reason: ${dataDecision.reason || 'not specified'}`);
+            console.log(`[IVA Extract/Act] ⚠️ No data found, reason: ${dataDecision.reason || 'not specified'}`);
             console.log(`[IVA Extract/Act] Discovering available actions...`);
 
             // No data, discover actions
@@ -2267,7 +2267,7 @@ Digite 1, 2 ou 3.`;
             }
 
             if (discoveredActions.length === 0) {
-                console.log(`[IVA Extract/Act] ΓÜá∩╕Å No actions available on this screen`);
+                console.log(`[IVA Extract/Act] 🚫 No actions available on this screen`);
                 return { success: false, reason: 'NO_ACTIONS' };
             }
 
@@ -2276,21 +2276,21 @@ Digite 1, 2 ou 3.`;
 
             const actionDecision = await IvaService.decideOperation(
                 `PERGUNTA: "${userQuery}"
-                 A├ç├òES DISPON├ìVEIS: ${JSON.stringify(actionsForLLM)}
+                 AÇÕES DISPONÍVEIS: ${JSON.stringify(actionsForLLM)}
                  
-                 Qual a├º├úo pode trazer os dados necess├írios?
+                 Qual ação pode trazer os dados necessários?
                  Se encontrou: { action: "EXECUTE", actionId: "...", params: {...}, message: "..." }
-                 Se n├úo encontrou: { action: "NO_SUITABLE_ACTION" }`,
+                 Se não encontrou: { action: "NO_SUITABLE_ACTION" }`,
                 { discoveredActions: actionsForLLM }
             );
 
 
             if (actionDecision.action === 'NO_SUITABLE_ACTION') {
-                console.log(`[IVA Extract/Act] ΓÜá∩╕Å LLM found no suitable action`);
+                console.log(`[IVA Extract/Act] 🚫 LLM found no suitable action`);
 
                 // PHASE 4: Enter Conversational Learning Mode
                 if (!learningState.active) {
-                    console.log('[IVA Learning] ≡ƒÄô Entering conversational learning mode');
+                    console.log('[IVA Learning] 🧠 Entering conversational learning mode');
 
                     learningState.active = true;
                     learningState.step = 'DATA_LOCATION';
@@ -2330,13 +2330,13 @@ Por exemplo:
 
             // Execute action
             actionIterations++;
-            console.log(`[IVA Extract/Act] ≡ƒÄ» Executing action: ${actionDecision.actionId}`);
+            console.log(`[IVA Extract/Act] ⚙️ Executing action: ${actionDecision.actionId}`);
             console.log(`[IVA Extract/Act] Action params:`, actionDecision.params);
 
             const actionToExecute = discoveredActions.find(a => a.id === actionDecision.actionId);
 
             if (!actionToExecute) {
-                console.error(`[IVA Extract/Act] Γ¥î Action not found in discovered actions: ${actionDecision.actionId}`);
+                console.error(`[IVA Extract/Act] ⚠️ Action not found in discovered actions: ${actionDecision.actionId}`);
                 console.error(`[IVA Extract/Act] Available actions:`, discoveredActions.map(a => a.id));
                 continue;
             }
@@ -2347,16 +2347,16 @@ Por exemplo:
                 label: actionToExecute.label
             });
 
-            addMessage('ai', actionDecision.message || 'Executando a├º├úo...');
+            addMessage('ai', actionDecision.message || 'Executando ação...');
 
             const result = await IvaActionExecutor.executeAction(actionToExecute, actionDecision.params);
 
             if (!result.success) {
-                console.error(`[IVA Extract/Act] Γ¥î Action execution failed: ${result.error}`);
+                console.error(`[IVA Extract/Act] ⚠️ Action execution failed: ${result.error}`);
                 continue;
             }
 
-            console.log(`[IVA Extract/Act] Γ£à Action executed successfully`);
+            console.log(`[IVA Extract/Act] ✅ Action executed successfully`);
             console.log(`[IVA Extract/Act] Waiting for UI update...`);
 
             // RECORD ACTION LEARNING
@@ -2376,7 +2376,7 @@ Por exemplo:
         }
 
         // Max actions reached
-        console.log(`[IVA Extract/Act] ΓÜá∩╕Å Max actions (${loopState.maxActionsPerScreen}) reached`);
+        console.log(`[IVA Extract/Act] 🚫 Max actions (${loopState.maxActionsPerScreen}) reached`);
         return { success: false, reason: 'MAX_ACTIONS_REACHED' };
     };
 
@@ -2394,15 +2394,15 @@ Por exemplo:
 
         const navDecision = await IvaService.decideOperation(
             `OBJETIVO: ${userQuery}
-             TELAS DISPON├ìVEIS: ${JSON.stringify(menuStructure.flatMenu)}
+             TELAS DISPONÍVEIS: ${JSON.stringify(menuStructure.flatMenu)}
              
-             Qual tela permite executar esta a├º├úo?
+             Qual tela permite executar esta ação?
              Retorne: { action: "NAVIGATE", target: "screen-id" }`,
             { menuStructure }
         );
 
         if (!loopState.active) {
-            console.log('[IVA Action Flow] ≡ƒ¢æ Loop cancelled before navigation.');
+            console.log('[IVA Action Flow] 🛑 Loop cancelled before navigation.');
             return;
         }
 
@@ -2423,20 +2423,20 @@ Por exemplo:
         // Ask LLM which action to execute
         const actionDecision = await IvaService.decideOperation(
             `OBJETIVO: ${userQuery}
-             A├ç├òES DISPON├ìVEIS: ${JSON.stringify(actionsForLLM)}
+             AÇÕES DISPONÍVEIS: ${JSON.stringify(actionsForLLM)}
              
-             Qual a├º├úo executar?
+             Qual ação executar?
              Retorne: { action: "EXECUTE", actionId: "...", params: {...} }`,
             { discoveredActions: actionsForLLM }
         );
 
         if (!loopState.active) {
-            console.log('[IVA Action Flow] ≡ƒ¢æ Loop cancelled before action execution.');
+            console.log('[IVA Action Flow] 🛑 Loop cancelled before action execution.');
             return;
         }
 
         if (actionDecision.action !== 'EXECUTE') {
-            addMessage('ai', 'Desculpe, n├úo encontrei uma a├º├úo apropriada para isso.');
+            addMessage('ai', 'Desculpe, não encontrei uma ação apropriada para isso.');
             loopState.active = false;
             return;
         }
@@ -2446,10 +2446,10 @@ Por exemplo:
         const result = await IvaActionExecutor.executeAction(actionToExecute, actionDecision.params);
 
         if (result.success) {
-            addMessage('ai', result.message || 'A├º├úo executada com sucesso!');
-            speak('A├º├úo executada com sucesso!');
+            addMessage('ai', result.message || 'Ação executada com sucesso!');
+            speak('Ação executada com sucesso!');
         } else {
-            addMessage('ai', `Erro ao executar a├º├úo: ${result.error}`);
+            addMessage('ai', `Erro ao executar ação: ${result.error}`);
         }
 
         loopState.active = false;
