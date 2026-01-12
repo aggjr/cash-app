@@ -1,5 +1,6 @@
 ﻿import { getApiBaseUrl } from '../utils/apiConfig.js';
 import { IvaActions } from '../iva/IvaActions.js';
+import { IvaHighlight } from '../iva/IvaHighlight.js';
 import { IvaKnowledge } from '../iva/IvaKnowledge.js';
 import { IvaService } from '../iva/IvaService.js';
 import { showToast } from '../utils/toast.js';
@@ -1132,11 +1133,14 @@ Digite 1, 2 ou 3.`;
                 thinkingMsg.innerText = '...';
                 messagesContainer.appendChild(thinkingMsg);
 
+                const isFirstDailyGreeting = (!lastGreetingDate || lastGreetingDate !== today);
+
                 // ZERO DELAY - Call backend immediately
                 (async () => {
                     const context = {
                         currentScreen: IvaKnowledge.activeScreen,
-                        availableScreens: IvaKnowledge.screens
+                        availableScreens: IvaKnowledge.screens,
+                        isFirstDailyGreeting // Pass to backend
                     };
 
                     try {
@@ -1664,7 +1668,7 @@ Digite 1, 2 ou 3.`;
         messagesContainer.appendChild(loadingDiv);
         messagesContainer.scrollTop = messagesContainer.scrollHeight;
 
-        (async () => {
+        setTimeout(async () => {
             loadingDiv.remove();
 
             // Handle Navigation Confirmation
@@ -1937,8 +1941,9 @@ Digite 1, 2 ou 3.`;
              TELAS DISPON├ìVEIS: ${JSON.stringify(allScreens)}
              
              Qual tela ├⌐ apropriada para esta pergunta?
-             Retorne: { action: "NAVIGATE", target: "screen-id", message: "..." }
-             Se n├úo encontrar: { action: "NO_SCREEN", message: "..." }`,
+             Retorne: { action: "NAVIGATE", target: "screen-id", message: "...", highlight: "texto para destacar" }
+             Se n├úo encontrar: { action: "NO_SCREEN", message: "..." }
+             Obs: 'highlight' ├⌐ opcional. Use se o usu├írio pediu item espec├¡fico (ex: "gastos do Cliente X").`,
             { menuStructure }
         );
 
@@ -1951,13 +1956,13 @@ Digite 1, 2 ou 3.`;
         }
 
         if (!loopState.active) {
-            console.log('[IVA Navigation Flow] ≡ƒ¢æ Loop cancelled before navigation.');
+            console.log('[IVA Navigation Flow] 🛑 Loop cancelled before navigation.');
             return;
         }
 
         // Navigate
-        console.log('[IVA Navigation Flow] Navigating to screen:', decision.target);
-        await IvaActions.navigate(decision.target);
+        console.log('[IVA Navigation Flow] Navigating to screen:', decision.target, '+ Highlight:', decision.highlight);
+        await IvaActions.navigate(decision.target, decision.highlight);
         console.log('[IVA Navigation Flow] Navigation complete, waiting for render...');
         await new Promise(r => setTimeout(r, 1500));
         console.log('[IVA Navigation Flow] Render complete');
@@ -2122,22 +2127,28 @@ Digite 1, 2 ou 3.`;
             // Ask LLM if data answers question
             const dataDecision = await IvaService.decideOperation(
                 `PERGUNTA ORIGINAL: "${userQuery}"
-                 DADOS VIS├ìVEIS: ${JSON.stringify(screenContext.visibleData)}
+                 DADOS VISÍVEIS: ${JSON.stringify(screenContext.visibleData)}
                  
                  Esses dados respondem completamente a pergunta?
-                 Se SIM: { hasData: true, message: "resposta formatada" }
-                 Se N├âO: { hasData: false, reason: "..." }`,
+                 Se SIM: { hasData: true, message: "resposta formatada", highlight: "texto exato encontrada" }
+                 Se NÃO: { hasData: false, reason: "..." }
+                 Obs: 'highlight' deve ser o texto curto e único que aparece na tela (ex: "R$ 1.200,00").`,
                 { screenContext }
             );
 
             if (dataDecision.hasData) {
                 // SUCCESS! Found data
-                console.log(`[IVA Extract/Act] Γ£à DATA FOUND!`);
+                console.log(`[IVA Extract/Act] ✅ DATA FOUND!`);
                 console.log(`[IVA Extract/Act] LLM confirmed data answers question`);
                 console.log(`[IVA Extract/Act] Response length: ${dataDecision.message?.length} chars`);
 
                 addMessage('ai', dataDecision.message);
                 speak(dataDecision.message);
+
+                if (dataDecision.highlight) {
+                    console.log(`[IVA Extract/Act] Highlighting data: ${dataDecision.highlight}`);
+                    IvaHighlight.highlightText(dataDecision.highlight, { duration: 5000, pulse: true });
+                }
 
                 addMessage('ai', 'Isso responde sua pergunta?');
                 pendingAction = 'nav_confirm';

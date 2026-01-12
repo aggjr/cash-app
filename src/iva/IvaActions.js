@@ -7,8 +7,8 @@ export const IvaActions = {
     CLICK_ACTION: 'CLICK_ACTION',
 
     // Convenience methods
-    navigate: async (target) => {
-        return IvaActions.handle('NAVIGATE', { target });
+    navigate: async (target, highlight = null) => {
+        return IvaActions.handle('NAVIGATE', { target, highlight });
     },
 
     // Action Handlers

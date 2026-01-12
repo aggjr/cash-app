@@ -4,16 +4,16 @@ require('dotenv').config({ path: '../.env' });
 
 const rules = [
     {
-        description: "REGRA DE TRANSPARÊNCIA: Ao confirmar ou responder sobre um dado do sistema (ex: nome do usuário, valor de conta, status), você DEVE navegar para a tela onde esse dado está (action: NAVIGATE) e destacar a informação (highlight: 'texto').",
-        keywords: { primary: ['transparencia', 'navegar', 'highlight', 'destacar', 'mostrar'] }
+        description: "REGRA DE TRANSPARÊNCIA (SISTEMA): Para dados que existem nas telas do sistema (ex: cadastros, valores, status), você DEVE navegar para a tela (action: NAVIGATE) e destacar a informação (highlight: 'texto'). 'Mostre' o dado.",
+        keywords: { primary: ['transparencia', 'navegar', 'highlight', 'sistema', 'fatos'] }
     },
     {
-        description: "REGRA DE HIGHLIGHT: Quando encontrar uma informação na tela, use o campo 'highlight' no JSON de resposta com o texto exato do dado (ex: 'Augusto', 'R$ 500,00', 'Pago'). Isso fará o sistema piscar o dado na tela.",
-        keywords: { primary: ['highlight', 'destaque', 'piscar', 'foco'] }
+        description: "REGRA DE CONHECIMENTO (MEMÓRIA): Para dados que vivem apenas na sua memória (ex: preferências do usuário, cores favoritas, regras de negócio aprendidas e não visíveis), APENAS RESPONDA (action: REPLY). NÃO tente navegar ou destacar o que não existe na tela.",
+        keywords: { primary: ['memoria', 'conhecimento', 'preferencia', 'regra', 'abstrato'] }
     },
     {
-        description: "REGRA DE USUÁRIO: Dados cadastrais como 'meu nome', 'meu email' ou 'meu cargo' estão na tela de Usuários (ID: usuarios). Navegue para lá se o usuário perguntar 'quem sou eu' ou 'meus dados'.",
-        keywords: { primary: ['usuario', 'meu nome', 'quem sou eu', 'cadastro'] }
+        description: "REGRA DE USUÁRIO: Se o usuário perguntar 'quem sou eu' ou 'meus dados', NAVEGUE para a tela 'usuarios' e destaque o nome dele.",
+        keywords: { primary: ['usuario', 'meu nome', 'quem sou eu'] }
     }
 ];
 
