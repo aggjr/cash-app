@@ -343,7 +343,7 @@ async function buildOperateContextWithQdrant(user, project, screenData, cachedSc
    // FIX: If AutoGreeting, FORCE "First Access" context to trigger full introduction
    if (isAutoGreeting) {
       prompt = prompt.replace('{{LAST_ACCESS}}', 'Primeiro Acesso (Sessão Iniciada)');
-      prompt += '\n\nIMPORTANTÍSSIMO: REINICIE A PERSONA. APRESENTE-SE COMPLETAMENTE COMO "SOU A IVA...". IGNORE INTERAÇÕES ANTERIORES DO DIA.';
+      prompt += `\n\nIMPORTANTÍSSIMO: REINICIE A PERSONA. APRESENTE-SE DIZENDO EXATAMENTE: "Olá, ${preferredName}! 👋 Sou a IVA...". IGNORE INTERAÇÕES ANTERIORES.`;
    } else {
       prompt = prompt.replace('{{LAST_ACCESS}}', lastAccess ? new Date(lastAccess).toLocaleString('pt-BR') : 'Primeiro Acesso');
    }
