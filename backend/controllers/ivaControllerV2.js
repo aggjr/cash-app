@@ -663,6 +663,7 @@ Siga rigorosamente as INSTRUÇÕES DE FLUXO DE EXECUÇÃO E DESCOBERTA enviadas 
                     // Prepare context for scoped knowledge
                     const knowledgeContext = {
                         userId: user.id,
+                        userName: user.name, // Added for Audit
                         projectId: context.projectId, // Added project scope
                         scope: args.scope || 'USER', // Default to safe scope
                         department: user.department,
@@ -834,6 +835,7 @@ Siga rigorosamente as INSTRUÇÕES DE FLUXO DE EXECUÇÃO E DESCOBERTA enviadas 
                             keywords: IvaGlobalKnowledge.extractKeywords(description)
                         }, {
                             userId: user.id,
+                            userName: user.name, // Added for Audit
                             scope: scope,
                             department: user.department,
                             role: user.job_title

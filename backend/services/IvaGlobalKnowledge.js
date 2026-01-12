@@ -243,6 +243,7 @@ class IvaGlobalKnowledge {
             screen_id: item.screen_id,
             action_id: item.action_id,
             user_id: context.userId,
+            user_name: context.userName || null, // Added for Audit
             project_id: context.projectId || null, // Ensure explicit null if undefined
             department: context.department,
             role: context.role,

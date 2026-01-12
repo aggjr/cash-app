@@ -163,7 +163,20 @@ export const IvaPromptsManager = () => {
 
         // Define Columns
         const columns = [
-            { key: 'created_at', label: 'Data', type: 'date', width: '100px', align: 'left', sortable: true },
+            {
+                key: 'created_at', label: 'Data', type: 'date', width: '100px', align: 'left', sortable: true,
+                render: (item) => {
+                    if (!item.created_at) return '-';
+                    return new Date(item.created_at).toLocaleDateString('pt-BR');
+                }
+            },
+            {
+                key: 'user_name', label: 'Usuário', type: 'text', width: '120px', align: 'left', sortable: true,
+                render: (item) => {
+                    // Fallback to user_id or 'Sistema' if name is missing (legacy)
+                    return escapeHtml(item.user_name || item.user_id || 'Sistema');
+                }
+            },
             {
                 key: 'audit_action', label: 'Tipo', width: '100px', align: 'center', sortable: true,
                 render: (item) => {
