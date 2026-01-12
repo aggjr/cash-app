@@ -2,7 +2,7 @@ const db = require('../config/database');
 
 exports.getFechamentoReport = async (req, res) => {
     try {
-        const { projectId, startMonth, endMonth, viewMode } = req.query;
+        const { projectId, startMonth, endMonth, viewMode = 'monthly' } = req.query;
 
         if (!projectId || !startMonth || !endMonth) {
             return res.status(400).json({ error: 'Missing required parameters' });
@@ -84,19 +84,15 @@ exports.getFechamentoReport = async (req, res) => {
         });
 
 
+        // DYNAMIC GROUPING BASED ON MODE
+        // DYNAMIC GROUPING BASED ON MODE
+        const dateFormat = viewMode === 'daily' ? '%Y-%m-%d' : '%Y-%m';
+
         // --- 2. PERIOD MOVEMENTS (Monthly Deltas) ---
         // Sum of (In - Out) between startDate and endDate, grouped by Month
 
-            ) as period_movements
-            GROUP BY account_id, month_key
-            `;
-
-        // DYNAMIC GROUPING BASED ON MODE
-        const viewMode = req.query.viewMode || 'monthly';
-        const dateFormat = viewMode === 'daily' ? '%Y-%m-%d' : '%Y-%m';
-
         const sqlPeriod = `
-        SELECT
+            SELECT
         account_id,
             DATE_FORMAT(dt, '${dateFormat}') as month_key,
             SUM(val) as monthly_delta
@@ -170,7 +166,7 @@ exports.getFechamentoReport = async (req, res) => {
                 : [req.query.accountIds];
 
             if (accountIds.length > 0) {
-                accountsQuery += ` AND c.id IN(${ accountIds.map(() => '?').join(',') })`;
+                accountsQuery += ` AND c.id IN(${accountIds.map(() => '?').join(',')})`;
                 accountsParams.push(...accountIds);
             }
         }
