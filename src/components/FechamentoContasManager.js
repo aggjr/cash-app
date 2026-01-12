@@ -726,14 +726,46 @@ export const FechamentoContasManager = (project) => {
                         companyGroups[acc.company_id].accounts.push(acc);
                     });
 
-                    // Define columns with safe widths
+                    // Calculate max widths
+                    let maxEmpresaLen = 10;
+                    let maxContaLen = 15;
+                    const maxColLens = new Array(columns.length).fill(12); // Min width for data columns
+
+                    const safeLength = (str) => (str ? str.toString().length : 0);
+
+                    accounts.forEach(acc => {
+                        // Check Company Name
+                        if (acc.company_name) maxEmpresaLen = Math.max(maxEmpresaLen, safeLength(acc.company_name));
+                        // Check Account Name
+                        if (acc.name) maxContaLen = Math.max(maxContaLen, safeLength(acc.name));
+
+                        // Check Data Values
+                        let currentBalance = initialBalances[acc.id] || 0;
+                        columns.forEach((colDate, colIndex) => {
+                            let key = '';
+                            if (viewMode === 'monthly') {
+                                key = `${colDate.getFullYear()}-${(colDate.getMonth() + 1).toString().padStart(2, '0')}`;
+                            } else {
+                                const d = colDate.getDate().toString().padStart(2, '0');
+                                const m = (colDate.getMonth() + 1).toString().padStart(2, '0');
+                                key = `${colDate.getFullYear()}-${m}-${d}`;
+                            }
+                            const delta = (movementsData[acc.id] && movementsData[acc.id][key]) ? movementsData[acc.id][key] : 0;
+                            currentBalance += delta;
+
+                            const formattedVal = formatCurrency(currentBalance);
+                            maxColLens[colIndex] = Math.max(maxColLens[colIndex], safeLength(formattedVal));
+                        });
+                    });
+
+                    // Define columns with DYNAMIC widths (20% buffer)
                     worksheet.columns = [
-                        { header: 'Empresa', key: 'empresa', width: 35 },
-                        { header: 'Conta Bancária', key: 'conta', width: 40 },
-                        ...columns.map(d => ({
+                        { header: 'Empresa', key: 'empresa', width: maxEmpresaLen * 1.2 },
+                        { header: 'Conta Bancária', key: 'conta', width: maxContaLen * 1.2 },
+                        ...columns.map((d, idx) => ({
                             header: formatDateHeader(d),
                             key: `col_${d.getTime()}`,
-                            width: 22 // Increased from 15 to ensure numbers fit
+                            width: maxColLens[idx] * 1.2
                         }))
                     ];
 
