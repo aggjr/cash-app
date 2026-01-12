@@ -665,18 +665,21 @@ export const FechamentoContasManager = (project) => {
         }
     };
 
-    // Initial Render
-    container.innerHTML = `
-        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 2rem;">
-            <h2>🎚️ Fechamento de Contas</h2>
-             <div style="display: flex; gap: 0.5rem;">
-                 <a href="#" style="font-size: 0.9rem; color: var(--color-primary);">Lar</a>
-                 <span style="color: var(--color-text-muted);">/</span>
-                 <span style="font-size: 0.9rem; color: var(--color-text-muted);">fechamento</span>
+    const renderHeader = () => {
+        container.innerHTML = `
+            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 2rem;">
+                <h2>🎚️ Fechamento de Contas</h2>
+                <div style="display: flex; gap: 0.5rem;">
+                    <a href="#" style="font-size: 0.9rem; color: var(--color-primary);">Lar</a>
+                    <span style="color: var(--color-text-muted);">/</span>
+                    <span style="font-size: 0.9rem; color: var(--color-text-muted);">fechamento</span>
+                </div>
             </div>
-        </div>
-    `;
+        `;
+    };
 
+    // Initial Render
+    renderHeader();
     const controlsElement = renderControls();
     container.appendChild(controlsElement);
 

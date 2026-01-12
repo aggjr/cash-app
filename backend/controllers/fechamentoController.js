@@ -93,11 +93,10 @@ exports.getFechamentoReport = async (req, res) => {
 
         const sqlPeriod = `
             SELECT
-        account_id,
-            DATE_FORMAT(dt, '${dateFormat}') as month_key,
-            SUM(val) as monthly_delta
-        FROM(
-            --Inputs
+                account_id,
+                DATE_FORMAT(dt, '${dateFormat}') as month_key,
+                SUM(val) as monthly_delta
+            FROM(
                 SELECT account_id, data_real_recebimento as dt, valor AS val FROM entradas 
                 WHERE project_id = ? AND data_real_recebimento BETWEEN ? AND ? AND active = 1
                 UNION ALL
@@ -109,7 +108,6 @@ exports.getFechamentoReport = async (req, res) => {
                 
                 UNION ALL
                 
-                --Outputs
                 SELECT account_id, data_real_pagamento as dt, -valor AS val FROM saidas 
                 WHERE project_id = ? AND data_real_pagamento BETWEEN ? AND ? AND active = 1
                 UNION ALL
@@ -122,9 +120,9 @@ exports.getFechamentoReport = async (req, res) => {
                 SELECT source_account_id AS account_id, data_real as dt, -valor AS val FROM transferencias 
                 WHERE project_id = ? AND data_real BETWEEN ? AND ? AND active = 1
 
-        ) as period_movements
+            ) as period_movements
             GROUP BY account_id, month_key
-            `;
+        `;
 
         const periodParams = [
             projectId, startDate, endDate,
