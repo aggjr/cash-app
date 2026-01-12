@@ -1679,13 +1679,13 @@ Digite 1, 2 ou 3.`;
             if (pendingAction === 'nav_confirm') {
                 const isPositive = IvaConversation.isPositiveResponse(text);
                 if (isPositive) {
-                    const msg = "├ôtimo! Fico feliz que encontrei o que voc├¬ procurava. O que voc├¬ gostaria de analisar ou fazer nesta tela?";
+                    const msg = "Ótimo! Fico feliz que encontrei o que você procurava. O que você gostaria de analisar ou fazer nesta tela?";
                     addMessage('ai', msg);
                     speak(msg);
                     pendingAction = null;
                     return;
                 } else if (IvaConversation.isNegativeResponse(text)) {
-                    const msg = "Entendi. Desculpe por n├úo ser o que voc├¬ esperava. O que voc├¬ gostaria de ver ent├úo? Posso tentar buscar de outra forma.";
+                    const msg = "Entendi. Desculpe por não ser o que você esperava. O que você gostaria de ver então? Posso tentar buscar de outra forma.";
                     addMessage('ai', msg);
                     speak(msg);
                     pendingAction = null;
