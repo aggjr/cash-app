@@ -726,14 +726,14 @@ export const FechamentoContasManager = (project) => {
                         companyGroups[acc.company_id].accounts.push(acc);
                     });
 
-                    // Define columns
+                    // Define columns with safe widths
                     worksheet.columns = [
-                        { header: 'Empresa', key: 'empresa', width: 20 },
-                        { header: 'Conta Bancária', key: 'conta', width: 25 },
+                        { header: 'Empresa', key: 'empresa', width: 35 },
+                        { header: 'Conta Bancária', key: 'conta', width: 40 },
                         ...columns.map(d => ({
                             header: formatDateHeader(d),
                             key: `col_${d.getTime()}`,
-                            width: 15
+                            width: 22 // Increased from 15 to ensure numbers fit
                         }))
                     ];
 
