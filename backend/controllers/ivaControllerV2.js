@@ -252,6 +252,8 @@ Confirme de forma clara e natural que você aprendeu.
             }
         }
 
+
+        res.setHeader('Content-Type', 'application/json; charset=utf-8');
         res.json({
             reply,
             extracted: isIntroduction ? extracted : undefined,
@@ -878,6 +880,8 @@ Siga rigorosamente as INSTRUÇÕES DE FLUXO DE EXECUÇÃO E DESCOBERTA enviadas 
                 }
             }
 
+
+            res.setHeader('Content-Type', 'application/json; charset=utf-8');
             res.json(action);
         } catch (e) {
             console.error('Failed to parse IVA operate JSON:', e);

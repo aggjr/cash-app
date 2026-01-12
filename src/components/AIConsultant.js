@@ -1964,6 +1964,24 @@ Digite 1, 2 ou 3.`;
             return;
         }
 
+
+        // Handling NON-NAVIGATION actions (e.g., REPLY)
+        if (decision.action === 'REPLY' || (decision.action !== 'NAVIGATE' && decision.message)) {
+            console.log('[IVA Navigation Flow] LLM decided to REPLY instead of NAVIGATE');
+            addMessage('ai', decision.message);
+            speak(decision.message);
+            loopState.active = false;
+            return;
+        }
+
+        // Safety check for undefined target
+        if (decision.action === 'NAVIGATE' && !decision.target) {
+            console.error('[IVA Navigation Flow] ⚠️ NAVIGATE action without target!');
+            addMessage('ai', decision.message || 'Desculpe, não consegui identificar a tela para navegação.');
+            loopState.active = false;
+            return;
+        }
+
         // Navigate
         console.log('[IVA Navigation Flow] Navigating to screen:', decision.target, '+ Highlight:', decision.highlight);
         await IvaActions.navigate(decision.target, decision.highlight);
@@ -2385,6 +2403,13 @@ Por exemplo:
 
         if (!loopState.active) {
             console.log('[IVA Action Flow] ≡ƒ¢æ Loop cancelled before navigation.');
+            return;
+        }
+
+        if (navDecision.action !== 'NAVIGATE' || !navDecision.target) {
+            console.log('[IVA Action Flow] LLM decided NOT to navigate:', navDecision);
+            addMessage('ai', navDecision.message || 'Não consegui identificar a tela correta para essa ação.');
+            loopState.active = false;
             return;
         }
 
