@@ -2,14 +2,13 @@
  * IvaContextBuilderQdrant.js
  * 
  * Implements the IVA Core Identity and Context Structure.
- * Uses Qdrant for dynamic knowledge retrieval and populates the standardized IVA template.
  */
 
 const QdrantKnowledgeService = require('./QdrantKnowledgeService');
 const IvaGlobalKnowledge = require('./IvaGlobalKnowledge');
-const { loadPrompt } = require('./promptLoader');
+const loadPrompt = require('./promptLoader').loadPrompt;
 
-const IVA_CORE_PROMPT_TEMPLATE = \`
+const IVA_CORE_PROMPT_TEMPLATE = `
 # IVA - Assistente Virtual Inteligente do ERP FOCCUS
 
 ## IDENTIDADE CORE
