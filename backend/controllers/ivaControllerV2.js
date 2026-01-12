@@ -397,7 +397,7 @@ const operate = async (req, res) => {
             // Trigger learning in background
             const IvaGlobalKnowledge = require('../services/IvaGlobalKnowledge');
 
-            // Smart Scope Detection
+            // 1. Save rule first
             const isPersonal = /(minha|meu|eu |gosto de|prefiro|sou|estou)/i.test(message);
             const scope = isPersonal ? 'USER' : 'SYSTEM';
 
@@ -406,11 +406,36 @@ const operate = async (req, res) => {
                 keywords: IntentClassifier.extractKeywords ? IntentClassifier.extractKeywords(message) : IvaGlobalKnowledge.extractKeywords(message)
             }, {
                 userId: user.id,
-                projectId: context.projectId, // Added project scope
+                projectId: context.projectId,
                 scope: scope,
                 department: user.department,
                 role: user.job_title
             }).catch(e => console.error('[IVA Learning] Error:', e));
+
+            // 2. CHECK FOR NAVIGATION HINT (The "Anti-Laziness" Fix)
+            // If user says "it is on X screen", we should go there immediately.
+            const screenMatch = message.match(/(?:na|em|ir para|vai para|acesse|tela de|tela|no|em) ([\wáàâãéèêíïóôõöúçñ\s]+)/i);
+
+            if (screenMatch && availableScreens) {
+                const hint = screenMatch[1].toLowerCase().trim();
+                // Try to find a matching screen in availableScreens
+                const targetScreen = availableScreens.find(s =>
+                    s.name?.toLowerCase().includes(hint) ||
+                    s.id?.toLowerCase().includes(hint) ||
+                    s.label?.toLowerCase().includes(hint)
+                );
+
+                if (targetScreen) {
+                    console.log(`[IVA Learning] 🚀 Navigation hint detected: "${hint}" -> Target: ${targetScreen.id}`);
+                    return res.json({
+                        intent: 'LEARNING_AND_NAVIGATE',
+                        action: 'NAVIGATE', // Chain navigation
+                        target: targetScreen.id, // Frontend uses 'target' or 'screen'
+                        screen: targetScreen.id,
+                        message: `Entendi! Registrei a regra e estou indo para a tela **${targetScreen.name || hint}** para verificar essa informação agora mesmo.`
+                    });
+                }
+            }
 
             return res.json({
                 intent: 'LEARNING',
