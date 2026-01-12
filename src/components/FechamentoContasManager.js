@@ -1017,7 +1017,18 @@ export const FechamentoContasManager = (project) => {
                     const columns = getColumnList();
                     const monthTotals = new Array(columns.length).fill(0);
 
-                    // 2. Prepare Data
+                    // 2. Prepare Data and Calculate Widths
+                    doc.setFontSize(8); // Set font size used in table to calc width correctly
+
+                    const safeLength = (str) => {
+                        return doc.getTextWidth(String(str || ''));
+                    };
+
+                    // Initial max widths based on headers
+                    let maxEmpresaWidth = safeLength('Empresa');
+                    let maxContaWidth = safeLength('Conta Bancária');
+                    const maxColWidths = columns.map(d => safeLength(formatDateHeader(d)));
+
                     // Headers
                     const head = [[
                         'Empresa',
@@ -1036,12 +1047,12 @@ export const FechamentoContasManager = (project) => {
                     });
 
                     Object.values(companyGroups).forEach((group, gIdx) => {
-                        // Company Row (or merged logic simulation)
-                        // In PDF list, we'll just list columns.
-                        // To verify "Merge": AutoTable supports rowSpan.
-
                         group.accounts.forEach((acc, aIdx) => {
                             const row = [];
+
+                            // Check max width for fixed cols
+                            if (acc.company_name) maxEmpresaWidth = Math.max(maxEmpresaWidth, safeLength(acc.company_name));
+                            if (acc.name) maxContaWidth = Math.max(maxContaWidth, safeLength(acc.name));
 
                             // Col 0: Empresa (Only first row of group)
                             if (aIdx === 0) {
@@ -1069,7 +1080,11 @@ export const FechamentoContasManager = (project) => {
                                 if (monthTotals[cIdx] === undefined) monthTotals[cIdx] = 0;
                                 monthTotals[cIdx] += currentBalance;
 
-                                row.push(formatCurrency(currentBalance));
+                                const valStr = formatCurrency(currentBalance);
+                                row.push({ content: valStr, styles: { halign: 'right' } });
+
+                                // Check max width for data col
+                                maxColWidths[cIdx] = Math.max(maxColWidths[cIdx], safeLength(valStr));
                             });
 
                             body.push(row);
@@ -1079,12 +1094,33 @@ export const FechamentoContasManager = (project) => {
                     // Total Row
                     const totalRow = [
                         { content: 'TOTAL', colSpan: 2, styles: { halign: 'center', fontStyle: 'bold', fillColor: [0, 66, 95], textColor: 255 } },
-                        ...monthTotals.map(val => ({
-                            content: formatCurrency(val),
-                            styles: { fontStyle: 'bold', textColor: val >= 0 ? [16, 185, 129] : [239, 68, 68] }
-                        }))
+                        ...monthTotals.map((val, idx) => {
+                            const valStr = formatCurrency(val);
+                            // check max width for total row too
+                            maxColWidths[idx] = Math.max(maxColWidths[idx], safeLength(valStr));
+
+                            return {
+                                content: valStr,
+                                styles: { fontStyle: 'bold', textColor: val >= 0 ? [16, 185, 129] : [239, 68, 68], halign: 'right' }
+                            };
+                        })
                     ];
                     body.push(totalRow);
+
+                    // Build columnStyles object dynamically
+                    const dynamicColStyles = {
+                        0: { cellWidth: maxEmpresaWidth * 1.25, fillColor: [0, 66, 95], textColor: 255 },
+                        1: { cellWidth: maxContaWidth * 1.25, fillColor: [0, 66, 95], textColor: 255 }
+                    };
+
+                    // Set data columns styles (width + right align)
+                    maxColWidths.forEach((w, idx) => {
+                        const colIndex = idx + 2; // Offset by 2 fixed columns
+                        dynamicColStyles[colIndex] = {
+                            cellWidth: w * 1.25 + 5, // 25% buffer + padding
+                            halign: 'right'
+                        };
+                    });
 
                     // 3. Generate Table
                     doc.autoTable({
@@ -1102,11 +1138,7 @@ export const FechamentoContasManager = (project) => {
                             halign: 'center',
                             valign: 'middle'
                         },
-                        columnStyles: {
-                            0: { cellWidth: 35, fillColor: [0, 66, 95], textColor: 255 }, // Empresa (Fixed look)
-                            1: { cellWidth: 40, fillColor: [0, 66, 95], textColor: 255 }, // Conta (Fixed look)
-                            // Rest auto
-                        },
+                        columnStyles: dynamicColStyles,
                         didParseCell: function (data) {
                             // Colorize negative numbers in data cells (cols > 1 and not total row's special cells)
                             if (data.section === 'body' && data.column.index > 1 && data.row.index < body.length - 1) {
