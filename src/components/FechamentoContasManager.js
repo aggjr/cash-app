@@ -410,8 +410,8 @@ export const FechamentoContasManager = (project) => {
         // --- TBODY ---
         const tbody = document.createElement('tbody');
 
-        // Totals array (one per month)
-        const monthTotals = new Array(months.length).fill(0);
+        // Totals array (one per month/day)
+        const monthTotals = new Array(columns.length).fill(0);
 
         // Group accounts by company for rowspan calculation
         const companyGroups = {};
