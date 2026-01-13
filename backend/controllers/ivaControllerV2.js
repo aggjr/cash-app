@@ -355,171 +355,142 @@ const operate = async (req, res) => {
         });
 
         // REMOVED: Hardcoded LEARNING intent detection - LLM handles this via function calling
-        /*
-        if (intent.type === 'LEARNING') {
-            console.log('[IVA Operate] 🎓 Learning intent detected, bypassing normal loop');
+        const targetScreen = availableScreens.find(s =>
+            s.name?.toLowerCase().includes(hint) ||
+            s.id?.toLowerCase().includes(hint) ||
+            s.label?.toLowerCase().includes(hint)
+        );
 
-            // Trigger learning in background
-            const IvaGlobalKnowledge = require('../services/IvaGlobalKnowledge');
-
-            // 1. Save rule first
-            const isPersonal = /(minha|meu|eu |gosto de|prefiro|sou|estou)/i.test(message);
-            const scope = isPersonal ? 'USER' : 'SYSTEM';
-
-            await IvaGlobalKnowledge.contribute('custom_rules', {
-                description: message.replace(/(iva|aprenda|guarde|memorize|grave|registre|ensinar|conhecimento|que|pergunta|original|:|"|')/gi, '').trim(),
-                keywords: IntentClassifier.extractKeywords ? IntentClassifier.extractKeywords(message) : IvaGlobalKnowledge.extractKeywords(message)
-            }, {
-                userId: user.id,
-                projectId: context.projectId,
-                scope: scope,
-                department: user.department,
-                role: user.job_title
-            }).catch(e => console.error('[IVA Learning] Error:', e));
-
-            // 2. CHECK FOR NAVIGATION HINT (The "Anti-Laziness" Fix)
-            // If user says "it is on X screen", we should go there immediately.
-            const screenMatch = message.match(/(?:na|em|ir para|vai para|acesse|tela de|tela|no|em) ([\wáàâãéèêíïóôõöúçñ\s]+)/i);
-
-            if (screenMatch && availableScreens) {
-                const hint = screenMatch[1].toLowerCase().trim();
-                // Try to find a matching screen in availableScreens
-                const targetScreen = availableScreens.find(s =>
-                    s.name?.toLowerCase().includes(hint) ||
-                    s.id?.toLowerCase().includes(hint) ||
-                    s.label?.toLowerCase().includes(hint)
-                );
-
-                if (targetScreen) {
-                    console.log(`[IVA Learning] 🚀 Navigation hint detected: "${hint}" -> Target: ${targetScreen.id}`);
-                    return res.json({
-                        intent: 'LEARNING_AND_NAVIGATE',
-                        action: 'NAVIGATE', // Chain navigation
-                        target: targetScreen.id, // Frontend uses 'target' or 'screen'
-                        screen: targetScreen.id,
-                        message: `Entendi! Registrei a regra e estou indo para a tela **${targetScreen.name || hint}** para verificar essa informação agora mesmo.`
-                    });
-                }
-            }
+        if (targetScreen) {
+            console.log(`[IVA Learning] 🚀 Navigation hint detected: "${hint}" -> Target: ${targetScreen.id}`);
+            return res.json({
+                intent: 'LEARNING_AND_NAVIGATE',
+                action: 'NAVIGATE', // Chain navigation
+                target: targetScreen.id, // Frontend uses 'target' or 'screen'
+                screen: targetScreen.id,
+                message: `Entendi! Registrei a regra e estou indo para a tela **${targetScreen.name || hint}** para verificar essa informação agora mesmo.`
+            });
+        }
+    }
 
             return res.json({
-                intent: 'LEARNING',
-                action: 'REPLY',
-                message: 'Entendido! Guardei esse novo conhecimento e vou usá-lo quando você me perguntar.'
-            });
+        intent: 'LEARNING',
+        action: 'REPLY',
+        message: 'Entendido! Guardei esse novo conhecimento e vou usá-lo quando você me perguntar.'
+    });
+}
+
+// ========================================
+// DYNAMIC KNOWLEDGE DISCOVERY
+// ========================================
+let discoveredKnowledge = null;
+
+/* TEMPORARILY DISABLED
+// Check hvis projeto j├í foi explorado
+const hasKnowledge = await IvaExplorationService.hasProjectKnowledge(context.projectId);
+
+if (!hasKnowledge) {
+    console.log(`[IVA] Primeira vez no projeto ${context.projectId}. Explorando...`);
+    discoveredKnowledge = await IvaExplorationService.exploreProject(context.projectId, userData.id);
+} else {
+    // Carregar conhecimento existente
+    discoveredKnowledge = await IvaExplorationService.loadProjectKnowledge(context.projectId);
+    console.log(`[IVA] Conhecimento carregado para projeto ${context.projectId}`);
+*/
+
+// ========================================
+// SCREEN CONTEXT: Fetch complete data based on filters
+// ========================================
+let screenData = null;
+let cachedScreens = [];
+
+if (context?.screenContext) {
+    console.log('[IVA Operate] Screen Context Received:', {
+        screenId: context.screenContext.screenId,
+        filters: context.screenContext.filters
+    });
+
+    try {
+        // Fetch complete data from DB with same filters
+        screenData = await IvaDataFetcher.fetchScreenData(
+            db,
+            context.screenContext.screenId,
+            context.screenContext.filters,
+            context.projectId
+        );
+
+        // Cache the data
+        if (screenData) {
+            IvaScreenCache.set(user.id, context.projectId, screenData.screenId, screenData);
+            console.log('[IVA Operate] Cached screen data:', screenData.screenId);
         }
 
-        // ========================================
-        // DYNAMIC KNOWLEDGE DISCOVERY
-        // ========================================
-        let discoveredKnowledge = null;
+        // Get most accessed screens for cross-analysis
+        cachedScreens = IvaScreenCache.getMostAccessed(user.id, context.projectId, 3);
+        console.log('[IVA Operate] Most accessed screens:', cachedScreens.map(s => s.screenId));
 
-        /* TEMPORARILY DISABLED
-        // Check hvis projeto j├í foi explorado
-        const hasKnowledge = await IvaExplorationService.hasProjectKnowledge(context.projectId);
+    } catch (error) {
+        console.error('[IVA Operate] Error fetching screen data:', error);
+        // Continue without screen data
+    }
+}
 
-        if (!hasKnowledge) {
-            console.log(`[IVA] Primeira vez no projeto ${context.projectId}. Explorando...`);
-            discoveredKnowledge = await IvaExplorationService.exploreProject(context.projectId, userData.id);
-        } else {
-            // Carregar conhecimento existente
-            discoveredKnowledge = await IvaExplorationService.loadProjectKnowledge(context.projectId);
-            console.log(`[IVA] Conhecimento carregado para projeto ${context.projectId}`);
-        */
+// Dynamic profile not needed - Qdrant provides all context
 
-        // ========================================
-        // SCREEN CONTEXT: Fetch complete data based on filters
-        // ========================================
-        let screenData = null;
-        let cachedScreens = [];
+// Update userData with Qdrant preferredName (override MySQL value)
+// Ensure userData is a plain object to avoid RowDataPacket issues
+const plainUserData = JSON.parse(JSON.stringify(userData));
 
-        if (context?.screenContext) {
-            console.log('[IVA Operate] Screen Context Received:', {
-                screenId: context.screenContext.screenId,
-                filters: context.screenContext.filters
-            });
+const userDataWithQdrant = {
+    ...plainUserData,
+    preferred_name: finalPreferredName // From Qdrant or MySQL fallback
+};
 
-            try {
-                // Fetch complete data from DB with same filters
-                screenData = await IvaDataFetcher.fetchScreenData(
-                    db,
-                    context.screenContext.screenId,
-                    context.screenContext.filters,
-                    context.projectId
-                );
+console.log('[IVA Code Debug] userDataWithQdrant passed to builder:', JSON.stringify(userDataWithQdrant, null, 2));
+console.log('[IVA Code Debug] projectData passed to builder:', JSON.stringify(projectData, null, 2));
 
-                // Cache the data
-                if (screenData) {
-                    IvaScreenCache.set(user.id, context.projectId, screenData.screenId, screenData);
-                    console.log('[IVA Operate] Cached screen data:', screenData.screenId);
-                }
-
-                // Get most accessed screens for cross-analysis
-                cachedScreens = IvaScreenCache.getMostAccessed(user.id, context.projectId, 3);
-                console.log('[IVA Operate] Most accessed screens:', cachedScreens.map(s => s.screenId));
-
-            } catch (error) {
-                console.error('[IVA Operate] Error fetching screen data:', error);
-                // Continue without screen data
-            }
-        }
-
-        // Dynamic profile not needed - Qdrant provides all context
-
-        // Update userData with Qdrant preferredName (override MySQL value)
-        // Ensure userData is a plain object to avoid RowDataPacket issues
-        const plainUserData = JSON.parse(JSON.stringify(userData));
-
-        const userDataWithQdrant = {
-            ...plainUserData,
-            preferred_name: finalPreferredName // From Qdrant or MySQL fallback
-        };
-
-        console.log('[IVA Code Debug] userDataWithQdrant passed to builder:', JSON.stringify(userDataWithQdrant, null, 2));
-        console.log('[IVA Code Debug] projectData passed to builder:', JSON.stringify(projectData, null, 2));
-
-        // Use Qdrant-based context builder (simplified)
-        let systemPrompt = '';
-        try {
-            console.log('[IVA Perf] Starting Context Builder...');
-            const ctxStart = Date.now();
-            systemPrompt = await IvaContextBuilder.buildOperateContextWithQdrant(
-                userDataWithQdrant,
-                projectData,
-                screenData,
-                cachedScreens,
-                intent,
-                lastAccess,
-                conversationHistory,
-                isAutoGreeting
-            );
-            console.log(`[IVA Perf] Context Builder Complete (${Date.now() - ctxStart}ms)`);
-        } catch (ctxError) {
-            console.error('[IVA Code Critical] Context Builder Failed:', ctxError);
-            systemPrompt = 'Erro crítico ao construir contexto. Aja como assistente genérico.';
-        }
+// Use Qdrant-based context builder (simplified)
+let systemPrompt = '';
+try {
+    console.log('[IVA Perf] Starting Context Builder...');
+    const ctxStart = Date.now();
+    systemPrompt = await IvaContextBuilder.buildOperateContextWithQdrant(
+        userDataWithQdrant,
+        projectData,
+        screenData,
+        cachedScreens,
+        intent,
+        lastAccess,
+        conversationHistory,
+        isAutoGreeting
+    );
+    console.log(`[IVA Perf] Context Builder Complete (${Date.now() - ctxStart}ms)`);
+} catch (ctxError) {
+    console.error('[IVA Code Critical] Context Builder Failed:', ctxError);
+    systemPrompt = 'Erro crítico ao construir contexto. Aja como assistente genérico.';
+}
 
 
-        // Qdrant knowledge already injected in buildOperateContextWithQdrant
-        // ALL system prompts must define the base persona first
-        const globalPersona = ContextualPrompts.getGlobalIdentity(userData);
-        systemPrompt = globalPersona + "\n\n" + systemPrompt;
+// Qdrant knowledge already injected in buildOperateContextWithQdrant
+// ALL system prompts must define the base persona first
+const globalPersona = ContextualPrompts.getGlobalIdentity(userData);
+systemPrompt = globalPersona + "\n\n" + systemPrompt;
 
-        // No need to inject again here
+// No need to inject again here
 
 
 
 
-        // Determine Greeting Instruction based on frontend flag
-        const isFirstDailyGreeting = context?.isFirstDailyGreeting === true;
+// Determine Greeting Instruction based on frontend flag
+const isFirstDailyGreeting = context?.isFirstDailyGreeting === true;
 
-        // Generate prompt using the centralized config
-        const greetingContextPrompt = ContextualPrompts.greeting(userData, timeOfDay, isFirstDailyGreeting);
+// Generate prompt using the centralized config
+const greetingContextPrompt = ContextualPrompts.greeting(userData, timeOfDay, isFirstDailyGreeting);
 
-        const greetingInstruction = greetingContextPrompt;
+const greetingInstruction = greetingContextPrompt;
 
-        // ADD INTENT CLASSIFICATION INSTRUCTION
-        systemPrompt += `
+// ADD INTENT CLASSIFICATION INSTRUCTION
+systemPrompt += `
 
 CLASSIFICAÇÃO DE INTENÇÃO (OBRIGATÓRIO):
 Antes de retornar a ação, classifique a intenção do usuário:
@@ -594,326 +565,326 @@ Siga rigorosamente as INSTRUÇÕES DE FLUXO DE EXECUÇÃO E DESCOBERTA enviadas 
 `;
 
 
-        const history = conversationHistory || [];
-        const messages = [
-            { role: 'system', content: systemPrompt },
-            ...history.map(msg => ({
-                role: msg.sender === 'user' ? 'user' : 'assistant', // Map sender to role
-                content: msg.text
-            })),
-            { role: 'user', content: message }
-        ];
+const history = conversationHistory || [];
+const messages = [
+    { role: 'system', content: systemPrompt },
+    ...history.map(msg => ({
+        role: msg.sender === 'user' ? 'user' : 'assistant', // Map sender to role
+        content: msg.text
+    })),
+    { role: 'user', content: message }
+];
 
-        console.log('[IVA Backend] ========== LLM REQUEST ==========');
-        console.log('[IVA Backend] User message:', message);
-        console.log('[IVA Backend] Current screen:', context?.screenContext?.screenId || 'none');
-        console.log('[IVA Backend] History messages:', history.length);
-        console.log('[IVA Backend] System prompt length:', systemPrompt.length, 'chars');
-        console.log('[IVA Backend] Calling OpenAI...');
+console.log('[IVA Backend] ========== LLM REQUEST ==========');
+console.log('[IVA Backend] User message:', message);
+console.log('[IVA Backend] Current screen:', context?.screenContext?.screenId || 'none');
+console.log('[IVA Backend] History messages:', history.length);
+console.log('[IVA Backend] System prompt length:', systemPrompt.length, 'chars');
+console.log('[IVA Backend] Calling OpenAI...');
 
-        // Call LLM with 60-second timeout protection
-        const ivaFunctions = require('../config/iva-functions');
+// Call LLM with 60-second timeout protection
+const ivaFunctions = require('../config/iva-functions');
 
-        const completion = await Promise.race([
+const completion = await Promise.race([
 
-            openai.chat.completions.create({
-                model: "gpt-4o-mini",
-                messages: messages,
-                temperature: 0.3,
-                response_format: { type: "json_object" },
-                functions: ivaFunctions,
-                function_call: 'auto'
-            }),
-            new Promise((_, reject) =>
-                setTimeout(() => reject(new Error('OpenAI request timeout (120s)')), 120000)
-            )
-        ]);
+    openai.chat.completions.create({
+        model: "gpt-4o-mini",
+        messages: messages,
+        temperature: 0.3,
+        response_format: { type: "json_object" },
+        functions: ivaFunctions,
+        function_call: 'auto'
+    }),
+    new Promise((_, reject) =>
+        setTimeout(() => reject(new Error('OpenAI request timeout (120s)')), 120000)
+    )
+]);
 
-        // Handle function calls from LLM
-        const functionCall = completion.choices[0].message.function_call;
+// Handle function calls from LLM
+const functionCall = completion.choices[0].message.function_call;
 
-        console.log('[IVA Debug] LLM Finish Reason:', completion.choices[0].finish_reason);
-        console.log('[IVA Debug] LLM Function Call Object:', functionCall ? JSON.stringify(functionCall) : 'null');
+console.log('[IVA Debug] LLM Finish Reason:', completion.choices[0].finish_reason);
+console.log('[IVA Debug] LLM Function Call Object:', functionCall ? JSON.stringify(functionCall) : 'null');
 
-        if (functionCall) {
-            console.log('[IVA Function Call] LLM requested function:', functionCall.name);
-            console.log('[IVA Function Call] Arguments:', functionCall.arguments);
+if (functionCall) {
+    console.log('[IVA Function Call] LLM requested function:', functionCall.name);
+    console.log('[IVA Function Call] Arguments:', functionCall.arguments);
 
-            const IvaUserPreferences = require('../services/IvaUserPreferences');
+    const IvaUserPreferences = require('../services/IvaUserPreferences');
 
-            try {
-                const args = JSON.parse(functionCall.arguments);
+    try {
+        const args = JSON.parse(functionCall.arguments);
 
-                if (functionCall.name === 'save_preferred_name') {
-                    await IvaUserPreferences.setPreferredName(user.id, args.name);
-                    console.log(`[IVA Function Call] Γ£à Saved preferred name: "${args.name}"`);
-                }
-
-                if (functionCall.name === 'save_voice_settings') {
-                    await IvaUserPreferences.setVoiceSettings(user.id, args);
-                    console.log(`[IVA Function Call] Γ£à Saved voice settings:`, args);
-                }
-
-                if (functionCall.name === 'update_last_access') {
-                    await IvaUserPreferences.updateLastAccess(user.id);
-                    console.log(`[IVA Function Call] Γ£à Updated last access for user ${user.id}`);
-                }
-
-                if (functionCall.name === 'close_chat') {
-                    console.log(`[IVA Function Call] 🚪 Close chat requested by LLM`);
-                    req._ivaForceClose = true;
-                }
-
-                if (functionCall.name === 'contribute_knowledge') {
-                    const IvaGlobalKnowledge = require('../services/IvaGlobalKnowledge');
-
-                    // Map 'rules' alias to 'custom_rules' to prevent errors if LLM hallucinates
-                    let type = args.type;
-                    if (type === 'rules') type = 'custom_rules';
-
-                    // Prepare context for scoped knowledge
-                    const knowledgeContext = {
-                        userId: user.id,
-                        userName: user.name, // Added for Audit
-                        projectId: context.projectId, // Added project scope
-                        scope: args.scope || 'USER', // Default to safe scope
-                        department: user.department,
-                        role: user.job_title
-                    };
-
-                    await IvaGlobalKnowledge.contribute(type, args.data, knowledgeContext);
-                    console.log(`[IVA Function Call] ✅ Contributed new knowledge: ${type} (Scope: ${knowledgeContext.scope})`);
-                }
-            } catch (err) {
-                console.error('[IVA Function Call] Γ¥î Error executing function:', err.message);
-            }
+        if (functionCall.name === 'save_preferred_name') {
+            await IvaUserPreferences.setPreferredName(user.id, args.name);
+            console.log(`[IVA Function Call] Γ£à Saved preferred name: "${args.name}"`);
         }
 
-        const responseContent = completion.choices[0].message.content;
-
-        console.log('[IVA Backend] ========== LLM RESPONSE ==========');
-        console.log('[IVA Backend] Response length:', responseContent?.length, 'chars');
-        console.log('[IVA Backend] Raw response:', responseContent?.substring(0, 200) + '...');
-        console.log('[IVA Backend] Tokens used:', {
-            prompt: completion.usage?.prompt_tokens,
-            completion: completion.usage?.completion_tokens,
-            total: completion.usage?.total_tokens
-        });
-
-        // If LLM returned only function_call without content, handle based on context
-        if (!responseContent && functionCall) {
-            console.log('[IVA Backend] ⚠️ LLM returned only function_call:', functionCall.name);
-
-            // Check if this is a system action (silent mode)
-            const isSystemAction = req.body.systemAction === true;
-            const messageType = req.body.message || '';
-
-            // CRITICAL: AUTO_GREETING should NEVER be silent, even if systemAction=true
-            if (isSystemAction && messageType !== 'IVA_AUTO_GREETING') {
-                // System actions should not return messages to user
-                console.log('[IVA Backend] System action - no response needed');
-                return res.json({
-                    action: 'SILENT',
-                    systemAction: true,
-                    functionExecuted: functionCall.name
-                });
-            }
-
-            // REMOVED: IntentClassifier - LLM decides intent
-            // const IvaIntentClassifier = require('../utils/ivaIntentClassifier');
-            // const intent = IvaIntentClassifier.classify(message, conversationHistory);
-
-            let defaultMessage = 'Entendido!';
-            // REMOVED: intentType - not needed with LLM-First
-
-            let userUpdates = null;
-
-
-            // ========================================
-            // FUNCTION EXECUTION (No hardcoded messages)
-            // ========================================
-
-            if (functionCall.name === 'save_preferred_name') {
-                const args = JSON.parse(functionCall.arguments);
-                userUpdates = { preferred_name: args.name };
-                console.log('[IVA Backend] ✅ Saved preferred name:', args.name);
-                // LLM will generate confirmation message
-            }
-
-            else if (functionCall.name === 'contribute_knowledge') {
-                try {
-                    const args = JSON.parse(functionCall.arguments);
-                    console.log('[IVA Backend] Executing contribute_knowledge:', args);
-
-                    if (!user || !user.id) {
-                        console.error('[IVA Backend] Missing USER context');
-                        throw new Error('User context missing');
-                    }
-
-                    const safeContext = context || {};
-                    await IvaGlobalKnowledge.contribute('custom_rules', {
-                        description: args.description || args.rule || args.content || 'Regra indefinida',
-                        screen_id: args.screen_id || null
-                    }, {
-                        userId: user.id,
-                        userName: user.name,
-                        scope: args.scope || 'USER',
-                        projectId: safeContext.projectId
-                    });
-                    console.log('[IVA Backend] ✅ Knowledge contributed');
-                    // LLM will generate confirmation message
-                } catch (e) {
-                    console.error('[IVA Backend] ❌ Error contributing knowledge:', e);
-                    // LLM will handle error messaging
-                }
-            }
-
-            else if (functionCall.name === 'save_voice_settings') {
-                const args = JSON.parse(functionCall.arguments);
-                userUpdates = args;
-                console.log('[IVA Backend] ✅ Saved voice settings');
-                // LLM will generate confirmation message
-            }
-
-            // ========================================
-            // LLM-FIRST: No hardcoded responses
-            // ========================================
-            // LLM generates ALL messages via unified prompt
-            // We only track forceClose flag for close_chat function
-
-            if (functionCall.name === 'close_chat') {
-                req._ivaForceClose = true;
-                console.log('[IVA Backend] 🚪 LLM requested chat closure');
-            }
-
-            // Return LLM's message (no overrides)
-            const defaultAction = {
-                action: 'REPLY',
-                message: responseContent, // LLM's original message
-                // REMOVED: intent field - LLM decides this
-                forceClose: req._ivaForceClose || false,
-                userUpdates
-            };
-            return res.json(defaultAction);
+        if (functionCall.name === 'save_voice_settings') {
+            await IvaUserPreferences.setVoiceSettings(user.id, args);
+            console.log(`[IVA Function Call] Γ£à Saved voice settings:`, args);
         }
 
-        if (!responseContent) {
-            console.error('[IVA Backend] Γ¥î OpenAI returned empty response');
-            throw new Error('OpenAI returned empty response');
-        }
-
-        try {
-            let action = JSON.parse(responseContent);
-
-            // Inject forceClose if requested by function call
-            if (req._ivaForceClose) {
-                action.forceClose = true;
-            }
-
-            console.log('[IVA Backend] ========== PARSED ACTION ==========');
-            console.log('[IVA Backend] Action type:', action.action);
-            console.log('[IVA Backend] Intent:', action.intent || 'NOT CLASSIFIED');
-            console.log('[IVA Backend] Target:', action.target || action.screen || 'none');
-            console.log('[IVA Backend] Has message:', !!action.message);
-            console.log('[IVA Backend] =======================================');
-
-            // NORMALIZE LLM OUTPUT
-            // Handle { REPLY: "message" } format
-            if (!action.action && action.REPLY) {
-                action = { action: 'REPLY', message: action.REPLY };
-            }
-
-            // AUTO-UPDATE LAST ACCESS (Replacement for function call)
-            // We update it silently for every meaningful interaction
-            const IvaUserPreferences = require('../services/IvaUserPreferences');
+        if (functionCall.name === 'update_last_access') {
             await IvaUserPreferences.updateLastAccess(user.id);
-            // Handle { REPLY: "message" } format
-            if (!action.action && action.REPLY) {
-                action = { action: 'REPLY', message: action.REPLY };
-            }
-            // Handle { NAVIGATE: "screen" } format
-            else if (!action.action && action.NAVIGATE) {
-                action = { action: 'NAVIGATE', screen: action.NAVIGATE, target: action.NAVIGATE };
-            }
-            // Handle raw { action: "NAVIGATE", target: "screen" } vs { action: "NAVIGATE", screen: "screen" }
-            else if (action.action === 'NAVIGATE' && !action.screen && action.target) {
-                action.screen = action.target;
-            }
-
-            // Pass 'highlight' field if present (New Feature)
-            if (action.highlight) {
-                // Ensure target is preserved if this was a NAVIGATE action
-                if (action.action === 'NAVIGATE') {
-                    // It's already fine, frontend uses action object
-                }
-            }
-
-            // --- LEARNING FALLBACK (Critical Fix) ---
-            // If LLM says intent is LEARNING but didn't call the function, we do it manually
-            if (action.intent === 'LEARNING') {
-                console.log('[IVA Backend] 🧠 Learning Intent detected in JSON response (Fallback)');
-
-                const IvaGlobalKnowledge = require('../services/IvaGlobalKnowledge');
-                const IvaIntentClassifier = require('../utils/ivaIntentClassifier');
-
-                // Smart Scope Detection (same as line 378)
-                const isPersonal = /(minha|meu|eu |gosto de|prefiro|sou|estou)/i.test(message);
-                const scope = isPersonal ? 'USER' : 'SYSTEM';
-
-                // Prevent duplicates if function call already handled it
-                const alreadyHandled = !!functionCall && functionCall.name === 'contribute_knowledge';
-
-                if (!alreadyHandled) {
-                    try {
-                        const description = message.replace(/(iva|aprenda|guarde|memorize|grave|registre|ensinar|conhecimento|que|para|:|"|')/gi, '').trim();
-
-                        await IvaGlobalKnowledge.contribute('custom_rules', {
-                            description: description,
-                            keywords: IvaGlobalKnowledge.extractKeywords(description)
-                        }, {
-                            userId: user.id,
-                            userName: user.name, // Added for Audit
-                            scope: scope,
-                            department: user.department,
-                            role: user.job_title
-                        });
-                        console.log(`[IVA Fallback] ✅ Saved knowledge: "${description.substring(0, 30)}..." (Scope: ${scope})`);
-
-                        // Override response if specific message needed
-                        if (!action.message) {
-                            action.message = "Entendido! Guardei esse novo conhecimento e vou usá-lo quando você me perguntar.";
-                        }
-                    } catch (err) {
-                        console.error('[IVA Fallback] ❌ Error saving knowledge:', err);
-                    }
-                }
-            }
-
-
-            res.setHeader('Content-Type', 'application/json; charset=utf-8');
-            res.json(action);
-        } catch (e) {
-            console.error('Failed to parse IVA operate JSON:', e);
-            res.status(500).json({
-                error: 'Falha ao processar comando',
-                raw: responseContent
-            });
+            console.log(`[IVA Function Call] Γ£à Updated last access for user ${user.id}`);
         }
 
-    } catch (error) {
-        console.error('[IVA Operate Error] ❌❌❌ CRITICAL ERROR ❌❌❌');
-        console.error('[IVA Operate Error] Error type:', error.constructor.name);
-        console.error('[IVA Operate Error] Error message:', error.message);
-        console.error('[IVA Operate Error] Stack trace:', error.stack);
-        console.error('[IVA Operate Error] Request body keys:', Object.keys(req.body));
+        if (functionCall.name === 'close_chat') {
+            console.log(`[IVA Function Call] 🚪 Close chat requested by LLM`);
+            req._ivaForceClose = true;
+        }
 
-        // Return JSON error instead of letting it crash
-        return res.status(500).json({
-            error: 'Erro interno ao processar comando',
-            details: error.message,
-            type: error.constructor.name
+        if (functionCall.name === 'contribute_knowledge') {
+            const IvaGlobalKnowledge = require('../services/IvaGlobalKnowledge');
+
+            // Map 'rules' alias to 'custom_rules' to prevent errors if LLM hallucinates
+            let type = args.type;
+            if (type === 'rules') type = 'custom_rules';
+
+            // Prepare context for scoped knowledge
+            const knowledgeContext = {
+                userId: user.id,
+                userName: user.name, // Added for Audit
+                projectId: context.projectId, // Added project scope
+                scope: args.scope || 'USER', // Default to safe scope
+                department: user.department,
+                role: user.job_title
+            };
+
+            await IvaGlobalKnowledge.contribute(type, args.data, knowledgeContext);
+            console.log(`[IVA Function Call] ✅ Contributed new knowledge: ${type} (Scope: ${knowledgeContext.scope})`);
+        }
+    } catch (err) {
+        console.error('[IVA Function Call] Γ¥î Error executing function:', err.message);
+    }
+}
+
+const responseContent = completion.choices[0].message.content;
+
+console.log('[IVA Backend] ========== LLM RESPONSE ==========');
+console.log('[IVA Backend] Response length:', responseContent?.length, 'chars');
+console.log('[IVA Backend] Raw response:', responseContent?.substring(0, 200) + '...');
+console.log('[IVA Backend] Tokens used:', {
+    prompt: completion.usage?.prompt_tokens,
+    completion: completion.usage?.completion_tokens,
+    total: completion.usage?.total_tokens
+});
+
+// If LLM returned only function_call without content, handle based on context
+if (!responseContent && functionCall) {
+    console.log('[IVA Backend] ⚠️ LLM returned only function_call:', functionCall.name);
+
+    // Check if this is a system action (silent mode)
+    const isSystemAction = req.body.systemAction === true;
+    const messageType = req.body.message || '';
+
+    // CRITICAL: AUTO_GREETING should NEVER be silent, even if systemAction=true
+    if (isSystemAction && messageType !== 'IVA_AUTO_GREETING') {
+        // System actions should not return messages to user
+        console.log('[IVA Backend] System action - no response needed');
+        return res.json({
+            action: 'SILENT',
+            systemAction: true,
+            functionExecuted: functionCall.name
         });
     }
+
+    // REMOVED: IntentClassifier - LLM decides intent
+    // const IvaIntentClassifier = require('../utils/ivaIntentClassifier');
+    // const intent = IvaIntentClassifier.classify(message, conversationHistory);
+
+    let defaultMessage = 'Entendido!';
+    // REMOVED: intentType - not needed with LLM-First
+
+    let userUpdates = null;
+
+
+    // ========================================
+    // FUNCTION EXECUTION (No hardcoded messages)
+    // ========================================
+
+    if (functionCall.name === 'save_preferred_name') {
+        const args = JSON.parse(functionCall.arguments);
+        userUpdates = { preferred_name: args.name };
+        console.log('[IVA Backend] ✅ Saved preferred name:', args.name);
+        // LLM will generate confirmation message
+    }
+
+    else if (functionCall.name === 'contribute_knowledge') {
+        try {
+            const args = JSON.parse(functionCall.arguments);
+            console.log('[IVA Backend] Executing contribute_knowledge:', args);
+
+            if (!user || !user.id) {
+                console.error('[IVA Backend] Missing USER context');
+                throw new Error('User context missing');
+            }
+
+            const safeContext = context || {};
+            await IvaGlobalKnowledge.contribute('custom_rules', {
+                description: args.description || args.rule || args.content || 'Regra indefinida',
+                screen_id: args.screen_id || null
+            }, {
+                userId: user.id,
+                userName: user.name,
+                scope: args.scope || 'USER',
+                projectId: safeContext.projectId
+            });
+            console.log('[IVA Backend] ✅ Knowledge contributed');
+            // LLM will generate confirmation message
+        } catch (e) {
+            console.error('[IVA Backend] ❌ Error contributing knowledge:', e);
+            // LLM will handle error messaging
+        }
+    }
+
+    else if (functionCall.name === 'save_voice_settings') {
+        const args = JSON.parse(functionCall.arguments);
+        userUpdates = args;
+        console.log('[IVA Backend] ✅ Saved voice settings');
+        // LLM will generate confirmation message
+    }
+
+    // ========================================
+    // LLM-FIRST: No hardcoded responses
+    // ========================================
+    // LLM generates ALL messages via unified prompt
+    // We only track forceClose flag for close_chat function
+
+    if (functionCall.name === 'close_chat') {
+        req._ivaForceClose = true;
+        console.log('[IVA Backend] 🚪 LLM requested chat closure');
+    }
+
+    // Return LLM's message (no overrides)
+    const defaultAction = {
+        action: 'REPLY',
+        message: responseContent, // LLM's original message
+        // REMOVED: intent field - LLM decides this
+        forceClose: req._ivaForceClose || false,
+        userUpdates
+    };
+    return res.json(defaultAction);
+}
+
+if (!responseContent) {
+    console.error('[IVA Backend] Γ¥î OpenAI returned empty response');
+    throw new Error('OpenAI returned empty response');
+}
+
+try {
+    let action = JSON.parse(responseContent);
+
+    // Inject forceClose if requested by function call
+    if (req._ivaForceClose) {
+        action.forceClose = true;
+    }
+
+    console.log('[IVA Backend] ========== PARSED ACTION ==========');
+    console.log('[IVA Backend] Action type:', action.action);
+    console.log('[IVA Backend] Intent:', action.intent || 'NOT CLASSIFIED');
+    console.log('[IVA Backend] Target:', action.target || action.screen || 'none');
+    console.log('[IVA Backend] Has message:', !!action.message);
+    console.log('[IVA Backend] =======================================');
+
+    // NORMALIZE LLM OUTPUT
+    // Handle { REPLY: "message" } format
+    if (!action.action && action.REPLY) {
+        action = { action: 'REPLY', message: action.REPLY };
+    }
+
+    // AUTO-UPDATE LAST ACCESS (Replacement for function call)
+    // We update it silently for every meaningful interaction
+    const IvaUserPreferences = require('../services/IvaUserPreferences');
+    await IvaUserPreferences.updateLastAccess(user.id);
+    // Handle { REPLY: "message" } format
+    if (!action.action && action.REPLY) {
+        action = { action: 'REPLY', message: action.REPLY };
+    }
+    // Handle { NAVIGATE: "screen" } format
+    else if (!action.action && action.NAVIGATE) {
+        action = { action: 'NAVIGATE', screen: action.NAVIGATE, target: action.NAVIGATE };
+    }
+    // Handle raw { action: "NAVIGATE", target: "screen" } vs { action: "NAVIGATE", screen: "screen" }
+    else if (action.action === 'NAVIGATE' && !action.screen && action.target) {
+        action.screen = action.target;
+    }
+
+    // Pass 'highlight' field if present (New Feature)
+    if (action.highlight) {
+        // Ensure target is preserved if this was a NAVIGATE action
+        if (action.action === 'NAVIGATE') {
+            // It's already fine, frontend uses action object
+        }
+    }
+
+    // --- LEARNING FALLBACK (Critical Fix) ---
+    // If LLM says intent is LEARNING but didn't call the function, we do it manually
+    if (action.intent === 'LEARNING') {
+        console.log('[IVA Backend] 🧠 Learning Intent detected in JSON response (Fallback)');
+
+        const IvaGlobalKnowledge = require('../services/IvaGlobalKnowledge');
+        const IvaIntentClassifier = require('../utils/ivaIntentClassifier');
+
+        // Smart Scope Detection (same as line 378)
+        const isPersonal = /(minha|meu|eu |gosto de|prefiro|sou|estou)/i.test(message);
+        const scope = isPersonal ? 'USER' : 'SYSTEM';
+
+        // Prevent duplicates if function call already handled it
+        const alreadyHandled = !!functionCall && functionCall.name === 'contribute_knowledge';
+
+        if (!alreadyHandled) {
+            try {
+                const description = message.replace(/(iva|aprenda|guarde|memorize|grave|registre|ensinar|conhecimento|que|para|:|"|')/gi, '').trim();
+
+                await IvaGlobalKnowledge.contribute('custom_rules', {
+                    description: description,
+                    keywords: IvaGlobalKnowledge.extractKeywords(description)
+                }, {
+                    userId: user.id,
+                    userName: user.name, // Added for Audit
+                    scope: scope,
+                    department: user.department,
+                    role: user.job_title
+                });
+                console.log(`[IVA Fallback] ✅ Saved knowledge: "${description.substring(0, 30)}..." (Scope: ${scope})`);
+
+                // Override response if specific message needed
+                if (!action.message) {
+                    action.message = "Entendido! Guardei esse novo conhecimento e vou usá-lo quando você me perguntar.";
+                }
+            } catch (err) {
+                console.error('[IVA Fallback] ❌ Error saving knowledge:', err);
+            }
+        }
+    }
+
+
+    res.setHeader('Content-Type', 'application/json; charset=utf-8');
+    res.json(action);
+} catch (e) {
+    console.error('Failed to parse IVA operate JSON:', e);
+    res.status(500).json({
+        error: 'Falha ao processar comando',
+        raw: responseContent
+    });
+}
+
+    } catch (error) {
+    console.error('[IVA Operate Error] ❌❌❌ CRITICAL ERROR ❌❌❌');
+    console.error('[IVA Operate Error] Error type:', error.constructor.name);
+    console.error('[IVA Operate Error] Error message:', error.message);
+    console.error('[IVA Operate Error] Stack trace:', error.stack);
+    console.error('[IVA Operate Error] Request body keys:', Object.keys(req.body));
+
+    // Return JSON error instead of letting it crash
+    return res.status(500).json({
+        error: 'Erro interno ao processar comando',
+        details: error.message,
+        type: error.constructor.name
+    });
+}
 };
 
 
