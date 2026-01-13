@@ -862,9 +862,49 @@ export const FechamentoContasManager = (project) => {
         const col1Width = Math.ceil(maxEmpresaPx * 1.2 + 40);
         const col2Width = Math.ceil(maxContaPx * 1.2 + 40);
 
+        // Calculate Month Column Widths (Dynamic based on content)
+        const monthColWidths = new Array(columns.length).fill(0);
+
+        // Initialize with header widths
+        columns.forEach((d, idx) => {
+            const headerText = formatDateHeader(d);
+            monthColWidths[idx] = measureTextWidth(headerText, '0.85rem', '700'); // Bold header
+        });
+
+        // Check data values for max width
+        accounts.forEach(acc => {
+            let currentBalance = initialBalances[acc.id] || 0;
+            columns.forEach((colDate, colIndex) => {
+                let key = '';
+                if (viewMode === 'monthly') {
+                    key = `${colDate.getFullYear()}-${(colDate.getMonth() + 1).toString().padStart(2, '0')}`;
+                } else {
+                    const d = colDate.getDate().toString().padStart(2, '0');
+                    const m = (colDate.getMonth() + 1).toString().padStart(2, '0');
+                    key = `${colDate.getFullYear()}-${m}-${d}`;
+                }
+                const delta = (movementsData[acc.id] && movementsData[acc.id][key]) ? movementsData[acc.id][key] : 0;
+                currentBalance += delta;
+
+                const formattedVal = formatCurrency(currentBalance);
+                const w = measureTextWidth(formattedVal, '0.85rem', '400'); // Normal weight
+                if (w > monthColWidths[colIndex]) monthColWidths[colIndex] = w;
+            });
+        });
+
+        // Apply 20% buffer + padding to month columns
+        monthColWidths.forEach((w, idx) => {
+            monthColWidths[idx] = Math.ceil(w * 1.2 + 32); // 20% + padding
+        });
+
         // Define generic CSS vars for the table to use
         table.style.setProperty('--col1-width', `${col1Width}px`);
         table.style.setProperty('--col2-width', `${col2Width}px`);
+
+        // Set month column widths as CSS variables
+        monthColWidths.forEach((w, idx) => {
+            table.style.setProperty(`--month-col-${idx}-width`, `${w}px`);
+        });
 
         // --- THEAD ---
         const thead = document.createElement('thead');
@@ -931,15 +971,16 @@ export const FechamentoContasManager = (project) => {
 
         headerRow.appendChild(thFixed);
 
-        // ... (Month columns loop) ...
+        // Month columns with DYNAMIC widths
         columns.forEach((d, index) => {
-            // ... existing code ...
             const th = document.createElement('th');
             th.textContent = formatDateHeader(d);
             th.style.padding = 'var(--row-padding)';
             th.style.textAlign = 'right';
-            th.style.minWidth = '120px';
-            th.style.width = '120px';
+            // DYNAMIC WIDTH based on content
+            th.style.minWidth = `var(--month-col-${index}-width)`;
+            th.style.width = `var(--month-col-${index}-width)`;
+            th.style.maxWidth = `var(--month-col-${index}-width)`;
             th.style.borderBottom = '1px solid #1e3a8a';
             th.style.whiteSpace = 'nowrap';
             headerRow.appendChild(th);
