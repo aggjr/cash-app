@@ -167,7 +167,7 @@ const chat = async (req, res, next) => {
 
         console.log('[IVA Chat] LLM Parameters:', { temperature, maxTokens, model: 'gpt-4o-mini' });
 
-        // Call OpenAI API with 60-second timeout
+        // Call OpenAI API with 120-second timeout (increased for large screen contexts)
         const response = await Promise.race([
             openai.chat.completions.create({
                 model: "gpt-4o-mini",
@@ -178,7 +178,7 @@ const chat = async (req, res, next) => {
                 frequency_penalty: 0.1
             }),
             new Promise((_, reject) =>
-                setTimeout(() => reject(new Error('OpenAI request timeout (60s)')), 60000)
+                setTimeout(() => reject(new Error('OpenAI request timeout (120s)')), 120000)
             )
         ]);
 
