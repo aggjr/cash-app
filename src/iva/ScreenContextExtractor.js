@@ -139,6 +139,34 @@ export const ScreenContextExtractor = {
     },
 
     /**
+     * Extract Action Buttons and Links
+     */
+    extractActionButtons() {
+        const actions = [];
+        // Select buttons, links looking like buttons, and clickable icons
+        const elements = document.querySelectorAll('button, a.btn, .clickable, input[type="button"], input[type="submit"]');
+
+        elements.forEach((el, index) => {
+            // Ignore hidden elements
+            if (el.offsetParent === null) return;
+
+            const label = el.textContent?.trim() || el.getAttribute('title') || el.getAttribute('aria-label') || 'Botão sem rótulo';
+            const type = el.tagName.toLowerCase();
+
+            // Avoid adding pure navigation links unless they look like actions
+            actions.push({
+                index,
+                label,
+                type,
+                id: el.id || null,
+                class: el.className || null
+            });
+        });
+
+        return actions.length > 0 ? actions.slice(0, 20) : null; // Limit to 20 main actions
+    },
+
+    /**
      * Extract all context from current screen
      */
     extractFullContext() {
