@@ -281,7 +281,11 @@ export const PrevisaoFluxoManager = (project) => {
                         // User Request: "símbolo que era um triangulo com uma exclamação dentro... antes do número"
                         const icon = isOverdue ? '<span style="font-size: 1em; color: #F59E0B; margin-right: 4px;" title="Item vencido (incluído no cálculo)">⚠</span>' : '';
 
-                        cellContent += `<span style="color: ${color}; font-weight: 600; font-size: ${fontSize};">${icon}${formatCurrency(normalVal)}</span>`;
+                        // If overdue, force Gray/Italic style for the text, but keep the value active
+                        const finalColor = isOverdue ? '#9CA3AF' : color; // Gray if overdue
+                        const fontStyle = isOverdue ? 'italic' : 'normal';
+
+                        cellContent += `<span style="color: ${finalColor}; font-weight: 600; font-size: ${fontSize}; font-style: ${fontStyle};">${icon}${formatCurrency(normalVal)}</span>`;
                     }
 
                     // Render delayed value (normal colors + warning icon ⚠)
