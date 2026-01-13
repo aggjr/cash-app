@@ -152,10 +152,20 @@ const operate = async (req, res) => {
 
         // 6. Parse and return action
         const responseContent = completion.choices[0].message.content;
+
+        console.log('[IVA Operate] LLM Response:', {
+            hasContent: !!responseContent,
+            contentLength: responseContent?.length,
+            contentPreview: responseContent?.substring(0, 200),
+            hasFunctionCall: !!functionCallInfo
+        });
+
         let action;
         try {
             action = JSON.parse(responseContent);
-        } catch {
+            console.log('[IVA Operate] Parsed JSON action:', action);
+        } catch (parseError) {
+            console.log('[IVA Operate] Not JSON, treating as text response');
             action = {
                 action: 'REPLY',
                 message: responseContent
@@ -167,6 +177,7 @@ const operate = async (req, res) => {
             action.functionCall = functionCallInfo;
         }
 
+        console.log('[IVA Operate] Final action:', action);
         res.json(action || { action: 'REPLY', message: 'Erro ao processar resposta' });
 
     } catch (error) {
