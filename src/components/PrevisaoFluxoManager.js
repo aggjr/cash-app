@@ -268,14 +268,19 @@ export const PrevisaoFluxoManager = (project) => {
                     // Calculate total to display (val includes delayedVal in backend)
                     // If there's a delayed value, we need to subtract it from val to avoid showing twice
                     const normalVal = val - delayedVal;
+                    const isOverdue = Math.abs(overdueVal) > 0.001;
 
-                    // Render normal value (green/red based on flow, NO warning icon)
+                    // Render normal value (green/red based on flow)
+                    // NOW INCLUDES OVERDUE VALUES (as requested)
                     if (Math.abs(normalVal) > 0.001) {
                         const color = isPositiveFlow
                             ? (normalVal >= 0 ? '#10B981' : '#EF4444')
-                            : (normalVal >= 0 ? '#EF4444' : '#10B981');
+                            : (normalVal >= 0 ? '#EF4444' : '#10B981'); // Inverted for negatives
 
-                        cellContent += `<span style="color: ${color}; font-weight: 600; font-size: ${fontSize};">${formatCurrency(normalVal)}</span>`;
+                        // Add Exclamation if overdue
+                        const icon = isOverdue ? ' <span style="font-size: 1.2em; color: #F59E0B;" title="Item vencido (incluído no cálculo)">!</span>' : '';
+
+                        cellContent += `<span style="color: ${color}; font-weight: 600; font-size: ${fontSize};">${formatCurrency(normalVal)}${icon}</span>`;
                     }
 
                     // Render delayed value (normal colors + warning icon ⚠)
@@ -287,16 +292,18 @@ export const PrevisaoFluxoManager = (project) => {
                         cellContent += `<span style="color: ${color}; font-weight: 600; font-size: ${fontSize};" title="Data prevista passou, mas adiado">⚠ ${formatCurrency(delayedVal)}</span>`;
                     }
 
-                    // Render overdue value (gray, italic, informational)
-                    if (Math.abs(overdueVal) > 0.001) {
-                        if (cellContent) cellContent += '<br>';
-                        cellContent += `<span style="color: #999; font-style: italic; font-size: ${fontSizeNum - 0.05}rem;" title="Não efetivado - apenas informativo">⚠ ${formatCurrency(overdueVal)}</span>`;
-                    }
+                    // Removed separate "Overdue" block (Gray/Italic) because it's now merged into normalVal
 
                     // Default to '-' if all are zero
                     if (!cellContent) cellContent = '-';
 
-                    dayCells += `<td style="padding: 0.35rem 0.5rem; text-align: right; border-bottom: 1px solid #f3f4f6; position: relative; z-index: 1;">${cellContent}</td>`;
+                    // Highlight Style for Overdue
+                    let cellStyle = `padding: 0.35rem 0.5rem; text-align: right; border-bottom: 1px solid #f3f4f6; position: relative; z-index: 1;`;
+                    if (isOverdue) {
+                        cellStyle += ` background-color: #E0F2FE;`; // Blue highlight
+                    }
+
+                    dayCells += `<td style="${cellStyle}">${cellContent}</td>`;
                 });
 
                 html += `

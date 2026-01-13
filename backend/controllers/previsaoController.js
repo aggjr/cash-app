@@ -313,14 +313,17 @@ exports.getDailyForecast = async (req, res, next) => {
                         if (!hasRealDate && isOriginalDatePassed) {
                             if (hasDelay) {
                                 // Delayed: original date passed but rescheduled to future
-                                // Show with normal colors + warning on the delayed date
                                 node.dailyDelayed[dateKey] = (node.dailyDelayed[dateKey] || 0) + val;
                                 node.dailyTotals[dateKey] = (node.dailyTotals[dateKey] || 0) + val;
                                 node.total += val;
                             } else {
-                                // Truly overdue: original date passed, no delay, no real date
-                                // Show gray/italic + warning, don't include in balance
+                                // Overdue: original date passed, no delay, no real date
+                                // CHANGED: Include in totals anyway (User Request)
+                                // Keep in dailyOverdue for UI flagging
                                 node.dailyOverdue[dateKey] = (node.dailyOverdue[dateKey] || 0) + val;
+                                // Also add to main totals so it counts for balance
+                                node.dailyTotals[dateKey] = (node.dailyTotals[dateKey] || 0) + val;
+                                node.total += val;
                             }
                         } else {
                             // Normal entry: either has real date or future predicted date
@@ -465,7 +468,10 @@ exports.getDailyForecast = async (req, res, next) => {
 
                     if (isOverdue) {
                         console.log(`[OVERDUE DETECTED] Table: ${table}, Original Predicted: ${originalPredictedDate}, Effective: ${dateKey}, Value: ${val}`);
+                        // CHANGED: Include in totals, flag as overdue
                         dailyOverdue[dateKey] = (dailyOverdue[dateKey] || 0) + val;
+                        dailyTotals[dateKey] = (dailyTotals[dateKey] || 0) + val;
+                        total += val;
                     } else {
                         dailyTotals[dateKey] = (dailyTotals[dateKey] || 0) + val;
                         total += val;
