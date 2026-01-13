@@ -93,15 +93,18 @@ const chat = async (req, res, next) => {
         // ========================================
         // INTENT CLASSIFICATION
         // ========================================
-        const intent = IntentClassifier.classify(message, conversationHistory || []);
-        console.log('[IVA Chat] Intent classified:', intent.type, '- Priority:', intent.priority);
+        // REMOVED: IntentClassifier - LLM decides intent
+        // const intent = IntentClassifier.classify(message, conversationHistory || []);
+        console.log('[IVA Chat] Using LLM-First - no hardcoded intent classification');
 
         // ========================================
         // LEARNING COMMAND DETECTION
         // ========================================
-        const learningCommand = LearningCommandClassifier.classify(message);
+        // REMOVED: LearningCommandClassifier - LLM decides when to learn
+        // const learningCommand = LearningCommandClassifier.classify(message);
 
-        if (learningCommand.type !== 'NONE') {
+        // REMOVED: Hardcoded learning detection - LLM handles this via function calling
+        if (false) { // Disabled hardcoded learning logic
             console.log('[IVA Learning] Command detected:', learningCommand.type);
 
             if (learningCommand.type === 'PREFERRED_NAME') {
