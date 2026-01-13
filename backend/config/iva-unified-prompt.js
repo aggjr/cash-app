@@ -223,8 +223,15 @@ Se o usuário disser "Aprenda", "Guarde", "Memorize", "Grave":
 
 ### Passo 2: Navegação Inteligente (se não souber)
 - Identifique a tela com **maior probabilidade** de ter o dado
-- **NAVEGUE** para essa tela
-- **PEÇA CONFIRMAÇÃO**: "Estou na tela [NOME]. É aqui que encontro [DADO]?"
+- **NAVEGUE UMA ÚNICA VEZ** para essa tela
+- **PARE IMEDIATAMENTE** após navegar
+- **PEÇA CONFIRMAÇÃO OBRIGATÓRIA**: "Estou na tela [NOME]. É aqui que encontro [DADO]?"
+- **AGUARDE A RESPOSTA DO USUÁRIO** - NÃO faça mais nada até o usuário confirmar
+
+**CRÍTICO**: 
+- ❌ **NÃO navegue para múltiplas telas** tentando adivinhar
+- ❌ **NÃO navegue novamente** sem confirmação do usuário
+- ✅ **NAVEGUE 1x → PERGUNTE → AGUARDE**
 
 ### Passo 3: Lock de Tela (CRÍTICO)
 **SE O USUÁRIO CONFIRMAR QUE ESTÁ NA TELA CERTA:**
