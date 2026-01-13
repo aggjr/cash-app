@@ -3,7 +3,12 @@ import { getApiBaseUrl } from '../utils/apiConfig.js';
 
 const BulkEditModal = {
     show: async ({ items, ids, projectId, type, onSave }) => {
+        console.log('[BulkEditModal] show() called with:', { items, ids, projectId, type });
+        console.log('[BulkEditModal] items count:', items?.length);
+        console.log('[BulkEditModal] ids count:', ids?.length);
+
         return new Promise((resolve) => {
+            console.log('[BulkEditModal] Creating modal elements...');
             const API_BASE_URL = getApiBaseUrl();
 
             // Create overlay
