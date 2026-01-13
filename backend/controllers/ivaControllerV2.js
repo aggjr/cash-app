@@ -252,6 +252,18 @@ const operate = async (req, res) => {
             preferred_name: user?.preferred_name
         }));
         console.log('[IVA Operate] Has activeScreenContext:', !!req.body.activeScreenContext);
+
+        // DEBUG: Screen Context Size
+        if (screenContext) {
+            const screenContextStr = JSON.stringify(screenContext);
+            console.log('[IVA Operate] 📊 screenContext size:', screenContextStr.length, 'chars');
+            console.log('[IVA Operate] 📊 screenContext.tables count:', screenContext.tables?.length || 0);
+            if (screenContext.tables && screenContext.tables.length > 0) {
+                screenContext.tables.forEach((table, idx) => {
+                    console.log(`[IVA Operate] 📊 Table ${idx}: ${table.rows?.length || 0} rows, ${table.headers?.length || 0} columns`);
+                });
+            }
+        }
         console.log('[IVA Operate] ====================================');
 
         if (!message || !message.trim()) {
