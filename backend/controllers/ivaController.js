@@ -200,6 +200,12 @@ const executeFunction = async (functionCall, user, context) => {
             );
             break;
 
+        case 'highlight_element':
+            // Frontend handles highlighting via IvaHighlight.js
+            // Just log for debugging
+            console.log(`[IVA Function] Highlight element: ${args.selector}`);
+            break;
+
         case 'close_chat':
             // Frontend handles this
             break;
