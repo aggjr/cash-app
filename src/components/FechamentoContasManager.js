@@ -1085,18 +1085,28 @@ export const FechamentoContasManager = (project) => {
         container.appendChild(wrapper);
 
         // --- Calculate and Set Dynamic Widths ---
-        setTimeout(() => {
-            // Measure actual rendered width of the Company column (first TH)
-            const thComp = table.querySelector('th:first-child');
-            if (thComp) {
-                // Get fractional width for precision
-                const rect = thComp.getBoundingClientRect();
-                // Add tiny buffer? User said "last letter". auto width is usually exact.
-                // We add 1px just to be safe from sub-pixel rendering.
-                const w = rect.width;
-                table.style.setProperty('--company-col-width', `${w}px`);
+        // --- Dynamic Width Observer ---
+        // Robustly handles font loading, rendering delays, and window resizing
+        const thComp = table.querySelector('th:first-child');
+        if (thComp) {
+            // Initial set
+            const initialRect = thComp.getBoundingClientRect();
+            if (initialRect.width > 0) {
+                table.style.setProperty('--company-col-width', `${initialRect.width}px`);
             }
-        }, 0);
+
+            // Observer for updates
+            const resizeObserver = new ResizeObserver(entries => {
+                for (let entry of entries) {
+                    // Use getBoundingClientRect for precise visual width (including borders/padding)
+                    const width = entry.target.getBoundingClientRect().width;
+                    if (width > 0) {
+                        table.style.setProperty('--company-col-width', `${width}px`);
+                    }
+                }
+            });
+            resizeObserver.observe(thComp);
+        }
     };
 
     // Load Data
