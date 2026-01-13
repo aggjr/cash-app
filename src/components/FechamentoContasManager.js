@@ -832,6 +832,40 @@ export const FechamentoContasManager = (project) => {
 
         const columns = getColumnList();
 
+        // --- Calculate Column Widths (Max Content + 20%) ---
+        // Helper to measure text width
+        const measureTextWidth = (text, fontSize = '0.85rem', fontWeight = '400') => {
+            const canvas = document.createElement('canvas'); // Create fresh to avoid context issues
+            const context = canvas.getContext('2d');
+            context.font = `${fontWeight} ${fontSize} Inter, system-ui, sans-serif`;
+            return context.measureText(text || '').width;
+        };
+
+        // 1. Calculate Max Widths
+        let maxEmpresaPx = measureTextWidth('Empresa', '0.85rem', '700'); // Header
+        let maxContaPx = measureTextWidth('Conta Bancária', '0.85rem', '700'); // Header
+
+        // Iterate data to find max content
+        accounts.forEach(acc => {
+            if (acc.company_name) {
+                const w = measureTextWidth(acc.company_name, '0.85rem', '600'); // Bold in body
+                if (w > maxEmpresaPx) maxEmpresaPx = w;
+            }
+            if (acc.name) {
+                const w = measureTextWidth(acc.name, '0.85rem', '500'); // Medium in body
+                if (w > maxContaPx) maxContaPx = w;
+            }
+        });
+
+        // Add 20% Buffer + Padding (32px approx for 1rem L+R)
+        // User Requirement: "largura igual ao texto mais longo + 20%"
+        const col1Width = Math.ceil(maxEmpresaPx * 1.2 + 40);
+        const col2Width = Math.ceil(maxContaPx * 1.2 + 40);
+
+        // Define generic CSS vars for the table to use
+        table.style.setProperty('--col1-width', `${col1Width}px`);
+        table.style.setProperty('--col2-width', `${col2Width}px`);
+
         // --- THEAD ---
         const thead = document.createElement('thead');
 
@@ -850,12 +884,16 @@ export const FechamentoContasManager = (project) => {
 
         thCompany.style.backgroundColor = '#00425F';
         thCompany.style.color = 'white';
+        thCompany.style.boxSizing = 'border-box';
         thCompany.style.padding = 'var(--header-padding)';
         thCompany.style.textAlign = 'left';
-        thCompany.style.boxSizing = 'border-box';
-        // Auto width, let browser calculate based on content
-        thCompany.style.width = 'auto';
+        // Fixed Width based on calculation
+        thCompany.style.width = 'var(--col1-width)';
+        thCompany.style.minWidth = 'var(--col1-width)';
+        thCompany.style.maxWidth = 'var(--col1-width)';
         thCompany.style.whiteSpace = 'nowrap';
+        thCompany.style.overflow = 'hidden';
+        thCompany.style.textOverflow = 'ellipsis';
         thCompany.style.borderBottom = '2px solid white';
         thCompany.style.borderRight = '2px solid white';
 
@@ -870,15 +908,16 @@ export const FechamentoContasManager = (project) => {
         const thFixed = document.createElement('th');
         thFixed.textContent = 'Conta Bancária';
         thFixed.style.position = 'sticky';
-        // Dynamic Left Offset
-        thFixed.style.left = 'var(--company-col-width, 200px)';
+        // Left offset is exactly Col 1 width
+        thFixed.style.left = 'var(--col1-width)';
         thFixed.style.setProperty('background-color', '#00425F', 'important');
         thFixed.style.color = 'white';
         thFixed.style.padding = 'var(--header-padding)';
         thFixed.style.textAlign = 'left';
-        thFixed.style.width = '200px';
-        thFixed.style.minWidth = '200px';
-        thFixed.style.maxWidth = '200px';
+        // Fixed Width based on calculation
+        thFixed.style.width = 'var(--col2-width)';
+        thFixed.style.minWidth = 'var(--col2-width)';
+        thFixed.style.maxWidth = 'var(--col2-width)';
         thFixed.style.whiteSpace = 'nowrap';
         thFixed.style.overflow = 'hidden';
         thFixed.style.textOverflow = 'ellipsis';
@@ -954,8 +993,12 @@ export const FechamentoContasManager = (project) => {
                     tdCompany.style.textAlign = 'left';
                     tdCompany.style.borderBottom = '2px solid white';
                     tdCompany.style.borderRight = '2px solid white';
-                    // Auto width logic
-                    tdCompany.style.width = 'auto';
+                    // Fixed Width
+                    tdCompany.style.width = 'var(--col1-width)';
+                    tdCompany.style.minWidth = 'var(--col1-width)';
+                    tdCompany.style.maxWidth = 'var(--col1-width)';
+                    tdCompany.style.overflow = 'hidden';
+                    tdCompany.style.textOverflow = 'ellipsis';
                     tdCompany.style.whiteSpace = 'nowrap';
                     tdCompany.style.verticalAlign = 'middle';
 
@@ -971,16 +1014,17 @@ export const FechamentoContasManager = (project) => {
                 const tdFixed = document.createElement('td');
                 tdFixed.textContent = acc.name;
                 tdFixed.style.position = 'sticky';
-                // Dynamic Left Offset
-                tdFixed.style.left = 'var(--company-col-width, 200px)';
+                // Left offset is exactly Col 1 Width
+                tdFixed.style.left = 'var(--col1-width)';
                 tdFixed.style.setProperty('background-color', '#00425F', 'important');
                 tdFixed.style.color = 'white';
                 tdFixed.style.fontWeight = '500';
                 tdFixed.style.padding = 'var(--header-padding)';
                 tdFixed.style.textAlign = 'left';
-                tdFixed.style.width = '200px';
-                tdFixed.style.minWidth = '200px';
-                tdFixed.style.maxWidth = '200px';
+                // Fixed Width
+                tdFixed.style.width = 'var(--col2-width)';
+                tdFixed.style.minWidth = 'var(--col2-width)';
+                tdFixed.style.maxWidth = 'var(--col2-width)';
                 tdFixed.style.overflow = 'hidden';
                 tdFixed.style.textOverflow = 'ellipsis';
                 tdFixed.style.borderBottom = '2px solid white';
@@ -1052,7 +1096,7 @@ export const FechamentoContasManager = (project) => {
         const tdTotalLabel = document.createElement('td');
         tdTotalLabel.textContent = 'TOTAL';
         tdTotalLabel.style.position = 'sticky';
-        tdTotalLabel.style.left = 'var(--company-col-width, 200px)'; // Dynamic
+        tdTotalLabel.style.left = 'var(--col1-width)'; // Fixed offset matching Col 1
         tdTotalLabel.style.setProperty('background-color', '#00425F', 'important');
         tdTotalLabel.style.color = 'white';
         tdTotalLabel.style.zIndex = '11';
@@ -1084,31 +1128,6 @@ export const FechamentoContasManager = (project) => {
         wrapper.appendChild(table);
         container.appendChild(wrapper);
 
-        // --- Calculate and Set Dynamic Widths ---
-        // --- Dynamic Width Observer ---
-        // Robustly handles font loading, rendering delays, and window resizing
-        const thComp = table.querySelector('th:first-child');
-        if (thComp) {
-            // Initial set
-            const initialRect = thComp.getBoundingClientRect();
-            if (initialRect.width > 0) {
-                table.style.setProperty('--company-col-width', `${initialRect.width}px`);
-            }
-
-            // Observer for updates
-            const resizeObserver = new ResizeObserver(entries => {
-                for (let entry of entries) {
-                    // Use getBoundingClientRect for precise visual width
-                    // User feedback: "calculation ... a little bit wrong" -> likely sub-pixel overlap.
-                    // Using Math.ceil ensures we cover the full pixel grid, avoiding overlaps.
-                    const width = entry.target.getBoundingClientRect().width;
-                    if (width > 0) {
-                        table.style.setProperty('--company-col-width', `${Math.ceil(width)}px`);
-                    }
-                }
-            });
-            resizeObserver.observe(thComp);
-        }
     };
 
     // Load Data
