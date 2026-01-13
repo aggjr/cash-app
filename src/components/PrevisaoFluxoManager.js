@@ -277,10 +277,11 @@ export const PrevisaoFluxoManager = (project) => {
                             ? (normalVal >= 0 ? '#10B981' : '#EF4444')
                             : (normalVal >= 0 ? '#EF4444' : '#10B981'); // Inverted for negatives
 
-                        // Add Exclamation if overdue
-                        const icon = isOverdue ? ' <span style="font-size: 1.2em; color: #F59E0B;" title="Item vencido (incluído no cálculo)">!</span>' : '';
+                        // Add Exclamation if overdue (Triangle with Exclamation)
+                        // User Request: "símbolo que era um triangulo com uma exclamação dentro... antes do número"
+                        const icon = isOverdue ? '<span style="font-size: 1em; color: #F59E0B; margin-right: 4px;" title="Item vencido (incluído no cálculo)">⚠</span>' : '';
 
-                        cellContent += `<span style="color: ${color}; font-weight: 600; font-size: ${fontSize};">${formatCurrency(normalVal)}${icon}</span>`;
+                        cellContent += `<span style="color: ${color}; font-weight: 600; font-size: ${fontSize};">${icon}${formatCurrency(normalVal)}</span>`;
                     }
 
                     // Render delayed value (normal colors + warning icon ⚠)
@@ -298,9 +299,10 @@ export const PrevisaoFluxoManager = (project) => {
                     if (!cellContent) cellContent = '-';
 
                     // Highlight Style for Overdue
+                    // User Request: "marque só as bordas da célula e com o azul padrão do sistema... azul bem mais forte"
                     let cellStyle = `padding: 0.35rem 0.5rem; text-align: right; border-bottom: 1px solid #f3f4f6; position: relative; z-index: 1;`;
                     if (isOverdue) {
-                        cellStyle += ` background-color: #E0F2FE;`; // Blue highlight
+                        cellStyle += ` box-shadow: inset 0 0 0 2px #00425F;`; // Strong blue border (inset)
                     }
 
                     dayCells += `<td style="${cellStyle}">${cellContent}</td>`;
