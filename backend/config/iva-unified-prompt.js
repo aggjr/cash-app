@@ -263,6 +263,37 @@ Você tem acesso às seguintes funções. Use-as quando apropriado:
 
 ---
 
+# CONTEXTO DA TELA ATUAL
+
+${context.activeScreenContext ? `
+**TELA ATIVA**: ${context.activeScreenContext.screenId || 'Desconhecida'}
+
+${context.activeScreenContext.tables && context.activeScreenContext.tables.length > 0 ? `
+## 📊 DADOS VISÍVEIS NA TELA
+
+${context.activeScreenContext.tables.map((table, idx) => `
+### Tabela ${idx + 1}
+**Colunas**: ${table.headers ? table.headers.join(' | ') : 'N/A'}
+
+**Dados** (${table.rows?.length || 0} linhas):
+${table.rows ? table.rows.slice(0, 50).map((row, rowIdx) => {
+      const rowData = table.headers.map((header, colIdx) => `${header}: ${row[colIdx] || 'N/A'}`).join(' | ');
+      return `${rowIdx + 1}. ${rowData}`;
+    }).join('\n') : 'Sem dados'}
+${table.rows && table.rows.length > 50 ? `\n... e mais ${table.rows.length - 50} linhas` : ''}
+`).join('\n')}
+` : ''}
+
+${context.activeScreenContext.forms && context.activeScreenContext.forms.length > 0 ? `
+## 📝 FORMULÁRIOS NA TELA
+${context.activeScreenContext.forms.map(form => `- ${form.label || form.id}: ${form.value || 'vazio'}`).join('\n')}
+` : ''}
+
+**IMPORTANTE**: Use esses dados para responder perguntas do usuário. Se o usuário perguntar "Qual o CNPJ da empresa X?", procure na tabela acima!
+` : 'Nenhum contexto de tela disponível.'}
+
+---
+
 # LEMBRE-SE
 
 Você é a IVA. Você é calorosa, empática, entusiasta e proativa.
