@@ -161,14 +161,29 @@ const operate = async (req, res) => {
         });
 
         let action;
-        try {
-            action = JSON.parse(responseContent);
-            console.log('[IVA Operate] Parsed JSON action:', action);
-        } catch (parseError) {
-            console.log('[IVA Operate] Not JSON, treating as text response');
+
+        // Handle case where function is called but no content returned
+        if (!responseContent && functionCallInfo) {
+            console.log('[IVA Operate] Function called without content');
             action = {
                 action: 'REPLY',
-                message: responseContent
+                message: getFunctionDefaultMessage(functionCallInfo)
+            };
+        } else if (responseContent) {
+            try {
+                action = JSON.parse(responseContent);
+                console.log('[IVA Operate] Parsed JSON action:', action);
+            } catch (parseError) {
+                console.log('[IVA Operate] Not JSON, treating as text response');
+                action = {
+                    action: 'REPLY',
+                    message: responseContent
+                };
+            }
+        } else {
+            action = {
+                action: 'REPLY',
+                message: 'Desculpe, não consegui processar sua solicitação.'
             };
         }
 
