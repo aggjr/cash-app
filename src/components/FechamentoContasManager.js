@@ -817,8 +817,9 @@ export const FechamentoContasManager = (project) => {
         const table = document.createElement('table');
         table.style.borderCollapse = 'separate'; // Important for sticky
         table.style.borderSpacing = '0';
-        table.style.width = '100%'; // Full width to respect fixed layout
-        table.style.tableLayout = 'fixed'; // STRICT LAYOUT
+        // REMOVED: width: 100% and table-layout: fixed
+        // Table will size based on column widths only (content + 20%)
+        table.style.tableLayout = 'auto'; // Auto layout respects column widths
         table.style.fontSize = '0.85rem'; // Global smaller font for table
 
         // Add global style for box-sizing in this table
