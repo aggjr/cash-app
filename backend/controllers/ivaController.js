@@ -242,6 +242,28 @@ const executeFunction = async (functionCall, user, context) => {
     }
 };
 
+/**
+ * Generate default message for function calls
+ */
+const getFunctionDefaultMessage = (functionCallInfo) => {
+    const { name, arguments: args } = functionCallInfo;
+
+    switch (name) {
+        case 'navigate':
+            return args.message || `Navegando para ${args.target}...`;
+        case 'highlight_element':
+            return args.message || 'Destacando elemento na tela...';
+        case 'contribute_knowledge':
+            return 'Entendido! Guardei essa informação.';
+        case 'save_preferred_name':
+            return `Perfeito! Vou te chamar de ${args.name}.`;
+        case 'save_voice_settings':
+            return 'Configurações de voz atualizadas!';
+        default:
+            return 'Ação executada com sucesso.';
+    }
+};
+
 module.exports = {
     chat,
     operate
