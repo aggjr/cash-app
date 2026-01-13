@@ -162,12 +162,12 @@ const operate = async (req, res) => {
             };
         }
 
-        // Include function call info for frontend
-        if (functionCallInfo) {
+        // Include function call info for frontend (only if action is valid)
+        if (action && functionCallInfo) {
             action.functionCall = functionCallInfo;
         }
 
-        res.json(action);
+        res.json(action || { action: 'REPLY', message: 'Erro ao processar resposta' });
 
     } catch (error) {
         console.error('[IVA Operate Error]', error);
