@@ -1682,149 +1682,13 @@ Digite 1, 2 ou 3.`;
             } 
             */
 
-            // Handle Tour Offer
-            if (pendingAction === 'tour_offer') {
-                const choice = text.trim();
+            // Handle Tour Offer - REMOVED: Handled by LLM
 
-                if (choice.includes('1') || /vis[aã]o|r[aá]pid[oa]|quick|curto|breve/i.test(text)) {
-                    // Overview tour
-                    addMessage('ai', 'Ótimo! Vou mostrar uma visão geral rápida. Iniciando...');
+            // Intercept Introduction Flow - REMOVED: Handled by LLM
 
-                    // Mark as introduced before tour
-                    await savePreferences({ IVAIntroduced: 1 });
+            // Command: Change Timeout - REMOVED: Handled by LLM
 
-                    // Import and start tour
-                    const { IvaTour } = await import('../iva/IvaTour.js');
-                    setTimeout(() => {
-                        IvaTour.start('overview');
-                    }, 2000);
-
-                    pendingAction = null;
-                    return;
-
-                } else if (choice.includes('2') || /complet[oa]|guiad[oa]|full|detalhad[oa]|inteiro|longo/i.test(text)) {
-                    // Full tour - LLM will handle gender-appropriate language
-                    addMessage('ai', 'Excelente escolha! Vou guiá-lo(a) por todo o sistema em detalhes. Vamos lá!');
-
-                    // Mark as introduced before tour
-                    await savePreferences({ IVAIntroduced: 1 });
-
-                    // Import and start tour
-                    const { IvaTour } = await import('../iva/IvaTour.js');
-                    setTimeout(() => {
-                        IvaTour.start('full');
-                    }, 2000);
-
-                    pendingAction = null;
-                    return;
-
-                } else if (choice.includes('3') || /pular|n[aã]o|sozinho|explorar|cancelar|sair/i.test(text)) {
-                    // Skip tour
-                    addMessage('ai', 'Sem problemas! Fique à vontade para explorar. Estarei aqui caso precise de ajuda!');
-
-                    // Mark as introduced
-                    await savePreferences({ IVAIntroduced: 1 });
-
-                    pendingAction = null;
-
-                    // Process pending loan if exists
-                    if (loanContext && loanResolver) {
-                        setTimeout(() => processPendingLoanCategorization(), 2000);
-                    }
-                    return;
-
-                } else {
-                    // Invalid choice
-                    addMessage('ai', 'Não entendi. Por favor, diga se prefere **Rápido**, **Completo** ou se quer **Pular** o tour.');
-                    return;
-                }
-            }
-
-            // Intercept Introduction Flow
-            if (pendingAction && pendingAction.startsWith('intro_')) {
-                if (pendingAction === 'intro_llm') {
-                    await handleIntroductionLLM(text);
-                } else {
-                    await handleIntroductionResponse(text);
-                }
-                return;
-            }
-
-            // Command: Change Timeout
-            const lowerText = text.toLowerCase();
-            if (lowerText.includes('mudar') && lowerText.includes('tempo') && (lowerText.includes('espera') || lowerText.includes('segundos'))) {
-                // Extract number
-                const match = text.match(/\d+/);
-                if (match) {
-                    const newSeconds = parseInt(match[0]);
-                    if (newSeconds >= 3 && newSeconds <= 60) {
-                        try {
-                            const res = await fetch(`${API_BASE_URL}/settings/IVA_timeout`, {
-                                method: 'PUT',
-                                headers: getHeaders(),
-                                body: JSON.stringify({ value: newSeconds })
-                            });
-                            if (res.ok) {
-                                IVATimeout = newSeconds * 1000;
-                                const msg = `Entendido. Alterei meu tempo de espera para **${newSeconds} segundos**.`;
-                                addMessage('ai', msg);
-                                speak(msg);
-                                return;
-                            }
-                        } catch (e) { console.error(e); }
-                    }
-                }
-                const msg = "Para alterar o tempo, diga algo como 'Mudar tempo de espera para 5 segundos'. (Mínimo 3s, Máximo 60s)";
-                addMessage('ai', msg);
-                speak(msg);
-                return;
-            }
-
-            // Intercept Loan Flows
-            if (pendingAction && pendingAction.startsWith('loan_')) {
-                if (pendingAction === 'loan_cat_confirm') {
-                    const lowerText = text.toLowerCase();
-                    let responseText = '';
-                    if (lowerText.includes('sim') || lowerText.includes('ok') || lowerText.includes('concordo')) {
-                        responseText = "Confirmado. Processando o contrato...";
-                        if (loanResolver) {
-                            loanResolver({
-                                feeCategoryId: loanContext.suggestions.fees.id,
-                                interestCategoryId: loanContext.suggestions.interest.id
-                            });
-                            loanResolver = null;
-                            pendingAction = null;
-                            setTimeout(() => { if (isOpen) toggleChat(); }, 2000);
-                        }
-                    } else {
-                        responseText = "Entendido. Qual categoria deseja usar para as **Tarifas**?";
-                        pendingAction = 'loan_cat_ask_fees';
-                    }
-                    addMessage('ai', responseText);
-                    speak(responseText);
-                } else if (pendingAction === 'loan_cat_ask_fees') {
-                    loanContext.customFeeName = text;
-                    const responseText = `Certo, **${text}**. E para os **Juros**?`;
-                    pendingAction = 'loan_cat_ask_interest';
-                    addMessage('ai', responseText);
-                    speak(responseText);
-                } else if (pendingAction === 'loan_cat_ask_interest') {
-                    loanContext.customInterestName = text;
-                    const responseText = "Registrado. Finalizando o contrato.";
-                    if (loanResolver) {
-                        loanResolver({
-                            feeCategoryId: loanContext.suggestions.fees.id,
-                            interestCategoryId: loanContext.suggestions.interest.id
-                        });
-                        loanResolver = null;
-                        pendingAction = null;
-                        setTimeout(() => { if (isOpen) toggleChat(); }, 2000);
-                    }
-                    addMessage('ai', responseText);
-                    speak(responseText);
-                }
-                return;
-            }
+            // Intercept Loan Flows - REMOVED: Handled by LLM
 
             // Old fallback chat logic removed - now handled by IvaService above
         }, 800);
@@ -2103,7 +1967,23 @@ Digite 1, 2 ou 3.`;
         console.log('[IVA Data Flow] Searched screens:', rankedScreens.length);
         console.log('[IVA Data Flow] No data found in any screen');
         console.log('[IVA Data Flow] ======================================');
-        addMessage('ai', 'Pesquisei em todas as telas relevantes mas não encontrei o que você precisa. Pode reformular a pergunta?');
+
+        // Report failure to Backend LLM so it can apologize in character
+        try {
+            const decision = await IvaService.decideOperation(
+                `SYSTEM_REPORT: Autonomy loop finished. Searched ${rankedScreens.length} screens but found NO data for query: "${userQuery}".
+                 TASK: Apologize to user and ask for clarification.`,
+                { menuStructure }
+            );
+
+            if (decision.action === 'REPLY') {
+                addMessage('ai', decision.message);
+                speak(decision.message);
+            }
+        } catch (e) {
+            addMessage('ai', 'Não encontrei a informação. Poderia ser mais específico?');
+        }
+
         loopState.active = false;
     };
 
@@ -2275,43 +2155,8 @@ Digite 1, 2 ou 3.`;
             if (actionDecision.action === 'NO_SUITABLE_ACTION') {
                 console.log(`[IVA Extract/Act] 🚫 LLM found no suitable action`);
 
-                // PHASE 4: Enter Conversational Learning Mode
-                if (!learningState.active) {
-                    console.log('[IVA Learning] 🧠 Entering conversational learning mode');
-
-                    learningState.active = true;
-                    learningState.step = 'DATA_LOCATION';
-                    learningState.context = {
-                        query: userQuery,
-                        screen: screenId,
-                        attemptedActions: discoveredActions.map(a => ({
-                            id: a.id,
-                            type: a.type,
-                            label: a.label
-                        }))
-                    };
-                    learningState.awaitingResponse = true;
-
-                    // Stop autonomous loop
-                    loopState.active = false;
-
-                    // Ask user for guidance
-                    // Ask user for guidance
-                    const question = `Estou na tela "${screenId}" procurando por "${userQuery}", mas não encontrei uma ação adequada.
-                    
-Você pode me ajudar? Onde exatamente está essa informação?
-
-Por exemplo:
-• "Na tabela, coluna X, linha Y"
-• "No card de resumo no topo"
-• "Precisa aplicar filtro primeiro"`;
-
-                    addMessage('ai', question);
-                    speak(question);
-
-                    return { success: false, reason: 'LEARNING_MODE_ACTIVATED' };
-                }
-
+                // REMOVED LEGACY CONVERSATIONAL LEARNING MODE
+                // If autonomous agent fails, it should just return the failure so the main LLM can apologize or ask freely.
                 return { success: false, reason: 'NO_SUITABLE_ACTION' };
             }
 
