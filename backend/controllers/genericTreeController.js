@@ -6,10 +6,11 @@ const ALLOWED_TABLES = ['tipo_entrada', 'tipo_saida', 'tipo_producao_revenda'];
 
 // Validate table name
 const validateTableName = (tableName) => {
-    if (!ALLOWED_TABLES.includes(tableName)) {
-        throw new Error('Invalid table name');
+    const normalized = tableName.replace(/-/g, '_');
+    if (!ALLOWED_TABLES.includes(normalized)) {
+        throw new Error(`Invalid table name: ${tableName}`);
     }
-    return tableName;
+    return normalized;
 };
 
 // Get all nodes from a table (filtered by project)

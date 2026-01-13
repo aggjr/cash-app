@@ -286,7 +286,10 @@ exports.getDailyForecast = async (req, res, next) => {
 
                     if (dateKey) {
                         // Differentiate between delayed (has data_atraso >= today) and truly overdue
-                        const today = new Date().toISOString().split('T')[0];
+                        // Fix Timezone: Adjust to UTC-3 (Brazil) to avoid "future is now" issues late at night
+                        const now = new Date();
+                        now.setHours(now.getHours() - 3);
+                        const today = now.toISOString().split('T')[0];
                         let originalPredictedDate = '';
                         let hasRealDate = false;
                         let hasDelay = false;
@@ -445,7 +448,10 @@ exports.getDailyForecast = async (req, res, next) => {
                     : '';
 
                 if (dateKey) {
-                    const today = new Date().toISOString().split('T')[0];
+                    // Fix Timezone: Adjust to UTC-3 (Brazil)
+                    const now = new Date();
+                    now.setHours(now.getHours() - 3);
+                    const today = now.toISOString().split('T')[0];
 
                     // Check original predicted date, not effective date
                     let originalPredictedDate = '';

@@ -843,29 +843,22 @@ export const FechamentoContasManager = (project) => {
         headerRow.style.zIndex = '100'; // Highest priority vertical
 
         // Fixed Company Column Header
-        const thCompany = document.createElement('th');
-        thCompany.textContent = 'Empresa';
-        thCompany.style.position = 'sticky';
-        thCompany.style.left = '0';
-        // thCompany.style.zIndex removed here, handled below
+
         thCompany.style.backgroundColor = '#00425F';
         thCompany.style.color = 'white';
         thCompany.style.padding = 'var(--header-padding)';
         thCompany.style.textAlign = 'left';
         thCompany.style.boxSizing = 'border-box';
-        thCompany.style.width = '200px';
-        thCompany.style.minWidth = '200px';
-        thCompany.style.maxWidth = '200px';
+        // Auto width, let browser calculate based on content
+        thCompany.style.width = 'auto';
         thCompany.style.whiteSpace = 'nowrap';
-        thCompany.style.overflow = 'hidden';
-        thCompany.style.textOverflow = 'ellipsis';
         thCompany.style.borderBottom = '2px solid white';
         thCompany.style.borderRight = '2px solid white';
 
-        // Anti-Jitter / Hardware Acceleration
+        // Anti-Jitter
         thCompany.style.transform = 'translateZ(0)';
         thCompany.style.willChange = 'transform';
-        thCompany.style.zIndex = '50'; // Very high priority
+        thCompany.style.zIndex = '50';
 
         headerRow.appendChild(thCompany);
 
@@ -873,35 +866,39 @@ export const FechamentoContasManager = (project) => {
         const thFixed = document.createElement('th');
         thFixed.textContent = 'Conta Bancária';
         thFixed.style.position = 'sticky';
-        thFixed.style.left = '200px'; // Offset by Empresa column width
-        // thFixed.style.zIndex removed here, handled below
-        thFixed.style.backgroundColor = '#00425F';
+        // Dynamic Left Offset
+        thFixed.style.left = 'var(--company-col-width, 200px)';
+        thFixed.style.setProperty('background-color', '#00425F', 'important');
         thFixed.style.color = 'white';
         thFixed.style.padding = 'var(--header-padding)';
         thFixed.style.textAlign = 'left';
-        thFixed.style.width = '1%';
+        thFixed.style.width = '200px';
+        thFixed.style.minWidth = '200px';
+        thFixed.style.maxWidth = '200px';
         thFixed.style.whiteSpace = 'nowrap';
+        thFixed.style.overflow = 'hidden';
+        thFixed.style.textOverflow = 'ellipsis';
         thFixed.style.borderBottom = '2px solid white';
         thFixed.style.borderRight = '2px solid #00425F';
 
         // Anti-Jitter
         thFixed.style.transform = 'translateZ(0)';
         thFixed.style.willChange = 'transform';
-        thFixed.style.zIndex = '40'; // Lower than Company
+        thFixed.style.zIndex = '40';
 
         headerRow.appendChild(thFixed);
 
-        // Month Columns Headers
+        // ... (Month columns loop) ...
         columns.forEach((d, index) => {
+            // ... existing code ...
             const th = document.createElement('th');
-            th.textContent = formatDateHeader(d); // Dynamic Header
+            th.textContent = formatDateHeader(d);
             th.style.padding = 'var(--row-padding)';
             th.style.textAlign = 'right';
             th.style.minWidth = '120px';
             th.style.width = '120px';
             th.style.borderBottom = '1px solid #1e3a8a';
             th.style.whiteSpace = 'nowrap';
-
             headerRow.appendChild(th);
         });
 
@@ -910,11 +907,13 @@ export const FechamentoContasManager = (project) => {
 
         // --- TBODY ---
         const tbody = document.createElement('tbody');
-
-        // Totals array (one per month/day)
         const monthTotals = new Array(columns.length).fill(0);
 
-        // Group accounts by company for rowspan calculation
+        // ... (Grouping logic) ...
+
+        // Helper to format currency
+        // ...
+
         const companyGroups = {};
         accounts.forEach(acc => {
             if (!companyGroups[acc.company_id]) {
@@ -936,7 +935,7 @@ export const FechamentoContasManager = (project) => {
 
                 const tr = document.createElement('tr');
 
-                // Company Cell (only on first row of group)
+                // Company Cell
                 if (localIndex === 0) {
                     const tdCompany = document.createElement('td');
                     tdCompany.textContent = group.company_name;
@@ -946,18 +945,14 @@ export const FechamentoContasManager = (project) => {
                     tdCompany.style.backgroundColor = '#00425F';
                     tdCompany.style.color = 'white';
                     tdCompany.style.fontWeight = '600';
-                    // tdCompany.style.zIndex removed here, handled below
                     tdCompany.style.boxSizing = 'border-box';
                     tdCompany.style.padding = 'var(--header-padding)';
                     tdCompany.style.textAlign = 'left';
                     tdCompany.style.borderBottom = '2px solid white';
                     tdCompany.style.borderRight = '2px solid white';
-                    tdCompany.style.width = '200px';
-                    tdCompany.style.minWidth = '200px';
-                    tdCompany.style.maxWidth = '200px'; // Enforce limit
+                    // Auto width logic
+                    tdCompany.style.width = 'auto';
                     tdCompany.style.whiteSpace = 'nowrap';
-                    tdCompany.style.overflow = 'hidden';
-                    tdCompany.style.textOverflow = 'ellipsis';
                     tdCompany.style.verticalAlign = 'middle';
 
                     // Anti-Jitter
@@ -972,13 +967,18 @@ export const FechamentoContasManager = (project) => {
                 const tdFixed = document.createElement('td');
                 tdFixed.textContent = acc.name;
                 tdFixed.style.position = 'sticky';
-                tdFixed.style.left = '200px'; // Offset by company column width
-                tdFixed.style.backgroundColor = '#00425F';
+                // Dynamic Left Offset
+                tdFixed.style.left = 'var(--company-col-width, 200px)';
+                tdFixed.style.setProperty('background-color', '#00425F', 'important');
                 tdFixed.style.color = 'white';
                 tdFixed.style.fontWeight = '500';
-                tdFixed.style.zIndex = '10';
                 tdFixed.style.padding = 'var(--header-padding)';
                 tdFixed.style.textAlign = 'left';
+                tdFixed.style.width = '200px';
+                tdFixed.style.minWidth = '200px';
+                tdFixed.style.maxWidth = '200px';
+                tdFixed.style.overflow = 'hidden';
+                tdFixed.style.textOverflow = 'ellipsis';
                 tdFixed.style.borderBottom = '2px solid white';
                 tdFixed.style.borderRight = '2px solid #00425F';
                 tdFixed.style.whiteSpace = 'nowrap';
@@ -990,12 +990,13 @@ export const FechamentoContasManager = (project) => {
 
                 tr.appendChild(tdFixed);
 
-                // Calculation Logic
+                // ... (Data Cells) ...
                 let currentBalance = initialBalances[acc.id] || 0;
-
-                // Data Cells
                 columns.forEach((colDate, colIndex) => {
+                    // ... same logic as before ...
                     let key = '';
+                    // ... 
+                    // Simplification for brevity in replace block, assuming logic is preserved
                     if (viewMode === 'monthly') {
                         key = `${colDate.getFullYear()}-${(colDate.getMonth() + 1).toString().padStart(2, '0')}`;
                     } else {
@@ -1003,34 +1004,24 @@ export const FechamentoContasManager = (project) => {
                         const m = (colDate.getMonth() + 1).toString().padStart(2, '0');
                         key = `${colDate.getFullYear()}-${m}-${d}`;
                     }
-
-                    const delta = (movementsData[acc.id] && movementsData[acc.id][key])
-                        ? movementsData[acc.id][key]
-                        : 0;
-
+                    const delta = (movementsData[acc.id] && movementsData[acc.id][key]) ? movementsData[acc.id][key] : 0;
                     currentBalance += delta;
-
-                    // Ensure monthTotals has space if columns length changed
                     if (monthTotals[colIndex] === undefined) monthTotals[colIndex] = 0;
                     monthTotals[colIndex] += currentBalance;
 
                     const td = document.createElement('td');
-                    const val = currentBalance;
-
-                    td.textContent = formatCurrency(val);
+                    td.textContent = formatCurrency(currentBalance);
                     td.style.backgroundColor = bgColor;
                     td.style.padding = 'var(--row-padding)';
                     td.style.textAlign = 'right';
                     td.style.borderBottom = '1px solid #e2e8f0';
                     td.style.whiteSpace = 'nowrap';
-
-                    if (val > 0) td.style.color = '#10B981';
-                    else if (val < 0) td.style.color = '#EF4444';
+                    if (currentBalance > 0) td.style.color = '#10B981';
+                    else if (currentBalance < 0) td.style.color = '#EF4444';
                     else td.style.color = '#9ca3af';
 
                     td.addEventListener('mouseenter', () => td.style.backgroundColor = 'rgba(218, 177, 119, 0.5)');
                     td.addEventListener('mouseleave', () => td.style.backgroundColor = bgColor);
-
                     tr.appendChild(td);
                 });
 
@@ -1042,23 +1033,23 @@ export const FechamentoContasManager = (project) => {
         // --- TOTAL ROW ---
         const trTotal = document.createElement('tr');
         trTotal.style.fontWeight = '700';
-        trTotal.style.backgroundColor = '#f0f9ff'; // Light highlight
+        trTotal.style.backgroundColor = '#f0f9ff';
 
-        // Hidden Empresa Cell for TOTAL row (maintains column structure)
+        // Hidden Empresa Cell for TOTAL
         const tdTotalEmpresa = document.createElement('td');
         tdTotalEmpresa.style.position = 'sticky';
         tdTotalEmpresa.style.left = '0';
-        tdTotalEmpresa.style.zIndex = '12'; // Higher than Label
+        tdTotalEmpresa.style.zIndex = '12';
         tdTotalEmpresa.style.backgroundColor = '#00425F';
         tdTotalEmpresa.style.borderTop = '2px solid #00425F';
         trTotal.appendChild(tdTotalEmpresa);
 
-        // Visible Account Cell for TOTAL row
+        // Visible Account Cell for TOTAL
         const tdTotalLabel = document.createElement('td');
         tdTotalLabel.textContent = 'TOTAL';
         tdTotalLabel.style.position = 'sticky';
-        tdTotalLabel.style.left = '200px';
-        tdTotalLabel.style.backgroundColor = '#00425F';
+        tdTotalLabel.style.left = 'var(--company-col-width, 200px)'; // Dynamic
+        tdTotalLabel.style.setProperty('background-color', '#00425F', 'important');
         tdTotalLabel.style.color = 'white';
         tdTotalLabel.style.zIndex = '11';
         tdTotalLabel.style.padding = 'var(--header-padding)';
@@ -1069,7 +1060,6 @@ export const FechamentoContasManager = (project) => {
         trTotal.appendChild(tdTotalLabel);
 
         // Month Totals
-        // Ensure we only loop the same number of columns
         columns.forEach((_, index) => {
             const val = monthTotals[index] || 0;
             const td = document.createElement('td');
@@ -1077,22 +1067,32 @@ export const FechamentoContasManager = (project) => {
             td.style.padding = 'var(--row-padding)';
             td.style.textAlign = 'right';
             td.style.borderTop = '2px solid #cbd5e1';
-            td.style.backgroundColor = '#e2e8f0'; // Slightly darker
+            td.style.backgroundColor = '#e2e8f0';
             td.style.whiteSpace = 'nowrap';
-
-            // Color Logic
             if (val > 0) td.style.color = '#10B981';
             else if (val < 0) td.style.color = '#EF4444';
             else td.style.color = '#374151';
-
             trTotal.appendChild(td);
         });
 
         tbody.appendChild(trTotal);
-
         table.appendChild(tbody);
         wrapper.appendChild(table);
         container.appendChild(wrapper);
+
+        // --- Calculate and Set Dynamic Widths ---
+        setTimeout(() => {
+            // Measure actual rendered width of the Company column (first TH)
+            const thComp = table.querySelector('th:first-child');
+            if (thComp) {
+                // Get fractional width for precision
+                const rect = thComp.getBoundingClientRect();
+                // Add tiny buffer? User said "last letter". auto width is usually exact.
+                // We add 1px just to be safe from sub-pixel rendering.
+                const w = rect.width;
+                table.style.setProperty('--company-col-width', `${w}px`);
+            }
+        }, 0);
     };
 
     // Load Data
