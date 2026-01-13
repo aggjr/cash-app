@@ -354,8 +354,10 @@ const operate = async (req, res) => {
             userId: user.id
         });
 
+        // REMOVED: Hardcoded LEARNING intent detection - LLM handles this via function calling
+        /*
         if (intent.type === 'LEARNING') {
-            console.log('[IVA Operate] ≡ƒºá Learning intent detected, bypassing normal loop');
+            console.log('[IVA Operate] 🎓 Learning intent detected, bypassing normal loop');
 
             // Trigger learning in background
             const IvaGlobalKnowledge = require('../services/IvaGlobalKnowledge');
@@ -717,13 +719,12 @@ Siga rigorosamente as INSTRUÇÕES DE FLUXO DE EXECUÇÃO E DESCOBERTA enviadas 
                 });
             }
 
-            // User-initiated actions should get appropriate response based on intent
-            // Import classifier to determine proper intent
-            const IvaIntentClassifier = require('../utils/ivaIntentClassifier');
-            const intent = IvaIntentClassifier.classify(message, conversationHistory);
+            // REMOVED: IntentClassifier - LLM decides intent
+            // const IvaIntentClassifier = require('../utils/ivaIntentClassifier');
+            // const intent = IvaIntentClassifier.classify(message, conversationHistory);
 
             let defaultMessage = 'Entendido!';
-            let intentType = intent.type || 'GENERAL';
+            // REMOVED: intentType - not needed with LLM-First
 
             let userUpdates = null;
 
@@ -789,7 +790,7 @@ Siga rigorosamente as INSTRUÇÕES DE FLUXO DE EXECUÇÃO E DESCOBERTA enviadas 
             const defaultAction = {
                 action: 'REPLY',
                 message: responseContent, // LLM's original message
-                intent: intent.type || 'GENERAL',
+                // REMOVED: intent field - LLM decides this
                 forceClose: req._ivaForceClose || false,
                 userUpdates
             };
