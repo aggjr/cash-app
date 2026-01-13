@@ -13,7 +13,7 @@ export const GraficosIndicadoresManager = (project, viewMode = 'overview') => {
 
     // Titles based on viewMode
     const titles = {
-        'overview': { title: '📊 Visão Geral & Dispersão', desc: 'Análise de fluxo e correlações financeiras.' },
+        'overview': { title: '📊 Visão Geral & Exemplos', desc: 'Galeria de possibilidades visuais (Barras, Linhas, Pizza, Dispersão, Área).' },
         'statistical': { title: '📐 Controle Estatístico (XmR)', desc: 'Monitoramento de estabilidade e desvios padrão.' },
         'abc': { title: '🏆 Curva ABC (Pareto)', desc: 'Classificação de relevância de produtos/serviços.' }
     };
@@ -71,22 +71,36 @@ export const GraficosIndicadoresManager = (project, viewMode = 'overview') => {
 
     // --- RENDER LOGIC BASED ON VIEW MODE ---
     const initReview = () => {
+        // Shared Grid Config for safety (prevents cut-off)
+        const commonGrid = { left: '3%', right: '4%', bottom: '10%', containLabel: true };
+
         if (viewMode === 'overview') {
-            // Screen 1: Overview + Scatter
-            const card1 = createChartCard('Fluxo de Caixa (Receita vs Despesa)', 'chart-overview-main');
-            card1.style.gridColumn = '1 / -1';
+            // Screen 1: General Examples (Gallery)
+
+            // 1. Cash Flow
+            const card1 = createChartCard('Fluxo de Caixa (Combinado)', 'chart-overview-main');
+            card1.style.gridColumn = '1 / 2';
             grid.appendChild(card1);
 
-            const card2 = createChartCard('Correlação: Receita x Margem (Dispersão)', 'chart-scatter');
-            card2.style.gridColumn = '1 / -1';
-            grid.appendChild(card2);
+            // 2. Pie (Expenses) - Restored
+            const cardPie = createChartCard('Composição de Despesas (Pizza)', 'chart-pie');
+            grid.appendChild(cardPie);
+
+            // 3. Scatter (Correlation)
+            const cardScatter = createChartCard('Correlação: Vendas x Margem (Dispersão)', 'chart-scatter');
+            grid.appendChild(cardScatter);
+
+            // 4. Area (Balance) - Restored
+            const cardArea = createChartCard('Evolução do Saldo (Área)', 'chart-area');
+            grid.appendChild(cardArea);
 
             setTimeout(() => {
                 // Chart 1: Fluxo
                 const chart1 = echarts.init(document.getElementById('chart-overview-main'));
                 chart1.setOption({
                     tooltip: { trigger: 'axis' },
-                    legend: { data: ['Receitas', 'Despesas', 'Saldo'] },
+                    legend: { bottom: 0 },
+                    grid: commonGrid,
                     xAxis: { type: 'category', data: ['Jan', 'Fev', 'Mar', 'Abr', 'Mai', 'Jun'] },
                     yAxis: { type: 'value' },
                     series: [
@@ -96,22 +110,46 @@ export const GraficosIndicadoresManager = (project, viewMode = 'overview') => {
                     ]
                 });
 
-                // Chart 2: Scatter (Pontos)
-                const chart2 = echarts.init(document.getElementById('chart-scatter'));
-                // Mock Random Scatter Data
+                // Chart 2: Pie
+                const chartPie = echarts.init(document.getElementById('chart-pie'));
+                chartPie.setOption({
+                    tooltip: { trigger: 'item' },
+                    legend: { orient: 'vertical', left: 'left', bottom: '5%' },
+                    series: [
+                        {
+                            name: 'Despesas',
+                            type: 'pie',
+                            radius: ['40%', '70%'],
+                            center: ['60%', '50%'],
+                            itemStyle: { borderRadius: 10, borderColor: '#fff', borderWidth: 2 },
+                            label: { show: false },
+                            data: [
+                                { value: 1048, name: 'Pessoal' },
+                                { value: 735, name: 'Infra' },
+                                { value: 580, name: 'Mkt' },
+                                { value: 484, name: 'Impostos' },
+                                { value: 300, name: 'Outros' }
+                            ]
+                        }
+                    ]
+                });
+
+                // Chart 3: Scatter
+                const chartScatter = echarts.init(document.getElementById('chart-scatter'));
                 const scatterData = Array.from({ length: 50 }, () => [
-                    Math.floor(Math.random() * 5000) + 1000, // Sales Volume
-                    Math.floor(Math.random() * 40) + 10      // Margin %
+                    Math.floor(Math.random() * 5000) + 1000,
+                    Math.floor(Math.random() * 40) + 10
                 ]);
-                chart2.setOption({
+                chartScatter.setOption({
                     tooltip: {
                         trigger: 'item',
                         formatter: (params) => `Venda: R$ ${params.data[0]}<br>Margem: ${params.data[1]}%`
                     },
-                    xAxis: { name: 'Volume de Vendas', type: 'value', splitLine: { lineStyle: { type: 'dashed' } } },
-                    yAxis: { name: 'Margem (%)', type: 'value', splitLine: { lineStyle: { type: 'dashed' } } },
+                    grid: commonGrid,
+                    xAxis: { name: 'Vol.', type: 'value', splitLine: { lineStyle: { type: 'dashed' } } },
+                    yAxis: { name: 'Margem %', type: 'value', splitLine: { lineStyle: { type: 'dashed' } } },
                     series: [{
-                        symbolSize: 10,
+                        symbolSize: 8,
                         data: scatterData,
                         type: 'scatter',
                         itemStyle: {
@@ -121,7 +159,24 @@ export const GraficosIndicadoresManager = (project, viewMode = 'overview') => {
                         }
                     }]
                 });
-                window.addEventListener('resize', () => { chart1.resize(); chart2.resize(); });
+
+                // Chart 4: Area
+                const chartArea = echarts.init(document.getElementById('chart-area'));
+                chartArea.setOption({
+                    color: ['#0077B6'],
+                    tooltip: { trigger: 'axis' },
+                    grid: commonGrid,
+                    xAxis: { type: 'category', boundaryGap: false, data: ['Seg', 'Ter', 'Qua', 'Qui', 'Sex', 'Sáb', 'Dom'] },
+                    yAxis: { type: 'value' },
+                    series: [{
+                        name: 'Saldo', type: 'line', smooth: true, areaStyle: { opacity: 0.8 },
+                        data: [120, 132, 101, 134, 90, 230, 210]
+                    }]
+                });
+
+                window.addEventListener('resize', () => {
+                    chart1.resize(); chartPie.resize(); chartScatter.resize(); chartArea.resize();
+                });
             }, 100);
 
         } else if (viewMode === 'statistical') {
@@ -151,6 +206,7 @@ export const GraficosIndicadoresManager = (project, viewMode = 'overview') => {
                 const chartX = echarts.init(document.getElementById('chart-x'));
                 chartX.setOption({
                     tooltip: { trigger: 'axis' },
+                    grid: { left: '3%', right: '4%', bottom: '12%', containLabel: true },
                     visualMap: {
                         show: false,
                         dimension: 1,
@@ -218,6 +274,7 @@ export const GraficosIndicadoresManager = (project, viewMode = 'overview') => {
                         trigger: 'axis',
                         axisPointer: { type: 'cross' }
                     },
+                    grid: { left: '3%', right: '4%', bottom: '15%', containLabel: true }, // Extra space for rotated labels
                     legend: { data: ['Valor Venda', '% Acumulado'] },
                     xAxis: { type: 'category', data: processed.map(i => i.name), axisLabel: { rotate: 45 } },
                     yAxis: [
