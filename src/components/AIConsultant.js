@@ -798,34 +798,44 @@ export const AIConsultant = () => {
         const user = getUser();
         if (!user) return;
 
-        // Detect gender from name (simple heuristic)
-        const userName = user.name || '';
-        const maleEndings = ['o', 'os', 'el', 'eu', 'au'];
-        const femaleEndings = ['a', 'as'];
-        const lastChar = userName.toLowerCase().slice(-1);
-        const lastTwoChars = userName.toLowerCase().slice(-2);
+        // ========================================
+        // LLM-FIRST: Let LLM generate introduction
+        // ========================================
+        // Instead of hardcoded template, call backend to get LLM-generated greeting
 
-        let isMale = true; // Default
-        if (femaleEndings.includes(lastChar) && !maleEndings.includes(lastTwoChars)) {
-            isMale = false;
-        }
-
-        const pronoun = isMale ? 'o senhor' : 'a senhora';
-        const welcomeGender = isMale ? 'bem-vindo' : 'bem-vinda';
-        const called = isMale ? 'chamado' : 'chamada';
-
-        // Suggest formal name (Sr./Sra. + Name)
-        const nameParts = userName.trim().split(' ');
-        const firstName = nameParts[0] || '';
-        const lastName = nameParts.length > 1 ? nameParts[nameParts.length - 1] : '';
-        const suggestedName = lastName ? `${isMale ? 'Sr.' : 'Sra.'} ${firstName} ${lastName}` : `${isMale ? 'Sr.' : 'Sra.'} ${firstName}`;
-
-        // Use LLM for introduction
         pendingAction = 'intro_llm';
-        const msg = `Olá "${suggestedName}". Seja ${welcomeGender}. Eu sou a IVA, sua assistente virtual.\n\nPara que nossa interação seja mais adequada, como ${pronoun} gostaria de ser ${called}?`
 
-        addMessage('ai', msg);
-        speak(msg);
+        // Call backend to get LLM-generated introduction
+        try {
+            const response = await fetch(`${API_BASE_URL}/iva/chat`, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'Authorization': `Bearer ${localStorage.getItem('token')}`
+                },
+                body: JSON.stringify({
+                    message: '', // Empty message = first greeting
+                    isIntroduction: true,
+                    context: {
+                        userId: user.id,
+                        projectId: localStorage.getItem('currentProject'),
+                        currentScreen: window.location.pathname
+                    }
+                })
+            });
+
+            const data = await response.json();
+            const llmGreeting = data.message || `Olá! Sou a IVA. Como posso ajudar?`;
+
+            addMessage('ai', llmGreeting);
+            speak(llmGreeting);
+        } catch (error) {
+            console.error('[IVA] Error getting LLM greeting:', error);
+            // Fallback only if backend fails
+            const fallback = `Olá! Sou a IVA, sua assistente virtual. Como posso ajudar?`;
+            addMessage('ai', fallback);
+            speak(fallback);
+        }
     };
 
     const handleIntroductionResponse = async (text) => {
