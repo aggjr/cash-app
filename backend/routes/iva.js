@@ -42,8 +42,9 @@ router.get('/debug-ghosts', async (req, res) => {
     }
 });
 
-// POST /api/IVA/backfill-knowledge - Trigger knowledge backfill (Temporary/Admin)
-router.post('/backfill-knowledge', ivaController.backfillKnowledge);
+// REMOVED: backfillKnowledge - not in new clean controller
+// router.post('/backfill-knowledge', ivaController.backfillKnowledge);
+
 
 // --- KNOWLEDGE AUDIT ROUTES ---
 router.get('/knowledge/pending', auth, ivaController.getPendingKnowledge);
