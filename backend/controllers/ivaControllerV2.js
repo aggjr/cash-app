@@ -21,7 +21,7 @@ console.log('Γ£à IVA Controller loaded successfully');
 
 const chat = async (req, res, next) => {
     try {
-        const { message, conversationHistory, context, isIntroduction } = req.body;
+        const { message, conversationHistory, context = {}, isIntroduction } = req.body;
         const user = req.user;
 
         if (!message || !message.trim()) {
@@ -69,7 +69,7 @@ const chat = async (req, res, next) => {
 
         const [userResult, projectResult, preferredName] = await Promise.all([
             db.query('SELECT * FROM users WHERE id = ?', [user.id]),
-            context.projectId ? db.query('SELECT * FROM projects WHERE id = ?', [context.projectId]) : Promise.resolve([[]]),
+            (context && context.projectId) ? db.query('SELECT * FROM projects WHERE id = ?', [context.projectId]) : Promise.resolve([[]]),
             IvaUserPreferences.getPreferredName(user.id)
         ]);
 
@@ -791,6 +791,17 @@ Siga rigorosamente as INSTRUÇÕES DE FLUXO DE EXECUÇÃO E DESCOBERTA enviadas 
                     const args = JSON.parse(functionCall.arguments);
                     console.log('[IVA Backend] Executing contribute_knowledge:', args);
 
+                    if (!user || !user.id) {
+                        console.error('[IVA Backend] Missing USER context for knowledge contribution');
+                        throw new Error('User context missing');
+                    }
+
+                    const safeContext = context || {};
+                    console.log('[IVA Backend] Knowledge Contribution Context:', {
+                        userId: user.id,
+                        projectId: safeContext.projectId || 'N/A'
+                    });
+
                     // Execute valid contribution
                     await IvaGlobalKnowledge.contribute('custom_rules', {
                         description: args.description || args.rule || args.content || 'Regra indefinida',
@@ -799,7 +810,7 @@ Siga rigorosamente as INSTRUÇÕES DE FLUXO DE EXECUÇÃO E DESCOBERTA enviadas 
                         userId: user.id,
                         userName: user.name,
                         scope: args.scope || 'USER', // Default to USER to be safe
-                        projectId: context.projectId
+                        projectId: safeContext.projectId
                     });
 
                     defaultMessage = 'Entendi. Informação processada e aprendida! ✅ Vou utilizá-la agora.';
