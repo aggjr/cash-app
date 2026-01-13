@@ -26,6 +26,7 @@ import { AIConsultant } from './components/AIConsultant.js'
 import { ParametrosGeraisManager } from './components/ParametrosGeraisManager.js'
 import { LogAlteracoesManager } from './components/LogAlteracoesManager.js'
 import { DividasEmprestimosManager } from './components/DividasEmprestimosManager.js'
+import { GraficosIndicadoresManager } from './components/GraficosIndicadoresManager.js'
 import { IvaAnalytics } from './components/IvaAnalytics.js'
 import './iva/IvaCollectiveObserver.js' // Observador passivo de uso coletivo
 
@@ -389,6 +390,15 @@ function initAppLogic() {
         const mainElement = document.querySelector('main');
         mainElement.innerHTML = '';
         mainElement.appendChild(PrevisaoFluxoManager(currentProject));
+      } else {
+        Dialogs.alert('Selecione um projeto primeiro', 'Aviso');
+      }
+    } else if (itemId === 'graficos-indicadores') {
+      const { currentProject } = checkAuth();
+      if (currentProject) {
+        const mainElement = document.querySelector('main');
+        mainElement.innerHTML = '';
+        mainElement.appendChild(GraficosIndicadoresManager(currentProject));
       } else {
         Dialogs.alert('Selecione um projeto primeiro', 'Aviso');
       }
