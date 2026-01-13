@@ -420,40 +420,54 @@ export const IncomeManager = (project) => {
     };
 
     const handleBulkEdit = async () => {
-        if (selectedItems.size === 0) return;
+        console.log('[handleBulkEdit] Function called');
+        console.log('[handleBulkEdit] selectedItems.size:', selectedItems.size);
+        console.log('[handleBulkEdit] selectedItemsData:', selectedItemsData);
 
-        await BulkEditModal.show({
-            items: selectedItemsData,
-            ids: Array.from(selectedItems),
-            projectId: project.id,
-            type: 'income',
-            onSave: async (editData) => {
-                try {
-                    const response = await fetch(`${API_BASE_URL}/incomes/bulk-edit`, {
-                        method: 'POST',
-                        headers: getHeaders(),
-                        body: JSON.stringify({
-                            ids: Array.from(selectedItems),
-                            updates: editData
-                        })
-                    });
+        if (selectedItems.size === 0) {
+            console.log('[handleBulkEdit] No items selected, returning');
+            return;
+        }
 
-                    const result = await response.json();
-                    if (response.ok) {
-                        showToast(result.message || 'Itens atualizados com sucesso!', 'success');
-                        selectedItems.clear();
-                        selectedItemsData = [];
-                        sharedTable.clearSelection();
-                        loadIncomes();
-                    } else {
-                        showToast(result.error || 'Erro ao atualizar itens', 'error');
+        console.log('[handleBulkEdit] Calling BulkEditModal.show...');
+        try {
+            await BulkEditModal.show({
+                items: selectedItemsData,
+                ids: Array.from(selectedItems),
+                projectId: project.id,
+                type: 'income',
+                onSave: async (editData) => {
+                    console.log('[handleBulkEdit] onSave called with:', editData);
+                    try {
+                        const response = await fetch(`${API_BASE_URL}/incomes/bulk-edit`, {
+                            method: 'POST',
+                            headers: getHeaders(),
+                            body: JSON.stringify({
+                                ids: Array.from(selectedItems),
+                                updates: editData
+                            })
+                        });
+
+                        const result = await response.json();
+                        if (response.ok) {
+                            showToast(result.message || 'Itens atualizados com sucesso!', 'success');
+                            selectedItems.clear();
+                            selectedItemsData = [];
+                            sharedTable.clearSelection();
+                            loadIncomes();
+                        } else {
+                            showToast(result.error || 'Erro ao atualizar itens', 'error');
+                        }
+                    } catch (error) {
+                        console.error('[handleBulkEdit] Error in onSave:', error);
+                        showToast('Erro de conexão', 'error');
                     }
-                } catch (error) {
-                    console.error(error);
-                    showToast('Erro de conexão', 'error');
                 }
-            }
-        });
+            });
+            console.log('[handleBulkEdit] BulkEditModal.show completed');
+        } catch (error) {
+            console.error('[handleBulkEdit] Error calling BulkEditModal.show:', error);
+        }
     };
 
     const renderPagination = () => {
