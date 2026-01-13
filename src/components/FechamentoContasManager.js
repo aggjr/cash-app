@@ -1098,10 +1098,12 @@ export const FechamentoContasManager = (project) => {
             // Observer for updates
             const resizeObserver = new ResizeObserver(entries => {
                 for (let entry of entries) {
-                    // Use getBoundingClientRect for precise visual width (including borders/padding)
+                    // Use getBoundingClientRect for precise visual width
+                    // User feedback: "calculation ... a little bit wrong" -> likely sub-pixel overlap.
+                    // Using Math.ceil ensures we cover the full pixel grid, avoiding overlaps.
                     const width = entry.target.getBoundingClientRect().width;
                     if (width > 0) {
-                        table.style.setProperty('--company-col-width', `${width}px`);
+                        table.style.setProperty('--company-col-width', `${Math.ceil(width)}px`);
                     }
                 }
             });
