@@ -542,9 +542,16 @@ export const IncomeManager = (project) => {
                 const btnEdit = totalContainer.querySelector('#btn-bulk-edit');
                 console.log('[Bulk Edit] Button found:', btnEdit);
                 if (btnEdit) {
-                    btnEdit.onclick = (e) => {
+                    btnEdit.onclick = async (e) => {
                         console.log('[Bulk Edit] Button clicked!', e);
-                        handleBulkEdit();
+                        try {
+                            console.log('[Bulk Edit] Calling handleBulkEdit...');
+                            await handleBulkEdit();
+                            console.log('[Bulk Edit] handleBulkEdit completed');
+                        } catch (error) {
+                            console.error('[Bulk Edit] Error in handleBulkEdit:', error);
+                            console.error('[Bulk Edit] Error stack:', error.stack);
+                        }
                     };
                     console.log('[Bulk Edit] Event attached successfully');
                 }
