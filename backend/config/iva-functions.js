@@ -47,6 +47,24 @@ const ivaFunctions = [
         }
     },
     {
+        name: 'highlight_element',
+        description: 'Destaca visualmente um elemento na tela com borda azul escura para mostrar ao usuário onde está a informação solicitada. Use quando o usuário perguntar onde encontrar algo ou pedir para mostrar um dado específico.',
+        parameters: {
+            type: 'object',
+            properties: {
+                selector: {
+                    type: 'string',
+                    description: 'Seletor CSS do elemento a destacar (ex: ".classe", "#id", "tr:nth-child(2)")'
+                },
+                message: {
+                    type: 'string',
+                    description: 'Mensagem para o usuário explicando o que está sendo destacado'
+                }
+            },
+            required: ['selector', 'message']
+        }
+    },
+    {
         name: 'contribute_knowledge',
         description: 'Adiciona novo conhecimento ao sistema global da IVA. Use sempre que o usuário te ensinar algo novo, explicar um passo a passo, ou quando você descobrir como encontrar uma informação que não sabia antes.',
         parameters: {
