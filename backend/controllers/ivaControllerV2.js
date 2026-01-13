@@ -1,12 +1,12 @@
 ﻿const OpenAI = require('openai');
 const db = require('../config/database');
-const IvaContextBuilder = require('../services/IvaContextBuilderQdrant'); // Qdrant-based context builder
+// REMOVED: IvaContextBuilderQdrant - using unified prompt only
+// REMOVED: IntentClassifier - LLM decides intent
+// REMOVED: ContextualPrompts - consolidated in unified prompt
+// REMOVED: LearningCommandClassifier - LLM decides when to learn
 const IvaIntentValidator = require('../utils/ivaIntentValidator');
-const IntentClassifier = require('../utils/ivaIntentClassifier');
-const ContextualPrompts = require('../config/iva-contextual-prompts');
 const IvaDataFetcher = require('../services/IvaDataFetcher');
 const IvaScreenCache = require('../services/IvaScreenCache');
-const LearningCommandClassifier = require('../utils/LearningCommandClassifier');
 const IvaGlobalKnowledge = require('../services/IvaGlobalKnowledge');
 // TEMPORARILY DISABLED - Tables not in production yet
 
@@ -338,15 +338,11 @@ const operate = async (req, res) => {
         let intent;
 
         if (isAutoGreeting) {
-            console.log('[IVA Operate] 🤖 Auto-Greeting detected - FORCING intent: GREETING');
-            intent = {
-                type: 'GREETING',
-                priority: 'HIGHEST',
-                context: 'System auto-greeting trigger'
-            };
-        } else {
-            intent = IntentClassifier.classify(message, conversationHistory || []);
+            console.log('[IVA Operate] 🤖 Auto-Greeting detected');
+            // LLM will handle greeting generation
         }
+        // REMOVED: IntentClassifier - LLM decides intent from context
+
 
         console.log('[IVA Operate] Preferred Name Debug:', {
             qdrant: preferredName,
