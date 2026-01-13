@@ -100,15 +100,14 @@ const getDebugResolvedContext = async (req, res) => {
         // 3. Update user object with preference
         const userWithPref = { ...fullUser, preferred_name: finalPreferredName };
 
-        // 4. Build Context
-        const resolvedPrompt = await IvaContextBuilderQdrant.buildOperateContextWithQdrant(
+        // 4. Build Context using new unified prompt
+        const UnifiedPrompt = require('../config/iva-unified-prompt');
+        const resolvedPrompt = await UnifiedPrompt.getUnifiedPrompt(
             userWithPref,
             projectData,
-            screenData,
-            cachedScreens,
-            intent,
-            lastAccess,
-            [] // Empty history
+            {
+                activeScreenContext: screenData
+            }
         );
 
         res.json({ success: true, resolvedPrompt });
