@@ -135,11 +135,11 @@ export const TreeSelector = {
         wrapper.appendChild(treeScroll);
         container.appendChild(wrapper);
 
-        // Build Tree Structure
+        // Build Tree Structure and Map
         const buildTree = (flatData) => {
             const map = {};
             const roots = [];
-            flatData.forEach(node => { map[node.id] = { ...node, children: [] }; });
+            flatData.forEach(node => { map[node.id] = { ...node, children: [], expanded: false }; });
             flatData.forEach(node => {
                 if (node.parent_id === null) roots.push(map[node.id]);
                 else if (map[node.parent_id]) map[node.parent_id].children.push(map[node.id]);
@@ -149,10 +149,19 @@ export const TreeSelector = {
                 nodes.forEach(node => { if (node.children.length > 0) sortByOrdem(node.children); });
             };
             sortByOrdem(roots);
-            return roots;
+            return { roots, map };
         };
 
-        const treeRoots = buildTree(data);
+        const { roots: treeRoots, map: treeMap } = buildTree(data);
+
+        // Auto-expand path to selectedId
+        if (selectedId && treeMap[selectedId]) {
+            let curr = treeMap[selectedId];
+            while (curr.parent_id) {
+                curr = treeMap[curr.parent_id];
+                curr.expanded = true;
+            }
+        }
 
         // Recursive reveal helper (to find if node or any child matches)
         const checkVisibility = (node, query) => {
@@ -176,7 +185,7 @@ export const TreeSelector = {
             node.isVisible = node.visibleBySearch && node.visibleByAllowed;
 
             if (childrenVisible && query) node.expanded = true;
-            else if (!query) node.expanded = false; // Collapse all when search is cleared
+            // Removed specific collapse logic to allow manual/auto expansion persistence
 
             return node.isVisible;
         };
