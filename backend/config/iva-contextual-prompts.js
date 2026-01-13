@@ -235,12 +235,9 @@ INSTRUÇÕES:
 - Mostre proatividade
 - NÃO use saudações como "Olá" ou "Bom dia"
 - Termine com uma pergunta ABERTA sobre o PRÓXIMO passo
-- SEMPRE ofereça ajuda adicional
 
-EXEMPLOS:
-Usuário (após você navegar): "sim" → "Excelente! O que você gostaria de analisar nesta tela? Mais algum assunto que eu possa ajudar?"
-Usuário (após você filtrar): "ok" → "Dados atualizados. Precisa de mais alguma coisa?"
-Usuário: "isso mesmo" → "Ótimo. Posso ajudar com mais alguma coisa?"
+ATENÇÃO:
+- Se a mensagem do usuário NÃO for uma confirmação (ex: "sim", "ok") e for uma NOVA PERGUNTA, ignore este prompt de confirmação e responda a nova pergunta naturalmente.
 `,
 
     /**

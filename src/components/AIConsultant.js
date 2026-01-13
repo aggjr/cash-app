@@ -1675,25 +1675,12 @@ Digite 1, 2 ou 3.`;
         setTimeout(async () => {
             loadingDiv.remove();
 
-            // Handle Navigation Confirmation
+            // Handle Navigation Confirmation - REMOVED: Handled by LLM now
+            /* 
             if (pendingAction === 'nav_confirm') {
-                const isPositive = IvaConversation.isPositiveResponse(text);
-                if (isPositive) {
-                    const msg = "Ótimo! Fico feliz que encontrei o que você procurava. O que você gostaria de analisar ou fazer nesta tela?";
-                    addMessage('ai', msg);
-                    speak(msg);
-                    pendingAction = null;
-                    return;
-                } else if (IvaConversation.isNegativeResponse(text)) {
-                    const msg = "Entendi. Desculpe por não ser o que você esperava. O que você gostaria de ver então? Posso tentar buscar de outra forma.";
-                    addMessage('ai', msg);
-                    speak(msg);
-                    pendingAction = null;
-                    return;
-                }
-                // If not clearly positive/negative, let LLM handle it but clear lock
-                pendingAction = null;
-            }
+               // ... logic removed ...
+            } 
+            */
 
             // Handle Tour Offer
             if (pendingAction === 'tour_offer') {
@@ -1995,7 +1982,7 @@ Digite 1, 2 ou 3.`;
         addMessage('ai', confirmMsg);
         speak(confirmMsg);
 
-        pendingAction = 'nav_confirm';
+        // pendingAction = 'nav_confirm'; // REMOVED: Let LLM handle the response
 
         // RECORD LEARNING
         await IvaLearning.recordMenuKnowledge(
@@ -2235,7 +2222,7 @@ Digite 1, 2 ou 3.`;
                 }
 
                 addMessage('ai', 'Isso responde sua pergunta?');
-                pendingAction = 'nav_confirm';
+                // pendingAction = 'nav_confirm'; // REMOVED: Let LLM handle the response
                 loopState.awaitingUserResponse = true;
 
                 // RECORD DATA LEARNING
