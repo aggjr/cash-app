@@ -140,8 +140,14 @@ const operate = async (req, res) => {
 
         // 5. Handle function calls
         const functionCall = completion.choices[0].message.function_call;
+        let functionCallInfo = null;
+
         if (functionCall) {
             await executeFunction(functionCall, user, context);
+            functionCallInfo = {
+                name: functionCall.name,
+                arguments: JSON.parse(functionCall.arguments)
+            };
         }
 
         // 6. Parse and return action
@@ -154,6 +160,11 @@ const operate = async (req, res) => {
                 action: 'REPLY',
                 message: responseContent
             };
+        }
+
+        // Include function call info for frontend
+        if (functionCallInfo) {
+            action.functionCall = functionCallInfo;
         }
 
         res.json(action);
@@ -198,6 +209,11 @@ const executeFunction = async (functionCall, user, context) => {
                     scope: args.scope || 'USER'
                 }
             );
+            break;
+
+        case 'navigate':
+            // Frontend handles navigation
+            console.log(`[IVA Function] Navigate to: ${args.target}`);
             break;
 
         case 'highlight_element':

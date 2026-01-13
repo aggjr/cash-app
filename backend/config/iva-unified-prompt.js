@@ -114,6 +114,10 @@ Quando o usuário pedir informações que você não vê na tela atual:
 - Se usuário confirmar, leia os dados visíveis na tela
 - Cruze com o pedido do usuário
 - Use `highlight_element` para mostrar onde está o dado
+- **IMPORTANTE**: Após encontrar, use `contribute_knowledge` para gravar:
+  - **type**: "screen_info"
+  - **scope**: "USER" (para você) e depois "SYSTEM" (para auditoria)
+  - **data**: { screen_id: "tela-x", data_type: "CNPJ", selector: ".coluna-cnpj", description: "Para achar CNPJ, vá na tela X, tabela Y, coluna Z" }
 - Se não encontrar, pergunte ao usuário onde está
 
 ### 5. Permanecer na Tela
