@@ -89,6 +89,478 @@ export const FechamentoContasManager = (project) => {
         }
     };
 
+    // --- Export Functions ---
+
+    const handleExcelExport = async () => {
+        try {
+            if (accounts.length === 0) {
+                showToast('Sem dados para exportar', 'warning');
+                return;
+            }
+
+            console.log('Starting Excel export...');
+
+            // Load ExcelJS if not already loaded
+            if (!window.ExcelJS) {
+                const script = document.createElement('script');
+                script.src = 'https://cdn.jsdelivr.net/npm/exceljs@4.3.0/dist/exceljs.min.js';
+                await new Promise((resolve, reject) => {
+                    script.onload = resolve;
+                    script.onerror = reject;
+                    document.head.appendChild(script);
+                });
+            }
+
+            const workbook = new window.ExcelJS.Workbook();
+            const worksheet = workbook.addWorksheet('Fechamento de Contas');
+
+            const columns = getColumnList();
+
+            // Group accounts by company
+            const companyGroups = {};
+            accounts.forEach(acc => {
+                if (!companyGroups[acc.company_id]) {
+                    companyGroups[acc.company_id] = {
+                        company_name: acc.company_name,
+                        accounts: []
+                    };
+                }
+                companyGroups[acc.company_id].accounts.push(acc);
+            });
+
+            // Calculate max widths
+            let maxEmpresaLen = 10;
+            let maxContaLen = 15;
+            const maxColLens = new Array(columns.length).fill(12); // Min width for data columns
+
+            const safeLength = (str) => (str ? str.toString().length : 0);
+
+            accounts.forEach(acc => {
+                // Check Company Name
+                if (acc.company_name) maxEmpresaLen = Math.max(maxEmpresaLen, safeLength(acc.company_name));
+                // Check Account Name
+                if (acc.name) maxContaLen = Math.max(maxContaLen, safeLength(acc.name));
+
+                // Check Data Values
+                let currentBalance = initialBalances[acc.id] || 0;
+                columns.forEach((colDate, colIndex) => {
+                    let key = '';
+                    if (viewMode === 'monthly') {
+                        key = `${colDate.getFullYear()}-${(colDate.getMonth() + 1).toString().padStart(2, '0')}`;
+                    } else {
+                        const d = colDate.getDate().toString().padStart(2, '0');
+                        const m = (colDate.getMonth() + 1).toString().padStart(2, '0');
+                        key = `${colDate.getFullYear()}-${m}-${d}`;
+                    }
+                    const delta = (movementsData[acc.id] && movementsData[acc.id][key]) ? movementsData[acc.id][key] : 0;
+                    currentBalance += delta;
+
+                    const formattedVal = formatCurrency(currentBalance);
+                    maxColLens[colIndex] = Math.max(maxColLens[colIndex], safeLength(formattedVal));
+                });
+            });
+
+            // Define columns with DYNAMIC widths (20% buffer)
+            worksheet.columns = [
+                { header: 'Empresa', key: 'empresa', width: maxEmpresaLen * 1.2 },
+                { header: 'Conta Bancária', key: 'conta', width: maxContaLen * 1.2 },
+                ...columns.map((d, idx) => ({
+                    header: formatDateHeader(d),
+                    key: `col_${d.getTime()}`,
+                    width: maxColLens[idx] * 1.2
+                }))
+            ];
+
+            // Style header row
+            const headerRow = worksheet.getRow(1);
+            headerRow.font = { bold: true, color: { argb: 'FFFFFFFF' } };
+            headerRow.fill = {
+                type: 'pattern',
+                pattern: 'solid',
+                fgColor: { argb: 'FF00425F' }
+            };
+            headerRow.alignment = { vertical: 'middle', horizontal: 'center' };
+            headerRow.height = 25;
+
+            let currentRow = 2;
+            const monthTotals = new Array(columns.length).fill(0);
+
+            // Add data rows grouped by company
+            Object.values(companyGroups).forEach((group, groupIndex) => {
+                const startRow = currentRow;
+                const isEvenGroup = groupIndex % 2 === 0;
+
+                group.accounts.forEach((acc, accIndex) => {
+                    const row = worksheet.getRow(currentRow);
+                    const rowData = { empresa: group.company_name, conta: acc.name };
+
+                    let currentBalance = initialBalances[acc.id] || 0;
+
+                    columns.forEach((colDate, colIndex) => {
+                        let key = '';
+                        if (viewMode === 'monthly') {
+                            key = `${colDate.getFullYear()}-${(colDate.getMonth() + 1).toString().padStart(2, '0')}`;
+                        } else {
+                            const d = colDate.getDate().toString().padStart(2, '0');
+                            const m = (colDate.getMonth() + 1).toString().padStart(2, '0');
+                            key = `${colDate.getFullYear()}-${m}-${d}`;
+                        }
+
+                        const delta = (movementsData[acc.id] && movementsData[acc.id][key])
+                            ? movementsData[acc.id][key]
+                            : 0;
+                        currentBalance += delta;
+                        if (monthTotals[colIndex] === undefined) monthTotals[colIndex] = 0;
+                        monthTotals[colIndex] += currentBalance;
+                        rowData[`col_${colDate.getTime()}`] = currentBalance;
+                    });
+
+                    row.values = rowData;
+
+                    // Alternating row colors (white and light gray)
+                    const bgColor = isEvenGroup ? 'FFFFFFFF' : 'FFF8FAFC';
+                    row.eachCell({ includeEmpty: true }, (cell, colNumber) => {
+                        cell.fill = {
+                            type: 'pattern',
+                            pattern: 'solid',
+                            fgColor: { argb: bgColor }
+                        };
+
+                        // Company and Account columns: dark blue background, white text
+                        if (colNumber <= 2) {
+                            cell.fill = {
+                                type: 'pattern',
+                                pattern: 'solid',
+                                fgColor: { argb: 'FF00425F' }
+                            };
+                            cell.font = { color: { argb: 'FFFFFFFF' }, bold: colNumber === 1 };
+
+                            const borderStyle = { style: 'thin', color: { argb: 'FFFFFFFF' } }; // White default
+                            cell.border = {
+                                bottom: borderStyle,
+                                right: borderStyle
+                            };
+
+                            if (colNumber === 2) {
+                                // Use blue border to match screen fix
+                                cell.border = {
+                                    bottom: borderStyle,
+                                    right: { style: 'medium', color: { argb: 'FF00425F' } }
+                                };
+                            }
+                        } else {
+                            // Data columns: currency formatting and color based on value
+                            cell.numFmt = 'R$ #,##0.00;[Red]-R$ #,##0.00';
+                            const value = cell.value;
+
+                            // Text Color
+                            if (value > 0) {
+                                cell.font = { color: { argb: 'FF10B981' } };
+                            } else if (value < 0) {
+                                cell.font = { color: { argb: 'FFEF4444' } };
+                            } else {
+                                cell.font = { color: { argb: 'FF9CA3AF' } }; // Gray for zero
+                            }
+
+                            // Borders for month cells (standard gray grid)
+                            cell.border = {
+                                bottom: { style: 'thin', color: { argb: 'FFE2E8F0' } }, // slate-200
+                                right: { style: 'thin', color: { argb: 'FFE2E8F0' } }
+                            };
+                        }
+
+                        cell.alignment = { vertical: 'middle', horizontal: colNumber <= 2 ? 'left' : 'right' };
+                    });
+
+                    currentRow++;
+                });
+
+                // Merge company cells
+                if (group.accounts.length > 1) {
+                    worksheet.mergeCells(`A${startRow}:A${currentRow - 1}`);
+                    const mergedCell = worksheet.getCell(`A${startRow}`);
+                    mergedCell.alignment = { vertical: 'middle', horizontal: 'left' };
+                }
+            });
+
+            // Add TOTAL row
+            const totalRow = worksheet.getRow(currentRow);
+            const totalData = { empresa: 'TOTAL', conta: '' };
+            columns.forEach((d, idx) => {
+                totalData[`col_${d.getTime()}`] = monthTotals[idx];
+            });
+            totalRow.values = totalData;
+
+            // Merge TOTAL cells for empresa and conta
+            worksheet.mergeCells(`A${currentRow}:B${currentRow}`);
+            const totalMergedCell = worksheet.getCell(`A${currentRow}`);
+            totalMergedCell.value = 'TOTAL';
+            totalMergedCell.alignment = { vertical: 'middle', horizontal: 'center' };
+
+            // Style TOTAL Row - Match Screen exactly
+            // Label (Merged A-B): Dark Blue BG, White Text
+            totalMergedCell.fill = {
+                type: 'pattern',
+                pattern: 'solid',
+                fgColor: { argb: 'FF00425F' }
+            };
+            totalMergedCell.font = { color: { argb: 'FFFFFFFF' }, bold: true };
+            totalMergedCell.border = {
+                right: { style: 'medium', color: { argb: 'FF00425F' } } // Match the "dente" fix
+            };
+
+            // Values (Month Cols): Gray BG (#E2E8F0), Top Border (#CBD5E1)
+            totalRow.eachCell({ includeEmpty: true }, (cell, colNumber) => {
+                if (colNumber > 2) {
+                    cell.fill = {
+                        type: 'pattern',
+                        pattern: 'solid',
+                        fgColor: { argb: 'FFE2E8F0' }
+                    };
+                    cell.border = {
+                        top: { style: 'medium', color: { argb: 'FFCBD5E1' } }
+                    };
+
+                    cell.numFmt = 'R$ #,##0.00;[Red]-R$ #,##0.00';
+                    const value = cell.value;
+                    if (value > 0) {
+                        cell.font = { color: { argb: 'FF10B981' }, bold: true };
+                    } else if (value < 0) {
+                        cell.font = { color: { argb: 'FFEF4444' }, bold: true };
+                    } else {
+                        cell.font = { color: { argb: 'FF374151' }, bold: true };
+                    }
+                }
+                // Alignment
+                cell.alignment = { vertical: 'middle', horizontal: colNumber <= 2 ? 'center' : 'right' };
+            });
+
+            // Freeze first row and first two columns
+            worksheet.views = [
+                { state: 'frozen', xSplit: 2, ySplit: 1 }
+            ];
+
+            // Generate and download file
+            const buffer = await workbook.xlsx.writeBuffer();
+            const blob = new Blob([buffer], { type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' });
+            const url = window.URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = 'fechamento_contas.xlsx';
+            a.click();
+            window.URL.revokeObjectURL(url);
+
+            showToast('Excel exportado com sucesso!', 'success');
+        } catch (error) {
+            console.error('Error during Excel export:', error);
+            showToast(`Erro ao exportar: ${error.message}`, 'error');
+        }
+    };
+
+    const handlePdfExport = async () => {
+        try {
+            showToast('Gerando PDF...', 'info');
+
+            // 1. Load jsPDF and AutoTable
+            if (!window.jspdf) {
+                await new Promise((resolve, reject) => {
+                    const script = document.createElement('script');
+                    script.src = 'https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js';
+                    script.onload = resolve;
+                    script.onerror = reject;
+                    document.head.appendChild(script);
+                });
+            }
+            if (!window.jspdf.jsPDF.API.autoTable) {
+                await new Promise((resolve, reject) => {
+                    const script = document.createElement('script');
+                    script.src = 'https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.5.31/jspdf.plugin.autotable.min.js';
+                    script.onload = resolve;
+                    script.onerror = reject;
+                    document.head.appendChild(script);
+                });
+            }
+
+            const { jsPDF } = window.jspdf;
+            const doc = new jsPDF({ orientation: 'landscape', unit: 'mm', format: 'a4' });
+
+            const columns = getColumnList();
+            const monthTotals = new Array(columns.length).fill(0);
+
+            // 2. Prepare Data and Calculate Widths
+            doc.setFontSize(8); // Set font size used in table to calc width correctly
+
+            // Helper to measure text with specific font style
+            const measureText = (text, isBold = false) => {
+                doc.setFont(undefined, isBold ? 'bold' : 'normal');
+                return doc.getTextWidth(String(text || ''));
+            };
+
+            // Initial max widths based on headers (Headers are Bold)
+            let maxEmpresaWidth = measureText('Empresa', true);
+            let maxContaWidth = measureText('Conta Bancária', true);
+
+            const maxColWidths = columns.map(d => measureText(formatDateHeader(d), true));
+
+            // Headers
+            const head = [[
+                'Empresa',
+                'Conta Bancária',
+                ...columns.map(d => formatDateHeader(d))
+            ]];
+
+            // Body
+            const body = [];
+            const companyGroups = {};
+            accounts.forEach(acc => {
+                if (!companyGroups[acc.company_id]) {
+                    companyGroups[acc.company_id] = { name: acc.company_name, accounts: [] };
+                }
+                companyGroups[acc.company_id].accounts.push(acc);
+            });
+
+            Object.values(companyGroups).forEach((group, gIdx) => {
+                group.accounts.forEach((acc, aIdx) => {
+                    const row = [];
+
+                    // Check max width for Empresa (Bold)
+                    if (acc.company_name) maxEmpresaWidth = Math.max(maxEmpresaWidth, measureText(acc.company_name, true));
+
+                    // Check max width for Conta (Normal)
+                    if (acc.name) maxContaWidth = Math.max(maxContaWidth, measureText(acc.name, false));
+
+                    // Col 0: Empresa (Only first row of group)
+                    if (aIdx === 0) {
+                        row.push({ content: group.name, rowSpan: group.accounts.length, styles: { valign: 'middle', fontStyle: 'bold' } });
+                    }
+
+                    // Col 1: Conta
+                    row.push(acc.name);
+
+                    // Data Cols
+                    let currentBalance = initialBalances[acc.id] || 0;
+                    columns.forEach((d, cIdx) => {
+                        let key = '';
+                        if (viewMode === 'monthly') {
+                            key = `${d.getFullYear()}-${(d.getMonth() + 1).toString().padStart(2, '0')}`;
+                        } else {
+                            const dd = d.getDate().toString().padStart(2, '0');
+                            const mm = (d.getMonth() + 1).toString().padStart(2, '0');
+                            key = `${d.getFullYear()}-${mm}-${dd}`;
+                        }
+
+                        const delta = (movementsData[acc.id] && movementsData[acc.id][key]) ? movementsData[acc.id][key] : 0;
+                        currentBalance += delta;
+
+                        if (monthTotals[cIdx] === undefined) monthTotals[cIdx] = 0;
+                        monthTotals[cIdx] += currentBalance;
+
+                        const valStr = formatCurrency(currentBalance);
+                        row.push({ content: valStr, styles: { halign: 'right' } });
+
+                        // Check max width for data col (Normal)
+                        maxColWidths[cIdx] = Math.max(maxColWidths[cIdx], measureText(valStr, false));
+                    });
+
+                    body.push(row);
+                });
+            });
+
+            // Total Row
+            const totalRow = [
+                { content: 'TOTAL', colSpan: 2, styles: { halign: 'center', fontStyle: 'bold', fillColor: [0, 66, 95], textColor: 255 } },
+                ...monthTotals.map((val, idx) => {
+                    const valStr = formatCurrency(val);
+                    // Totals are Bold
+                    maxColWidths[idx] = Math.max(maxColWidths[idx], measureText(valStr, true));
+
+                    return {
+                        content: valStr,
+                        styles: { fontStyle: 'bold', textColor: val >= 0 ? [16, 185, 129] : [239, 68, 68], halign: 'right' }
+                    };
+                })
+            ];
+            body.push(totalRow);
+
+            // Build columnStyles object dynamically with 20% buffer (1.2 multiplier)
+            const dynamicColStyles = {
+                0: { cellWidth: maxEmpresaWidth * 1.2, fillColor: [0, 66, 95], textColor: 255 },
+                1: { cellWidth: maxContaWidth * 1.2, fillColor: [0, 66, 95], textColor: 255 }
+            };
+
+            // Set data columns styles (width + right align)
+            maxColWidths.forEach((w, idx) => {
+                const colIndex = idx + 2; // Offset by 2 fixed columns
+                dynamicColStyles[colIndex] = {
+                    cellWidth: w * 1.2, // Exactly 20% buffer
+                    halign: 'right'
+                };
+            });
+
+            // Calculate Total Table Width
+            let totalTableWidth = 0;
+            Object.values(dynamicColStyles).forEach(style => {
+                totalTableWidth += style.cellWidth;
+            });
+
+            // Log for debugging
+            console.log('Total Table Width calculated:', totalTableWidth);
+
+            // 3. Generate Table
+            doc.autoTable({
+                head: head,
+                body: body,
+                theme: 'grid',
+                styles: {
+                    fontSize: 8,
+                    cellPadding: 1, // Reduced padding to fit more
+                },
+                tableWidth: totalTableWidth, // Force the total calculated width
+                margin: { top: 20, right: 10, bottom: 10, left: 10 }, // SAFE MARGINS (~1cm)
+                headStyles: {
+                    fillColor: [0, 66, 95],
+                    textColor: 255,
+                    fontStyle: 'bold',
+                    halign: 'center',
+                    valign: 'middle'
+                },
+                columnStyles: dynamicColStyles,
+                didParseCell: function (data) {
+                    // Colorize negative numbers in data cells (cols > 1 and not total row's special cells)
+                    if (data.section === 'body' && data.column.index > 1 && data.row.index < body.length - 1) {
+                        const text = data.cell.raw;
+                        if (typeof text === 'string' && text.includes('-R$')) {
+                            data.cell.styles.textColor = [239, 68, 68]; // Red
+                        } else if (typeof text === 'number' && text < 0) {
+                            data.cell.styles.textColor = [239, 68, 68];
+                        } else if (typeof text === 'string' && !text.includes('-') && text !== 'R$ 0,00') {
+                            data.cell.styles.textColor = [16, 185, 129]; // Green
+                        }
+                    }
+                },
+                startY: 20,
+                margin: { top: 20 },
+                didDrawPage: function (data) {
+                    // Header
+                    doc.setFontSize(14);
+                    doc.text('Fechamento de Contas', 14, 15);
+                    doc.setFontSize(10);
+                    const info = `Gerado em: ${new Date().toLocaleDateString()} - Visão: ${viewMode === 'monthly' ? 'Mensal' : 'Diária'}`;
+                    doc.text(info, data.settings.margin.left, 10);
+                },
+                horizontalPageBreak: true,
+                horizontalPageBreakRepeat: 2 // Repeat the first 2 columns (Empresa, Conta) on new pages
+            });
+
+            doc.save('fechamento_contas.pdf');
+            showToast('PDF gerado com sucesso!', 'success');
+
+        } catch (error) {
+            console.error('Error generating PDF:', error);
+            showToast('Erro ao gerar PDF', 'error');
+        }
+    };
+
     // --- Render Functions ---
 
     const renderControls = () => {
@@ -308,12 +780,14 @@ export const FechamentoContasManager = (project) => {
         btnExcel.id = 'btn-excel-fech';
         btnExcel.className = 'btn-outline';
         btnExcel.textContent = '📊 Excel';
+        btnExcel.onclick = handleExcelExport;
         exportDiv.appendChild(btnExcel);
 
         const btnPdf = document.createElement('button');
         btnPdf.id = 'btn-pdf-fech';
         btnPdf.className = 'btn-outline';
         btnPdf.textContent = '🖨️ PDF';
+        btnPdf.onclick = handlePdfExport;
         exportDiv.appendChild(btnPdf);
 
         controls.appendChild(exportDiv);
@@ -343,8 +817,18 @@ export const FechamentoContasManager = (project) => {
         const table = document.createElement('table');
         table.style.borderCollapse = 'separate'; // Important for sticky
         table.style.borderSpacing = '0';
-        table.style.width = 'max-content'; // Fit content, allowing it to be smaller than screen
+        table.style.width = '100%'; // Full width to respect fixed layout
+        table.style.tableLayout = 'fixed'; // STRICT LAYOUT
         table.style.fontSize = '0.85rem'; // Global smaller font for table
+
+        // Add global style for box-sizing in this table
+        const style = document.createElement('style');
+        style.innerHTML = `
+            #${container.id || 'fechamento-table'} table * {
+                box-sizing: border-box;
+            }
+        `;
+        table.appendChild(style);
 
         const columns = getColumnList();
 
@@ -363,25 +847,34 @@ export const FechamentoContasManager = (project) => {
         thCompany.textContent = 'Empresa';
         thCompany.style.position = 'sticky';
         thCompany.style.left = '0';
-        thCompany.style.zIndex = '101';
+        // thCompany.style.zIndex removed here, handled below
         thCompany.style.backgroundColor = '#00425F';
         thCompany.style.color = 'white';
         thCompany.style.padding = 'var(--header-padding)';
         thCompany.style.textAlign = 'left';
-        thCompany.style.width = '90px';
-        thCompany.style.minWidth = '90px';
-        thCompany.style.maxWidth = '90px';
+        thCompany.style.boxSizing = 'border-box';
+        thCompany.style.width = '200px';
+        thCompany.style.minWidth = '200px';
+        thCompany.style.maxWidth = '200px';
         thCompany.style.whiteSpace = 'nowrap';
+        thCompany.style.overflow = 'hidden';
+        thCompany.style.textOverflow = 'ellipsis';
         thCompany.style.borderBottom = '2px solid white';
         thCompany.style.borderRight = '2px solid white';
+
+        // Anti-Jitter / Hardware Acceleration
+        thCompany.style.transform = 'translateZ(0)';
+        thCompany.style.willChange = 'transform';
+        thCompany.style.zIndex = '50'; // Very high priority
+
         headerRow.appendChild(thCompany);
 
         // Fixed Account Column Header
         const thFixed = document.createElement('th');
         thFixed.textContent = 'Conta Bancária';
         thFixed.style.position = 'sticky';
-        thFixed.style.left = '90px'; // Offset by Empresa column width
-        thFixed.style.zIndex = '101';
+        thFixed.style.left = '200px'; // Offset by Empresa column width
+        // thFixed.style.zIndex removed here, handled below
         thFixed.style.backgroundColor = '#00425F';
         thFixed.style.color = 'white';
         thFixed.style.padding = 'var(--header-padding)';
@@ -390,6 +883,12 @@ export const FechamentoContasManager = (project) => {
         thFixed.style.whiteSpace = 'nowrap';
         thFixed.style.borderBottom = '2px solid white';
         thFixed.style.borderRight = '2px solid #00425F';
+
+        // Anti-Jitter
+        thFixed.style.transform = 'translateZ(0)';
+        thFixed.style.willChange = 'transform';
+        thFixed.style.zIndex = '40'; // Lower than Company
+
         headerRow.appendChild(thFixed);
 
         // Month Columns Headers
@@ -447,13 +946,25 @@ export const FechamentoContasManager = (project) => {
                     tdCompany.style.backgroundColor = '#00425F';
                     tdCompany.style.color = 'white';
                     tdCompany.style.fontWeight = '600';
-                    tdCompany.style.zIndex = '10';
+                    // tdCompany.style.zIndex removed here, handled below
+                    tdCompany.style.boxSizing = 'border-box';
                     tdCompany.style.padding = 'var(--header-padding)';
                     tdCompany.style.textAlign = 'left';
                     tdCompany.style.borderBottom = '2px solid white';
                     tdCompany.style.borderRight = '2px solid white';
+                    tdCompany.style.width = '200px';
+                    tdCompany.style.minWidth = '200px';
+                    tdCompany.style.maxWidth = '200px'; // Enforce limit
                     tdCompany.style.whiteSpace = 'nowrap';
+                    tdCompany.style.overflow = 'hidden';
+                    tdCompany.style.textOverflow = 'ellipsis';
                     tdCompany.style.verticalAlign = 'middle';
+
+                    // Anti-Jitter
+                    tdCompany.style.transform = 'translateZ(0)';
+                    tdCompany.style.willChange = 'transform';
+                    tdCompany.style.zIndex = '30';
+
                     tr.appendChild(tdCompany);
                 }
 
@@ -461,7 +972,7 @@ export const FechamentoContasManager = (project) => {
                 const tdFixed = document.createElement('td');
                 tdFixed.textContent = acc.name;
                 tdFixed.style.position = 'sticky';
-                tdFixed.style.left = '90px'; // Offset by company column width
+                tdFixed.style.left = '200px'; // Offset by company column width
                 tdFixed.style.backgroundColor = '#00425F';
                 tdFixed.style.color = 'white';
                 tdFixed.style.fontWeight = '500';
@@ -471,6 +982,12 @@ export const FechamentoContasManager = (project) => {
                 tdFixed.style.borderBottom = '2px solid white';
                 tdFixed.style.borderRight = '2px solid #00425F';
                 tdFixed.style.whiteSpace = 'nowrap';
+
+                // Anti-Jitter
+                tdFixed.style.transform = 'translateZ(0)';
+                tdFixed.style.willChange = 'transform';
+                tdFixed.style.zIndex = '20';
+
                 tr.appendChild(tdFixed);
 
                 // Calculation Logic
@@ -531,7 +1048,7 @@ export const FechamentoContasManager = (project) => {
         const tdTotalEmpresa = document.createElement('td');
         tdTotalEmpresa.style.position = 'sticky';
         tdTotalEmpresa.style.left = '0';
-        tdTotalEmpresa.style.zIndex = '10';
+        tdTotalEmpresa.style.zIndex = '12'; // Higher than Label
         tdTotalEmpresa.style.backgroundColor = '#00425F';
         tdTotalEmpresa.style.borderTop = '2px solid #00425F';
         trTotal.appendChild(tdTotalEmpresa);
@@ -540,7 +1057,7 @@ export const FechamentoContasManager = (project) => {
         const tdTotalLabel = document.createElement('td');
         tdTotalLabel.textContent = 'TOTAL';
         tdTotalLabel.style.position = 'sticky';
-        tdTotalLabel.style.left = '90px';
+        tdTotalLabel.style.left = '200px';
         tdTotalLabel.style.backgroundColor = '#00425F';
         tdTotalLabel.style.color = 'white';
         tdTotalLabel.style.zIndex = '11';
@@ -684,498 +1201,6 @@ export const FechamentoContasManager = (project) => {
     renderHeader();
     const controlsElement = renderControls();
     container.appendChild(controlsElement);
-
-    // Export Handlers
-    setTimeout(() => {
-        const btnExcel = container.querySelector('#btn-excel-fech');
-        const btnPdf = container.querySelector('#btn-pdf-fech');
-
-        if (btnExcel) {
-            btnExcel.onclick = async () => {
-                try {
-                    if (accounts.length === 0) {
-                        showToast('Sem dados para exportar', 'warning');
-                        return;
-                    }
-
-                    // Load ExcelJS if not already loaded
-                    if (!window.ExcelJS) {
-                        const script = document.createElement('script');
-                        script.src = 'https://cdn.jsdelivr.net/npm/exceljs@4.3.0/dist/exceljs.min.js';
-                        await new Promise((resolve, reject) => {
-                            script.onload = resolve;
-                            script.onerror = reject;
-                            document.head.appendChild(script);
-                        });
-                    }
-
-                    const workbook = new window.ExcelJS.Workbook();
-                    const worksheet = workbook.addWorksheet('Fechamento de Contas');
-
-                    const columns = getColumnList();
-
-                    // Group accounts by company
-                    const companyGroups = {};
-                    accounts.forEach(acc => {
-                        if (!companyGroups[acc.company_id]) {
-                            companyGroups[acc.company_id] = {
-                                company_name: acc.company_name,
-                                accounts: []
-                            };
-                        }
-                        companyGroups[acc.company_id].accounts.push(acc);
-                    });
-
-                    // Calculate max widths
-                    let maxEmpresaLen = 10;
-                    let maxContaLen = 15;
-                    const maxColLens = new Array(columns.length).fill(12); // Min width for data columns
-
-                    const safeLength = (str) => (str ? str.toString().length : 0);
-
-                    accounts.forEach(acc => {
-                        // Check Company Name
-                        if (acc.company_name) maxEmpresaLen = Math.max(maxEmpresaLen, safeLength(acc.company_name));
-                        // Check Account Name
-                        if (acc.name) maxContaLen = Math.max(maxContaLen, safeLength(acc.name));
-
-                        // Check Data Values
-                        let currentBalance = initialBalances[acc.id] || 0;
-                        columns.forEach((colDate, colIndex) => {
-                            let key = '';
-                            if (viewMode === 'monthly') {
-                                key = `${colDate.getFullYear()}-${(colDate.getMonth() + 1).toString().padStart(2, '0')}`;
-                            } else {
-                                const d = colDate.getDate().toString().padStart(2, '0');
-                                const m = (colDate.getMonth() + 1).toString().padStart(2, '0');
-                                key = `${colDate.getFullYear()}-${m}-${d}`;
-                            }
-                            const delta = (movementsData[acc.id] && movementsData[acc.id][key]) ? movementsData[acc.id][key] : 0;
-                            currentBalance += delta;
-
-                            const formattedVal = formatCurrency(currentBalance);
-                            maxColLens[colIndex] = Math.max(maxColLens[colIndex], safeLength(formattedVal));
-                        });
-                    });
-
-                    // Define columns with DYNAMIC widths (20% buffer)
-                    worksheet.columns = [
-                        { header: 'Empresa', key: 'empresa', width: maxEmpresaLen * 1.2 },
-                        { header: 'Conta Bancária', key: 'conta', width: maxContaLen * 1.2 },
-                        ...columns.map((d, idx) => ({
-                            header: formatDateHeader(d),
-                            key: `col_${d.getTime()}`,
-                            width: maxColLens[idx] * 1.2
-                        }))
-                    ];
-
-                    // Style header row
-                    const headerRow = worksheet.getRow(1);
-                    headerRow.font = { bold: true, color: { argb: 'FFFFFFFF' } };
-                    headerRow.fill = {
-                        type: 'pattern',
-                        pattern: 'solid',
-                        fgColor: { argb: 'FF00425F' }
-                    };
-                    headerRow.alignment = { vertical: 'middle', horizontal: 'center' };
-                    headerRow.height = 25;
-
-                    let currentRow = 2;
-                    const monthTotals = new Array(columns.length).fill(0);
-
-                    // Add data rows grouped by company
-                    Object.values(companyGroups).forEach((group, groupIndex) => {
-                        const startRow = currentRow;
-                        const isEvenGroup = groupIndex % 2 === 0;
-
-                        group.accounts.forEach((acc, accIndex) => {
-                            const row = worksheet.getRow(currentRow);
-                            const rowData = { empresa: group.company_name, conta: acc.name };
-
-                            let currentBalance = initialBalances[acc.id] || 0;
-
-                            columns.forEach((colDate, colIndex) => {
-                                let key = '';
-                                if (viewMode === 'monthly') {
-                                    key = `${colDate.getFullYear()}-${(colDate.getMonth() + 1).toString().padStart(2, '0')}`;
-                                } else {
-                                    const d = colDate.getDate().toString().padStart(2, '0');
-                                    const m = (colDate.getMonth() + 1).toString().padStart(2, '0');
-                                    key = `${colDate.getFullYear()}-${m}-${d}`;
-                                }
-
-                                const delta = (movementsData[acc.id] && movementsData[acc.id][key])
-                                    ? movementsData[acc.id][key]
-                                    : 0;
-                                currentBalance += delta;
-                                if (monthTotals[colIndex] === undefined) monthTotals[colIndex] = 0;
-                                monthTotals[colIndex] += currentBalance;
-                                rowData[`col_${colDate.getTime()}`] = currentBalance;
-                            });
-
-                            row.values = rowData;
-
-                            // Alternating row colors (white and light gray)
-                            const bgColor = isEvenGroup ? 'FFFFFFFF' : 'FFF8FAFC';
-                            row.eachCell({ includeEmpty: true }, (cell, colNumber) => {
-                                cell.fill = {
-                                    type: 'pattern',
-                                    pattern: 'solid',
-                                    fgColor: { argb: bgColor }
-                                };
-
-                                // Company and Account columns: dark blue background, white text
-                                if (colNumber <= 2) {
-                                    cell.fill = {
-                                        type: 'pattern',
-                                        pattern: 'solid',
-                                        fgColor: { argb: 'FF00425F' }
-                                    };
-                                    cell.font = { color: { argb: 'FFFFFFFF' }, bold: colNumber === 1 };
-
-                                    // BORDERS: Match screen logic
-                                    // Col 1 (Empresa) -> Right White
-                                    // Col 2 (Conta) -> Right Blue #00425F (to fix "dente") - but here background is already blue, so border color doesn't matter unless it's contrasting.
-                                    // Actually, in Excel, if bg is blue, blue border is invisible. 
-                                    // But we need the separator. The screen uses white borders for headers/fixed columns.
-                                    // EXCEPT the rightmost border of fixed columns which pushes against the scrollable area.
-                                    // Screen Logic Update (from Step 1743):
-                                    // Header/Data Fixed Col 2: borderRight = '2px solid #00425F' (Blue)
-                                    // Since cell bg is blue, we need a way to distinguish? No, on screen fixed cols are blue.
-                                    // Wait, on screen fixed cols are blue BG, white text.
-                                    // The border separates Fixed Col 2 from Scrollable Col 1.
-                                    // Scrollable Col 1 has white BG.
-                                    // So a Blue border on Fixed Col 2 merges with Fixed Col 2 BG?
-                                    // Or does Col 3 have a border?
-                                    // Let's stick effectively to what looks like the screen.
-                                    // Screen: Blue BG. Next col: White/Gray BG. 
-                                    // If border is Blue, it blends with Col 2. Visual effect: No border between Col 2 and 3?
-
-                                    const borderStyle = { style: 'thin', color: { argb: 'FFFFFFFF' } }; // White default
-                                    // Special case: Col 2 Right Border needs to be Blue to match screen fix?
-                                    // If BG is Blue, Blue border is invisible. 
-                                    // Maybe the screen "Blue Border" was effectively REMOVING the white border that was there?
-                                    // PROPOSAL: Set Right Border of Col 2 to match neighboring cell BG (White/Gray) or just standard Blue?
-                                    // Retaining White border to match standard internal borders.
-
-                                    cell.border = {
-                                        bottom: borderStyle,
-                                        right: borderStyle
-                                    };
-
-                                    // FIX: If colNumber === 2 (Conta), remove right white border to simulate the "dente" fix?
-                                    // Or make it same color as header/data? 
-                                    // Let's stick effectively to what looks like the screen.
-                                    // Screen: Blue BG. Next col: White/Gray BG. 
-                                    // If border is Blue, it blends with Col 2. Visual effect: No border between Col 2 and 3?
-                                    // Or does Col 3 have a border?
-                                    if (colNumber === 2) {
-                                        // Use blue border to match screen fix
-                                        cell.border = {
-                                            bottom: borderStyle,
-                                            right: { style: 'medium', color: { argb: 'FF00425F' } }
-                                        };
-                                    }
-                                } else {
-                                    // Data columns: currency formatting and color based on value
-                                    cell.numFmt = 'R$ #,##0.00;[Red]-R$ #,##0.00';
-                                    const value = cell.value;
-
-                                    // Text Color
-                                    if (value > 0) {
-                                        cell.font = { color: { argb: 'FF10B981' } };
-                                    } else if (value < 0) {
-                                        cell.font = { color: { argb: 'FFEF4444' } };
-                                    } else {
-                                        cell.font = { color: { argb: 'FF9CA3AF' } }; // Gray for zero
-                                    }
-
-                                    // Borders for month cells (standard gray grid)
-                                    cell.border = {
-                                        bottom: { style: 'thin', color: { argb: 'FFE2E8F0' } }, // slate-200
-                                        right: { style: 'thin', color: { argb: 'FFE2E8F0' } }
-                                    };
-                                }
-
-                                cell.alignment = { vertical: 'middle', horizontal: colNumber <= 2 ? 'left' : 'right' };
-                            });
-
-                            currentRow++;
-                        });
-
-                        // Merge company cells
-                        if (group.accounts.length > 1) {
-                            worksheet.mergeCells(`A${startRow}:A${currentRow - 1}`);
-                            const mergedCell = worksheet.getCell(`A${startRow}`);
-                            mergedCell.alignment = { vertical: 'middle', horizontal: 'left' };
-                        }
-                    });
-
-                    // Add TOTAL row
-                    const totalRow = worksheet.getRow(currentRow);
-                    const totalData = { empresa: 'TOTAL', conta: '' };
-                    columns.forEach((d, idx) => {
-                        totalData[`col_${d.getTime()}`] = monthTotals[idx];
-                    });
-                    totalRow.values = totalData;
-
-                    // Merge TOTAL cells for empresa and conta
-                    worksheet.mergeCells(`A${currentRow}:B${currentRow}`);
-                    const totalMergedCell = worksheet.getCell(`A${currentRow}`);
-                    totalMergedCell.value = 'TOTAL';
-                    totalMergedCell.alignment = { vertical: 'middle', horizontal: 'center' };
-
-                    // Style TOTAL Row - Match Screen exactly
-                    // Label (Merged A-B): Dark Blue BG, White Text
-                    totalMergedCell.fill = {
-                        type: 'pattern',
-                        pattern: 'solid',
-                        fgColor: { argb: 'FF00425F' }
-                    };
-                    totalMergedCell.font = { color: { argb: 'FFFFFFFF' }, bold: true };
-                    totalMergedCell.border = {
-                        right: { style: 'medium', color: { argb: 'FF00425F' } } // Match the "dente" fix
-                    };
-
-                    // Values (Month Cols): Gray BG (#E2E8F0), Top Border (#CBD5E1)
-                    totalRow.eachCell({ includeEmpty: true }, (cell, colNumber) => {
-                        if (colNumber > 2) {
-                            cell.fill = {
-                                type: 'pattern',
-                                pattern: 'solid',
-                                fgColor: { argb: 'FFE2E8F0' }
-                            };
-                            cell.border = {
-                                top: { style: 'medium', color: { argb: 'FFCBD5E1' } }
-                            };
-
-                            cell.numFmt = 'R$ #,##0.00;[Red]-R$ #,##0.00';
-                            const value = cell.value;
-                            if (value > 0) {
-                                cell.font = { color: { argb: 'FF10B981' }, bold: true };
-                            } else if (value < 0) {
-                                cell.font = { color: { argb: 'FFEF4444' }, bold: true };
-                            } else {
-                                cell.font = { color: { argb: 'FF374151' }, bold: true };
-                            }
-                        }
-                        // Alignment
-                        cell.alignment = { vertical: 'middle', horizontal: colNumber <= 2 ? 'center' : 'right' };
-                    });
-
-                    // Freeze first row and first two columns
-                    worksheet.views = [
-                        { state: 'frozen', xSplit: 2, ySplit: 1 }
-                    ];
-
-                    // Generate and download file
-                    const buffer = await workbook.xlsx.writeBuffer();
-                    const blob = new Blob([buffer], { type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' });
-                    const url = window.URL.createObjectURL(blob);
-                    const a = document.createElement('a');
-                    a.href = url;
-                    a.download = 'fechamento_contas.xlsx';
-                    a.click();
-                    window.URL.revokeObjectURL(url);
-
-                    showToast('Excel exportado com sucesso!', 'success');
-                } catch (error) {
-                    console.error('Error during Excel export:', error);
-                    showToast(`Erro ao exportar: ${error.message}`, 'error');
-                }
-            };
-        }
-
-        if (btnPdf) {
-            btnPdf.onclick = async () => {
-                try {
-                    showToast('Gerando PDF...', 'info');
-
-                    // 1. Load jsPDF and AutoTable
-                    if (!window.jspdf) {
-                        await new Promise((resolve, reject) => {
-                            const script = document.createElement('script');
-                            script.src = 'https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js';
-                            script.onload = resolve;
-                            script.onerror = reject;
-                            document.head.appendChild(script);
-                        });
-                    }
-                    if (!window.jspdf.jsPDF.API.autoTable) {
-                        await new Promise((resolve, reject) => {
-                            const script = document.createElement('script');
-                            script.src = 'https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.5.31/jspdf.plugin.autotable.min.js';
-                            script.onload = resolve;
-                            script.onerror = reject;
-                            document.head.appendChild(script);
-                        });
-                    }
-
-                    const { jsPDF } = window.jspdf;
-                    const doc = new jsPDF({ orientation: 'landscape' });
-
-                    const columns = getColumnList();
-                    const monthTotals = new Array(columns.length).fill(0);
-
-                    // 2. Prepare Data and Calculate Widths
-                    doc.setFontSize(8); // Set font size used in table to calc width correctly
-
-                    const safeLength = (str) => {
-                        return doc.getTextWidth(String(str || ''));
-                    };
-
-                    // Initial max widths based on headers
-                    let maxEmpresaWidth = safeLength('Empresa');
-                    let maxContaWidth = safeLength('Conta Bancária');
-                    const maxColWidths = columns.map(d => safeLength(formatDateHeader(d)));
-
-                    // Headers
-                    const head = [[
-                        'Empresa',
-                        'Conta Bancária',
-                        ...columns.map(d => formatDateHeader(d))
-                    ]];
-
-                    // Body
-                    const body = [];
-                    const companyGroups = {};
-                    accounts.forEach(acc => {
-                        if (!companyGroups[acc.company_id]) {
-                            companyGroups[acc.company_id] = { name: acc.company_name, accounts: [] };
-                        }
-                        companyGroups[acc.company_id].accounts.push(acc);
-                    });
-
-                    Object.values(companyGroups).forEach((group, gIdx) => {
-                        group.accounts.forEach((acc, aIdx) => {
-                            const row = [];
-
-                            // Check max width for fixed cols
-                            if (acc.company_name) maxEmpresaWidth = Math.max(maxEmpresaWidth, safeLength(acc.company_name));
-                            if (acc.name) maxContaWidth = Math.max(maxContaWidth, safeLength(acc.name));
-
-                            // Col 0: Empresa (Only first row of group)
-                            if (aIdx === 0) {
-                                row.push({ content: group.name, rowSpan: group.accounts.length, styles: { valign: 'middle', fontStyle: 'bold' } });
-                            }
-
-                            // Col 1: Conta
-                            row.push(acc.name);
-
-                            // Data Cols
-                            let currentBalance = initialBalances[acc.id] || 0;
-                            columns.forEach((d, cIdx) => {
-                                let key = '';
-                                if (viewMode === 'monthly') {
-                                    key = `${d.getFullYear()}-${(d.getMonth() + 1).toString().padStart(2, '0')}`;
-                                } else {
-                                    const dd = d.getDate().toString().padStart(2, '0');
-                                    const mm = (d.getMonth() + 1).toString().padStart(2, '0');
-                                    key = `${d.getFullYear()}-${mm}-${dd}`;
-                                }
-
-                                const delta = (movementsData[acc.id] && movementsData[acc.id][key]) ? movementsData[acc.id][key] : 0;
-                                currentBalance += delta;
-
-                                if (monthTotals[cIdx] === undefined) monthTotals[cIdx] = 0;
-                                monthTotals[cIdx] += currentBalance;
-
-                                const valStr = formatCurrency(currentBalance);
-                                row.push({ content: valStr, styles: { halign: 'right' } });
-
-                                // Check max width for data col
-                                maxColWidths[cIdx] = Math.max(maxColWidths[cIdx], safeLength(valStr));
-                            });
-
-                            body.push(row);
-                        });
-                    });
-
-                    // Total Row
-                    const totalRow = [
-                        { content: 'TOTAL', colSpan: 2, styles: { halign: 'center', fontStyle: 'bold', fillColor: [0, 66, 95], textColor: 255 } },
-                        ...monthTotals.map((val, idx) => {
-                            const valStr = formatCurrency(val);
-                            // check max width for total row too
-                            maxColWidths[idx] = Math.max(maxColWidths[idx], safeLength(valStr));
-
-                            return {
-                                content: valStr,
-                                styles: { fontStyle: 'bold', textColor: val >= 0 ? [16, 185, 129] : [239, 68, 68], halign: 'right' }
-                            };
-                        })
-                    ];
-                    body.push(totalRow);
-
-                    // Build columnStyles object dynamically
-                    const dynamicColStyles = {
-                        0: { cellWidth: maxEmpresaWidth * 1.25, fillColor: [0, 66, 95], textColor: 255 },
-                        1: { cellWidth: maxContaWidth * 1.25, fillColor: [0, 66, 95], textColor: 255 }
-                    };
-
-                    // Set data columns styles (width + right align)
-                    maxColWidths.forEach((w, idx) => {
-                        const colIndex = idx + 2; // Offset by 2 fixed columns
-                        dynamicColStyles[colIndex] = {
-                            cellWidth: w * 1.25 + 5, // 25% buffer + padding
-                            halign: 'right'
-                        };
-                    });
-
-                    // 3. Generate Table
-                    doc.autoTable({
-                        head: head,
-                        body: body,
-                        theme: 'grid',
-                        styles: {
-                            fontSize: 8,
-                            cellPadding: 2,
-                        },
-                        headStyles: {
-                            fillColor: [0, 66, 95],
-                            textColor: 255,
-                            fontStyle: 'bold',
-                            halign: 'center',
-                            valign: 'middle'
-                        },
-                        columnStyles: dynamicColStyles,
-                        didParseCell: function (data) {
-                            // Colorize negative numbers in data cells (cols > 1 and not total row's special cells)
-                            if (data.section === 'body' && data.column.index > 1 && data.row.index < body.length - 1) {
-                                // We are parsing formatted strings "R$ ...", so we need check text
-                                const text = data.cell.raw;
-                                if (typeof text === 'string' && text.includes('-R$')) {
-                                    data.cell.styles.textColor = [239, 68, 68]; // Red
-                                } else if (typeof text === 'number' && text < 0) {
-                                    data.cell.styles.textColor = [239, 68, 68];
-                                } else if (typeof text === 'string' && !text.includes('-') && text !== 'R$ 0,00') {
-                                    // Green? User prompt didn't specify green for PDF but Excel has it. Let's add it.
-                                    data.cell.styles.textColor = [16, 185, 129];
-                                }
-                            }
-                        },
-                        startY: 20,
-                        margin: { top: 20 },
-                        didDrawPage: function (data) {
-                            // Header
-                            doc.setFontSize(14);
-                            doc.text('Fechamento de Contas', 14, 15);
-                            doc.setFontSize(10);
-                            const info = `Gerado em: ${new Date().toLocaleDateString()} - Visão: ${viewMode === 'monthly' ? 'Mensal' : 'Diária'}`;
-                            doc.text(info, data.settings.margin.left, 10);
-                        }
-                    });
-
-                    doc.save('fechamento_contas.pdf');
-                    showToast('PDF gerado com sucesso!', 'success');
-
-                } catch (error) {
-                    console.error('Error generating PDF:', error);
-                    showToast('Erro ao gerar PDF', 'error');
-                }
-            };
-        }
-    }, 100);
 
     // Load initial data
     loadData();

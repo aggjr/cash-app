@@ -175,28 +175,54 @@ export const ConsolidadasManager = (project, fixedViewType = null) => {
 
     const adjustStickyColumns = () => {
         const tablesWrapper = container.querySelector('#consolidadas-tables-wrapper');
-        const tables = tablesWrapper.querySelectorAll('table');
+        const tables = Array.from(tablesWrapper.querySelectorAll('table'));
+        if (tables.length === 0) return;
 
+        // 1. Identify all column keys from the first table
+        const keys = Array.from(tables[0].querySelectorAll('th[data-key]')).map(th => th.dataset.key);
+
+        // 2. Variables to store global max widths for sticky calculations
+        let globalLabelWidth = 0;
+        let globalAvgWidth = 0;
+
+        // 3. Iterate each column key
+        keys.forEach(key => {
+            let maxContentWidth = 0;
+
+            // Measure phase: Check ALL elements (th and td) across ALL tables for this key
+            // We select directly from container to catch everything at once
+            const elements = Array.from(container.querySelectorAll(`[data-key="${key}"]`));
+
+            elements.forEach(el => {
+                maxContentWidth = Math.max(maxContentWidth, el.scrollWidth);
+            });
+
+            // Apply 20% buffer as requested
+            const idealWidth = Math.ceil(maxContentWidth * 1.2);
+
+            // Capture specific widths for sticky offsets
+            if (key === 'label') globalLabelWidth = idealWidth;
+            if (key === 'average') globalAvgWidth = idealWidth;
+
+            // Apply phase: Force this ideal width on ALL TH elements for this key
+            tables.forEach(table => {
+                const th = table.querySelector(`th[data-key="${key}"]`);
+                if (th) {
+                    th.style.width = `${idealWidth}px`;
+                    th.style.minWidth = `${idealWidth}px`;
+                    th.style.maxWidth = `${idealWidth}px`;
+                }
+            });
+        });
+
+        // 4. Update CSS Variables for Sticky Positioning on ALL tables
         tables.forEach(table => {
-            // Find max width of first column
-            // We can't trust the TH width alone if it's auto.
-            // But table layout auto should handle it?
-            // Let's measure the first TH.
-            const firstTh = table.querySelector('th.js-col-name');
-            if (firstTh) {
-                const w1 = firstTh.getBoundingClientRect().width;
-                table.style.setProperty('--c1-width', `${w1}px`);
-
-                // Measure Média column (2nd th)
-                // We use nth-child(2) because first is Name, second is Media, third is Total
-                const mediaTh = table.querySelector('thead tr:nth-child(2) th:nth-child(2)');
-                const avgWidth = mediaTh ? mediaTh.getBoundingClientRect().width : 140;
-
-                table.style.setProperty('--c2-left', `${w1}px`);
-                table.style.setProperty('--c3-left', `${w1 + avgWidth}px`);
-            }
+            table.style.setProperty('--c2-left', `${globalLabelWidth}px`);
+            table.style.setProperty('--c3-left', `${globalLabelWidth + globalAvgWidth}px`);
         });
     };
+
+
 
     // --- Reusable Logic to Create Table Element ---
     const createTableHTML = (data, title) => {
@@ -262,7 +288,7 @@ export const ConsolidadasManager = (project, fixedViewType = null) => {
                     if (Math.abs(val) > tolerance) {
                         displayVal = node.isPercentage ? formatPercent(val) : formatCurrency(val);
                     }
-                    monthCells += `<td style="padding: 0.35rem 0.5rem; text-align: right; border-bottom: 1px solid #f3f4f6; color: ${color}; font-weight: 600; font-size: ${fontSize}; white-space: nowrap;">${displayVal}</td>`;
+                    monthCells += `<td data-key="${m}" style="padding: 0.35rem 0.5rem; text-align: right; border-bottom: 1px solid #f3f4f6; color: ${color}; font-weight: 600; font-size: ${fontSize}; white-space: nowrap;">${displayVal}</td>`;
                 });
 
                 // Total
@@ -290,7 +316,7 @@ export const ConsolidadasManager = (project, fixedViewType = null) => {
                 if (Math.abs(node.total) > totalTol) {
                     displayTotal = node.isPercentage ? formatPercent(node.total) : formatCurrency(node.total);
                 }
-                const totalCell = `<td style="padding: 0.35rem 0.5rem; text-align: right; border-bottom: 1px solid #d1d5db; font-weight: bold; color: ${totalColor}; font-size: ${fontSize}; position: sticky; left: var(--c3-left, 460px); background-color: #f3f4f6; z-index: 1; white-space: nowrap;">${displayTotal}</td>`;
+                const totalCell = `<td data-key="total" style="padding: 0.35rem 0.5rem; text-align: right; border-bottom: 1px solid #d1d5db; font-weight: bold; color: ${totalColor}; font-size: ${fontSize}; position: sticky; left: var(--c3-left, 460px); background-color: #f3f4f6; z-index: 1; white-space: nowrap;">${displayTotal}</td>`;
 
                 // Average
                 let average = 0;
@@ -305,11 +331,11 @@ export const ConsolidadasManager = (project, fixedViewType = null) => {
                 if (Math.abs(average) > totalTol) {
                     displayAvg = node.isPercentage ? formatPercent(average) : formatCurrency(average);
                 }
-                const averageCell = `<td style="padding: 0.35rem 0.5rem; text-align: right; border-bottom: 1px solid #d1d5db; font-weight: bold; color: ${totalColor}; font-size: ${fontSize}; position: sticky; left: var(--c2-left, 320px); background-color: #f3f4f6; z-index: 1; white-space: nowrap;">${displayAvg}</td>`;
+                const averageCell = `<td data-key="average" style="padding: 0.35rem 0.5rem; text-align: right; border-bottom: 1px solid #d1d5db; font-weight: bold; color: ${totalColor}; font-size: ${fontSize}; position: sticky; left: var(--c2-left, 320px); background-color: #f3f4f6; z-index: 1; white-space: nowrap;">${displayAvg}</td>`;
 
                 rowsHtml += `
                     <tr class="${rowClass}" data-id="${node.id}" style="background-color: ${rowBg}; cursor: ${hasChildren ? 'pointer' : 'default'};">
-                        <td class="js-col-name" style="padding: 0.35rem 0.25rem 0.35rem ${paddingLeft}rem; border-bottom: 1px solid #f3f4f6; font-weight: ${fontWeight}; font-size: ${fontSize}; display: flex; align-items: center; gap: 0.5rem; position: sticky; left: 0; background-color: ${rowBg}; z-index: 1; width: auto; white-space: nowrap;" title="${node.name}">
+                        <td class="js-col-name" data-key="label" style="padding: 0.35rem 0.25rem 0.35rem ${paddingLeft}rem; border-bottom: 1px solid #f3f4f6; font-weight: ${fontWeight}; font-size: ${fontSize}; display: flex; align-items: center; gap: 0.5rem; position: sticky; left: 0; background-color: ${rowBg}; z-index: 1; width: auto; white-space: nowrap;" title="${node.name}">
                             ${hasChildren ? `<span style="font-size: 0.8rem; transform: rotate(${isExpanded ? '90deg' : '0deg'}); transition: transform 0.2s;">▶</span>` : ''}
                             ${node.name}
                         </td>
@@ -335,14 +361,14 @@ export const ConsolidadasManager = (project, fixedViewType = null) => {
                     </th>
                 </tr>
                 <tr>
-                    <th class="js-col-name" style="padding: 0.4rem 0.5rem; text-align: left; border-bottom: 2px solid #e5e7eb; min-width: 227px; width: 227px; position: sticky; left: 0; z-index: 11; background-color: #00425F; white-space: nowrap;"></th>
-                    <th style="padding: 0.4rem 0.5rem; text-align: center; border-bottom: 2px solid #e5e7eb; width: 120px; position: sticky; left: var(--c2-left, 320px); z-index: 11; background-color: #4B5563; color: white; white-space: nowrap; font-size: var(--text-table-title);">Média</th>
-                    <th style="padding: 0.4rem 0.5rem; text-align: center; border-bottom: 2px solid #e5e7eb; width: 120px; position: sticky; left: var(--c3-left, 460px); z-index: 11; background-color: #374151; color: white; white-space: nowrap; font-size: var(--text-table-title);">Total</th>
+                    <th class="js-col-name" data-key="label" style="padding: 0.4rem 0.5rem; text-align: left; border-bottom: 2px solid #e5e7eb; min-width: 227px; width: 227px; position: sticky; left: 0; z-index: 11; background-color: #00425F; white-space: nowrap;"></th>
+                    <th data-key="average" style="padding: 0.4rem 0.5rem; text-align: center; border-bottom: 2px solid #e5e7eb; width: 120px; position: sticky; left: var(--c2-left, 320px); z-index: 11; background-color: #4B5563; color: white; white-space: nowrap; font-size: var(--text-table-title);">Média</th>
+                    <th data-key="total" style="padding: 0.4rem 0.5rem; text-align: center; border-bottom: 2px solid #e5e7eb; width: 120px; position: sticky; left: var(--c3-left, 460px); z-index: 11; background-color: #374151; color: white; white-space: nowrap; font-size: var(--text-table-title);">Total</th>
                     ${months.map(m => {
             const [y, mo] = m.split('-');
             // User Request: Smallest possible width (fit content). Removed min-width: 120px.
             // Reduced padding to 0.5rem (all sides) to tighten height.
-            return `<th style="padding: 0.4rem 0.5rem; text-align: center; border-bottom: 2px solid #e5e7eb; white-space: nowrap; font-size: var(--text-table-title);">${mo}/${y}</th>`;
+            return `<th data-key="${m}" style="padding: 0.4rem 0.5rem; text-align: center; border-bottom: 2px solid #e5e7eb; white-space: nowrap; font-size: var(--text-table-title);">${mo}/${y}</th>`;
         }).join('')}
                 </tr>
             </thead>
