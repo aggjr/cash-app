@@ -1,5 +1,6 @@
 const { loadPrompt, savePrompt, listPrompts } = require('../services/promptLoader');
-const IvaContextBuilderQdrant = require('../services/IvaContextBuilderQdrant');
+const QdrantKnowledgeService = require('../services/QdrantKnowledgeService');
+// REMOVED: IvaContextBuilderQdrant - deleted in refactor
 const IvaUserPreferences = require('../services/IvaUserPreferences');
 const db = require('../config/database');
 
