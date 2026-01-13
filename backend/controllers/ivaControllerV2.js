@@ -612,7 +612,7 @@ Siga rigorosamente as INSTRUÇÕES DE FLUXO DE EXECUÇÃO E DESCOBERTA enviadas 
                 function_call: 'auto'
             }),
             new Promise((_, reject) =>
-                setTimeout(() => reject(new Error('OpenAI request timeout (60s)')), 60000)
+                setTimeout(() => reject(new Error('OpenAI request timeout (120s)')), 120000)
             )
         ]);
 
