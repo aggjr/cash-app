@@ -787,7 +787,26 @@ Siga rigorosamente as INSTRUÇÕES DE FLUXO DE EXECUÇÃO E DESCOBERTA enviadas 
                 defaultMessage = `Combinado! Vou te chamar de ${args.name} a partir de agora.`;
                 userUpdates = { preferred_name: args.name };
             } else if (functionCall.name === 'contribute_knowledge') {
-                defaultMessage = 'Conhecimento registrado! 🧠 Ele passará por uma validação antes de entrar na base definitiva. Posso te ajudar com mais alguma coisa?';
+                try {
+                    const args = JSON.parse(functionCall.arguments);
+                    console.log('[IVA Backend] Executing contribute_knowledge:', args);
+
+                    // Execute valid contribution
+                    await IvaGlobalKnowledge.contribute('custom_rules', {
+                        description: args.description || args.rule || args.content || 'Regra indefinida',
+                        screen_id: args.screen_id || null
+                    }, {
+                        userId: user.id,
+                        userName: user.name,
+                        scope: args.scope || 'USER', // Default to USER to be safe
+                        projectId: context.projectId
+                    });
+
+                    defaultMessage = 'Entendi. Informação processada e aprendida! ✅ Vou utilizá-la agora.';
+                } catch (e) {
+                    console.error('[IVA Backend] Error executing contribute_knowledge:', e);
+                    defaultMessage = 'Tentei salvar o conhecimento mas houve um erro. No entanto, entendi sua instrução.';
+                }
             } else if (functionCall.name === 'save_voice_settings') {
                 const args = JSON.parse(functionCall.arguments);
                 defaultMessage = 'Configurações de voz atualizadas!';
