@@ -576,6 +576,57 @@ class IvaGlobalKnowledge {
 
         await this.save(knowledge);
     }
+    /**
+     * Reset all knowledge for a specific user (Scope: USER)
+     * Used for full memory wipe requested by user
+     */
+    static async resetAllForUser(userId) {
+        console.log(`[IVA Knowledge] 🚨 RESETTING ALL KNOWLEDGE FOR USER: ${userId}`);
+
+        // 1. Load current knowledge to filter in memory (for cache update)
+        const knowledge = await this.load();
+
+        // Filter out User scoped items from cache
+        if (knowledge.knowledge.custom_rules) {
+            // Keep rules that are NOT contributed by this user OR are not USER scope
+            // Actually, if a user contributes to a SYSTEM rule, it should stay?
+            // "Excluir todo o conhecimento" usually implies "what I taught you".
+            knowledge.knowledge.custom_rules = knowledge.knowledge.custom_rules.filter(r =>
+                !r.contributor_ids.includes(userId) || r.scope !== 'USER'
+            );
+        }
+
+        // Also check Menus and Actions if we allow user deviations there (unlikely but safe to check)
+
+        await this.save(knowledge);
+
+        // 2. Delete from Qdrant
+        // We need to delete points where user_id = userId AND layer = 'USER'
+
+        try {
+            const filter = {
+                user_id: userId,
+                layer: 'USER'
+            };
+
+            // Scroll to find points
+            const result = await vectorService.scroll(filter, 1000); // 1000 limit, loop if needed
+
+            if (result && result.points && result.points.length > 0) {
+                const ids = result.points.map(p => p.id);
+                console.log(`[IVA Knowledge] Found ${ids.length} points to delete for user ${userId}`);
+                await vectorService.deletePoints(ids);
+                console.log(`[IVA Knowledge] 🗑️ Deleted ${ids.length} points from Qdrant`);
+            } else {
+                console.log('[IVA Knowledge] No points found to delete.');
+            }
+
+            return true;
+        } catch (e) {
+            console.error('[IVA Knowledge] Error resetting Qdrant:', e);
+            throw e;
+        }
+    }
 }
 
 module.exports = IvaGlobalKnowledge;

@@ -1122,7 +1122,7 @@ Digite 1, 2 ou 3.`;
 
             const isFirstSessionInteraction = !hasGreeted && messages.length === 0;
 
-            if (messages.length === 0 || wasDismissed) {
+            if (messages.length === 0) {
                 console.log('[IVA] Chat opened - generating greeting. Dismissed:', wasDismissed);
                 const isReopening = wasDismissed;
                 wasDismissed = false;

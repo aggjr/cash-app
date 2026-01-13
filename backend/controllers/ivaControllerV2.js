@@ -33,6 +33,17 @@ const chat = async (req, res, next) => {
             message = 'Olá';
         }
 
+        // --- RESET COMMAND ---
+        if (message === '/reset_iva_knowledge_confirmed') {
+            console.log('[IVA Command] Resetting knowledge for user:', user.id);
+            const IvaGlobalKnowledge = require('../services/IvaGlobalKnowledge');
+            await IvaGlobalKnowledge.resetAllForUser(user.id);
+            return res.json({
+                reply: '🗑️ Todo o conhecimento aprendido foi excluído. \n\nPodemos começar do zero agora! Como posso me apresentar?'
+            });
+        }
+        // ---------------------
+
         // Validate intent before calling LLM (security layer)
         const validation = IvaIntentValidator.validate(message);
         if (!validation.valid) {
@@ -141,7 +152,13 @@ Confirme de forma clara e natural que você aprendeu.
                 break;
 
             case 'GREETING':
-                systemPrompt = ContextualPrompts.greeting(userData, timeOfDay);
+                // Check context for daily greeting flag (passed from operate or calculated)
+                // Note: 'operate' function uses 'context.isFirstDailyGreeting'
+                // 'chat' function (this one) needs to ensure it has access to it.
+                // Assuming isIntroduction might carry this or we infer it.
+                // For safety, defaulting to FALSE in generic chat unless specified.
+                const isFirst = context?.isFirstDailyGreeting === true || isIntroduction === true;
+                systemPrompt = ContextualPrompts.greeting(userData, timeOfDay, isFirst);
                 break;
             case 'CONFIRMATION':
                 systemPrompt = ContextualPrompts.confirmation(userData);
@@ -536,6 +553,10 @@ const operate = async (req, res) => {
 
 
         // Qdrant knowledge already injected in buildOperateContextWithQdrant
+        // ALL system prompts must define the base persona first
+        const globalPersona = ContextualPrompts.getGlobalIdentity(userData);
+        systemPrompt = globalPersona + "\n\n" + systemPrompt;
+
         // No need to inject again here
 
 
@@ -543,9 +564,11 @@ const operate = async (req, res) => {
 
         // Determine Greeting Instruction based on frontend flag
         const isFirstDailyGreeting = context?.isFirstDailyGreeting === true;
-        const greetingInstruction = isFirstDailyGreeting
-            ? "🔹 CONTEXTO DE SAUDAÇÃO: Este é o PRIMEIRO acesso do dia. Apresente-se formalmente como IVA (nome completo e missão)."
-            : "🔹 CONTEXTO DE SAUDAÇÃO: O usuário JÁ ACESSOU o sistema hoje. SEJA BREVE. Diga apenas 'Olá' ou 'Pois não?' e pergunte como ajudar. NÃO se apresente novamente.";
+
+        // Generate prompt using the centralized config
+        const greetingContextPrompt = ContextualPrompts.greeting(userData, timeOfDay, isFirstDailyGreeting);
+
+        const greetingInstruction = greetingContextPrompt;
 
         // ADD INTENT CLASSIFICATION INSTRUCTION
         systemPrompt += `

@@ -242,8 +242,8 @@ export const SaidaModal = {
                                
                                 <!-- Description -->
                                 <div class="form-group" style="display: flex; flex-direction: column; flex: 1; min-height: 150px; margin-top: 0;">
-                                    <label for="saida-descricao" style="margin-bottom: 0;">Descrição</label>
-                                    <textarea id="saida-descricao" class="form-input" placeholder="Opcional" style="resize: none; flex: 1; box-sizing: border-box; font-family: inherit;">${saida?.descricao || ''}</textarea>
+                                    <label for="saida-descricao" style="margin-bottom: 0;">Descrição <span class="required">*</span></label>
+                                    <textarea id="saida-descricao" class="form-input" placeholder="Obrigatório" required style="resize: none; flex: 1; box-sizing: border-box; font-family: inherit;">${saida?.descricao || ''}</textarea>
                                 </div>
                             </div>
 
@@ -309,6 +309,12 @@ export const SaidaModal = {
                     if (!dataFatoInput.value) { dataFatoInput.classList.add('input-error'); isValid = false; } else dataFatoInput.classList.remove('input-error');
                     if (!dataPrevistaInput.value) { dataPrevistaInput.classList.add('input-error'); isValid = false; } else dataPrevistaInput.classList.remove('input-error');
                     if (!valorInput.value) { valorInput.classList.add('input-error'); isValid = false; } else valorInput.classList.remove('input-error');
+                    if (!descricaoInput.value || !descricaoInput.value.trim()) {
+                        descricaoInput.classList.add('input-error');
+                        isValid = false;
+                    } else {
+                        descricaoInput.classList.remove('input-error');
+                    }
                     if (!tipoSaidaIdInput.value) {
                         const innerTree = treeContainer.querySelector('.tree-selector-wrapper');
                         if (innerTree) innerTree.classList.add('input-error');

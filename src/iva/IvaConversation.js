@@ -64,39 +64,8 @@ export const IvaConversation = {
      * Get screen explanation
      */
     getScreenExplanation(screenId) {
-        const explanations = {
-            'entrada': 'Esta é a tela de **Entradas Financeiras**. Aqui você pode registrar todas as receitas da sua empresa, como vendas, recebimentos de clientes, etc. Use o botão "Novo" para adicionar uma entrada, preencha os campos obrigatórios como valor, data e tipo de entrada.',
-
-            'saida': 'Esta é a tela de **Saídas Financeiras**. Aqui você registra todas as despesas e pagamentos da empresa. Funciona de forma similar às entradas: clique em "Novo", preencha valor, data, tipo de saída e descrição.',
-
-            'previsao': 'Esta é a **Previsão de Fluxo de Caixa**. Aqui você visualiza todas as entradas e saídas previstas, organizadas por data. Você pode filtrar por período e empresa. As linhas em verde são entradas, em vermelho são saídas.',
-
-            'fechamento': 'Esta é a tela de **Fechamento de Contas**. Aqui você realiza o fechamento mensal das contas bancárias, comparando saldos previstos com reais.',
-
-            'extrato-conta': 'Este é o **Extrato de Conta**. Aqui você visualiza todas as movimentações de uma conta específica, podendo filtrar por período.',
-
-            'consolidada-financeira': 'Esta é a **Consolidada Financeira**. Aqui você vê um resumo consolidado de todas as transações, separadas em reais e previstas.',
-
-            'contas': 'Esta é a tela de **Contas Bancárias**. Aqui você cadastra e gerencia as contas bancárias da empresa.',
-
-            'empresa': 'Esta é a tela de **Empresas**. Aqui você gerencia as empresas cadastradas no sistema.',
-
-            'usuarios': 'Esta é a tela de **Usuários**. Aqui você gerencia os usuários que têm acesso ao sistema.',
-
-            'tipo-entrada': 'Esta é a tela de **Tipos de Entrada**. Aqui você cadastra as categorias de receitas (ex: Vendas, Serviços, etc).',
-
-            'tipo-saida': 'Esta é a tela de **Tipos de Saída**. Aqui você cadastra as categorias de despesas (ex: Aluguel, Salários, etc).',
-
-            'aportes': 'Esta é a tela de **Aportes**. Aqui você registra os aportes de capital feitos pelos sócios.',
-
-            'retiradas': 'Esta é a tela de **Retiradas**. Aqui você registra as retiradas de capital pelos sócios.',
-
-            'transferencias': 'Esta é a tela de **Transferências**. Aqui você registra transferências entre contas bancárias.',
-
-            'dividas-emprestimos': 'Esta é a tela de **Dívidas e Empréstimos**. Aqui você gerencia empréstimos e financiamentos da empresa.'
-        };
-
-        return explanations[screenId] || 'Esta tela permite gerenciar informações do sistema. Explore os botões e filtros disponíveis para entender melhor suas funcionalidades.';
+        // CLEANED FOR LAYER-BY-LAYER LEARNING
+        return 'Esta tela permite gerenciar informações do sistema.';
     },
 
     /**
@@ -141,27 +110,8 @@ export const IvaConversation = {
      * Get screen name from ID
      */
     getScreenName(screenId) {
-        const names = {
-            'entrada': 'Entradas',
-            'saida': 'Saídas',
-            'previsao': 'Previsão de Fluxo',
-            'fechamento': 'Fechamento de Contas',
-            'extrato-conta': 'Extrato de Conta',
-            'consolidada-financeira': 'Consolidada Financeira',
-            'contas': 'Contas Bancárias',
-            'empresa': 'Empresas',
-            'usuarios': 'Usuários',
-            'tipo-entrada': 'Tipos de Entrada',
-            'tipo-saida': 'Tipos de Saída',
-            'aportes': 'Aportes',
-            'retiradas': 'Retiradas',
-            'transferencias': 'Transferências',
-            'dividas-emprestimos': 'Dívidas e Empréstimos',
-            'producao-revenda': 'Compras (Produção/Revenda)',
-            'tipo-producao-revenda': 'Tipos de Compras'
-        };
-
-        return names[screenId] || screenId;
+        // CLEANED FOR LAYER-BY-LAYER LEARNING
+        return screenId;
     }
 };
 
