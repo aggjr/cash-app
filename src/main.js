@@ -393,12 +393,30 @@ function initAppLogic() {
       } else {
         Dialogs.alert('Selecione um projeto primeiro', 'Aviso');
       }
-    } else if (itemId === 'graficos-indicadores') {
+    } else if (itemId === 'graficos-visao-geral') {
       const { currentProject } = checkAuth();
       if (currentProject) {
         const mainElement = document.querySelector('main');
         mainElement.innerHTML = '';
-        mainElement.appendChild(GraficosIndicadoresManager(currentProject));
+        mainElement.appendChild(GraficosIndicadoresManager(currentProject, 'overview'));
+      } else {
+        Dialogs.alert('Selecione um projeto primeiro', 'Aviso');
+      }
+    } else if (itemId === 'graficos-estatisticos') {
+      const { currentProject } = checkAuth();
+      if (currentProject) {
+        const mainElement = document.querySelector('main');
+        mainElement.innerHTML = '';
+        mainElement.appendChild(GraficosIndicadoresManager(currentProject, 'statistical'));
+      } else {
+        Dialogs.alert('Selecione um projeto primeiro', 'Aviso');
+      }
+    } else if (itemId === 'graficos-abc') {
+      const { currentProject } = checkAuth();
+      if (currentProject) {
+        const mainElement = document.querySelector('main');
+        mainElement.innerHTML = '';
+        mainElement.appendChild(GraficosIndicadoresManager(currentProject, 'abc'));
       } else {
         Dialogs.alert('Selecione um projeto primeiro', 'Aviso');
       }

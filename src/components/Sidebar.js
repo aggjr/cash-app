@@ -59,8 +59,18 @@ export const Sidebar = () => {
         { id: 'extrato-conta', label: 'Extrato de Conta', icon: '🧾' },
         { id: 'consolidada-financeira', label: 'Consolidada Financeira', icon: '💰' },
         { id: 'dre-competencia', label: 'DRE (Competência)', icon: '📊' },
-        { id: 'previsao', label: 'Previsão Fluxo', icon: '📈' },
-        { id: 'graficos-indicadores', label: 'Gráficos e Indicadores', icon: '📊' }
+        { id: 'dre-competencia', label: 'DRE (Competência)', icon: '📊' },
+        { id: 'previsao', label: 'Previsão Fluxo', icon: '📈' }
+      ]
+    },
+    {
+      id: 'graficos-indicadores',
+      label: 'Gráficos e Indicadores',
+      icon: '📊',
+      children: [
+        { id: 'graficos-visao-geral', label: 'Visão Geral & Dispersão', icon: '📉' },
+        { id: 'graficos-estatisticos', label: 'Controle Estatístico (XmR)', icon: '📐' },
+        { id: 'graficos-abc', label: 'Curva ABC (Pareto)', icon: '🏆' }
       ]
     }
   ];
