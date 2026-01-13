@@ -11,16 +11,33 @@ const BulkEditModal = {
             console.log('[BulkEditModal] Creating modal elements...');
             const API_BASE_URL = getApiBaseUrl();
 
-            // Create overlay
+            // Create overlay with inline styles
             const overlay = document.createElement('div');
-            overlay.className = 'modal-overlay';
-            overlay.style.zIndex = '10000';
+            overlay.style.cssText = `
+                position: fixed;
+                top: 0;
+                left: 0;
+                right: 0;
+                bottom: 0;
+                background: rgba(0, 0, 0, 0.7);
+                display: flex;
+                align-items: center;
+                justify-content: center;
+                z-index: 99999;
+                backdrop-filter: blur(4px);
+            `;
 
-            // Create modal
+            // Create modal with inline styles
             const modal = document.createElement('div');
-            modal.className = 'modal-content';
-            modal.style.maxWidth = '600px';
-            modal.style.width = '90%';
+            modal.style.cssText = `
+                background: white;
+                border-radius: 12px;
+                box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
+                max-width: 600px;
+                width: 90%;
+                max-height: 90vh;
+                overflow-y: auto;
+            `;
 
             // Convert ids to array to handle both Set and Array types
             const idsArray = Array.isArray(ids) ? ids : Array.from(ids);
