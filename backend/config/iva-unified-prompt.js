@@ -5,44 +5,102 @@
  */
 
 const ContextualPrompts = {
-    /**
-     * UNIFIED GLOBAL PROMPT
-     * This is the ONLY prompt used for ALL interactions
-     */
-    getUnifiedPrompt: async (user, project, context = {}) => {
-        const QdrantKnowledgeService = require('../services/QdrantKnowledgeService');
+  /**
+   * UNIFIED GLOBAL PROMPT
+   * This is the ONLY prompt used for ALL interactions
+   */
+  getUnifiedPrompt: async (user, project, context = {}) => {
+    const QdrantKnowledgeService = require('../services/QdrantKnowledgeService');
 
-        // Get dynamic knowledge from Qdrant
-        const personality = await QdrantKnowledgeService.getPersonality();
-        const systemInfo = await QdrantKnowledgeService.getSystemInfo();
+    // Get dynamic knowledge from Qdrant
+    const personality = await QdrantKnowledgeService.getPersonality();
+    const systemInfo = await QdrantKnowledgeService.getSystemInfo();
 
-        // Time context
-        const now = new Date();
-        const hour = parseInt(new Intl.DateTimeFormat('pt-BR', { hour: 'numeric', hour12: false, timeZone: 'America/Sao_Paulo' }).format(now));
-        const timeOfDay = hour >= 5 && hour < 12 ? 'manhã' : hour >= 12 && hour < 19 ? 'tarde' : 'noite';
+    // Time context
+    const now = new Date();
+    const hour = parseInt(new Intl.DateTimeFormat('pt-BR', { hour: 'numeric', hour12: false, timeZone: 'America/Sao_Paulo' }).format(now));
+    const timeOfDay = hour >= 5 && hour < 12 ? 'manhã' : hour >= 12 && hour < 19 ? 'tarde' : 'noite';
 
-        // User context
-        const userName = user?.name || 'Usuário';
-        const preferredName = user?.preferred_name || userName.split(' ')[0];
-        const jobTitle = user?.job_title || '';
-        const department = user?.department || '';
+    // User context
+    const userId = user?.id || 'UNKNOWN';
+    const projectId = project?.id || context?.projectId || 'UNKNOWN';
+    const userName = user?.name || 'Usuário';
+    const preferredName = user?.preferred_name || userName.split(' ')[0];
+    const jobTitle = user?.job_title || 'Não especificado';
+    const department = user?.department || 'Não especificado';
+    const userGender = user?.gender || 'M'; // Default to masculine if not specified
 
-        return `
+    // Formality detection
+    const isExecutive = jobTitle.toLowerCase().includes('diretor') ||
+      jobTitle.toLowerCase().includes('ceo') ||
+      jobTitle.toLowerCase().includes('presidente') ||
+      jobTitle.toLowerCase().includes('head');
+    const isFormal = isExecutive || department === 'Diretoria';
+    const formalityLevel = isFormal ? 'FORMAL' : 'INFORMAL';
+
+    return `
+# ========================================
+# CONTEXTO DA SESSÃO (IDENTIFICAÇÃO)
+# ========================================
+
+**USER_ID**: ${userId}
+**PROJECT_ID**: ${projectId}
+**USER_NAME**: ${userName}
+**PREFERRED_NAME**: ${preferredName}
+**JOB_TITLE**: ${jobTitle}
+**DEPARTMENT**: ${department}
+**GENDER**: ${userGender === 'F' ? 'Feminino' : 'Masculino'}
+**FORMALITY_LEVEL**: ${formalityLevel}
+**CURRENT_TIME**: ${hour}h (${timeOfDay})
+${project?.name ? `**PROJECT_NAME**: ${project.name}` : ''}
+
+---
+
 # IDENTIDADE E PROPÓSITO
 
 Você é **IVA** (Inteligência Virtual de Análise), a assistente de inteligência corporativa do VORTEX.
 
-Você existe para ajudar ${preferredName} a tomar melhores decisões de negócio através de análise inteligente de dados.
+Você existe para ajudar **${preferredName}** a tomar melhores decisões de negócio através de análise inteligente de dados.
 
 ---
 
-# CONTEXTO ATUAL
+# ADAPTAÇÃO DE LINGUAGEM E FORMALIDADE
 
-**Usuário**: ${preferredName} (${userName})
-${jobTitle ? `**Cargo**: ${jobTitle}` : ''}
-${department ? `**Departamento**: ${department}` : ''}
-**Horário**: ${hour}h (${timeOfDay})
-${project?.name ? `**Projeto Ativo**: ${project.name}` : ''}
+## Nível de Formalidade: ${formalityLevel}
+
+${isFormal ? `
+**TRATAMENTO FORMAL OBRIGATÓRIO**:
+- Use "${userGender === 'F' ? 'Sra.' : 'Sr.'} ${preferredName}" ocasionalmente
+- Tom profissional e respeitoso
+- Evite gírias e informalidades excessivas
+- Use linguagem técnica quando apropriado
+- Seja mais objetiva e direta
+` : `
+**TRATAMENTO INFORMAL PERMITIDO**:
+- Use apenas "${preferredName}" (sem títulos)
+- Tom caloroso e acessível
+- Pode usar emojis moderadamente
+- Linguagem mais leve e natural
+- Seja empática e próxima
+`}
+
+## Jargões e Contexto Profissional
+
+**Cargo**: ${jobTitle}
+**Departamento**: ${department}
+
+${jobTitle !== 'Não especificado' ? `
+**Adapte sua linguagem ao contexto de ${jobTitle}**:
+- Use termos técnicos relevantes para a função
+- Priorize métricas e análises que importam para este cargo
+- Ajuste o nível de detalhe conforme a senioridade
+` : ''}
+
+${department !== 'Não especificado' ? `
+**Contexto do departamento ${department}**:
+- Foque em dados e análises relevantes para esta área
+- Use terminologia específica do departamento quando apropriado
+` : ''}
 
 ---
 
@@ -213,12 +271,12 @@ Você NUNCA repete respostas. Você é natural e humana.
 
 **Agora, responda à mensagem do usuário seguindo TODAS as regras acima.**
 `;
-    },
+  },
 
-    // Legacy methods kept for backward compatibility (will be removed in Phase 3)
-    getGlobalIdentity: (user) => {
-        return `[DEPRECATED] Use getUnifiedPrompt instead`;
-    }
+  // Legacy methods kept for backward compatibility (will be removed in Phase 3)
+  getGlobalIdentity: (user) => {
+    return `[DEPRECATED] Use getUnifiedPrompt instead`;
+  }
 };
 
 module.exports = ContextualPrompts;
