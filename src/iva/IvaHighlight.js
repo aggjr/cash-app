@@ -3,9 +3,9 @@
  * Highlights UI elements when IVA is guiding the user
  */
 
-const HIGHLIGHT_COLOR = '#00425F'; // System Primary Blue (Dark Teal)
-const HIGHLIGHT_DURATION = 3000; // 3 seconds
-const PULSE_ANIMATION = 'IVA-pulse 1.5s ease-in-out infinite';
+const HIGHLIGHT_COLOR = '#2F6C81'; // System Teal/Blue (Matches standard buttons)
+const HIGHLIGHT_DURATION = 5000; // Increased to 5s for better visibility
+const PULSE_ANIMATION = 'IVA-pulse 2s ease-in-out infinite';
 
 export const IvaHighlight = {
     // Currently highlighted elements
@@ -113,9 +113,13 @@ export const IvaHighlight = {
     },
 
     // Highlight specific text on screen (Data Search)
+    // NOW SUPPORTS: exact match for cell boundaries
     highlightText(text, options = {}) {
         console.log(`[ivaHighlight] Searching for text: "${text}"`);
         if (!text || text.length < 2) return 0;
+
+        // Clean search term
+        const searchTerm = text.toString().toLowerCase().trim();
 
         const walker = document.createTreeWalker(
             document.body,
@@ -133,33 +137,44 @@ export const IvaHighlight = {
             // Ignore hidden/script/style tags
             if (['SCRIPT', 'STYLE', 'NOSCRIPT'].includes(node.parentElement.tagName)) continue;
 
-            if (node.textContent.toLowerCase().includes(text.toLowerCase())) {
-                const element = node.parentElement;
+            const content = node.textContent.toLowerCase();
+
+            // Check exact or partial match
+            if (content.includes(searchTerm)) {
+                let element = node.parentElement;
+
+                // Move up to finding the real "container" (TD, TH, Button, Input)
+                // This ensures we highlight the "cell" or "box" not just the span
+                let steps = 0;
+                while (
+                    element &&
+                    steps < 3 &&
+                    !['TD', 'TH', 'BUTTON', 'INPUT', 'A'].includes(element.tagName) &&
+                    !element.className.includes('card') &&
+                    !element.className.includes('field')
+                ) {
+                    element = element.parentElement;
+                    steps++;
+                }
 
                 // Check visibility
-                if (element.offsetParent !== null) {
+                if (element && element.offsetParent !== null) {
                     matches.push(element);
                 }
             }
         }
 
-        // 2. Filter best matches (avoid massive containers)
-        // We prefer leaf nodes (td, span, div with no children)
-        const bestMatches = matches.filter(el => {
-            // Heuristic: If element has too much text vs the search term, it might be a big container
-            return el.textContent.length < (text.length * 5) || el.tagName === 'TD' || el.tagName === 'SPAN' || el.tagName === 'INPUT';
-        });
+        // 2. Filter duplicate elements (unlikely with TreeWalker on text, but safe due to parent climbing)
+        const uniqueMatches = [...new Set(matches)];
 
         // 3. Highlight them
-        bestMatches.forEach(el => {
-            this.highlight(el, { ...options, pulse: true });
+        uniqueMatches.forEach(el => {
+            this.highlight(el, { ...options, pulse: true, scroll: count === 0 }); // Scroll only to first
             count++;
         });
 
         if (count > 0) {
             console.log(`[ivaHighlight] Found and highlighted ${count} occurrences of "${text}"`);
-            // Scroll to first match
-            bestMatches[0].scrollIntoView({ behavior: 'smooth', block: 'center' });
         } else {
             console.warn(`[ivaHighlight] Text "${text}" not found in visible DOM.`);
         }
