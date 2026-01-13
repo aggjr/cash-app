@@ -54,6 +54,15 @@ const ContextualPrompts = {
 **CURRENT_TIME**: ${hour}h (${timeOfDay})
 ${project?.name ? `**PROJECT_NAME**: ${project.name}` : ''}
 
+## 💬 Contexto de Conversas Recentes
+
+${context.conversationTopics ? `
+**Tópicos recentes discutidos:**
+${context.conversationTopics.map(topic => `- ${topic}`).join('\n')}
+
+**Use esse contexto** para personalizar suas saudações e respostas. Seja proativa mencionando tópicos relevantes!
+` : '*Nenhum histórico de conversas ainda. Esta pode ser a primeira interação.*'}
+
 ---
 
 # IDENTIDADE E PROPÓSITO
