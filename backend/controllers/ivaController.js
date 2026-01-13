@@ -133,7 +133,7 @@ const operate = async (req, res) => {
                 { role: 'user', content: message }
             ],
             temperature: 0.3,
-            response_format: { type: 'json_object' },
+            // REMOVED: response_format - allow natural text responses
             functions: ivaFunctions,
             function_call: 'auto'
         });
