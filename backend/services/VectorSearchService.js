@@ -104,11 +104,32 @@ class VectorSearchService {
 
     /**
      * Upsert de conhecimento no Qdrant
+     * CRITICAL: userId and projectId are MANDATORY metadata (primary keys)
      */
     async upsertKnowledge(id, text, metadata) {
         try {
             console.log(`[VectorSearch] 🔄 Starting upsert for ID: ${id}`);
             console.log(`[VectorSearch] 📝 Text to embed: "${text.substring(0, 100)}..."`);
+
+            // ========================================
+            // ENFORCE MANDATORY METADATA (PRIMARY KEYS)
+            // ========================================
+            if (!metadata.userId && !metadata.user_id) {
+                console.error('[VectorSearch] ❌ CRITICAL: Missing userId in metadata!');
+                console.error('[VectorSearch] Metadata received:', metadata);
+                throw new Error('userId is mandatory for knowledge storage');
+            }
+
+            // Normalize userId (support both camelCase and snake_case)
+            const userId = metadata.userId || metadata.user_id;
+            const projectId = metadata.projectId || metadata.project_id || null;
+
+            // Warn if projectId is missing (not critical for USER scope, but important for PROJECT scope)
+            if (!projectId && metadata.scope === 'PROJECT') {
+                console.warn('[VectorSearch] ⚠️ WARNING: PROJECT scope knowledge without projectId!');
+            }
+
+            console.log(`[VectorSearch] 🔑 Knowledge identifiers: userId=${userId}, projectId=${projectId || 'N/A'}`);
 
             await this.ensureCollection();
             console.log(`[VectorSearch] ✅ Collection ensured`);
@@ -116,21 +137,28 @@ class VectorSearchService {
             const vector = await this.generateEmbedding(text);
             console.log(`[VectorSearch] ✅ Embedding generated (dim: ${vector.length})`);
 
+            // Build payload with normalized metadata
+            const payload = {
+                ...metadata,
+                userId: userId,           // Normalized (camelCase)
+                user_id: userId,          // Also store snake_case for compatibility
+                projectId: projectId,     // Normalized (camelCase)
+                project_id: projectId,    // Also store snake_case for compatibility
+                text: text,
+                updated_at: new Date().toISOString(),
+            };
+
             await this.request('PUT', `/collections/${this.collectionName}/points`, {
                 wait: true,
                 points: [
                     {
                         id: this.generatePointId(id),
                         vector: vector,
-                        payload: {
-                            ...metadata,
-                            text: text,
-                            updated_at: new Date().toISOString(),
-                        },
+                        payload: payload,
                     },
                 ],
             });
-            console.log(`[VectorSearch] ✅ Knowledge upserted: ${id}`);
+            console.log(`[VectorSearch] ✅ Knowledge upserted: ${id} (user: ${userId}, project: ${projectId || 'N/A'})`);
         } catch (error) {
             console.error('[VectorSearch] ❌ Error upserting knowledge:', error.message);
             console.error('[VectorSearch] Stack:', error.stack);
