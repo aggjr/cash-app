@@ -843,6 +843,10 @@ export const FechamentoContasManager = (project) => {
         headerRow.style.zIndex = '100'; // Highest priority vertical
 
         // Fixed Company Column Header
+        const thCompany = document.createElement('th');
+        thCompany.textContent = 'Empresa';
+        thCompany.style.position = 'sticky';
+        thCompany.style.left = '0';
 
         thCompany.style.backgroundColor = '#00425F';
         thCompany.style.color = 'white';
