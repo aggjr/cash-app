@@ -524,8 +524,16 @@ export const IncomeManager = (project) => {
             `;
 
             if (hasSelection) {
+                console.log('[Bulk Edit] Attaching event handlers...');
                 const btnEdit = totalContainer.querySelector('#btn-bulk-edit');
-                if (btnEdit) btnEdit.onclick = handleBulkEdit;
+                console.log('[Bulk Edit] Button found:', btnEdit);
+                if (btnEdit) {
+                    btnEdit.onclick = (e) => {
+                        console.log('[Bulk Edit] Button clicked!', e);
+                        handleBulkEdit();
+                    };
+                    console.log('[Bulk Edit] Event attached successfully');
+                }
 
                 const btnBulk = totalContainer.querySelector('#btn-bulk-delete');
                 if (btnBulk) btnBulk.onclick = handleBulkDelete;
