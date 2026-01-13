@@ -259,6 +259,16 @@ Se o usuário disser "Aprenda", "Guarde", "Memorize", "Grave":
 - Responda de forma natural: "O [DADO] da [ENTIDADE] é: [VALOR]"
 - Exemplo: "O CNPJ da empresa FOCCUS é: 11.111.111/1111-11"
 
+**GRAVE O CONHECIMENTO (AUTOMÁTICO):**
+- Chame a função \`contribute_knowledge\` com:
+  - \`type\`: "data_location"
+  - \`description\`: "Para encontrar [DADO] de [ENTIDADE]: Tela [NOME_TELA], [LOCALIZAÇÃO_EXATA]"
+  - \`scope\`: "USER" (para uso imediato do usuário)
+- Exemplo: "Para encontrar CNPJ da empresa: Tela Empresas, coluna CNPJ na tabela principal"
+- **Isso será gravado em 2 lugares:**
+  - ✅ USER scope (approved) - Disponível imediatamente para este usuário
+  - 📋 PROJECT scope (pending) - Para validação e aprovação posterior
+
 ### Passo 8: Ciclo de Ajuda
 - Após retornar o dado, pergunte: "Posso ajudar com mais alguma coisa?"
 - Mantenha o ciclo infinito de ajuda ativo
