@@ -901,9 +901,18 @@ Siga rigorosamente as INSTRUÇÕES DE FLUXO DE EXECUÇÃO E DESCOBERTA enviadas 
         }
 
     } catch (error) {
-        console.error('IVA Operate Error:', error);
-        console.error('Request Body Slice:', JSON.stringify(req.body).slice(0, 500)); // Log safe amount
-        res.status(500).json({ error: 'Erro interno ao processar comando' });
+        console.error('[IVA Operate Error] ❌❌❌ CRITICAL ERROR ❌❌❌');
+        console.error('[IVA Operate Error] Error type:', error.constructor.name);
+        console.error('[IVA Operate Error] Error message:', error.message);
+        console.error('[IVA Operate Error] Stack trace:', error.stack);
+        console.error('[IVA Operate Error] Request body keys:', Object.keys(req.body));
+
+        // Return JSON error instead of letting it crash
+        return res.status(500).json({
+            error: 'Erro interno ao processar comando',
+            details: error.message,
+            type: error.constructor.name
+        });
     }
 };
 
