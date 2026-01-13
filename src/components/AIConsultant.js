@@ -825,16 +825,20 @@ export const AIConsultant = () => {
             });
 
             const data = await response.json();
-            const llmGreeting = data.message || `Olá! Sou a IVA. Como posso ajudar?`;
+            const llmGreeting = data.message || data.reply;
+
+            if (!llmGreeting) {
+                console.error('[IVA] No greeting received from LLM');
+                addMessage('ai', 'Desculpe, tive um problema ao me apresentar. Pode tentar novamente?');
+                return;
+            }
 
             addMessage('ai', llmGreeting);
             speak(llmGreeting);
         } catch (error) {
             console.error('[IVA] Error getting LLM greeting:', error);
-            // Fallback only if backend fails
-            const fallback = `Olá! Sou a IVA, sua assistente virtual. Como posso ajudar?`;
-            addMessage('ai', fallback);
-            speak(fallback);
+            // Show error instead of hardcoded fallback
+            addMessage('ai', 'Desculpe, tive um problema de conexão. Pode tentar novamente?');
         }
     };
 

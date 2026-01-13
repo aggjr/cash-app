@@ -138,10 +138,9 @@ class QdrantKnowledgeService {
             console.error(`[Qdrant Knowledge] ❌ Error getting introduction:`, err.message);
         }
 
-        // Fallback
-        const fallback = 'Olá! Sou a IVA, sua Assistente Virtual Inteligente. Estou aqui para ajudar você a usar o sistema de forma mais eficiente.';
-        console.log(`[Qdrant Knowledge] ⚠️ Using fallback introduction`);
-        return fallback;
+        // NO FALLBACK - Force LLM to generate introduction
+        console.log(`[Qdrant Knowledge] ⚠️ No introduction found in Qdrant - LLM will generate`);
+        return null;
     }
 
     /**
