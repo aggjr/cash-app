@@ -1,116 +1,215 @@
 const OpenAI = require('openai');
+const db = require('../config/database');
 
-const openai = new OpenAI({
-    apiKey: process.env.OPENAI_API_KEY
-});
+const openai = new OpenAI({ apiKey: process.env.OPENAI_API_KEY });
 
-console.log('✅ EVA Controller loaded successfully');
+/**
+ * IVA Controller - Clean & Simple LLM-First Architecture
+ * No hardcoded logic, no classifiers, just LLM + execution
+ */
 
-const chat = async (req, res, next) => {
+const chat = async (req, res) => {
     try {
-        const { message, conversationHistory, context } = req.body;
+        const { message, conversationHistory = [], context = {} } = req.body;
         const user = req.user;
+
+        if (!user || !user.id) {
+            return res.status(401).json({ error: 'Usuário não autenticado' });
+        }
 
         if (!message || !message.trim()) {
             return res.status(400).json({ error: 'Mensagem é obrigatória' });
         }
 
-        // Build system prompt with context
-        const isIntroduction = req.body.isIntroduction;
-        const askGenderConfirmation = context.askGenderConfirmation;
+        // 1. Get user data
+        const [userData] = await db.query(
+            'SELECT * FROM users WHERE id = ?',
+            [user.id]
+        );
 
-        let systemPrompt = `Você é EVA, assistente virtual financeira do sistema CASH.
-
-INSTRUÇÕES IMPORTANTES:
-- Use ${context.gender === 'F' ? '"a senhora"' : '"o senhor"'} e chame a pessoa de "${context.preferredName || 'senhor/senhora'}"
-- Seja formal, respeitosa e prestativa
-- Responda de forma concisa e objetiva (máximo 2-3 parágrafos)
-- Ajude com classificação de transações, análises financeiras, dúvidas sobre o sistema
-- Projeto atual: ${context.projectName || 'CASH'}
-- Se não souber algo sobre funcionalidades específicas do sistema, seja honesta e sugira que o usuário consulte a documentação ou administrador
-- Use português brasileiro formal`;
-
-        if (askGenderConfirmation) {
-            systemPrompt += `\n\nCONFIRMAÇÃO DE GÊNERO OBRIGATÓRIA:
-- Detectei pelo nome "${context.userName}" que o tratamento seria ${context.gender === 'M' ? 'MASCULINO (o senhor)' : 'FEMININO (a senhora)'}
-- VOCÊ DEVE PERGUNTAR se está correto
-- Exemplo: "Pelo seu nome, vou tratá-${context.gender === 'M' ? 'lo' : 'la'} no ${context.gender === 'M' ? 'masculino' : 'feminino'}. Está correto?"
-- Se usuário confirmar (sim/ok/correto): continue o fluxo de apresentação
-- Se usuário negar ou corrigir: agradeça e adapte o tratamento
-- Após confirmação, pergunte como prefere ser chamado(a) e se prefere respostas por áudio ou texto`;
+        // 2. Get project data
+        let projectData = null;
+        if (context.projectId) {
+            const [projects] = await db.query(
+                'SELECT * FROM projects WHERE id = ?',
+                [context.projectId]
+            );
+            projectData = projects[0];
         }
 
-        // Prepare messages for OpenAI
+        // 3. Build prompt
+        const UnifiedPrompt = require('../config/iva-unified-prompt');
+        const systemPrompt = await UnifiedPrompt.getUnifiedPrompt(
+            userData[0],
+            projectData,
+            context
+        );
+
+        // 4. Prepare messages
         const messages = [
-            { role: "system", content: systemPrompt }
+            { role: 'system', content: systemPrompt },
+            ...conversationHistory.slice(-10).map(msg => ({
+                role: msg.sender === 'user' ? 'user' : 'assistant',
+                content: msg.text
+            })),
+            { role: 'user', content: message }
         ];
 
-        // Add conversation history (last 10 messages for context)
-        if (conversationHistory && Array.isArray(conversationHistory)) {
-            conversationHistory.slice(-10).forEach(msg => {
-                messages.push({
-                    role: msg.sender === 'user' ? 'user' : 'assistant',
-                    content: msg.text
-                });
-            });
-        }
-
-        // Add current message
-        messages.push({ role: "user", content: message });
-
-        // Call OpenAI API
-        const response = await openai.chat.completions.create({
-            model: "gpt-4o-mini",
+        // 5. Call LLM
+        const ivaFunctions = require('../config/iva-functions');
+        const completion = await openai.chat.completions.create({
+            model: 'gpt-4o-mini',
             messages,
             temperature: 0.7,
-            max_tokens: 500,  // Control cost
-            presence_penalty: 0.1,
-            frequency_penalty: 0.1
+            max_tokens: 500,
+            functions: ivaFunctions,
+            function_call: 'auto'
         });
 
-        const reply = response.choices[0].message.content;
-
-        // Extract information from user message if during introduction
-        const extracted = {};
-
-        if (isIntroduction && askGenderConfirmation) {
-            const text = message.toLowerCase();
-
-            // Check for gender confirmation/correction
-            if (/\b(sim|correto|está|ok|tudo bem|perfeito|certo)\b/.test(text)) {
-                extracted.genderConfirmation = 'CORRECT'; // Use detected gender
-            } else if (/\b(feminino|mulher|senhora|feminina)\b/.test(text)) {
-                extracted.genderConfirmation = 'F';
-            } else if (/\b(masculino|homem|senhor|masculina)\b/.test(text)) {
-                extracted.genderConfirmation = 'M';
-            }
+        // 6. Handle function calls
+        const functionCall = completion.choices[0].message.function_call;
+        if (functionCall) {
+            await executeFunction(functionCall, user, context);
         }
 
+        // 7. Return response
+        const responseContent = completion.choices[0].message.content;
         res.json({
-            reply,
-            extracted: Object.keys(extracted).length > 0 ? extracted : undefined,
-            usage: {
-                promptTokens: response.usage.prompt_tokens,
-                completionTokens: response.usage.completion_tokens,
-                totalTokens: response.usage.total_tokens
-            }
+            message: responseContent,
+            functionCalled: functionCall?.name || null
         });
 
     } catch (error) {
-        console.error('EVA Chat Error:', error);
+        console.error('[IVA Chat Error]', error);
+        res.status(500).json({
+            error: 'Erro ao processar mensagem',
+            details: error.message
+        });
+    }
+};
 
-        if (error.code === 'insufficient_quota') {
-            return res.status(429).json({ error: 'Limite de uso da API OpenAI atingido' });
+const operate = async (req, res) => {
+    try {
+        const { message, context = {}, screenContext } = req.body;
+        const user = req.user;
+
+        if (!user || !user.id) {
+            return res.status(401).json({ error: 'Usuário não autenticado' });
         }
 
-        if (error.code === 'invalid_api_key') {
-            return res.status(500).json({ error: 'Chave API OpenAI inválida' });
+        // 1. Get user data
+        const [userData] = await db.query(
+            'SELECT * FROM users WHERE id = ?',
+            [user.id]
+        );
+
+        // 2. Get project data
+        let projectData = null;
+        if (context.projectId) {
+            const [projects] = await db.query(
+                'SELECT * FROM projects WHERE id = ?',
+                [context.projectId]
+            );
+            projectData = projects[0];
         }
 
-        res.status(500).json({ error: 'Erro ao processar mensagem' });
+        // 3. Build prompt with screen context
+        const UnifiedPrompt = require('../config/iva-unified-prompt');
+        const systemPrompt = await UnifiedPrompt.getUnifiedPrompt(
+            userData[0],
+            projectData,
+            {
+                ...context,
+                activeScreenContext: screenContext
+            }
+        );
+
+        // 4. Call LLM
+        const ivaFunctions = require('../config/iva-functions');
+        const completion = await openai.chat.completions.create({
+            model: 'gpt-4o-mini',
+            messages: [
+                { role: 'system', content: systemPrompt },
+                { role: 'user', content: message }
+            ],
+            temperature: 0.3,
+            response_format: { type: 'json_object' },
+            functions: ivaFunctions,
+            function_call: 'auto'
+        });
+
+        // 5. Handle function calls
+        const functionCall = completion.choices[0].message.function_call;
+        if (functionCall) {
+            await executeFunction(functionCall, user, context);
+        }
+
+        // 6. Parse and return action
+        const responseContent = completion.choices[0].message.content;
+        let action;
+        try {
+            action = JSON.parse(responseContent);
+        } catch {
+            action = {
+                action: 'REPLY',
+                message: responseContent
+            };
+        }
+
+        res.json(action);
+
+    } catch (error) {
+        console.error('[IVA Operate Error]', error);
+        res.status(500).json({
+            error: 'Erro ao processar comando',
+            details: error.message
+        });
+    }
+};
+
+/**
+ * Execute function called by LLM
+ */
+const executeFunction = async (functionCall, user, context) => {
+    const { name, arguments: argsStr } = functionCall;
+    const args = JSON.parse(argsStr);
+
+    console.log(`[IVA Function] Executing: ${name}`, args);
+
+    switch (name) {
+        case 'save_preferred_name':
+            const IvaUserPreferences = require('../services/IvaUserPreferences');
+            await IvaUserPreferences.setPreferredName(user.id, args.name);
+            break;
+
+        case 'save_voice_settings':
+            const IvaUserPrefs = require('../services/IvaUserPreferences');
+            await IvaUserPrefs.setVoiceSettings(user.id, args);
+            break;
+
+        case 'contribute_knowledge':
+            const IvaGlobalKnowledge = require('../services/IvaGlobalKnowledge');
+            await IvaGlobalKnowledge.contribute(
+                args.type,
+                args.data,
+                {
+                    userId: user.id,
+                    projectId: context.projectId,
+                    scope: args.scope || 'USER'
+                }
+            );
+            break;
+
+        case 'close_chat':
+            // Frontend handles this
+            break;
+
+        default:
+            console.warn(`[IVA Function] Unknown function: ${name}`);
     }
 };
 
 module.exports = {
-    chat
+    chat,
+    operate
 };

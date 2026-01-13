@@ -1,6 +1,6 @@
 const express = require('express');
 const router = express.Router();
-const ivaController = require('../controllers/ivaControllerV2');
+const ivaController = require('../controllers/ivaController'); // NEW CLEAN CONTROLLER
 const auth = require('../middleware/auth');
 const IvaGlobalKnowledge = require('../services/IvaGlobalKnowledge');
 const IvaUserPreferences = require('../services/IvaUserPreferences');
@@ -15,9 +15,6 @@ router.get('/debug-prefs/:userId', async (req, res) => {
         res.status(500).json({ error: error.message });
     }
 });
-
-// GET /api/IVA/debug-context - Get projected system context
-router.get('/debug-context', auth, ivaController.getDebugContext);
 
 // POST /api/IVA/chat - Chat with IVA using LLM
 router.post('/chat', auth, ivaController.chat);
