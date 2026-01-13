@@ -47,6 +47,76 @@ export const IncomeManager = (project) => {
 
     // Define Columns for SharedTable
     const columns = [
+        // Actions column - MOVED TO BEGINNING
+        {
+            key: 'actions',
+            label: 'Ações',
+            width: '80px',
+            align: 'center',
+            noFilter: true,
+            render: (item) => {
+                const div = document.createElement('div');
+                div.style.display = 'flex';
+                div.style.gap = '0.5rem';
+                div.style.justifyContent = 'center';
+
+                const btnEdit = document.createElement('button');
+                btnEdit.innerHTML = '✏️';
+                btnEdit.title = 'Editar';
+                btnEdit.style.background = 'none';
+                btnEdit.style.border = 'none';
+                btnEdit.style.cursor = 'pointer';
+                btnEdit.style.fontSize = '1.1rem';
+                btnEdit.onclick = (e) => { e.stopPropagation(); updateIncome(item); };
+
+                const btnDelete = document.createElement('button');
+                btnDelete.innerHTML = '🗑️';
+                btnDelete.title = 'Excluir';
+                btnDelete.style.background = 'none';
+                btnDelete.style.border = 'none';
+                btnDelete.style.cursor = 'pointer';
+                btnDelete.style.fontSize = '1.1rem';
+                btnDelete.onclick = (e) => { e.stopPropagation(); deleteIncome(item.id, item.descricao, item); };
+
+                div.appendChild(btnEdit);
+                div.appendChild(btnDelete);
+                return div;
+            }
+        },
+        // Status indicator - MOVED TO BEGINNING
+        {
+            key: 'status',
+            label: '',
+            width: '60px',
+            align: 'center',
+            noFilter: true,
+            render: (item) => {
+                let statusColor = '#F59E0B';
+                let statusTitle = 'Aguardando Pagamento';
+
+                if (item.data_real_recebimento) {
+                    statusColor = '#10B981';
+                    statusTitle = 'Recebido';
+                } else {
+                    const today = new Date().toISOString().split('T')[0];
+                    const prev = item.data_prevista_recebimento ? item.data_prevista_recebimento.split('T')[0] : '';
+                    if (prev && prev < today) {
+                        statusColor = '#EF4444';
+                        statusTitle = 'Atrasado';
+                    }
+                }
+
+                const dot = document.createElement('div');
+                dot.style.backgroundColor = statusColor;
+                dot.style.width = '12px';
+                dot.style.height = '12px';
+                dot.style.borderRadius = '50%';
+                dot.style.margin = '0 auto';
+                dot.style.cursor = 'help';
+                dot.title = statusTitle;
+                return dot;
+            }
+        },
         { key: 'data_fato', label: 'Dt Fato', width: 'var(--col-date)', align: 'left', type: 'date' },
         {
             key: 'data_prevista_recebimento',
@@ -145,74 +215,7 @@ export const IncomeManager = (project) => {
         },
 
 
-        {
-            key: 'actions',
-            label: 'Ações',
-            width: '80px',
-            align: 'center',
-            noFilter: true,
-            render: (item) => {
-                const div = document.createElement('div');
-                div.style.display = 'flex';
-                div.style.gap = '0.5rem';
-                div.style.justifyContent = 'center';
-
-                const btnEdit = document.createElement('button');
-                btnEdit.innerHTML = '✏️';
-                btnEdit.title = 'Editar';
-                btnEdit.style.background = 'none';
-                btnEdit.style.border = 'none';
-                btnEdit.style.cursor = 'pointer';
-                btnEdit.style.fontSize = '1.1rem';
-                btnEdit.onclick = (e) => { e.stopPropagation(); updateIncome(item); };
-
-                const btnDelete = document.createElement('button');
-                btnDelete.innerHTML = '🗑️';
-                btnDelete.title = 'Excluir';
-                btnDelete.style.background = 'none';
-                btnDelete.style.border = 'none';
-                btnDelete.style.cursor = 'pointer';
-                btnDelete.style.fontSize = '1.1rem';
-                btnDelete.onclick = (e) => { e.stopPropagation(); deleteIncome(item.id, item.descricao, item); };
-
-                div.appendChild(btnEdit);
-                div.appendChild(btnDelete);
-                return div;
-            }
-        },
-        {
-            key: 'status',
-            label: '',
-            width: '60px',
-            align: 'center',
-            noFilter: true,
-            render: (item) => {
-                let statusColor = '#F59E0B'; // Pending (Yellow)
-                let statusTitle = 'Aguardando Pagamento';
-
-                if (item.data_real_recebimento) {
-                    statusColor = '#10B981'; // Received (Green)
-                    statusTitle = 'Recebido';
-                } else {
-                    const today = new Date().toISOString().split('T')[0];
-                    const prev = item.data_prevista_recebimento ? item.data_prevista_recebimento.split('T')[0] : '';
-                    if (prev && prev < today) {
-                        statusColor = '#EF4444'; // Overdue (Red)
-                        statusTitle = 'Atrasado';
-                    }
-                }
-
-                const dot = document.createElement('div');
-                dot.style.backgroundColor = statusColor;
-                dot.style.width = '12px';
-                dot.style.height = '12px';
-                dot.style.borderRadius = '50%';
-                dot.style.margin = '0 auto';
-                dot.style.cursor = 'help';
-                dot.title = statusTitle;
-                return dot;
-            }
-        }
+        // REMOVED: actions column - now at beginning of array
     ];
 
     const getHeaders = () => {
