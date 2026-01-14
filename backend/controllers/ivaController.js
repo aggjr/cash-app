@@ -190,30 +190,29 @@ const operate = async (req, res) => {
                     action: 'REPLY',
                     message: responseContent
                 };
+            }
+        } else {
+            action = {
+                action: 'REPLY',
+                message: 'Desculpe, não consegui processar sua solicitação.'
             };
         }
-    } else {
-        action = {
-            action: 'REPLY',
-            message: 'Desculpe, não consegui processar sua solicitação.'
-        };
+
+        // Include function call info for frontend (only if action is valid)
+        if (action && functionCallInfo) {
+            action.functionCall = functionCallInfo;
+        }
+
+        console.log('[IVA Operate] Final action:', action);
+        res.json(action || { action: 'REPLY', message: 'Erro ao processar resposta' });
+
+    } catch (error) {
+        console.error('[IVA Operate Error]', error);
+        res.status(500).json({
+            error: 'Erro ao processar comando',
+            details: error.message
+        });
     }
-
-    // Include function call info for frontend (only if action is valid)
-    if (action && functionCallInfo) {
-        action.functionCall = functionCallInfo;
-    }
-
-    console.log('[IVA Operate] Final action:', action);
-    res.json(action || { action: 'REPLY', message: 'Erro ao processar resposta' });
-
-} catch (error) {
-    console.error('[IVA Operate Error]', error);
-    res.status(500).json({
-        error: 'Erro ao processar comando',
-        details: error.message
-    });
-}
 };
 
 /**
