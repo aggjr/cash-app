@@ -64,6 +64,29 @@ class VectorSearchService {
     }
 
     /**
+     * Delete collection
+     */
+    async deleteCollection() {
+        try {
+            console.log(`[VectorSearch] 🗑️ Deleting collection ${this.collectionName}`);
+            await this.request('DELETE', `/collections/${this.collectionName}`);
+            console.log(`[VectorSearch] ✅ Collection deleted`);
+        } catch (error) {
+            console.error('[VectorSearch] Error deleting collection:', error.message);
+            // Ignore error if collection does not exist
+        }
+    }
+
+    /**
+     * Recreate collection (Wipe all data)
+     */
+    async recreateCollection() {
+        await this.deleteCollection();
+        await this.ensureCollection();
+        return true;
+    }
+
+    /**
      * Garantir que a coleção existe
      */
     async ensureCollection() {

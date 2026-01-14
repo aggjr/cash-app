@@ -309,6 +309,26 @@ router.delete('/memory/user', auth, async (req, res) => {
     }
 });
 
+// DELETE /api/iva/database/wipe - DANGER: Wipe ENTIRE Qdrant database
+router.delete('/database/wipe', auth, async (req, res) => {
+    try {
+        const userId = req.user.id;
+        console.log(`⚠️ EXTREME DANGER: Full database wipe requested by user ${userId}`);
+        const VectorSearchService = require('../services/VectorSearchService');
+
+        await VectorSearchService.recreateCollection();
+
+        res.json({
+            success: true,
+            message: '🛑 DATABASE WIPED. All knowledge has been deleted.',
+        });
+
+    } catch (error) {
+        console.error('❌ Error wiping database:', error);
+        res.status(500).json({ error: 'Error wiping database', details: error.message });
+    }
+});
+
 // --- SECURE MIGRATION ROUTE (Admin Only) ---
 // POST /api/iva/migrate-to-qdrant-force - Force re-seed Qdrant from knowledge base
 router.post('/migrate-to-qdrant-force', auth, async (req, res) => {
