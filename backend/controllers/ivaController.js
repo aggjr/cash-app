@@ -171,7 +171,18 @@ const operate = async (req, res) => {
             };
         } else if (responseContent) {
             try {
-                action = JSON.parse(responseContent);
+                // Extract JSON from markdown code blocks if present
+                let cleanedContent = responseContent.trim();
+
+                // Check if response is wrapped in ```json ... ```
+                const jsonBlockMatch = cleanedContent.match(/```json\s*([\s\S]*?)\s*```/);
+                if (jsonBlockMatch) {
+                    cleanedContent = jsonBlockMatch[1].trim();
+                    console.log('[IVA Operate] Extracted JSON from code block');
+                }
+
+                // Try to parse as JSON
+                action = JSON.parse(cleanedContent);
                 console.log('[IVA Operate] Parsed JSON action:', action);
             } catch (parseError) {
                 console.log('[IVA Operate] Not JSON, treating as text response');
@@ -179,29 +190,30 @@ const operate = async (req, res) => {
                     action: 'REPLY',
                     message: responseContent
                 };
-            }
-        } else {
-            action = {
-                action: 'REPLY',
-                message: 'Desculpe, não consegui processar sua solicitação.'
             };
         }
-
-        // Include function call info for frontend (only if action is valid)
-        if (action && functionCallInfo) {
-            action.functionCall = functionCallInfo;
-        }
-
-        console.log('[IVA Operate] Final action:', action);
-        res.json(action || { action: 'REPLY', message: 'Erro ao processar resposta' });
-
-    } catch (error) {
-        console.error('[IVA Operate Error]', error);
-        res.status(500).json({
-            error: 'Erro ao processar comando',
-            details: error.message
-        });
+    } else {
+        action = {
+            action: 'REPLY',
+            message: 'Desculpe, não consegui processar sua solicitação.'
+        };
     }
+
+    // Include function call info for frontend (only if action is valid)
+    if (action && functionCallInfo) {
+        action.functionCall = functionCallInfo;
+    }
+
+    console.log('[IVA Operate] Final action:', action);
+    res.json(action || { action: 'REPLY', message: 'Erro ao processar resposta' });
+
+} catch (error) {
+    console.error('[IVA Operate Error]', error);
+    res.status(500).json({
+        error: 'Erro ao processar comando',
+        details: error.message
+    });
+}
 };
 
 /**
