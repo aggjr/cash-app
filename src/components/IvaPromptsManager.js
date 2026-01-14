@@ -161,6 +161,26 @@ export const IvaPromptsManager = () => {
             return;
         }
 
+        // Create bulk actions bar
+        const bulkActionsBar = document.createElement('div');
+        bulkActionsBar.className = 'bulk-actions-bar';
+        bulkActionsBar.style.display = 'none';
+        bulkActionsBar.innerHTML = `
+            <div style="display: flex; align-items: center; gap: 1rem; padding: 1rem; background: #F3F4F6; border-radius: 8px; margin-bottom: 1rem;">
+                <span id="bulk-count" style="font-weight: 600; color: #374151;">0 itens selecionados</span>
+                <button id="bulk-approve" class="btn-primary" style="background: #10B981; padding: 0.5rem 1rem; border: none; border-radius: 6px; color: white; cursor: pointer; font-weight: 600;">
+                    ✅ Aprovar Selecionados
+                </button>
+                <button id="bulk-reject" class="btn-secondary" style="background: #EF4444; color: white; padding: 0.5rem 1rem; border: none; border-radius: 6px; cursor: pointer; font-weight: 600;">
+                    ❌ Rejeitar Selecionados
+                </button>
+                <button id="bulk-clear" class="btn-secondary" style="padding: 0.5rem 1rem; border: 1px solid #D1D5DB; border-radius: 6px; background: white; cursor: pointer;">
+                    Limpar Seleção
+                </button>
+            </div>
+        `;
+        tableContainer.insertBefore(bulkActionsBar, tableContainer.firstChild);
+
         // Define Columns
         const columns = [
             {
@@ -173,7 +193,6 @@ export const IvaPromptsManager = () => {
             {
                 key: 'user_name', label: 'Usuário', type: 'text', width: '120px', align: 'left', sortable: true,
                 render: (item) => {
-                    // Fallback to user_id or 'Sistema' if name is missing (legacy)
                     return escapeHtml(item.user_name || item.user_id || 'Sistema');
                 }
             },
@@ -218,7 +237,6 @@ export const IvaPromptsManager = () => {
             {
                 key: 'proposed_prompt', label: 'Prompt Proposto', type: 'text', align: 'left',
                 render: (item) => {
-                    // If backend didn't provide proposed_prompt (legacy), try to fallback or show placeholder
                     const prompt = item.proposed_prompt || '(Será gerado ao aprovar)';
                     const isGenerated = !item.proposed_prompt;
                     return `<div style="white-space:pre-wrap; font-size:0.9em; font-family:monospace; color:${isGenerated ? '#999' : '#333'}; max-height:100px; overflow-y:auto;">${escapeHtml(prompt)}</div>`;
@@ -261,14 +279,37 @@ export const IvaPromptsManager = () => {
             }
         ];
 
-        // Instantiate SharedTable
+        // Instantiate SharedTable with selection enabled
         state.auditTableInstance = new SharedTable({
             container: tableContainer,
             columns: columns,
             projectId: null,
-            endpointPrefix: null, // Client-side mode
-            enableSelection: false // No massive selection needed for now
+            endpointPrefix: null,
+            enableSelection: true,
+            onSelectionChange: (selectedItems, selectionSet) => {
+                const count = selectionSet.size;
+                const bulkBar = container.querySelector('.bulk-actions-bar');
+                const countSpan = container.querySelector('#bulk-count');
+
+                if (count > 0) {
+                    bulkBar.style.display = 'block';
+                    countSpan.textContent = `${count} ${count === 1 ? 'item selecionado' : 'itens selecionados'}`;
+                } else {
+                    bulkBar.style.display = 'none';
+                }
+            }
         });
+
+        // Attach bulk action handlers
+        const bulkApproveBtn = tableContainer.querySelector('#bulk-approve');
+        const bulkRejectBtn = tableContainer.querySelector('#bulk-reject');
+        const bulkClearBtn = tableContainer.querySelector('#bulk-clear');
+
+        if (bulkApproveBtn) bulkApproveBtn.onclick = handleBulkApprove;
+        if (bulkRejectBtn) bulkRejectBtn.onclick = handleBulkReject;
+        if (bulkClearBtn) bulkClearBtn.onclick = () => {
+            state.auditTableInstance.clearSelection();
+        };
 
         // Render Data
         state.auditTableInstance.render(state.pendingKnowledge);
@@ -499,6 +540,122 @@ export const IvaPromptsManager = () => {
             // User confirmed inside the Input Modal, so just proceed to Approve
             // No double confirmation needed as the input modal action is "Salvar e Aprovar"
             handleApprove(id, newText);
+        }
+    };
+
+    // --- BULK OPERATIONS ---
+    const handleBulkApprove = async () => {
+        const selectedIds = Array.from(state.auditTableInstance.selection);
+
+        if (selectedIds.length === 0) {
+            alert('Nenhum item selecionado');
+            return;
+        }
+
+        const confirmed = await showConfirmationModal(
+            'Aprovar em Lote',
+            `Tem certeza que deseja aprovar <strong>${selectedIds.length}</strong> ${selectedIds.length === 1 ? 'item' : 'itens'}?<br><br>Estes conhecimentos serão incorporados à base da IVA.`
+        );
+
+        if (!confirmed) return;
+
+        try {
+            let successCount = 0;
+            let errorCount = 0;
+
+            for (const id of selectedIds) {
+                try {
+                    const response = await fetch(`${API_BASE_URL}/iva/knowledge/approve/${id}`, {
+                        method: 'POST',
+                        headers: getHeaders(),
+                        body: JSON.stringify({})
+                    });
+
+                    if (response.ok) {
+                        successCount++;
+                    } else {
+                        errorCount++;
+                    }
+                } catch (e) {
+                    errorCount++;
+                }
+            }
+
+            // Remove approved items from list
+            state.pendingKnowledge = state.pendingKnowledge.filter(
+                item => !selectedIds.includes(item.id)
+            );
+
+            state.message = {
+                type: 'success',
+                text: `✅ ${successCount} aprovados${errorCount > 0 ? `, ${errorCount} falharam` : ''}`
+            };
+
+            // Clear selection and re-render
+            state.auditTableInstance.clearSelection();
+            render();
+
+        } catch (e) {
+            state.message = { type: 'error', text: 'Erro ao aprovar em lote: ' + e.message };
+            render();
+        }
+    };
+
+    const handleBulkReject = async () => {
+        const selectedIds = Array.from(state.auditTableInstance.selection);
+
+        if (selectedIds.length === 0) {
+            alert('Nenhum item selecionado');
+            return;
+        }
+
+        const confirmed = await showConfirmationModal(
+            'Rejeitar em Lote',
+            `Tem certeza que deseja <strong>rejeitar e excluir permanentemente</strong> ${selectedIds.length} ${selectedIds.length === 1 ? 'item' : 'itens'}?`,
+            'Rejeitar e Excluir'
+        );
+
+        if (!confirmed) return;
+
+        try {
+            let successCount = 0;
+            let errorCount = 0;
+
+            for (const id of selectedIds) {
+                try {
+                    const response = await fetch(`${API_BASE_URL}/iva/knowledge/reject/${id}`, {
+                        method: 'POST',
+                        headers: getHeaders(),
+                        body: JSON.stringify({ reason: 'Rejeitado em lote pelo usuário' })
+                    });
+
+                    if (response.ok) {
+                        successCount++;
+                    } else {
+                        errorCount++;
+                    }
+                } catch (e) {
+                    errorCount++;
+                }
+            }
+
+            // Remove rejected items from list
+            state.pendingKnowledge = state.pendingKnowledge.filter(
+                item => !selectedIds.includes(item.id)
+            );
+
+            state.message = {
+                type: 'info',
+                text: `🗑️ ${successCount} rejeitados${errorCount > 0 ? `, ${errorCount} falharam` : ''}`
+            };
+
+            // Clear selection and re-render
+            state.auditTableInstance.clearSelection();
+            render();
+
+        } catch (e) {
+            state.message = { type: 'error', text: 'Erro ao rejeitar em lote: ' + e.message };
+            render();
         }
     };
 
