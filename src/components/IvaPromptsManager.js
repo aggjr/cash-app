@@ -458,10 +458,10 @@ export const IvaPromptsManager = () => {
         try {
             const response = await fetch(`${API_BASE_URL}/iva/debug-context`, { headers: getHeaders() });
             if (!response.ok) throw new Error('Failed to load context');
-            const data = await response.text();
-            state.editedContent = data; // It returns Markdown usually
+            const data = await response.json();
+            state.editedContent = data.context || JSON.stringify(data, null, 2);
             const textarea = container.querySelector('#prompts-textarea');
-            if (textarea) textarea.value = data;
+            if (textarea) textarea.value = state.editedContent;
         } catch (e) {
             state.editedContent = 'Erro ao carregar contexto: ' + e.message;
             render();
