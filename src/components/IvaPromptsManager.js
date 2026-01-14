@@ -70,7 +70,12 @@ export const IvaPromptsManager = () => {
             ` : ''}
 
             <div id="mode-content" style="flex: 1; display: flex; flex-direction: column; overflow: hidden; min-height: 400px;">
-                ${state.mode === 'prompts' ? renderPromptsUI() : '<div id="audit-table-container" style="flex: 1; display: flex; flex-direction: column; overflow: hidden;"></div>'}
+                ${state.mode === 'prompts' ? renderPromptsUI() : `
+                    <div id="audit-wrapper" style="flex: 1; display: flex; flex-direction: column; overflow: hidden;">
+                        <div id="audit-table-container" style="flex: 1; overflow: hidden; display: flex; flex-direction: column;"></div>
+                        <div id="audit-bulk-actions" style="display: none; padding: 1rem; background: white; border-top: 1px solid #e5e7eb; box-shadow: 0 -4px 6px -1px rgba(0, 0, 0, 0.1); z-index: 10;"></div>
+                    </div>
+                `}
             </div>
             
             <div class="prompts-footer">
@@ -154,6 +159,7 @@ export const IvaPromptsManager = () => {
     // --- AUDIT TABLE LOGIC ---
     const initAuditTable = () => {
         const tableContainer = container.querySelector('#audit-table-container');
+        const bulkActionsContainer = container.querySelector('#audit-bulk-actions');
         if (!tableContainer) return;
 
         if (state.auditLoading) {
@@ -161,25 +167,27 @@ export const IvaPromptsManager = () => {
             return;
         }
 
-        // Create bulk actions bar
-        const bulkActionsBar = document.createElement('div');
-        bulkActionsBar.className = 'bulk-actions-bar';
-        bulkActionsBar.style.display = 'none';
-        bulkActionsBar.innerHTML = `
-            <div style="display: flex; align-items: center; gap: 1rem; padding: 1rem; background: #F3F4F6; border-radius: 8px; margin-bottom: 1rem;">
-                <span id="bulk-count" style="font-weight: 600; color: #374151;">0 itens selecionados</span>
-                <button id="bulk-approve" class="btn-primary" style="background: #10B981; padding: 0.5rem 1rem; border: none; border-radius: 6px; color: white; cursor: pointer; font-weight: 600;">
-                    ✅ Aprovar Selecionados
-                </button>
-                <button id="bulk-reject" class="btn-secondary" style="background: #EF4444; color: white; padding: 0.5rem 1rem; border: none; border-radius: 6px; cursor: pointer; font-weight: 600;">
-                    ❌ Rejeitar Selecionados
-                </button>
-                <button id="bulk-clear" class="btn-secondary" style="padding: 0.5rem 1rem; border: 1px solid #D1D5DB; border-radius: 6px; background: white; cursor: pointer;">
-                    Limpar Seleção
-                </button>
-            </div>
-        `;
-        tableContainer.insertBefore(bulkActionsBar, tableContainer.firstChild);
+        // Configure bulk actions bar in designated slot (footer)
+        if (bulkActionsContainer) {
+            bulkActionsContainer.style.display = 'none';
+            bulkActionsContainer.className = 'bulk-actions-bar';
+            bulkActionsContainer.innerHTML = `
+                <div style="display: flex; align-items: center; gap: 1rem; justify-content: space-between;">
+                    <span id="bulk-count" style="font-weight: 600; color: #374151;">0 itens selecionados</span>
+                    <div style="display: flex; gap: 1rem;">
+                        <button id="bulk-approve" class="btn-primary" style="background: #10B981; padding: 0.5rem 1rem; border: none; border-radius: 6px; color: white; cursor: pointer; font-weight: 600;">
+                            ✅ Aprovar Selecionados
+                        </button>
+                        <button id="bulk-reject" class="btn-secondary" style="background: #EF4444; color: white; padding: 0.5rem 1rem; border: none; border-radius: 6px; cursor: pointer; font-weight: 600;">
+                            ❌ Rejeitar Selecionados
+                        </button>
+                        <button id="bulk-clear" class="btn-secondary" style="padding: 0.5rem 1rem; border: 1px solid #D1D5DB; border-radius: 6px; background: white; cursor: pointer;">
+                            Limpar Seleção
+                        </button>
+                    </div>
+                </div>
+            `;
+        }
 
         // Define Columns
         const columns = [
@@ -301,9 +309,10 @@ export const IvaPromptsManager = () => {
         });
 
         // Attach bulk action handlers
-        const bulkApproveBtn = tableContainer.querySelector('#bulk-approve');
-        const bulkRejectBtn = tableContainer.querySelector('#bulk-reject');
-        const bulkClearBtn = tableContainer.querySelector('#bulk-clear');
+        // Attach bulk action handlers (query from container as they are in footer now)
+        const bulkApproveBtn = container.querySelector('#bulk-approve');
+        const bulkRejectBtn = container.querySelector('#bulk-reject');
+        const bulkClearBtn = container.querySelector('#bulk-clear');
 
         if (bulkApproveBtn) bulkApproveBtn.onclick = handleBulkApprove;
         if (bulkRejectBtn) bulkRejectBtn.onclick = handleBulkReject;
