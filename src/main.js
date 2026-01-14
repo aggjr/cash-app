@@ -1,5 +1,5 @@
 import './style.css'
-import './styles/iva-analytics.css'
+
 import { Sidebar } from './components/Sidebar.js'
 import { Hero } from './components/Hero.js'
 import { Footer } from './components/Footer.js'
@@ -22,13 +22,12 @@ import { TransferenciaManager } from './components/TransferenciaManager.js'
 import { ExtratoContaManager } from './components/ExtratoContaManager.js'
 import { ConsolidadasManager } from './components/ConsolidadasManager.js'
 import { PrevisaoFluxoManager } from './components/PrevisaoFluxoManager.js'
-import { AIConsultant } from './components/AIConsultant.js'
+
 import { ParametrosGeraisManager } from './components/ParametrosGeraisManager.js'
 import { LogAlteracoesManager } from './components/LogAlteracoesManager.js'
 import { DividasEmprestimosManager } from './components/DividasEmprestimosManager.js'
 import { GraficosIndicadoresManager } from './components/GraficosIndicadoresManager.js'
-import { IvaAnalytics } from './components/IvaAnalytics.js'
-import './iva/IvaCollectiveObserver.js' // Observador passivo de uso coletivo
+
 
 console.log('═══════════════════════════════════════');
 console.log('💰 CASH Frontend Starting');
@@ -81,8 +80,7 @@ const renderApp = () => {
     </div>
   `;
 
-  // Append IVA Consultant
-  app.appendChild(AIConsultant());
+
 
   initAppLogic();
 };
@@ -146,28 +144,7 @@ function initAppLogic() {
     });
   }
 
-  // IVA Agent Toggle
-  const ivaWrapper = document.getElementById('ai-consultant-wrapper');
-  const toggleEvaBtn = document.getElementById('toggle-IVA-btn');
 
-  if (ivaWrapper) {
-    // Load saved state (default visible)
-    const isEvaVisible = localStorage.getItem('iva_visible') !== 'false';
-    ivaWrapper.style.display = isEvaVisible ? 'block' : 'none';
-    if (toggleEvaBtn) {
-      toggleEvaBtn.style.opacity = isEvaVisible ? '1' : '0.5';
-    }
-
-    if (toggleEvaBtn) {
-      toggleEvaBtn.addEventListener('click', (e) => {
-        e.preventDefault();
-        const isHidden = ivaWrapper.style.display === 'none';
-        ivaWrapper.style.display = isHidden ? 'block' : 'none';
-        toggleEvaBtn.style.opacity = isHidden ? '1' : '0.5';
-        localStorage.setItem('iva_visible', isHidden);
-      });
-    }
-  }
 
   // Theme toggle functionality
   const themeToggle = document.getElementById('theme-toggle');
@@ -217,45 +194,7 @@ function initAppLogic() {
   // Global Navigation Function (Accessble by IVA)
   window.cashApp = window.cashApp || {};
 
-  // Centralized IVA cleanup
-  window.ivaClearAllHighlights = () => {
-    console.log('[IVA] Centralized cleanup: clearing all highlights and indicators');
 
-    // 1. Clear IvaHighlighter (overlays, numbers)
-    if (window.IvaHighlighter && typeof window.IvaHighlighter.clearAll === 'function') {
-      window.IvaHighlighter.clearAll();
-    }
-
-    // 2. Stop IVA Autonomous Loop (Emergency Stop)
-    // ONLY stop if NOT an IVA-triggered navigation
-    const isEvaNavigating = window.IvaNavigationIndicator && window.IvaNavigationIndicator.isEvaNavigating;
-    if (!isEvaNavigating && window.IVAConsultant && typeof window.IVAConsultant.stopAutonomousLoop === 'function') {
-      window.IVAConsultant.stopAutonomousLoop();
-    }
-
-    // 3. Clear IvaNavigationIndicator (arrows, borders, golden glow)
-    const navArrows = document.querySelectorAll('.IVA-nav-arrow');
-    navArrows.forEach(el => el.remove());
-
-    const borderHighlights = document.querySelectorAll('[data-iva-original-border]');
-    borderHighlights.forEach(el => {
-      try {
-        const original = JSON.parse(el.dataset.ivaOriginalBorder);
-        el.style.border = original.border;
-        el.style.boxShadow = original.boxShadow;
-        el.style.position = original.position;
-        el.style.zIndex = original.zIndex;
-        el.style.animation = '';
-        delete el.dataset.ivaOriginalBorder;
-      } catch (e) { }
-    });
-
-    const bgHighlights = document.querySelectorAll('[data-iva-original-bg]');
-    bgHighlights.forEach(el => {
-      el.style.backgroundColor = el.dataset.ivaOriginalBg;
-      delete el.dataset.ivaOriginalBg;
-    });
-  };
 
   window.cashApp.navigate = (itemIdOrName) => {
     console.log(`[Navigate] Requested screen: "${itemIdOrName}"`);
@@ -317,8 +256,7 @@ function initAppLogic() {
       itemId = itemIdOrName; // It was a valid ID
     }
 
-    // Clear EVERYTHING IVA-related before moving
-    window.ivaClearAllHighlights();
+
 
     // Update UI active state
     document.querySelectorAll('.menu-item').forEach(el => el.classList.remove('active'));
@@ -371,16 +309,7 @@ function initAppLogic() {
     if (itemId === 'usuarios') return routeHandler(UserManager);
     if (itemId === 'parametros-gerais') return routeHandler(ParametrosGeraisManager);
     if (itemId === 'log-alteracoes') return routeHandler(LogAlteracoesManager);
-    if (itemId === 'iva-analytics') {
-      const { currentProject } = checkAuth();
-      if (currentProject) {
-        const mainElement = document.querySelector('main');
-        mainElement.innerHTML = '';
-        mainElement.appendChild(IvaAnalytics());
-        return true;
-      }
-      return false;
-    }
+
     if (itemId === 'dividas-emprestimos') return routeHandler(DividasEmprestimosManager);
 
     console.warn(`[Navigate] Unknown route ID: ${itemId}`);
@@ -412,11 +341,7 @@ function initAppLogic() {
       e.stopPropagation();
       const itemId = item.dataset.id;
 
-      // Clear IVA highlights when user manually clicks menu
-      if (window.IvaHighlighter) {
-        window.IvaHighlighter.clearAll();
-        console.log('[Menu] Manual click detected, clearing IVA highlights');
-      }
+
 
       // Use the global navigation function
       if (window.cashApp && window.cashApp.navigate) {
