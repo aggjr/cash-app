@@ -20,11 +20,38 @@ const getUnifiedPrompt = async (user, project, context = {}) => {
   const jobTitle = user?.job_title || '';
   const userGender = user?.gender || 'M';
 
-  // Formality detection
-  const isExecutive = jobTitle.toLowerCase().includes('diretor') ||
-    jobTitle.toLowerCase().includes('ceo') ||
-    jobTitle.toLowerCase().includes('presidente');
-  const isFormal = isExecutive;
+  // Formality detection based on role and department
+  const jobTitleLower = (jobTitle || '').toLowerCase();
+  const departmentLower = (user?.department || '').toLowerCase();
+
+  // Executive and C-level positions
+  const isExecutive = jobTitleLower.includes('diretor') ||
+    jobTitleLower.includes('ceo') ||
+    jobTitleLower.includes('presidente') ||
+    jobTitleLower.includes('vice-presidente') ||
+    jobTitleLower.includes('cfo') ||
+    jobTitleLower.includes('cto') ||
+    jobTitleLower.includes('coo') ||
+    jobTitleLower.includes('cmo');
+
+  // Management and senior positions
+  const isManagement = jobTitleLower.includes('gerente') ||
+    jobTitleLower.includes('gestor') ||
+    jobTitleLower.includes('coordenador') ||
+    jobTitleLower.includes('supervisor') ||
+    jobTitleLower.includes('líder') ||
+    jobTitleLower.includes('head') ||
+    jobTitleLower.includes('sênior') ||
+    jobTitleLower.includes('senior');
+
+  // Strategic departments
+  const isStrategicDept = departmentLower.includes('diretoria') ||
+    departmentLower.includes('presidência') ||
+    departmentLower.includes('conselho') ||
+    departmentLower.includes('board');
+
+  // Determine formality level
+  const isFormal = isExecutive || isStrategicDept || (isManagement && departmentLower.includes('financeiro'));
 
   // Load custom user preferences
   const IvaUserPreferences = require('../services/IvaUserPreferences');
