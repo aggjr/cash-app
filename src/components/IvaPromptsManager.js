@@ -407,7 +407,14 @@ export const IvaPromptsManager = () => {
             const response = await fetch(`${API_BASE_URL}/iva-prompts`, { headers: getHeaders() });
             if (!response.ok) throw new Error('Failed to load prompts');
             const data = await response.json();
-            state.prompts = data.prompts || {};
+
+            // Sanitize prompts keys (remove :1 suffix if present)
+            const rawPrompts = data.prompts || {};
+            state.prompts = {};
+            Object.keys(rawPrompts).forEach(key => {
+                const cleanKey = key.split(':')[0];
+                state.prompts[cleanKey] = rawPrompts[key];
+            });
 
             if (!state.prompts[state.activeTab]) {
                 const keys = Object.keys(state.prompts);

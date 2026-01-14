@@ -5,6 +5,7 @@
 
 const getUnifiedPrompt = async (user, project, context = {}) => {
   const QdrantKnowledgeService = require('../services/QdrantKnowledgeService');
+  const IvaUserPreferences = require('../services/IvaUserPreferences');
 
   // Get dynamic knowledge
   const personality = await QdrantKnowledgeService.getPersonality();
@@ -16,9 +17,12 @@ const getUnifiedPrompt = async (user, project, context = {}) => {
 
   // User context
   const userName = user?.name || 'Usuário';
-  const preferredName = user?.preferred_name || userName.split(' ')[0];
+
+  // Preferred Name: Fetch from Qdrant (Memory) -> Fallback to First Name
+  const memoryName = await IvaUserPreferences.getPreferredName(user.id);
+  const preferredName = memoryName || userName.split(' ')[0];
+
   const jobTitle = user?.job_title || '';
-  const userGender = user?.gender || 'M';
 
   // Formality detection based on role and department
   const jobTitleLower = (jobTitle || '').toLowerCase();
@@ -54,7 +58,6 @@ const getUnifiedPrompt = async (user, project, context = {}) => {
   const isFormal = isExecutive || isStrategicDept || (isManagement && departmentLower.includes('financeiro'));
 
   // Load custom user preferences
-  const IvaUserPreferences = require('../services/IvaUserPreferences');
   const customPrefs = await IvaUserPreferences.listUserPreferences(user.id);
 
   // Get last access to determine if should introduce
@@ -72,16 +75,18 @@ const getUnifiedPrompt = async (user, project, context = {}) => {
 - Nome: ${preferredName}
 - Cargo: ${jobTitle || 'Não especificado'}
 - Departamento: ${user?.department || 'Não especificado'}
-- Gênero: ${userGender === 'F' ? 'Feminino' : 'Masculino'}
 - Hora: ${hour}h (${timeOfDay})
 ${project?.name ? `- Projeto: ${project.name}` : ''}
 
-${!jobTitle || !user.department || !user.gender ? `
+${!jobTitle || !user.department ? `
 ⚠️ **CAMPOS FALTANTES NO CADASTRO:**
 ${!jobTitle ? '- Cargo (use update_user_profile se o usuário mencionar)' : ''}
 ${!user.department ? '- Departamento (use update_user_profile se o usuário mencionar)' : ''}
-${!user.gender ? '- Gênero (use update_user_profile se conseguir inferir do nome)' : ''}
 ` : ''}
+
+## Contexto de Adaptação
+Você está conversando com **${preferredName}**, que é **${jobTitle || 'uma função não especificada'}** e trabalha no departamento **${user?.department || 'geral'}**.
+Adeque o seu nível de formalidade e o contexto das suas falas ao conhecimento desta área e função.
 
 ## Sua Identidade
 Você é **IVA** (Inteligência Virtual de Análise), assistente de inteligência corporativa do sistema VORTEX.
@@ -100,11 +105,11 @@ ${isFirstInteraction ?
 ### Regras de Interação e Aprendizado
 1. **Preferências e Identidade:**
    - O usuário pode mudar de ideia a qualquer momento sobre seu nome, preferências ou configurações.
-   - Quando isso acontecer, use a ferramenta adequada (`save_preferred_name`, `save_user_preference`, etc) para persistir a mudança imediatamente.
+   - Quando isso acontecer, use a ferramenta adequada (\`save_preferred_name\`, \`save_user_preference\`, etc) para persistir a mudança imediatamente.
    - **Não** imponha o que está no cadastro se o usuário disser o contrário. O que o usuário diz no chat tem prioridade (sobreposição).
 
 2. ** Aprendizado Contínuo:**
-   - Se o usuário te ensinar algo novo, use `contribute_knowledge`.
+   - Se o usuário te ensinar algo novo, use contribute_knowledge.
 
 3. **Formatação:**
    - Use Markdown. Seja conciso e direto.
@@ -125,7 +130,7 @@ NUNCA adivinhe. Se não souber, pergunte ou diga que não sabe.
 
 ## Tom de Voz
 ${isFormal ? `
-- Tratamento formal: "${userGender === 'F' ? 'Sra.' : 'Sr.'} ${preferredName}"
+- Tratamento formal: "Sr(a). ${preferredName}"
 - Tom profissional e respeitoso
 - Linguagem técnica quando apropriado
 ` : `

@@ -292,7 +292,7 @@ const executeFunction = async (functionCall, user, context) => {
 
             if (args.job_title) updates.job_title = args.job_title;
             if (args.department) updates.department = args.department;
-            if (args.gender) updates.gender = args.gender;
+            // Gender removed from simplified profile
 
             if (Object.keys(updates).length > 0) {
                 await db.query(
