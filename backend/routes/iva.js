@@ -270,6 +270,45 @@ router.delete('/clean-orphaned-knowledge', auth, async (req, res) => {
     }
 });
 
+// DELETE /api/iva/memory/user - Clean ALL memory for current user
+router.delete('/memory/user', auth, async (req, res) => {
+    try {
+        const userId = req.user.id;
+        console.log(`🧹 Full memory reset request for user ${userId}`);
+        const VectorSearchService = require('../services/VectorSearchService');
+
+        // Search for all knowledge in USER layer for this user
+        const results = await VectorSearchService.scroll({
+            layer: 'USER',
+            filter: {
+                must: [
+                    { key: "user_id", match: { value: userId } }
+                ]
+            }
+        }, 100);
+
+        if (!results || !results.points || results.points.length === 0) {
+            return res.json({ success: true, message: 'No memory found to clean.', count: 0 });
+        }
+
+        console.log(`Found ${results.points.length} memory text entries to delete.`);
+
+        for (const point of results.points) {
+            await VectorSearchService.deletePointByUuid(point.id);
+        }
+
+        res.json({
+            success: true,
+            message: `Deleted ${results.points.length} memory entries.`,
+            count: results.points.length
+        });
+
+    } catch (error) {
+        console.error('❌ Error resetting user memory:', error);
+        res.status(500).json({ error: 'Error resetting memory', details: error.message });
+    }
+});
+
 // --- SECURE MIGRATION ROUTE (Admin Only) ---
 // POST /api/iva/migrate-to-qdrant-force - Force re-seed Qdrant from knowledge base
 router.post('/migrate-to-qdrant-force', auth, async (req, res) => {
