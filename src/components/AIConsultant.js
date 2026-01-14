@@ -1318,12 +1318,32 @@ Digite 1, 2 ou 3.`;
                         speak(decision.message);
                     }
 
-                    // Execute navigation
-                    if (typeof MenuNavigator !== 'undefined') {
+                    // Execute navigation via IvaActions (includes highlight)
+                    if (typeof IvaActions !== 'undefined') {
+                        const result = await IvaActions.handle('NAVIGATE', {
+                            target: decision.target,
+                            highlight: decision.highlight
+                        });
+
+                        if (result.success) {
+                            console.log('[IVA] Navigation executed successfully');
+
+                            // Highlight navigation path after navigation completes
+                            setTimeout(() => {
+                                if (typeof IvaActions.highlightNavigationPath === 'function') {
+                                    IvaActions.highlightNavigationPath(decision.target);
+                                }
+                            }, 1000);
+                        } else {
+                            console.error('[IVA] Navigation failed:', result.message);
+                            addMessage('ai', result.message || 'Não consegui navegar para essa tela.');
+                        }
+                    } else if (typeof MenuNavigator !== 'undefined') {
+                        // Fallback to direct MenuNavigator
                         MenuNavigator.navigate(decision.target);
-                        console.log('[IVA] Navigation executed successfully');
+                        console.log('[IVA] Navigation executed via MenuNavigator (fallback)');
                     } else {
-                        console.error('[IVA] MenuNavigator not available!');
+                        console.error('[IVA] No navigation system available!');
                         addMessage('ai', 'Desculpe, não consegui navegar para essa tela.');
                     }
                 }
