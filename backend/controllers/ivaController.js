@@ -230,35 +230,38 @@ const getFunctionDefaultMessage = (functionCallInfo) => {
 
     switch (name) {
         case 'save_preferred_name':
-            return `Perfeito! Vou te chamar de ${args.name}.`;
+            return `Perfeito! A partir de agora vou te chamar de ${args.name}.`;
 
         case 'save_voice_settings':
             if (args.enabled === false) {
-                return 'Ok! Desabilitei as respostas por voz.';
+                return 'Entendido. Desativei minha voz.';
             }
-            return `Configurações de voz atualizadas! Velocidade: ${args.rate}%.`;
+            return `Ajustei minha voz! Velocidade definida em ${args.rate}%.`;
 
         case 'save_user_preference':
-            return `Preferência salva: ${args.preference_key}.`;
+            // Tenta ser mais natural baseando-se na chave
+            if (args.preference_key.includes('color') || args.preference_key.includes('theme')) {
+                return `Ótima escolha! Salvei sua preferência de cores.`;
+            }
+            return `Combinado! Já salvei essa preferência no meu sistema.`;
 
         case 'update_user_profile':
-            const updates = [];
-            if (args.job_title) updates.push(`cargo: ${args.job_title}`);
-            if (args.department) updates.push(`departamento: ${args.department}`);
-            if (args.gender) updates.push(`gênero: ${args.gender}`);
-            return `Perfil atualizado (${updates.join(', ')}).`;
+            return `Atualizei seu perfil com essas novas informações. Obrigada!`;
 
         case 'contribute_knowledge':
-            return 'Conhecimento registrado com sucesso!';
+            return 'Muito obrigada por me ensinar! Essa informação já faz parte do meu conhecimento.';
 
         case 'navigate':
-            return `Navegando para: ${args.target}`;
+            return `Com certeza. Indo para a tela solicitada agora mesmo.`;
 
         case 'highlight_element':
-            return 'Elemento destacado!';
+            return 'Encontrei! Destaquei o elemento na tela para você.';
+
+        case 'close_chat':
+            return 'Até logo! Se precisar de algo, é só chamar.';
 
         default:
-            return 'Ação executada com sucesso!';
+            return 'Tudo certo! Ação concluída com sucesso.';
     }
 };
 
