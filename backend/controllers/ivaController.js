@@ -279,7 +279,132 @@ const getFunctionDefaultMessage = (functionCallInfo) => {
     }
 };
 
+/**
+ * Get pending knowledge for audit
+ */
+const getPendingKnowledge = async (req, res) => {
+    try {
+        const { type, scope } = req.query;
+        const qdrantClient = require('../config/qdrant');
+
+        const filter = {
+            must: [
+                { key: 'audit_status', match: { value: 'pending' } }
+            ]
+        };
+
+        if (type) filter.must.push({ key: 'type', match: { value: type } });
+        if (scope) filter.must.push({ key: 'scope', match: { value: scope } });
+
+        const result = await qdrantClient.scroll('iva_knowledge', {
+            filter,
+            limit: 100,
+            with_payload: true,
+            with_vector: false
+        });
+
+        const pending = result.points.map(point => ({
+            id: point.id,
+            type: point.payload.type,
+            scope: point.payload.scope,
+            data: point.payload.data,
+            proposedPrompt: point.payload.proposed_prompt || 'N/A',
+            createdAt: point.payload.created_at,
+            userId: point.payload.user_id,
+            projectId: point.payload.project_id
+        }));
+
+        res.json(pending);
+    } catch (error) {
+        console.error('[IVA Audit] Error getting pending:', error);
+        res.status(500).json({ error: 'Erro ao buscar conhecimentos pendentes' });
+    }
+};
+
+/**
+ * Approve pending knowledge
+ */
+const approveKnowledge = async (req, res) => {
+    try {
+        const { id } = req.params;
+        const qdrantClient = require('../config/qdrant');
+
+        // Get current point
+        const points = await qdrantClient.retrieve('iva_knowledge', {
+            ids: [id],
+            with_payload: true
+        });
+
+        if (points.length === 0) {
+            return res.status(404).json({ error: 'Conhecimento não encontrado' });
+        }
+
+        const point = points[0];
+
+        // Update status to approved
+        await qdrantClient.setPayload('iva_knowledge', {
+            points: [id],
+            payload: {
+                ...point.payload,
+                audit_status: 'approved',
+                approved_at: new Date().toISOString(),
+                approved_by: req.user?.id
+            }
+        });
+
+        console.log(`[IVA Audit] Knowledge ${id} approved`);
+        res.json({ success: true, message: 'Conhecimento aprovado' });
+    } catch (error) {
+        console.error('[IVA Audit] Error approving:', error);
+        res.status(500).json({ error: 'Erro ao aprovar conhecimento' });
+    }
+};
+
+/**
+ * Reject pending knowledge
+ */
+const rejectKnowledge = async (req, res) => {
+    try {
+        const { id } = req.params;
+        const { reason } = req.body;
+        const qdrantClient = require('../config/qdrant');
+
+        // Get current point
+        const points = await qdrantClient.retrieve('iva_knowledge', {
+            ids: [id],
+            with_payload: true
+        });
+
+        if (points.length === 0) {
+            return res.status(404).json({ error: 'Conhecimento não encontrado' });
+        }
+
+        const point = points[0];
+
+        // Update status to rejected
+        await qdrantClient.setPayload('iva_knowledge', {
+            points: [id],
+            payload: {
+                ...point.payload,
+                audit_status: 'rejected',
+                rejected_at: new Date().toISOString(),
+                rejected_by: req.user?.id,
+                rejection_reason: reason || 'Não especificado'
+            }
+        });
+
+        console.log(`[IVA Audit] Knowledge ${id} rejected`);
+        res.json({ success: true, message: 'Conhecimento rejeitado' });
+    } catch (error) {
+        console.error('[IVA Audit] Error rejecting:', error);
+        res.status(500).json({ error: 'Erro ao rejeitar conhecimento' });
+    }
+};
+
 module.exports = {
     chat,
-    operate
+    operate,
+    getPendingKnowledge,
+    approveKnowledge,
+    rejectKnowledge
 };

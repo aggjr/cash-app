@@ -45,10 +45,10 @@ router.get('/debug-ghosts', async (req, res) => {
 // REMOVED: backfillKnowledge - not in new clean controller
 // router.post('/backfill-knowledge', ivaController.backfillKnowledge);
 
-// REMOVED: Knowledge audit routes - not in new clean controller
-// router.get('/knowledge/pending', auth, ivaController.getPendingKnowledge);
-// router.post('/knowledge/approve', auth, ivaController.approveKnowledge);
-// router.post('/knowledge/reject', auth, ivaController.rejectKnowledge);
+// Knowledge audit routes - RESTORED
+router.get('/knowledge/pending', auth, ivaController.getPendingKnowledge);
+router.post('/knowledge/approve/:id', auth, ivaController.approveKnowledge);
+router.post('/knowledge/reject/:id', auth, ivaController.rejectKnowledge);
 
 // POST /api/IVA/learn - Record knowledge (active learning)
 router.post('/learn', auth, async (req, res) => {
