@@ -346,37 +346,6 @@ const executeFunction = async (functionCall, user, context) => {
 };
 
 /**
- * Generate default message for function calls
- */
-const getFunctionDefaultMessage = (functionCallInfo) => {
-    const { name, arguments: args } = functionCallInfo;
-
-    switch (name) {
-        case 'navigate':
-            return args.message || `Navegando para ${args.target}...`;
-        case 'highlight_element':
-            return args.message || 'Destacando elemento na tela...';
-        case 'contribute_knowledge':
-            return 'Entendido! Guardei essa informação.';
-        case 'save_preferred_name':
-            return `Perfeito! Vou te chamar de ${args.name}.`;
-        case 'save_voice_settings':
-            return 'Configurações de voz atualizadas!';
-        case 'update_user_profile': {
-            const fields = [];
-            if (args.job_title) fields.push('cargo');
-            if (args.department) fields.push('departamento');
-            if (args.gender) fields.push('gênero');
-            return `Perfeito! Atualizei ${fields.length > 1 ? 'seu ' + fields.slice(0, -1).join(', ') + ' e ' + fields.slice(-1) : 'seu ' + fields[0]} no cadastro.`;
-        }
-        case 'save_user_preference':
-            return `Entendido! Vou lembrar disso: ${args.preference_key}.`;
-        default:
-            return 'Ação executada com sucesso.';
-    }
-};
-
-/**
  * Get pending knowledge for audit
  */
 const getPendingKnowledge = async (req, res) => {
