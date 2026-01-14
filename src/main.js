@@ -257,8 +257,65 @@ function initAppLogic() {
     });
   };
 
-  window.cashApp.navigate = (itemId) => {
-    console.log(`[Navigate] Switching to screen: ${itemId}`);
+  window.cashApp.navigate = (itemIdOrName) => {
+    console.log(`[Navigate] Requested screen: "${itemIdOrName}"`);
+
+    // Helper: Normalize string for comparison
+    const normalize = (str) => str ? str.toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "").trim() : '';
+    let itemId = normalize(itemIdOrName);
+    const originalInput = itemIdOrName;
+
+    // 1. Try to resolve ID if it's a name (Robust Lookup)
+    // First, check if the ID exists directly in our treeConfigs or hardcoded conditions
+    const knownIds = [
+      'contas', 'empresa', 'entrada', 'saida', 'producao-revenda', 'fechamento',
+      'aportes', 'retiradas', 'transferencias', 'extrato-conta', 'consolidada-financeira',
+      'dre-competencia', 'previsao', 'graficos-visao-geral', 'graficos-estatisticos',
+      'graficos-abc', 'usuarios', 'parametros-gerais', 'log-alteracoes',
+      'iva-analytics', 'dividas-emprestimos'
+    ];
+
+    const treeIds = Object.keys(treeConfigs);
+    const allValidIds = [...knownIds, ...treeIds];
+
+    // If inputs isn't a valid ID, try to find the menu item by text
+    if (!allValidIds.includes(itemIdOrName)) { // Check exact match first
+      console.log(`[Navigate] "${itemIdOrName}" is not a known ID, searching menu items by text...`);
+
+      const menuItems = document.querySelectorAll('.menu-item');
+      let foundId = null;
+      let bestMatchScore = 0;
+
+      menuItems.forEach(item => {
+        const id = item.dataset.id;
+        const label = item.querySelector('.menu-label')?.textContent || '';
+        const title = item.title || '';
+
+        const normativeLabel = normalize(label);
+        const normativeTitle = normalize(title);
+        const normativeId = normalize(id);
+
+        // Exact match strategies
+        if (normativeId === itemId) { foundId = id; bestMatchScore = 10; }
+        else if (normativeLabel === itemId) { foundId = id; bestMatchScore = 9; }
+        else if (normativeTitle === itemId) { foundId = id; bestMatchScore = 8; }
+        // Partial match strategies (only if no exact match found yet)
+        else if (bestMatchScore < 5) {
+          if (normativeLabel.includes(itemId)) { foundId = id; bestMatchScore = 5; }
+          else if (itemId.includes(normativeLabel) && normativeLabel.length > 3) { foundId = id; bestMatchScore = 4; }
+        }
+      });
+
+      if (foundId) {
+        console.log(`[Navigate] Resolved "${itemIdOrName}" to ID: "${foundId}"`);
+        itemId = foundId;
+      } else {
+        console.warn(`[Navigate] Could not resolve "${itemIdOrName}" to any menu item.`);
+        // Continue with original normalized input, might fail below but allows pass-through
+      }
+    } else {
+      itemId = itemIdOrName; // It was a valid ID
+    }
 
     // Clear EVERYTHING IVA-related before moving
     window.ivaClearAllHighlights();
@@ -276,196 +333,58 @@ function initAppLogic() {
       const mainElement = document.querySelector('main');
       mainElement.innerHTML = manager.render();
       manager.init();
-    } else if (itemId === 'contas') {
+      return true;
+    }
+
+    // --- Manual Routing Table ---
+    // Using simple if/else for clarity and scope access
+
+    const routeHandler = (managerFn, ...args) => {
       const { currentProject } = checkAuth();
       if (currentProject) {
         const mainElement = document.querySelector('main');
         mainElement.innerHTML = '';
-        mainElement.appendChild(AccountManager(currentProject));
+        mainElement.appendChild(managerFn(currentProject, ...args));
+        return true;
       } else {
         Dialogs.alert('Selecione um projeto primeiro', 'Aviso');
+        return false;
       }
-    } else if (itemId === 'empresa') {
-      const { currentProject } = checkAuth();
-      if (currentProject) {
-        const mainElement = document.querySelector('main');
-        mainElement.innerHTML = '';
-        mainElement.appendChild(CompanyManager(currentProject));
-      } else {
-        Dialogs.alert('Selecione um projeto primeiro', 'Aviso');
-      }
-    } else if (itemId === 'entrada') {
-      const { currentProject } = checkAuth();
-      if (currentProject) {
-        const mainElement = document.querySelector('main');
-        mainElement.innerHTML = '';
-        mainElement.appendChild(IncomeManager(currentProject));
-      } else {
-        Dialogs.alert('Selecione um projeto primeiro', 'Aviso');
-      }
-    } else if (itemId === 'saida') {
-      const { currentProject } = checkAuth();
-      if (currentProject) {
-        const mainElement = document.querySelector('main');
-        mainElement.innerHTML = '';
-        mainElement.appendChild(SaidaManager(currentProject));
-      } else {
-        Dialogs.alert('Selecione um projeto primeiro', 'Aviso');
-      }
-    } else if (itemId === 'producao-revenda') {
-      const { currentProject } = checkAuth();
-      if (currentProject) {
-        const mainElement = document.querySelector('main');
-        mainElement.innerHTML = '';
-        mainElement.appendChild(ProducaoRevendaManager(currentProject));
-      } else {
-        Dialogs.alert('Selecione um projeto primeiro', 'Aviso');
-      }
-    } else if (itemId === 'fechamento') {
-      const { currentProject } = checkAuth();
-      if (currentProject) {
-        const mainElement = document.querySelector('main');
-        mainElement.innerHTML = '';
-        mainElement.appendChild(FechamentoContasManager(currentProject));
-      } else {
-        Dialogs.alert('Selecione um projeto primeiro', 'Aviso');
-      }
-    } else if (itemId === 'aportes') {
-      const { currentProject } = checkAuth();
-      if (currentProject) {
-        const mainElement = document.querySelector('main');
-        mainElement.innerHTML = '';
-        mainElement.appendChild(AporteManager(currentProject));
-      } else {
-        Dialogs.alert('Selecione um projeto primeiro', 'Aviso');
-      }
-    } else if (itemId === 'retiradas') {
-      const { currentProject } = checkAuth();
-      if (currentProject) {
-        const mainElement = document.querySelector('main');
-        mainElement.innerHTML = '';
-        mainElement.appendChild(RetiradaManager(currentProject));
-      } else {
-        Dialogs.alert('Selecione um projeto primeiro', 'Aviso');
-      }
-    } else if (itemId === 'transferencias') {
-      const { currentProject } = checkAuth();
-      if (currentProject) {
-        const mainElement = document.querySelector('main');
-        mainElement.innerHTML = '';
-        mainElement.appendChild(TransferenciaManager(currentProject));
-      } else {
-        Dialogs.alert('Selecione um projeto primeiro', 'Aviso');
-      }
-    } else if (itemId === 'extrato-conta') {
-      const { currentProject } = checkAuth();
-      if (currentProject) {
-        const mainElement = document.querySelector('main');
-        mainElement.innerHTML = '';
-        mainElement.appendChild(ExtratoContaManager(currentProject));
-      } else {
-        Dialogs.alert('Selecione um projeto primeiro', 'Aviso');
-      }
-    } else if (itemId === 'consolidada-financeira') {
-      const { currentProject } = checkAuth();
-      if (currentProject) {
-        const mainElement = document.querySelector('main');
-        mainElement.innerHTML = '';
-        mainElement.appendChild(ConsolidadasManager(currentProject, 'caixa'));
-      } else {
-        Dialogs.alert('Selecione um projeto primeiro', 'Aviso');
-      }
-    } else if (itemId === 'dre-competencia') {
-      const { currentProject } = checkAuth();
-      if (currentProject) {
-        const mainElement = document.querySelector('main');
-        mainElement.innerHTML = '';
-        mainElement.appendChild(ConsolidadasManager(currentProject, 'competencia'));
-      } else {
-        Dialogs.alert('Selecione um projeto primeiro', 'Aviso');
-      }
-    } else if (itemId === 'previsao') {
-      const { currentProject } = checkAuth();
-      if (currentProject) {
-        const mainElement = document.querySelector('main');
-        mainElement.innerHTML = '';
-        mainElement.appendChild(PrevisaoFluxoManager(currentProject));
-      } else {
-        Dialogs.alert('Selecione um projeto primeiro', 'Aviso');
-      }
-    } else if (itemId === 'graficos-visao-geral') {
-      const { currentProject } = checkAuth();
-      if (currentProject) {
-        const mainElement = document.querySelector('main');
-        mainElement.innerHTML = '';
-        mainElement.appendChild(GraficosIndicadoresManager(currentProject, 'overview'));
-      } else {
-        Dialogs.alert('Selecione um projeto primeiro', 'Aviso');
-      }
-    } else if (itemId === 'graficos-estatisticos') {
-      const { currentProject } = checkAuth();
-      if (currentProject) {
-        const mainElement = document.querySelector('main');
-        mainElement.innerHTML = '';
-        mainElement.appendChild(GraficosIndicadoresManager(currentProject, 'statistical'));
-      } else {
-        Dialogs.alert('Selecione um projeto primeiro', 'Aviso');
-      }
-    } else if (itemId === 'graficos-abc') {
-      const { currentProject } = checkAuth();
-      if (currentProject) {
-        const mainElement = document.querySelector('main');
-        mainElement.innerHTML = '';
-        mainElement.appendChild(GraficosIndicadoresManager(currentProject, 'abc'));
-      } else {
-        Dialogs.alert('Selecione um projeto primeiro', 'Aviso');
-      }
-    } else if (itemId === 'usuarios') {
-      const { currentProject } = checkAuth();
-      if (currentProject) {
-        const mainElement = document.querySelector('main');
-        mainElement.innerHTML = '';
-        mainElement.appendChild(UserManager(currentProject));
-      } else {
-        Dialogs.alert('Selecione um projeto primeiro', 'Aviso');
-      }
-    } else if (itemId === 'parametros-gerais') {
-      const { currentProject } = checkAuth();
-      if (currentProject) {
-        const mainElement = document.querySelector('main');
-        mainElement.innerHTML = '';
-        mainElement.appendChild(ParametrosGeraisManager(currentProject));
-      } else {
-        Dialogs.alert('Selecione um projeto primeiro', 'Aviso');
-      }
-    } else if (itemId === 'log-alteracoes') {
-      const { currentProject } = checkAuth();
-      if (currentProject) {
-        const mainElement = document.querySelector('main');
-        mainElement.innerHTML = '';
-        mainElement.appendChild(LogAlteracoesManager(currentProject));
-      } else {
-        Dialogs.alert('Selecione um projeto primeiro', 'Aviso');
-      }
-    } else if (itemId === 'iva-analytics') {
+    };
+
+    if (itemId === 'contas') return routeHandler(AccountManager);
+    if (itemId === 'empresa') return routeHandler(CompanyManager);
+    if (itemId === 'entrada') return routeHandler(IncomeManager);
+    if (itemId === 'saida') return routeHandler(SaidaManager);
+    if (itemId === 'producao-revenda') return routeHandler(ProducaoRevendaManager);
+    if (itemId === 'fechamento') return routeHandler(FechamentoContasManager);
+    if (itemId === 'aportes') return routeHandler(AporteManager);
+    if (itemId === 'retiradas') return routeHandler(RetiradaManager);
+    if (itemId === 'transferencias') return routeHandler(TransferenciaManager);
+    if (itemId === 'extrato-conta') return routeHandler(ExtratoContaManager);
+    if (itemId === 'consolidada-financeira') return routeHandler(ConsolidadasManager, 'caixa');
+    if (itemId === 'dre-competencia') return routeHandler(ConsolidadasManager, 'competencia');
+    if (itemId === 'previsao') return routeHandler(PrevisaoFluxoManager);
+    if (itemId === 'graficos-visao-geral') return routeHandler(GraficosIndicadoresManager, 'overview');
+    if (itemId === 'graficos-estatisticos') return routeHandler(GraficosIndicadoresManager, 'statistical');
+    if (itemId === 'graficos-abc') return routeHandler(GraficosIndicadoresManager, 'abc');
+    if (itemId === 'usuarios') return routeHandler(UserManager);
+    if (itemId === 'parametros-gerais') return routeHandler(ParametrosGeraisManager);
+    if (itemId === 'log-alteracoes') return routeHandler(LogAlteracoesManager);
+    if (itemId === 'iva-analytics') {
       const { currentProject } = checkAuth();
       if (currentProject) {
         const mainElement = document.querySelector('main');
         mainElement.innerHTML = '';
         mainElement.appendChild(IvaAnalytics());
-      } else {
-        Dialogs.alert('Selecione um projeto primeiro', 'Aviso');
+        return true;
       }
-    } else if (itemId === 'dividas-emprestimos') {
-      const { currentProject } = checkAuth();
-      if (currentProject) {
-        const mainElement = document.querySelector('main');
-        mainElement.innerHTML = '';
-        mainElement.appendChild(DividasEmprestimosManager(currentProject));
-      } else {
-        Dialogs.alert('Selecione um projeto primeiro', 'Aviso');
-      }
+      return false;
     }
+    if (itemId === 'dividas-emprestimos') return routeHandler(DividasEmprestimosManager);
+
+    console.warn(`[Navigate] Unknown route ID: ${itemId}`);
+    return false;
   };
 
   // Menu item expand/collapse functionality

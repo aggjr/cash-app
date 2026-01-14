@@ -295,29 +295,11 @@ const getFunctionDefaultMessage = (functionCallInfo) => {
  */
 const getPendingKnowledge = async (req, res) => {
     try {
-        const { type, scope } = req.query;
-        const VectorSearchService = require('../services/VectorSearchService');
+        const { scope } = req.query;
+        const IvaGlobalKnowledge = require('../services/IvaGlobalKnowledge');
 
-        const filter = {
-            audit_status: 'pending'
-        };
-
-        if (type) filter.type = type;
-        if (scope) filter.scope = scope;
-
-        const result = await VectorSearchService.scroll(filter, 100);
-
-        const pending = result.points.map(point => ({
-            id: point.id,
-            type: point.payload.type,
-            scope: point.payload.scope,
-            data: point.payload.data,
-            proposedPrompt: point.payload.proposed_prompt || 'N/A',
-            createdAt: point.payload.created_at,
-            userId: point.payload.user_id,
-            projectId: point.payload.project_id
-        }));
-
+        // Delegate to service to get full payload data including proposed_prompt and layer
+        const pending = await IvaGlobalKnowledge.getPendingKnowledge(scope);
         res.json(pending);
     } catch (error) {
         console.error('[IVA Audit] Error getting pending:', error);
@@ -331,33 +313,10 @@ const getPendingKnowledge = async (req, res) => {
 const approveKnowledge = async (req, res) => {
     try {
         const { id } = req.params;
-        const VectorSearchService = require('../services/VectorSearchService');
+        const { refinedText } = req.body;
+        const IvaGlobalKnowledge = require('../services/IvaGlobalKnowledge');
 
-        // Get current point - retrieve expects string ID, not UUID
-        const points = await VectorSearchService.retrieve(id);
-
-        if (points.length === 0) {
-            return res.status(404).json({ error: 'Conhecimento não encontrado' });
-        }
-
-        const point = points[0];
-
-        // Update knowledge with approved status
-        const updatedPayload = {
-            ...point.payload,
-            audit_status: 'approved',
-            approved_at: new Date().toISOString(),
-            approved_by: req.user?.id
-        };
-
-        // Re-upsert the point with updated payload
-        await VectorSearchService.upsertKnowledge(
-            id,
-            point.payload.text || '',
-            updatedPayload
-        );
-
-        console.log(`[IVA Audit] Knowledge ${id} approved`);
+        await IvaGlobalKnowledge.approveKnowledge(id, refinedText);
         res.json({ success: true, message: 'Conhecimento aprovado' });
     } catch (error) {
         console.error('[IVA Audit] Error approving:', error);
@@ -371,35 +330,9 @@ const approveKnowledge = async (req, res) => {
 const rejectKnowledge = async (req, res) => {
     try {
         const { id } = req.params;
-        const { reason } = req.body;
-        const VectorSearchService = require('../services/VectorSearchService');
+        const IvaGlobalKnowledge = require('../services/IvaGlobalKnowledge');
 
-        // Get current point
-        const points = await VectorSearchService.retrieve(id);
-
-        if (points.length === 0) {
-            return res.status(404).json({ error: 'Conhecimento não encontrado' });
-        }
-
-        const point = points[0];
-
-        // Update knowledge with rejected status
-        const updatedPayload = {
-            ...point.payload,
-            audit_status: 'rejected',
-            rejected_at: new Date().toISOString(),
-            rejected_by: req.user?.id,
-            rejection_reason: reason || 'Não especificado'
-        };
-
-        // Re-upsert the point with updated payload
-        await VectorSearchService.upsertKnowledge(
-            id,
-            point.payload.text || '',
-            updatedPayload
-        );
-
-        console.log(`[IVA Audit] Knowledge ${id} rejected`);
+        await IvaGlobalKnowledge.rejectKnowledge(id);
         res.json({ success: true, message: 'Conhecimento rejeitado' });
     } catch (error) {
         console.error('[IVA Audit] Error rejecting:', error);

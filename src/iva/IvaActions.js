@@ -22,32 +22,41 @@ export const IvaActions = {
                     if (!window.IvaNavigationIndicator) window.IvaNavigationIndicator = {};
                     window.IvaNavigationIndicator.isEvaNavigating = true;
 
-                    window.cashApp.navigate(payload.target);
+                    // Execute navigation and check result
+                    const navResult = window.cashApp.navigate(payload.target);
+                    // Handle both boolean return (new) and void/undefined (legacy compatibility)
+                    const success = navResult === true || navResult === undefined;
 
-                    // Use persistent navigation indicators
-                    setTimeout(() => {
-                        console.log('[Iva] Starting persistent navigation indicators...');
-                        try {
-                            // Import and use new indicator system
-                            import('./IvaNavigationIndicator.js').then(module => {
-                                module.IvaNavigationIndicator.markNavigationPath(payload.target);
-                            });
+                    if (success) {
+                        // Use persistent navigation indicators
+                        setTimeout(() => {
+                            console.log('[Iva] Starting persistent navigation indicators...');
+                            try {
+                                // Import and use new indicator system
+                                import('./IvaNavigationIndicator.js').then(module => {
+                                    module.IvaNavigationIndicator.markNavigationPath(payload.target);
+                                });
 
-                            // DATA HIGHLIGHT (New)
-                            if (payload.highlight) {
-                                console.log('[Iva] Triggering data highlight for:', payload.highlight);
-                                setTimeout(() => {
-                                    IvaHighlight.highlightText(payload.highlight, { duration: 5000 });
-                                }, 1500); // Wait bit more for table data to render
+                                // DATA HIGHLIGHT (New)
+                                if (payload.highlight) {
+                                    console.log('[Iva] Triggering data highlight for:', payload.highlight);
+                                    setTimeout(() => {
+                                        IvaHighlight.highlightText(payload.highlight, { duration: 5000 });
+                                    }, 1500); // Wait bit more for table data to render
+                                }
+
+                            } catch (error) {
+                                console.error('[Iva] Error showing indicators:', error);
                             }
+                        }, 800); // Wait for navigation to complete
 
-                        } catch (error) {
-                            console.error('[Iva] Error showing indicators:', error);
-                        }
-                    }, 800); // Wait for navigation to complete
-
-                    return { success: true, message: `Navegando para ${payload.target}` };
+                        return { success: true, message: `Navegando para ${payload.target}` };
+                    } else {
+                        console.warn(`[Iva] Navigation to "${payload.target}" failed or was not found.`);
+                        return { success: false, message: `Não consegui encontrar a tela ou menu "${payload.target}".` };
+                    }
                 }
+                return { success: false, message: 'Sistema de navegação não disponível' };
                 return { success: false, message: 'Sistema de navegação não disponível' };
 
             case 'EXPLAIN_SCREEN':
