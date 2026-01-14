@@ -1309,6 +1309,24 @@ Digite 1, 2 ou 3.`;
                         }
                     }
                 }
+                else if (decision.action === 'NAVIGATE' && decision.target) {
+                    console.log('[IVA] Executing navigation to:', decision.target);
+
+                    // Show message if provided
+                    if (decision.message) {
+                        addMessage('ai', decision.message);
+                        speak(decision.message);
+                    }
+
+                    // Execute navigation
+                    if (typeof MenuNavigator !== 'undefined') {
+                        MenuNavigator.navigate(decision.target);
+                        console.log('[IVA] Navigation executed successfully');
+                    } else {
+                        console.error('[IVA] MenuNavigator not available!');
+                        addMessage('ai', 'Desculpe, não consegui navegar para essa tela.');
+                    }
+                }
                 else if (decision.action === 'START_TOUR') {
                     // LLM provides gender-aware tour offer message
                     const msg = decision.message || 'Posso mostrar um tour do sistema. Qual prefere: rápido ou completo?';
