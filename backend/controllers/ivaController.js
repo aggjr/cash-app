@@ -223,6 +223,46 @@ const operate = async (req, res) => {
 };
 
 /**
+ * Get default confirmation message for function calls
+ */
+const getFunctionDefaultMessage = (functionCallInfo) => {
+    const { name, arguments: args } = functionCallInfo;
+
+    switch (name) {
+        case 'save_preferred_name':
+            return `Perfeito! Vou te chamar de ${args.name}.`;
+
+        case 'save_voice_settings':
+            if (args.enabled === false) {
+                return 'Ok! Desabilitei as respostas por voz.';
+            }
+            return `Configurações de voz atualizadas! Velocidade: ${args.rate}%.`;
+
+        case 'save_user_preference':
+            return `Preferência salva: ${args.preference_key}.`;
+
+        case 'update_user_profile':
+            const updates = [];
+            if (args.job_title) updates.push(`cargo: ${args.job_title}`);
+            if (args.department) updates.push(`departamento: ${args.department}`);
+            if (args.gender) updates.push(`gênero: ${args.gender}`);
+            return `Perfil atualizado (${updates.join(', ')}).`;
+
+        case 'contribute_knowledge':
+            return 'Conhecimento registrado com sucesso!';
+
+        case 'navigate':
+            return `Navegando para: ${args.target}`;
+
+        case 'highlight_element':
+            return 'Elemento destacado!';
+
+        default:
+            return 'Ação executada com sucesso!';
+    }
+};
+
+/**
  * Execute function called by LLM
  */
 const executeFunction = async (functionCall, user, context) => {

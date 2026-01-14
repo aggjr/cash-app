@@ -139,7 +139,7 @@ export const IvaPromptsManager = () => {
                 </div>
 
                 <textarea class="prompts-editor" id="prompts-textarea" spellcheck="false"
-                    ${state.activeTab === 'consolidated' ? 'readonly style="background:#f8fafc; color:#334155;"' : ''}
+                    ${state.activeTab === 'consolidated' ? 'readonly style="background:#f8fafc; color:#334155; white-space:pre-wrap; font-family:monospace; line-height:1.6;"' : ''}
                 >${state.editedContent}</textarea>
 
                 <div class="editor-actions">
