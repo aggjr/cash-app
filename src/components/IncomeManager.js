@@ -3,27 +3,14 @@ import BulkEditModal from './BulkEditModal.js';
 import { SharedTable } from './SharedTable.js';
 import { showToast } from '../utils/toast.js';
 import { getApiBaseUrl } from '../utils/apiConfig.js';
-import { IvaKnowledge } from '../iva/IvaKnowledge.js';
+
 import { ExcelExporter } from '../utils/ExcelExporter.js';
 import { BatchOperationDialog } from './BatchOperationDialog.js';
 import { PrintHelper } from '../utils/printHelper.js';
 
 
 export const IncomeManager = (project) => {
-    // --- EVA Knowledge Registration ---
-    IvaKnowledge.registerScreen('entrada', {
-        description: 'Tela para gerenciar entradas de receita.',
-        actions: [
-            { id: 'save', description: 'Salvar o registro atual', selector: '#btn-save' },
-            { id: 'new', description: 'Limpar formulário para novo registro', selector: '#btn-new' }
-        ],
-        fields: [
-            { id: 'income-valor', description: 'Valor bruto da entrada', type: 'currency' },
-            { id: 'income-data-fato', description: 'Data do fato', type: 'date' },
-            { id: 'income-descricao', description: 'Descrição detalhada', type: 'text' },
-            { id: 'income-company', description: 'Empresa vinculada', type: 'select' }
-        ]
-    });
+
 
     const container = document.createElement('div');
     container.className = 'glass-panel';
