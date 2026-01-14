@@ -445,10 +445,10 @@ export const IvaPromptsManager = () => {
             const body = { id };
             if (refinedText) body.refinedText = refinedText;
 
-            const response = await fetch(`${API_BASE_URL}/iva/knowledge/approve`, {
+            const response = await fetch(`${API_BASE_URL}/iva/knowledge/approve/${id}`, {
                 method: 'POST',
                 headers: getHeaders(),
-                body: JSON.stringify(body)
+                body: refinedText ? JSON.stringify({ refinedText }) : JSON.stringify({})
             });
             if (!response.ok) throw new Error('Erro ao aprovar');
 
@@ -470,10 +470,10 @@ export const IvaPromptsManager = () => {
         if (!confirmed) return;
 
         try {
-            const response = await fetch(`${API_BASE_URL}/iva/knowledge/reject`, {
+            const response = await fetch(`${API_BASE_URL}/iva/knowledge/reject/${id}`, {
                 method: 'POST',
                 headers: getHeaders(),
-                body: JSON.stringify({ id })
+                body: JSON.stringify({ reason: 'Rejeitado pelo usuário' })
             });
             if (!response.ok) throw new Error('Erro ao rejeitar');
 
