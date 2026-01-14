@@ -36,7 +36,7 @@ class IvaUserPreferences {
     /**
      * Set user's preferred name
      */
-    static async setPreferredName(userId, name) {
+    static async setPreferredName(userId, name, projectId = null) {
         console.log(`[IVA Preferences] Setting preferred name for user ${userId}: "${name}"`);
 
         try {
@@ -47,6 +47,7 @@ class IvaUserPreferences {
                     category: 'user_preference',
                     layer: 'USER',
                     user_id: userId,
+                    project_id: projectId,
                     preference_type: 'preferred_name',
                     value: name,
                     updated_at: new Date().toISOString()
@@ -140,7 +141,7 @@ class IvaUserPreferences {
     /**
      * Update user's last IVA access timestamp
      */
-    static async updateLastAccess(userId) {
+    static async updateLastAccess(userId, projectId = null) {
         const now = new Date().toISOString();
 
         try {
@@ -151,6 +152,7 @@ class IvaUserPreferences {
                     category: 'user_preference',
                     layer: 'USER',
                     user_id: userId,
+                    project_id: projectId,
                     preference_type: 'last_iva_access',
                     value: now,
                     updated_at: now
@@ -197,25 +199,26 @@ class IvaUserPreferences {
     }
 
     /**
-     * Set voice settings
+     * Set user's voice settings
      */
-    static async setVoiceSettings(userId, settings) {
-        console.log(`[IVA Preferences] Setting voice settings for user ${userId}`);
+    static async setVoiceSettings(userId, settings, projectId = null) {
+        console.log(`[IVA Preferences] Setting voice settings for user ${userId}:`, settings);
 
         try {
             await VectorSearchService.upsertKnowledge(
                 `user_${userId}_voice_settings`,
-                `Configurações de voz: ${settings.enabled ? 'habilitada' : 'desabilitada'}, velocidade ${settings.rate}`,
+                `Configurações de voz: ${JSON.stringify(settings)}`,
                 {
                     category: 'user_preference',
                     layer: 'USER',
                     user_id: userId,
-                    preference_type: 'voice',
+                    project_id: projectId,
+                    preference_type: 'voice_settings',
                     value: settings,
                     updated_at: new Date().toISOString()
                 }
             );
-            console.log(`[IVA Preferences] ✅ Voice settings saved to Qdrant`);
+            console.log(`[IVA Preferences] [OK] Voice settings saved to Qdrant`);
             return true;
         } catch (err) {
             console.error(`[IVA Preferences] ❌ Error saving voice settings:`, err.message);
@@ -302,6 +305,98 @@ class IvaUserPreferences {
                 voiceSettings: { enabled: false, rate: 75, premium: 2, male: 0 },
                 introduced: false
             };
+        }
+    }
+
+    /**
+     * Set generic user preference
+     * @param {number} userId - User ID
+     * @param {string} key - Preference key
+     * @param {string} value - Preference value
+     * @param {string} description - Optional description
+     * @param {string} projectId - Optional project ID
+     */
+    static async setUserPreference(userId, key, value, description = '', projectId = null) {
+        console.log(`[IVA Preferences] Setting user preference for user ${userId}: ${key} = ${value}`);
+
+        try {
+            await VectorSearchService.upsertKnowledge(
+                `user_${userId}_pref_${key}`,
+                `Preferência do usuário: ${key} = ${value}`,
+                {
+                    category: 'user_preference',
+                    layer: 'USER',
+                    user_id: userId,
+                    project_id: projectId,
+                    preference_type: 'custom',
+                    key: key,
+                    value: value,
+                    description: description,
+                    updated_at: new Date().toISOString()
+                }
+            );
+            console.log(`[IVA Preferences] [OK] User preference saved to Qdrant`);
+            return true;
+        } catch (err) {
+            console.error(`[IVA Preferences] ❌ Error saving user preference:`, err.message);
+            return false;
+        }
+    }
+
+    /**
+     * Get a generic user preference
+     * @param {number} userId - User ID
+     * @param {string} key - Preference key
+     */
+    static async getUserPreference(userId, key) {
+        console.log(`[IVA Preferences] Getting ${key} for user ${userId}`);
+        const pointId = `user_${userId}_pref_${key}`;
+
+        try {
+            const results = await VectorSearchService.retrieve(pointId);
+
+            if (results && results.length > 0) {
+                const value = results[0].payload.value;
+                console.log(`[IVA Preferences] Found ${key}: ${value}`);
+                return value;
+            }
+            return null;
+        } catch (err) {
+            console.error(`[IVA Preferences] Error getting ${key}:`, err.message);
+            return null;
+        }
+    }
+
+    /**
+     * List all custom preferences for a user
+     * @param {number} userId - User ID
+     * @returns {Promise<Array>} Array of custom preferences
+     */
+    static async listUserPreferences(userId) {
+        console.log(`[IVA Preferences] Listing custom preferences for user ${userId}`);
+
+        try {
+            const results = await VectorSearchService.scroll({
+                category: 'user_preference',
+                layer: 'USER',
+                user_id: userId,
+                preference_type: 'custom'
+            }, 50);
+
+            if (results && results.points) {
+                const prefs = results.points.map(p => ({
+                    key: p.payload.preference_key,
+                    value: p.payload.value,
+                    description: p.payload.description,
+                    updated_at: p.payload.updated_at
+                }));
+                console.log(`[IVA Preferences] Found ${prefs.length} custom preferences`);
+                return prefs;
+            }
+            return [];
+        } catch (err) {
+            console.error('[IVA Preferences] Error listing preferences:', err.message);
+            return [];
         }
     }
 }

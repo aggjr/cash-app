@@ -50,6 +50,9 @@ router.get('/knowledge/pending', auth, ivaController.getPendingKnowledge);
 router.post('/knowledge/approve/:id', auth, ivaController.approveKnowledge);
 router.post('/knowledge/reject/:id', auth, ivaController.rejectKnowledge);
 
+// Debug Context Route
+router.get('/debug-context', auth, ivaController.getDebugContext);
+
 // POST /api/IVA/learn - Record knowledge (active learning)
 router.post('/learn', auth, async (req, res) => {
     try {
@@ -157,6 +160,115 @@ router.use('/', ivaAnalytics);
 // Include tracking routes
 const ivaTracking = require('./ivaTracking');
 router.use('/', ivaTracking);
+
+// DELETE /api/iva/clear-introduction - Clear hardcoded introduction
+router.delete('/clear-introduction', auth, async (req, res) => {
+    try {
+        console.log('🧹 Clearing hardcoded introduction from Qdrant...');
+        const VectorSearchService = require('../services/VectorSearchService');
+
+        // Search for introduction entries
+        const results = await VectorSearchService.scroll({
+            category: 'introduction'
+        }, 10);
+
+        if (!results || !results.points || results.points.length === 0) {
+            return res.json({
+                success: true,
+                message: 'No introduction entries found',
+                deleted: 0
+            });
+        }
+
+        // Delete each introduction entry
+        for (const point of results.points) {
+            await VectorSearchService.deletePointByUuid(point.id);
+        }
+
+        console.log(`✅ Cleared ${results.points.length} introduction entry(ies)`);
+
+        res.json({
+            success: true,
+            message: `Successfully cleared ${results.points.length} introduction entry(ies)`,
+            deleted: results.points.length
+        });
+
+    } catch (error) {
+        console.error('❌ Error clearing introduction:', error);
+        res.status(500).json({
+            error: 'Error clearing introduction',
+            message: error.message
+        });
+    }
+});
+
+// DELETE /api/iva/clean-orphaned-knowledge - Clean project-specific knowledge without projectId
+router.delete('/clean-orphaned-knowledge', auth, async (req, res) => {
+    try {
+        console.log('🧹 Cleaning orphaned knowledge without projectId...');
+        const VectorSearchService = require('../services/VectorSearchService');
+
+        // Layers that REQUIRE projectId
+        const projectSpecificLayers = ['USER', 'ROLE', 'DEPT', 'COMPANY'];
+
+        let totalOrphaned = 0;
+        let totalValid = 0;
+        let totalFound = 0;
+        const details = {};
+
+        for (const layer of projectSpecificLayers) {
+            const results = await VectorSearchService.scroll({
+                layer: layer
+            }, 100);
+
+            if (!results || !results.points || results.points.length === 0) {
+                details[layer] = { found: 0, orphaned: 0, valid: 0 };
+                continue;
+            }
+
+            // Filter orphaned entries (no projectId)
+            const orphaned = results.points.filter(point => {
+                const hasProjectId = point.payload.projectId || point.payload.project_id;
+                return !hasProjectId;
+            });
+
+            // Delete orphaned entries
+            for (const point of orphaned) {
+                await VectorSearchService.deletePointByUuid(point.id);
+            }
+
+            const valid = results.points.length - orphaned.length;
+
+            details[layer] = {
+                found: results.points.length,
+                orphaned: orphaned.length,
+                valid: valid
+            };
+
+            totalFound += results.points.length;
+            totalOrphaned += orphaned.length;
+            totalValid += valid;
+        }
+
+        console.log(`✅ Deleted ${totalOrphaned} orphaned entries, kept ${totalValid} valid entries`);
+
+        res.json({
+            success: true,
+            message: `Successfully cleaned ${totalOrphaned} orphaned entry(ies) across all layers`,
+            deleted: totalOrphaned,
+            kept: totalValid,
+            total: totalFound,
+            details: details
+        });
+
+    } catch (error) {
+        console.error('❌ Error cleaning orphaned knowledge:', error);
+        res.status(500).json({
+            error: 'Error cleaning orphaned knowledge',
+            message: error.message
+        });
+    }
+});
 
 // --- SECURE MIGRATION ROUTE (Admin Only) ---
 // POST /api/iva/migrate-to-qdrant-force - Force re-seed Qdrant from knowledge base

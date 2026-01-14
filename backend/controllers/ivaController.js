@@ -69,10 +69,17 @@ const chat = async (req, res) => {
         // 6. Handle function calls
         const functionCall = completion.choices[0].message.function_call;
         if (functionCall) {
+            console.log(`[IVA] 🔧 LLM called function: ${functionCall.name}`, JSON.parse(functionCall.arguments));
             await executeFunction(functionCall, user, context);
+        } else {
+            console.log(`[IVA] 💬 LLM did not call any function, just responded with text`);
         }
 
-        // 7. Return response
+        // 7. Update last access timestamp
+        const IvaUserPreferences = require('../services/IvaUserPreferences');
+        await IvaUserPreferences.updateLastAccess(user.id, context.projectId);
+
+        // 8. Return response
         const responseContent = completion.choices[0].message.content;
         res.json({
             message: responseContent,
@@ -227,12 +234,42 @@ const executeFunction = async (functionCall, user, context) => {
     switch (name) {
         case 'save_preferred_name':
             const IvaUserPreferences = require('../services/IvaUserPreferences');
-            await IvaUserPreferences.setPreferredName(user.id, args.name);
+            console.log(`[IVA Function] 🏷️ Saving preferred name: "${args.name}" for user ${user.id}, project ${context.projectId || 'N/A'}`);
+            await IvaUserPreferences.setPreferredName(user.id, args.name, context.projectId);
+            console.log(`[IVA Function] ✅ Preferred name saved successfully`);
             break;
 
         case 'save_voice_settings':
             const IvaUserPrefs = require('../services/IvaUserPreferences');
-            await IvaUserPrefs.setVoiceSettings(user.id, args);
+            await IvaUserPrefs.setVoiceSettings(user.id, args, context.projectId);
+            break;
+
+        case 'update_user_profile': {
+            const updates = {};
+
+            if (args.job_title) updates.job_title = args.job_title;
+            if (args.department) updates.department = args.department;
+            if (args.gender) updates.gender = args.gender;
+
+            if (Object.keys(updates).length > 0) {
+                await db.query(
+                    'UPDATE users SET ? WHERE id = ?',
+                    [updates, user.id]
+                );
+                console.log(`[IVA] Updated user profile for user ${user.id}:`, updates);
+            }
+            break;
+        }
+
+        case 'save_user_preference':
+            const IvaUserPrefs2 = require('../services/IvaUserPreferences');
+            await IvaUserPrefs2.setUserPreference(
+                user.id,
+                args.preference_key,
+                args.preference_value,
+                args.description || '',
+                context.projectId
+            );
             break;
 
         case 'contribute_knowledge':
@@ -285,6 +322,15 @@ const getFunctionDefaultMessage = (functionCallInfo) => {
             return `Perfeito! Vou te chamar de ${args.name}.`;
         case 'save_voice_settings':
             return 'Configurações de voz atualizadas!';
+        case 'update_user_profile': {
+            const fields = [];
+            if (args.job_title) fields.push('cargo');
+            if (args.department) fields.push('departamento');
+            if (args.gender) fields.push('gênero');
+            return `Perfeito! Atualizei ${fields.length > 1 ? 'seu ' + fields.slice(0, -1).join(', ') + ' e ' + fields.slice(-1) : 'seu ' + fields[0]} no cadastro.`;
+        }
+        case 'save_user_preference':
+            return `Entendido! Vou lembrar disso: ${args.preference_key}.`;
         default:
             return 'Ação executada com sucesso.';
     }
@@ -340,10 +386,51 @@ const rejectKnowledge = async (req, res) => {
     }
 };
 
+/**
+ * Debug: Get full unified prompt context
+ */
+const getDebugContext = async (req, res) => {
+    try {
+        const user = req.user;
+        const { projectId } = req.query;
+
+        // 1. Get user data
+        const [userData] = await db.query(
+            'SELECT * FROM users WHERE id = ?',
+            [user.id]
+        );
+
+        // 2. Get project data
+        let projectData = null;
+        if (projectId) {
+            const [projects] = await db.query(
+                'SELECT * FROM projects WHERE id = ?',
+                [projectId]
+            );
+            projectData = projects[0];
+        }
+
+        // 3. Build prompt
+        const UnifiedPrompt = require('../config/iva-unified-prompt');
+        const systemPrompt = await UnifiedPrompt.getUnifiedPrompt(
+            userData[0],
+            projectData,
+            { debug: true }
+        );
+
+        res.json({ context: systemPrompt });
+
+    } catch (error) {
+        console.error('[IVA Debug] Error getting context:', error);
+        res.status(500).json({ error: 'Erro ao gerar contexto de debug' });
+    }
+};
+
 module.exports = {
     chat,
     operate,
     getPendingKnowledge,
     approveKnowledge,
-    rejectKnowledge
+    rejectKnowledge,
+    getDebugContext
 };

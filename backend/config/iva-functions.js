@@ -65,6 +65,50 @@ const ivaFunctions = [
         }
     },
     {
+        name: 'update_user_profile',
+        description: 'Atualiza informações do perfil do usuário no cadastro quando estiverem FALTANDO (cargo, departamento, gênero). Use APENAS quando o usuário informar esses dados E eles não estiverem preenchidos no sistema. Verifique o contexto antes de usar.',
+        parameters: {
+            type: 'object',
+            properties: {
+                job_title: {
+                    type: 'string',
+                    description: 'Cargo/função do usuário (ex: "Diretor Financeiro", "Analista de TI")'
+                },
+                department: {
+                    type: 'string',
+                    description: 'Departamento do usuário (ex: "Financeiro", "TI", "Vendas", "RH")'
+                },
+                gender: {
+                    type: 'string',
+                    enum: ['M', 'F'],
+                    description: 'Gênero do usuário para tratamento adequado (M=Masculino, F=Feminino)'
+                }
+            }
+        }
+    },
+    {
+        name: 'save_user_preference',
+        description: 'Salva preferências PESSOAIS e CONTEXTUAIS que NÃO estão no cadastro do usuário. Use para: horários de trabalho, estilo de comunicação, atalhos, definições personalizadas, filtros favoritos, contextos específicos. NÃO use para dados que JÁ EXISTEM no sistema: nome (use save_preferred_name), cargo, departamento, empresa, ou voz (use save_voice_settings). Esses dados já estão disponíveis no contexto.',
+        parameters: {
+            type: 'object',
+            properties: {
+                preference_key: {
+                    type: 'string',
+                    description: 'Identificador da preferência (ex: work_hours, communication_style, default_filters, shortcuts)'
+                },
+                preference_value: {
+                    type: 'string',
+                    description: 'Valor da preferência em linguagem natural'
+                },
+                description: {
+                    type: 'string',
+                    description: 'Descrição opcional para contexto adicional'
+                }
+            },
+            required: ['preference_key', 'preference_value']
+        }
+    },
+    {
         name: 'contribute_knowledge',
         description: 'Adiciona novo conhecimento ao sistema global da IVA. Use sempre que o usuário te ensinar algo novo, explicar um passo a passo, ou quando você descobrir como encontrar uma informação que não sabia antes.',
         parameters: {

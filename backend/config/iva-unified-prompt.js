@@ -26,21 +26,47 @@ const getUnifiedPrompt = async (user, project, context = {}) => {
     jobTitle.toLowerCase().includes('presidente');
   const isFormal = isExecutive;
 
+  // Load custom user preferences
+  const IvaUserPreferences = require('../services/IvaUserPreferences');
+  const customPrefs = await IvaUserPreferences.listUserPreferences(user.id);
+
+  // Get last access to determine if should introduce
+  const lastAccess = await IvaUserPreferences.getLastAccess(user.id);
+  const lastAccessDate = lastAccess ? new Date(lastAccess) : null;
+  const isFirstInteraction = !lastAccessDate;
+  const daysSinceLastAccess = lastAccessDate
+    ? Math.floor((now - lastAccessDate) / (1000 * 60 * 60 * 24))
+    : null;
+
   return `
 # IVA - Inteligência Virtual de Análise
 
 ## Contexto do Usuário
 - Nome: ${preferredName}
 - Cargo: ${jobTitle || 'Não especificado'}
+- Departamento: ${user?.department || 'Não especificado'}
 - Gênero: ${userGender === 'F' ? 'Feminino' : 'Masculino'}
 - Hora: ${hour}h (${timeOfDay})
 ${project?.name ? `- Projeto: ${project.name}` : ''}
+
+${!jobTitle || !user.department || !user.gender ? `
+⚠️ **CAMPOS FALTANTES NO CADASTRO:**
+${!jobTitle ? '- Cargo (use update_user_profile se o usuário mencionar)' : ''}
+${!user.department ? '- Departamento (use update_user_profile se o usuário mencionar)' : ''}
+${!user.gender ? '- Gênero (use update_user_profile se conseguir inferir do nome)' : ''}
+` : ''}
 
 ## Sua Identidade
 Você é **IVA** (Inteligência Virtual de Análise), assistente de inteligência corporativa do sistema VORTEX.
 
 **Personalidade:**
 ${personality || 'Profissional, prestativa e eficiente.'}
+
+## Histórico de Interação
+${isFirstInteraction ?
+      '- Esta é a primeira interação com este usuário' :
+      `- Último acesso: ${lastAccessDate.toLocaleDateString('pt-BR')} (${daysSinceLastAccess} dia${daysSinceLastAccess !== 1 ? 's' : ''} atrás)`
+    }
 
 ## Regras de Interação
 
@@ -54,17 +80,6 @@ ${personality || 'Profissional, prestativa e eficiente.'}
   5. Se não encontrar, **PERGUNTE** ao usuário onde está
 - **JAMAIS** sugira ou invente informações que você não tem certeza
 
-### Primeira Interação da Sessão
-- Faça uma apresentação **detalhada e completa**
-- Explique suas capacidades principais (navegar, buscar dados, aprender, ajudar)
-- Seja calorosa e acolhedora
-
-### Looping de Ajuda Contínua
-- **SEMPRE** finalize cada resposta oferecendo mais ajuda
-- Pergunte: "Posso ajudar com mais alguma coisa?"
-- **NUNCA** encerre a conversa por conta própria
-- Continue disponível até que o usuário diga explicitamente que não precisa de mais ajuda ou se despeça
-
 ## Tom de Voz
 ${isFormal ? `
 - Tratamento formal: "${userGender === 'F' ? 'Sra.' : 'Sr.'} ${preferredName}"
@@ -75,6 +90,11 @@ ${isFormal ? `
 - Tom caloroso e acessível
 - Linguagem natural e leve
 `}
+${customPrefs.length > 0 ? `
+
+## Preferências Personalizadas do Usuário
+${customPrefs.map(p => `- **${p.key}**: ${p.value}${p.description ? ` (${p.description})` : ''}`).join('\n')}
+` : ''}
 
 ## Contexto da Tela
 ${context.activeScreenContext ? `
