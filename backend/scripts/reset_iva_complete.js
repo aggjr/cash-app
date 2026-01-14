@@ -1,12 +1,12 @@
 /**
- * COMPLETE IVA KNOWLEDGE RESET
+ * COMPLETE IVA KNOWLEDGE DELETION
  * 
  * This script will:
- * 1. Delete ALL Qdrant collections (iva_knowledge, iva_user_preferences)
- * 2. Recreate empty collections
- * 3. Reset MySQL last_iva_access field for all users
+ * 1. DELETE ALL Qdrant collections (iva_knowledge, iva_user_preferences) - NO RECREATION
+ * 2. Reset MySQL last_iva_access field for all users
  * 
  * WARNING: This is IRREVERSIBLE. All IVA knowledge will be lost.
+ * Collections will be recreated automatically by the backend on first use.
  */
 
 const fs = require('fs');
@@ -92,32 +92,26 @@ function qdrantRequest(method, path, data = null) {
 // 3. RESET FUNCTIONS
 // ============================================================================
 
-async function resetQdrantCollection(collectionName) {
+async function deleteQdrantCollection(collectionName) {
     console.log(`\n📦 Processing collection: ${collectionName}`);
     console.log('─'.repeat(60));
 
     try {
-        // Delete existing collection
-        console.log('🗑️  Deleting collection...');
+        // Delete existing collection completely
+        console.log('🗑️  Deleting collection permanently...');
         try {
             await qdrantRequest('DELETE', `/collections/${collectionName}`);
-            console.log('✅ Collection deleted');
+            console.log('✅ Collection deleted permanently (no recreation)');
         } catch (e) {
-            console.log('ℹ️  Collection did not exist (skipped)');
+            if (e.message.includes('404')) {
+                console.log('ℹ️  Collection did not exist (already clean)');
+            } else {
+                throw e;
+            }
         }
 
-        // Recreate empty collection
-        console.log('🏗️  Creating new empty collection...');
-        await qdrantRequest('PUT', `/collections/${collectionName}`, {
-            vectors: {
-                size: 1536,
-                distance: 'Cosine'
-            }
-        });
-        console.log('✅ Collection recreated (empty)');
-
     } catch (error) {
-        console.error(`❌ Error processing ${collectionName}:`, error.message);
+        console.error(`❌ Error deleting ${collectionName}:`, error.message);
         throw error;
     }
 }
@@ -154,30 +148,30 @@ async function resetMySQLFields() {
 
 (async () => {
     try {
-        console.log('⏳ Starting reset process...\n');
+        console.log('⏳ Starting complete deletion process...\n');
 
-        // Reset Qdrant collections
-        await resetQdrantCollection('iva_knowledge');
-        await resetQdrantCollection('iva_user_preferences');
+        // Delete Qdrant collections completely (no recreation)
+        await deleteQdrantCollection('iva_knowledge');
+        await deleteQdrantCollection('iva_user_preferences');
 
         // Reset MySQL fields
         await resetMySQLFields();
 
         console.log('\n' + '='.repeat(60));
-        console.log('✅ SUCCESS! IVA knowledge completely reset');
+        console.log('✅ SUCCESS! IVA knowledge completely wiped');
         console.log('='.repeat(60));
-        console.log('\n📋 What was reset:');
-        console.log('  ✓ Qdrant collection: iva_knowledge (recreated empty)');
-        console.log('  ✓ Qdrant collection: iva_user_preferences (recreated empty)');
+        console.log('\n📋 What was deleted:');
+        console.log('  ✓ Qdrant collection: iva_knowledge (DELETED - no structure remains)');
+        console.log('  ✓ Qdrant collection: iva_user_preferences (DELETED - no structure remains)');
         console.log('  ✓ MySQL: last_iva_access field (set to NULL for all users)');
         console.log('\n💡 Next steps:');
         console.log('  1. Restart the backend server');
-        console.log('  2. IVA will start fresh with no learned knowledge');
-        console.log('  3. Users will need to re-teach their preferences\n');
+        console.log('  2. Backend will recreate collections automatically on first use');
+        console.log('  3. IVA will start completely fresh with no knowledge\n');
 
     } catch (error) {
-        console.error('\n❌ FATAL ERROR during reset:', error.message);
-        console.error('\n⚠️  Reset may be incomplete. Check logs above.');
+        console.error('\n❌ FATAL ERROR during deletion:', error.message);
+        console.error('\n⚠️  Deletion may be incomplete. Check logs above.');
         process.exit(1);
     }
 })();
