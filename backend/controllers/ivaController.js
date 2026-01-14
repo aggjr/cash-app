@@ -296,23 +296,16 @@ const getFunctionDefaultMessage = (functionCallInfo) => {
 const getPendingKnowledge = async (req, res) => {
     try {
         const { type, scope } = req.query;
-        const qdrantClient = require('../config/qdrant');
+        const VectorSearchService = require('../services/VectorSearchService');
 
         const filter = {
-            must: [
-                { key: 'audit_status', match: { value: 'pending' } }
-            ]
+            audit_status: 'pending'
         };
 
-        if (type) filter.must.push({ key: 'type', match: { value: type } });
-        if (scope) filter.must.push({ key: 'scope', match: { value: scope } });
+        if (type) filter.type = type;
+        if (scope) filter.scope = scope;
 
-        const result = await qdrantClient.scroll('iva_knowledge', {
-            filter,
-            limit: 100,
-            with_payload: true,
-            with_vector: false
-        });
+        const result = await VectorSearchService.scroll(filter, 100);
 
         const pending = result.points.map(point => ({
             id: point.id,
@@ -338,13 +331,10 @@ const getPendingKnowledge = async (req, res) => {
 const approveKnowledge = async (req, res) => {
     try {
         const { id } = req.params;
-        const qdrantClient = require('../config/qdrant');
+        const VectorSearchService = require('../services/VectorSearchService');
 
-        // Get current point
-        const points = await qdrantClient.retrieve('iva_knowledge', {
-            ids: [id],
-            with_payload: true
-        });
+        // Get current point - retrieve expects string ID, not UUID
+        const points = await VectorSearchService.retrieve(id);
 
         if (points.length === 0) {
             return res.status(404).json({ error: 'Conhecimento não encontrado' });
@@ -352,16 +342,20 @@ const approveKnowledge = async (req, res) => {
 
         const point = points[0];
 
-        // Update status to approved
-        await qdrantClient.setPayload('iva_knowledge', {
-            points: [id],
-            payload: {
-                ...point.payload,
-                audit_status: 'approved',
-                approved_at: new Date().toISOString(),
-                approved_by: req.user?.id
-            }
-        });
+        // Update knowledge with approved status
+        const updatedPayload = {
+            ...point.payload,
+            audit_status: 'approved',
+            approved_at: new Date().toISOString(),
+            approved_by: req.user?.id
+        };
+
+        // Re-upsert the point with updated payload
+        await VectorSearchService.upsertKnowledge(
+            id,
+            point.payload.text || '',
+            updatedPayload
+        );
 
         console.log(`[IVA Audit] Knowledge ${id} approved`);
         res.json({ success: true, message: 'Conhecimento aprovado' });
@@ -378,13 +372,10 @@ const rejectKnowledge = async (req, res) => {
     try {
         const { id } = req.params;
         const { reason } = req.body;
-        const qdrantClient = require('../config/qdrant');
+        const VectorSearchService = require('../services/VectorSearchService');
 
         // Get current point
-        const points = await qdrantClient.retrieve('iva_knowledge', {
-            ids: [id],
-            with_payload: true
-        });
+        const points = await VectorSearchService.retrieve(id);
 
         if (points.length === 0) {
             return res.status(404).json({ error: 'Conhecimento não encontrado' });
@@ -392,17 +383,21 @@ const rejectKnowledge = async (req, res) => {
 
         const point = points[0];
 
-        // Update status to rejected
-        await qdrantClient.setPayload('iva_knowledge', {
-            points: [id],
-            payload: {
-                ...point.payload,
-                audit_status: 'rejected',
-                rejected_at: new Date().toISOString(),
-                rejected_by: req.user?.id,
-                rejection_reason: reason || 'Não especificado'
-            }
-        });
+        // Update knowledge with rejected status
+        const updatedPayload = {
+            ...point.payload,
+            audit_status: 'rejected',
+            rejected_at: new Date().toISOString(),
+            rejected_by: req.user?.id,
+            rejection_reason: reason || 'Não especificado'
+        };
+
+        // Re-upsert the point with updated payload
+        await VectorSearchService.upsertKnowledge(
+            id,
+            point.payload.text || '',
+            updatedPayload
+        );
 
         console.log(`[IVA Audit] Knowledge ${id} rejected`);
         res.json({ success: true, message: 'Conhecimento rejeitado' });
