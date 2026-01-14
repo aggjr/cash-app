@@ -432,28 +432,92 @@ export const IncomeManager = (project) => {
             return;
         }
 
-        console.log('[handleBulkEdit] Calling BulkEditModal.show...');
+        // Calculate common values across all selected items
+        const calculateCommonValues = (items) => {
+            if (items.length === 0) return {};
+            if (items.length === 1) return items[0]; // Single item, return as-is
+
+            const commonData = {};
+            const firstItem = items[0];
+
+            // Fields to check for commonality
+            const fieldsToCheck = [
+                'data_fato',
+                'data_prevista_recebimento',
+                'data_atraso',
+                'data_real_recebimento',
+                'company_id',
+                'account_id',
+                'valor',
+                'tipo_entrada_id',
+                'forma_pagamento',
+                'descricao',
+                'boleto_url',
+                'comprovante_url'
+            ];
+
+            fieldsToCheck.forEach(field => {
+                const firstValue = firstItem[field];
+                const allSame = items.every(item => {
+                    // Handle null/undefined comparison
+                    if (item[field] === null || item[field] === undefined) {
+                        return firstValue === null || firstValue === undefined;
+                    }
+                    return item[field] === firstValue;
+                });
+
+                if (allSame) {
+                    commonData[field] = firstValue;
+                }
+                // If not all same, field will be undefined (blank in modal)
+            });
+
+            return commonData;
+        };
+
+        const commonValues = calculateCommonValues(selectedItemsData);
+        console.log('[handleBulkEdit] Common values:', commonValues);
+
+        // Open IncomeModal with common values
+        console.log('[handleBulkEdit] Opening IncomeModal...');
         try {
-            await BulkEditModal.show({
-                items: selectedItemsData,
-                ids: Array.from(selectedItems),
+            await IncomeModal.show({
+                income: {
+                    ...commonValues,
+                    id: null, // No single ID for bulk edit
+                    _isBulkEdit: true, // Flag to indicate bulk edit mode
+                    _bulkCount: selectedItems.size
+                },
                 projectId: project.id,
-                type: 'income',
-                onSave: async (editData) => {
-                    console.log('[handleBulkEdit] onSave called with:', editData);
+                onSave: async (incomeData) => {
+                    console.log('[handleBulkEdit] onSave called with:', incomeData);
+
+                    // Only send fields that were actually changed/filled
+                    // Remove fields that are still undefined/null/empty
+                    const updates = {};
+                    Object.keys(incomeData).forEach(key => {
+                        const value = incomeData[key];
+                        // Include if value is not null, undefined, or empty string
+                        if (value !== null && value !== undefined && value !== '') {
+                            updates[key] = value;
+                        }
+                    });
+
+                    console.log('[handleBulkEdit] Filtered updates:', updates);
+
                     try {
                         const response = await fetch(`${API_BASE_URL}/incomes/bulk-edit`, {
                             method: 'POST',
                             headers: getHeaders(),
                             body: JSON.stringify({
                                 ids: Array.from(selectedItems),
-                                updates: editData
+                                updates: updates
                             })
                         });
 
                         const result = await response.json();
                         if (response.ok) {
-                            showToast(result.message || 'Itens atualizados com sucesso!', 'success');
+                            showToast(result.message || `${selectedItems.size} itens atualizados com sucesso!`, 'success');
                             selectedItems.clear();
                             selectedItemsData = [];
                             sharedTable.clearSelection();
@@ -467,9 +531,9 @@ export const IncomeManager = (project) => {
                     }
                 }
             });
-            console.log('[handleBulkEdit] BulkEditModal.show completed');
+            console.log('[handleBulkEdit] IncomeModal.show completed');
         } catch (error) {
-            console.error('[handleBulkEdit] Error calling BulkEditModal.show:', error);
+            console.error('[handleBulkEdit] Error calling IncomeModal.show:', error);
         }
     };
 

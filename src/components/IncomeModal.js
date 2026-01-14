@@ -17,6 +17,10 @@ export const IncomeModal = {
                 const isEdit = income !== null;
                 let hasChanges = false;
 
+                // Check if bulk edit mode
+                const isBulkEdit = income?._isBulkEdit === true;
+                const bulkCount = income?._bulkCount || 0;
+
                 // Check if editing an installment
                 const isInstallment = income && income.installment_group_id && income.installment_number && income.installment_total;
                 let installmentGroup = [];
@@ -94,9 +98,22 @@ export const IncomeModal = {
 
                 modal.innerHTML = `
                     <div class="account-modal-body" style="padding: 1rem; overflow-y: auto; max-height: 90vh;">
-                        <h3 style="margin: 0 0 1rem 0; color: var(--color-primary); font-size: 1.1rem;">${isEdit ? 'Editar Entrada' : 'Nova Entrada'}</h3>
+                        <h3 style="margin: 0 0 1rem 0; color: var(--color-primary); font-size: 1.1rem;">${isBulkEdit ? `✏️ Edição em Lote (${bulkCount} itens)` : isEdit ? 'Editar Entrada' : 'Nova Entrada'}</h3>
                         
-                        ${isInstallment ? `
+                        ${isBulkEdit ? `
+                            <div style="background: #F3F4F6; padding: 1rem; border-radius: 8px; margin-bottom: 1rem; border-left: 4px solid var(--color-primary);">
+                                <div style="display: flex; align-items: center; gap: 0.75rem; margin-bottom: 0.5rem;">
+                                    <span style="font-size: 1.5rem;">✏️</span>
+                                    <div style="flex: 1;">
+                                        <div style="font-weight: 700; font-size: 1rem; color: #374151;">Editando ${bulkCount} ${bulkCount === 1 ? 'item' : 'itens'} selecionados</div>
+                                        <div style="font-size: 0.9rem; color: #6B7280; margin-top: 0.25rem;">Apenas os campos alterados serão atualizados.</div>
+                                    </div>
+                                </div>
+                                <div style="font-size: 0.85rem; color: #6B7280; background: white; padding: 0.5rem; border-radius: 4px;">
+                                    💡 <strong>Dica:</strong> Campos com valores iguais em todos os itens aparecem preenchidos. Campos com valores diferentes aparecem em branco. Deixe em branco os campos que não deseja alterar.
+                                </div>
+                            </div>
+                        ` : isInstallment ? `
                             <div style="background: linear-gradient(135deg, #3B82F6 0%, #1E40AF 100%); color: white; padding: 1rem; border-radius: 8px; margin-bottom: 1rem; box-shadow: 0 2px 8px rgba(59, 130, 246, 0.3);">
                                 <div style="display: flex; align-items: center; gap: 0.75rem; margin-bottom: 0.5rem;">
                                     <span style="font-size: var(--text-table-title);">📋</span>
@@ -115,15 +132,15 @@ export const IncomeModal = {
                             
                             <!-- Row 1: All Dates (2+2+2+2 = 8 cols) -->
                             <div class="form-group" style="grid-column: span 2;">
-                                <label for="income-data-fato">Data do Fato <span class="required">*</span></label>
+                                <label for="income-data-fato">Data do Fato ${isBulkEdit ? '' : '<span class="required">*</span>'}</label>
                                 <input type="date" id="income-data-fato" class="form-input" 
-                                    value="${formatDateForInput(income?.data_fato)}" required />
+                                    value="${formatDateForInput(income?.data_fato)}" ${isBulkEdit ? '' : 'required'} />
                             </div>
 
                             <div class="form-group" style="grid-column: span 2;">
-                                <label for="income-data-prevista">Data Prevista <span class="required">*</span></label>
+                                <label for="income-data-prevista">Data Prevista ${isBulkEdit ? '' : '<span class="required">*</span>'}</label>
                                 <input type="date" id="income-data-prevista" class="form-input" 
-                                    value="${formatDateForInput(income?.data_prevista_recebimento)}" required />
+                                    value="${formatDateForInput(income?.data_prevista_recebimento)}" ${isBulkEdit ? '' : 'required'} />
                             </div>
 
                             <div class="form-group" style="grid-column: span 2;">
@@ -140,9 +157,9 @@ export const IncomeModal = {
 
                             <!-- Row 2: Empresa (2), Conta (2), Valor (2), Tipo (2) = 8 cols -->
                             <div class="form-group" style="grid-column: span 2;">
-                                <label for="income-company">Empresa <span class="required">*</span></label>
-                                <select id="income-company" class="form-input" required>
-                                    <option value="">Selecione...</option>
+                                <label for="income-company">Empresa ${isBulkEdit ? '' : '<span class="required">*</span>'}</label>
+                                <select id="income-company" class="form-input" ${isBulkEdit ? '' : 'required'}>
+                                    <option value="">${isBulkEdit ? '-- Manter atual --' : 'Selecione...'}</option>
                                     ${companies.map(c => `
                                         <option value="${c.id}" ${income?.company_id === c.id ? 'selected' : ''}>${c.name}</option>
                                     `).join('')}
@@ -157,9 +174,9 @@ export const IncomeModal = {
                             </div>
 
                             <div class="form-group" style="grid-column: span 2;">
-                                <label for="income-valor">Valor (R$) <span class="required">*</span> ${isInstallment ? '<span style="font-size: 0.75rem; color: #6B7280; font-weight: normal;">(Desta Parcela)</span>' : ''}</label>
+                                <label for="income-valor">Valor (R$) ${isBulkEdit ? '' : '<span class="required">*</span>'} ${isInstallment ? '<span style="font-size: 0.75rem; color: #6B7280; font-weight: normal;">(Desta Parcela)</span>' : ''}</label>
                                 <input type="text" id="income-valor" class="form-input" 
-                                    placeholder="R$ 0,00" required />
+                                    placeholder="${isBulkEdit ? 'Deixe em branco para manter' : 'R$ 0,00'}" ${isBulkEdit ? '' : 'required'} />
                             </div>
 
                             <div class="form-group" style="grid-column: span 2;">
@@ -284,15 +301,15 @@ export const IncomeModal = {
                                
                                 <!-- Description -->
                                 <div class="form-group" style="display: flex; flex-direction: column; flex: 1; min-height: 150px; margin-top: 0;">
-                                    <label for="income-descricao" style="margin-bottom: 0;">Descrição <span class="required">*</span></label>
-                                    <textarea id="income-descricao" class="form-input" placeholder="Obrigatório" required style="resize: none; flex: 1; box-sizing: border-box; font-family: inherit;">${income?.descricao || ''}</textarea>
+                                    <label for="income-descricao" style="margin-bottom: 0;">Descrição ${isBulkEdit ? '' : '<span class="required">*</span>'}</label>
+                                    <textarea id="income-descricao" class="form-input" placeholder="${isBulkEdit ? 'Deixe em branco para manter' : 'Obrigatório'}" ${isBulkEdit ? '' : 'required'} style="resize: none; flex: 1; box-sizing: border-box; font-family: inherit;">${income?.descricao || ''}</textarea>
                                 </div>
                             </div>
 
                             <!-- Tree Selector (Span 4 - Right Side - Spanning 2 Rows) -->
                             <div class="form-group" style="grid-column: span 4; grid-row: span 2; display: flex; flex-direction: column; min-height: 300px; padding-left: 0.5rem;">
                                 <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 0.25rem;">
-                                    <label style="margin: 0;">Tipo de Entrada <span class="required">*</span></label>
+                                    <label style="margin: 0;">Tipo de Entrada ${isBulkEdit ? '' : '<span class="required">*</span>'}</label>
                                     <button id="btn-manage-tipo-entrada" type="button" 
                                             style="background: none; border: none; cursor: pointer; font-size: 1.1rem; padding: 2px; display: flex; align-items: center; justify-content: center; color: var(--color-primary); transition: transform 0.2s;" 
                                             title="Gerenciar Tipos de Entrada"
@@ -347,6 +364,9 @@ export const IncomeModal = {
                 const cancelBtn = modal.querySelector('#modal-cancel');
 
                 const validate = () => {
+                    // In bulk edit mode, no fields are required
+                    if (isBulkEdit) return true;
+
                     let isValid = true;
                     if (!dataFatoInput.value) { dataFatoInput.classList.add('input-error'); isValid = false; } else dataFatoInput.classList.remove('input-error');
                     if (!dataPrevistaInput.value) { dataPrevistaInput.classList.add('input-error'); isValid = false; } else dataPrevistaInput.classList.remove('input-error');
