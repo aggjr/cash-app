@@ -1,7 +1,6 @@
 import { SharedTable } from './SharedTable.js';
 import { showToast } from '../utils/toast.js';
 import { getApiBaseUrl } from '../utils/apiConfig.js';
-import { Dialogs } from './Dialogs.js';
 
 export const LeadsManager = (project) => {
     const container = document.createElement('div');
@@ -16,7 +15,6 @@ export const LeadsManager = (project) => {
     container.style.flexDirection = 'column';
 
     let leads = [];
-    let grupos = [];
     let sharedTable = null;
 
     const getHeaders = () => {
@@ -27,11 +25,8 @@ export const LeadsManager = (project) => {
         };
     };
 
+    // Define Columns for SharedTable
     const columns = [
-        { key: 'nome', label: 'Nome', width: 'auto', align: 'left', type: 'text' },
-        { key: 'email', label: 'E-mail', width: '200px', align: 'left', type: 'text' },
-        { key: 'telefone', label: 'Telefone', width: '150px', align: 'left', type: 'text' },
-        { key: 'grupo_nome', label: 'Grupo', width: '150px', align: 'left', type: 'text' },
         {
             key: 'actions',
             label: 'Ações',
@@ -51,7 +46,7 @@ export const LeadsManager = (project) => {
                 btnEdit.style.border = 'none';
                 btnEdit.style.cursor = 'pointer';
                 btnEdit.style.fontSize = '1.1rem';
-                btnEdit.onclick = (e) => { e.stopPropagation(); editLead(item); };
+                btnEdit.onclick = (e) => { e.stopPropagation(); updateLead(item); };
 
                 const btnDelete = document.createElement('button');
                 btnDelete.innerHTML = '🗑️';
@@ -60,34 +55,41 @@ export const LeadsManager = (project) => {
                 btnDelete.style.border = 'none';
                 btnDelete.style.cursor = 'pointer';
                 btnDelete.style.fontSize = '1.1rem';
-                btnDelete.onclick = (e) => { e.stopPropagation(); deleteLead(item); };
+                btnDelete.onclick = (e) => { e.stopPropagation(); deleteLead(item.id, item.nome); };
 
                 div.appendChild(btnEdit);
                 div.appendChild(btnDelete);
                 return div;
             }
-        }
+        },
+        { key: 'nome', label: 'Nome', width: 'auto', align: 'left', type: 'text' },
+        { key: 'email', label: 'E-mail', width: '200px', align: 'left', type: 'text' },
+        { key: 'telefone', label: 'Telefone', width: '150px', align: 'left', type: 'text' },
+        { key: 'grupo_nome', label: 'Grupo', width: '150px', align: 'left', type: 'text' }
     ];
 
-    const loadData = async () => {
+    const loadLeads = async () => {
         try {
-            const [leadsRes, gruposRes] = await Promise.all([
-                fetch(`${API_BASE_URL}/marketing/leads`, { headers: getHeaders() }),
-                fetch(`${API_BASE_URL}/marketing/grupos-leads`, { headers: getHeaders() })
-            ]);
+            const response = await fetch(`${API_BASE_URL}/marketing/leads`, {
+                headers: getHeaders()
+            });
 
-            if (leadsRes.ok && gruposRes.ok) {
-                leads = await leadsRes.json();
-                grupos = await gruposRes.json();
-                if (sharedTable) {
-                    sharedTable.render(leads);
-                }
-                updateFooter();
-            }
+            if (!response.ok) throw new Error('Falha ao carregar leads');
+
+            leads = await response.json();
+            renderLeads();
+
         } catch (error) {
-            console.error('Error loading data:', error);
-            showToast('Erro de conexão', 'error');
+            console.error('Error loading leads:', error);
+            showToast(error.message, 'error');
         }
+    };
+
+    const renderLeads = () => {
+        if (sharedTable) {
+            sharedTable.render(leads);
+        }
+        updateFooter();
     };
 
     const updateFooter = () => {
@@ -97,154 +99,32 @@ export const LeadsManager = (project) => {
         }
     };
 
-    const showLeadModal = (lead = null) => {
-        return new Promise((resolve) => {
-            const modal = document.createElement('div');
-            modal.className = 'modal-overlay';
-            modal.innerHTML = `
-                <div class="modal-content" style="max-width: 600px;">
-                    <div class="modal-header">
-                        <h3>${lead ? '✏️ Editar' : '➕ Novo'} Lead</h3>
-                        <button class="modal-close" id="modal-close">✕</button>
-                    </div>
-                    <div class="modal-body">
-                        <div class="form-group">
-                            <label for="nome">Nome <span style="color: red;">*</span></label>
-                            <input type="text" id="nome" class="form-control" value="${lead?.nome || ''}" required>
-                        </div>
-                        <div class="form-group">
-                            <label for="email">E-mail</label>
-                            <input type="email" id="email" class="form-control" value="${lead?.email || ''}">
-                        </div>
-                        <div class="form-group">
-                            <label for="telefone">Telefone</label>
-                            <input type="tel" id="telefone" class="form-control" value="${lead?.telefone || ''}">
-                        </div>
-                        <div class="form-group">
-                            <label for="grupoId">Grupo</label>
-                            <select id="grupoId" class="form-control">
-                                <option value="">Sem grupo</option>
-                                ${grupos.map(g => `<option value="${g.id}" ${lead?.grupo_id == g.id ? 'selected' : ''}>${g.nome}</option>`).join('')}
-                            </select>
-                        </div>
-                        <div class="form-group">
-                            <label for="observacoes">Observações</label>
-                            <textarea id="observacoes" class="form-control" rows="3">${lead?.observacoes || ''}</textarea>
-                        </div>
-                    </div>
-                    <div class="modal-footer">
-                        <button class="btn-secondary" id="btn-cancel">Cancelar</button>
-                        <button class="btn-primary" id="btn-save">Salvar</button>
-                    </div>
-                </div>
-            `;
-
-            document.body.appendChild(modal);
-
-            const nomeInput = modal.querySelector('#nome');
-            const emailInput = modal.querySelector('#email');
-            const telefoneInput = modal.querySelector('#telefone');
-            const grupoIdSelect = modal.querySelector('#grupoId');
-            const observacoesInput = modal.querySelector('#observacoes');
-
-            const close = () => {
-                document.body.removeChild(modal);
-                resolve(null);
-            };
-
-            const save = () => {
-                const nome = nomeInput.value.trim();
-
-                if (!nome) {
-                    nomeInput.style.borderColor = 'red';
-                    showToast('Nome é obrigatório', 'error');
-                    return;
-                }
-
-                const data = {
-                    nome,
-                    email: emailInput.value.trim() || null,
-                    telefone: telefoneInput.value.trim() || null,
-                    grupoId: grupoIdSelect.value || null,
-                    observacoes: observacoesInput.value.trim() || null
-                };
-
-                document.body.removeChild(modal);
-                resolve(data);
-            };
-
-            modal.querySelector('#modal-close').onclick = close;
-            modal.querySelector('#btn-cancel').onclick = close;
-            modal.querySelector('#btn-save').onclick = save;
-            modal.onclick = (e) => { if (e.target === modal) close(); };
-
-            setTimeout(() => nomeInput.focus(), 100);
-        });
-    };
-
     const createLead = async () => {
-        const data = await showLeadModal();
-        if (!data) return;
-
-        try {
-            const response = await fetch(`${API_BASE_URL}/marketing/leads`, {
-                method: 'POST',
-                headers: getHeaders(),
-                body: JSON.stringify(data)
-            });
-
-            if (response.ok) {
-                showToast('Lead criado com sucesso!', 'success');
-                loadData();
-            } else {
-                const error = await response.json();
-                showToast(error.error || 'Erro ao criar lead', 'error');
-            }
-        } catch (error) {
-            showToast('Erro de conexão', 'error');
-        }
+        showToast('Funcionalidade em desenvolvimento', 'info');
+        // TODO: Implementar modal de criação de lead
     };
 
-    const editLead = async (lead) => {
-        const data = await showLeadModal(lead);
-        if (!data) return;
-
-        try {
-            const response = await fetch(`${API_BASE_URL}/marketing/leads/${lead.id}`, {
-                method: 'PUT',
-                headers: getHeaders(),
-                body: JSON.stringify(data)
-            });
-
-            if (response.ok) {
-                showToast('Lead atualizado com sucesso!', 'success');
-                loadData();
-            } else {
-                const error = await response.json();
-                showToast(error.error || 'Erro ao atualizar lead', 'error');
-            }
-        } catch (error) {
-            showToast('Erro de conexão', 'error');
-        }
+    const updateLead = async (lead) => {
+        showToast('Funcionalidade em desenvolvimento', 'info');
+        // TODO: Implementar modal de edição de lead
     };
 
-    const deleteLead = async (lead) => {
-        const confirmed = await Dialogs.confirm(
-            `Tem certeza que deseja excluir o lead "${lead.nome}"?`,
-            'Confirmar Exclusão'
+    const deleteLead = async (id, nome) => {
+        const confirmed = await showCustomConfirm(
+            `Tem certeza que deseja excluir "${nome}"?`,
+            'Sim, Excluir'
         );
-
         if (!confirmed) return;
 
         try {
-            const response = await fetch(`${API_BASE_URL}/marketing/leads/${lead.id}`, {
+            const response = await fetch(`${API_BASE_URL}/marketing/leads/${id}`, {
                 method: 'DELETE',
                 headers: getHeaders()
             });
 
             if (response.ok) {
                 showToast('Lead excluído com sucesso!', 'success');
-                loadData();
+                loadLeads();
             } else {
                 const error = await response.json();
                 showToast(error.error || 'Erro ao excluir lead', 'error');
@@ -254,13 +134,70 @@ export const LeadsManager = (project) => {
         }
     };
 
+    // Custom confirmation dialog
+    const showCustomConfirm = (message, confirmText = 'Sim') => {
+        return new Promise((resolve) => {
+            const overlay = document.createElement('div');
+            overlay.className = 'dialog-overlay';
+            overlay.style.position = 'fixed';
+            overlay.style.top = '0';
+            overlay.style.left = '0';
+            overlay.style.right = '0';
+            overlay.style.bottom = '0';
+            overlay.style.background = 'rgba(0,0,0,0.4)';
+            overlay.style.display = 'flex';
+            overlay.style.alignItems = 'center';
+            overlay.style.justifyContent = 'center';
+            overlay.style.zIndex = '100000';
+
+            const box = document.createElement('div');
+            box.style.background = 'white';
+            box.style.padding = '24px';
+            box.style.borderRadius = '12px';
+            box.style.maxWidth = '400px';
+            box.style.width = '90%';
+            box.style.boxShadow = '0 10px 25px rgba(0,0,0,0.2)';
+            box.style.textAlign = 'center';
+
+            box.innerHTML = `
+                <h3 style="margin: 0 0 16px 0; color: var(--color-primary); font-size: 1.25rem;">Confirmação</h3>
+                <p style="margin: 0 0 24px 0; color: #555; line-height: 1.5;">${message}</p>
+                <div style="display: flex; gap: 12px; justify-content: center;">
+                    <button id="confirm-no" style="
+                        background: transparent; border: 1px solid #ccc; padding: 8px 16px; 
+                        border-radius: 6px; cursor: pointer; color: #555; font-weight: 500;">
+                        Não
+                    </button>
+                    <button id="confirm-yes" style="
+                        background: var(--color-primary); border: none; padding: 8px 16px; 
+                        border-radius: 6px; cursor: pointer; color: white; font-weight: 500;">
+                        ${confirmText}
+                    </button>
+                </div>
+            `;
+
+            overlay.appendChild(box);
+            document.body.appendChild(overlay);
+
+            const cleanup = (result) => {
+                document.body.removeChild(overlay);
+                resolve(result);
+            };
+
+            box.querySelector('#confirm-yes').onclick = () => cleanup(true);
+            box.querySelector('#confirm-no').onclick = () => cleanup(false);
+            overlay.onclick = (e) => { if (e.target === overlay) cleanup(false); };
+        });
+    };
+
+    // Build UI
     container.innerHTML = `
         <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1rem;">
             <h2>🎯 Leads</h2>
         </div>
 
         <div style="margin-bottom: 1rem;">
-            <button id="btn-new" class="btn-primary">+ Novo Lead</button>
+            <button id="btn-new-lead" class="btn-primary">+ Novo Lead</button>
         </div>
 
         <div id="table-container" style="flex: 1; overflow: hidden;"></div>
@@ -270,8 +207,10 @@ export const LeadsManager = (project) => {
         </div>
     `;
 
-    container.querySelector('#btn-new').addEventListener('click', createLead);
+    // Event Listeners
+    container.querySelector('#btn-new-lead').addEventListener('click', createLead);
 
+    // Initialize SharedTable
     const tableContainer = container.querySelector('#table-container');
     const footerElement = container.querySelector('#footer-summary');
     sharedTable = new SharedTable({
@@ -281,7 +220,8 @@ export const LeadsManager = (project) => {
         footer: footerElement
     });
 
-    loadData();
+    // Load data
+    loadLeads();
 
     return container;
 };
