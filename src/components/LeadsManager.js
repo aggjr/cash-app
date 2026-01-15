@@ -88,8 +88,48 @@ export const LeadsManager = (project) => {
         } catch (error) {
             console.error('Error loading leads:', error);
             showToast(error.message, 'error');
+
+            // Render Error State with Fix Button
+            container.querySelector('#table-container').innerHTML = `
+                <div style="display: flex; flex-direction: column; align-items: center; justify-content: center; height: 100%; padding: 2rem; text-align: center; color: var(--color-text-muted);">
+                    <div style="font-size: 3rem; margin-bottom: 1rem;">⚠️</div>
+                    <h3 style="margin-bottom: 0.5rem; color: var(--color-text-primary);">Erro ao carregar dados</h3>
+                    <p style="margin-bottom: 1.5rem;">O módulo de marketing parece não estar configurado corretamente.</p>
+                    <button id="btn-fix-db" class="btn-primary" style="background-color: #f59e0b; border-color: #f59e0b;">
+                        🛠️ Inicializar Banco de Dados
+                    </button>
+                    <p id="fix-status" style="margin-top: 1rem; font-size: 0.9rem; opacity: 0; transition: opacity 0.3s;">Inicializando...</p>
+                </div>
+            `;
+
+            const fixBtn = container.querySelector('#btn-fix-db');
+            if (fixBtn) {
+                fixBtn.onclick = async () => {
+                    const statusEl = container.querySelector('#fix-status');
+                    fixBtn.disabled = true;
+                    fixBtn.textContent = 'Processando...';
+                    statusEl.style.opacity = '1';
+
+                    try {
+                        const res = await fetch(`${API_BASE_URL}/migration/run-marketing-migration`);
+                        const data = await res.json();
+
+                        if (data.success) {
+                            showToast('Banco de dados configurado com sucesso! Recarregando...', 'success');
+                            setTimeout(loadLeads, 1500);
+                        } else {
+                            throw new Error(data.error || 'Erro desconhecido');
+                        }
+                    } catch (err) {
+                        showToast('Falha na correção: ' + err.message, 'error');
+                        fixBtn.disabled = false;
+                        fixBtn.textContent = 'Tentar Novamente';
+                    }
+                };
+            }
+
         } finally {
-            if (sharedTable && container.querySelector('#table-container')) {
+            if (sharedTable && container.querySelector('#table-container') && !container.querySelector('#btn-fix-db')) {
                 container.querySelector('#table-container').classList.remove('loading');
             }
         }
