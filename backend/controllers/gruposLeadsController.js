@@ -8,7 +8,7 @@ async function getCaracteristicasComHeranca(grupoId, visitados = new Set()) {
     const caracteristicas = new Map();
 
     // Características diretas do grupo
-    const [diretas] = await db.execute(`
+    const [diretas] = await db.query(`
     SELECT c.*, 'direto' as origem
     FROM caracteristicas c
     INNER JOIN grupos_caracteristicas gc ON c.id = gc.caracteristica_id
@@ -18,7 +18,7 @@ async function getCaracteristicasComHeranca(grupoId, visitados = new Set()) {
     diretas.forEach(c => caracteristicas.set(c.id, c));
 
     // Características herdadas dos grupos-pai (recursivo)
-    const [pais] = await db.execute(`
+    const [pais] = await db.query(`
     SELECT grupo_pai_id
     FROM grupos_composicao
     WHERE grupo_filho_id = ?
@@ -47,14 +47,14 @@ async function expandirGrupoRecursivo(grupoId, visitados = new Set()) {
     };
 
     // Leads diretos
-    const [leadsDiretos] = await db.execute(
+    const [leadsDiretos] = await db.query(
         'SELECT * FROM leads WHERE grupo_id = ?',
         [grupoId]
     );
     resultado.leads.push(...leadsDiretos);
 
     // Subgrupos
-    const [subgrupos] = await db.execute(`
+    const [subgrupos] = await db.query(`
     SELECT g.*
     FROM grupos_leads g
     INNER JOIN grupos_composicao gc ON g.id = gc.grupo_filho_id
@@ -78,7 +78,7 @@ exports.getAll = async (req, res) => {
     try {
         const { treeView } = req.query;
 
-        const [grupos] = await db.execute(`
+        const [grupos] = await db.query(`
       SELECT 
         g.*,
         COUNT(DISTINCT l.id) as total_leads_diretos,
@@ -95,7 +95,7 @@ exports.getAll = async (req, res) => {
         // Se tree view, organizar em hierarquia
         if (treeView === 'true') {
             // Buscar grupos raiz (que não são filhos de ninguém)
-            const [raizes] = await db.execute(`
+            const [raizes] = await db.query(`
         SELECT DISTINCT g.id
         FROM grupos_leads g
         LEFT JOIN grupos_composicao gc ON g.id = gc.grupo_filho_id
@@ -121,7 +121,7 @@ exports.getAll = async (req, res) => {
 };
 
 async function getSubgruposRecursivo(grupoId) {
-    const [subgrupos] = await db.execute(`
+    const [subgrupos] = await db.query(`
     SELECT 
       g.*,
       COUNT(DISTINCT l.id) as total_leads_diretos,
@@ -147,7 +147,7 @@ exports.getById = async (req, res) => {
     try {
         const { id } = req.params;
 
-        const [grupos] = await db.execute(`
+        const [grupos] = await db.query(`
       SELECT 
         g.*,
         COUNT(DISTINCT l.id) as total_leads_diretos,
@@ -184,7 +184,7 @@ exports.buscarPorCaracteristicas = async (req, res) => {
         const placeholders = caracteristicas.map(() => '?').join(',');
 
         // Buscar grupos que têm TODAS as características especificadas
-        const [grupos] = await db.execute(`
+        const [grupos] = await db.query(`
       SELECT 
         g.*,
         COUNT(DISTINCT l.id) as total_leads_diretos,
@@ -210,7 +210,7 @@ exports.getArvore = async (req, res) => {
     try {
         const { id } = req.params;
 
-        const [grupo] = await db.execute('SELECT * FROM grupos_leads WHERE id = ?', [id]);
+        const [grupo] = await db.query('SELECT * FROM grupos_leads WHERE id = ?', [id]);
         if (grupo.length === 0) {
             return res.status(404).json({ error: 'Grupo não encontrado' });
         }
@@ -256,7 +256,7 @@ exports.create = async (req, res) => {
             return res.status(400).json({ error: 'Nome é obrigatório' });
         }
 
-        const [result] = await db.execute(
+        const [result] = await db.query(
             'INSERT INTO grupos_leads (nome, descricao) VALUES (?, ?)',
             [nome, descricao || null]
         );
@@ -272,7 +272,7 @@ exports.create = async (req, res) => {
             );
         }
 
-        const [novoGrupo] = await db.execute(
+        const [novoGrupo] = await db.query(
             'SELECT * FROM grupos_leads WHERE id = ?',
             [grupoId]
         );
@@ -297,7 +297,7 @@ exports.update = async (req, res) => {
             return res.status(400).json({ error: 'Nome é obrigatório' });
         }
 
-        const [result] = await db.execute(
+        const [result] = await db.query(
             'UPDATE grupos_leads SET nome = ?, descricao = ? WHERE id = ?',
             [nome, descricao || null, id]
         );
@@ -309,7 +309,7 @@ exports.update = async (req, res) => {
         // Atualizar características se fornecidas
         if (caracteristicas && Array.isArray(caracteristicas)) {
             // Remover todas as características atuais
-            await db.execute('DELETE FROM grupos_caracteristicas WHERE grupo_id = ?', [id]);
+            await db.query('DELETE FROM grupos_caracteristicas WHERE grupo_id = ?', [id]);
 
             // Adicionar novas características
             if (caracteristicas.length > 0) {
@@ -321,7 +321,7 @@ exports.update = async (req, res) => {
             }
         }
 
-        const [grupoAtualizado] = await db.execute(
+        const [grupoAtualizado] = await db.query(
             'SELECT * FROM grupos_leads WHERE id = ?',
             [id]
         );
@@ -342,7 +342,7 @@ exports.delete = async (req, res) => {
         const { id } = req.params;
 
         // Verificar se tem leads
-        const [leads] = await db.execute(
+        const [leads] = await db.query(
             'SELECT COUNT(*) as total FROM leads WHERE grupo_id = ?',
             [id]
         );
@@ -354,7 +354,7 @@ exports.delete = async (req, res) => {
         }
 
         // Verificar se é pai de outros grupos
-        const [subgrupos] = await db.execute(
+        const [subgrupos] = await db.query(
             'SELECT COUNT(*) as total FROM grupos_composicao WHERE grupo_pai_id = ?',
             [id]
         );
@@ -365,7 +365,7 @@ exports.delete = async (req, res) => {
             });
         }
 
-        const [result] = await db.execute(
+        const [result] = await db.query(
             'DELETE FROM grupos_leads WHERE id = ?',
             [id]
         );
@@ -404,7 +404,7 @@ exports.addCaracteristica = async (req, res) => {
             return res.status(400).json({ error: 'caracteristicaId é obrigatório' });
         }
 
-        await db.execute(
+        await db.query(
             'INSERT INTO grupos_caracteristicas (grupo_id, caracteristica_id) VALUES (?, ?)',
             [id, caracteristicaId]
         );
@@ -423,7 +423,7 @@ exports.removeCaracteristica = async (req, res) => {
     try {
         const { id, caracteristicaId } = req.params;
 
-        const [result] = await db.execute(
+        const [result] = await db.query(
             'DELETE FROM grupos_caracteristicas WHERE grupo_id = ? AND caracteristica_id = ?',
             [id, caracteristicaId]
         );
@@ -444,7 +444,7 @@ exports.getSubgrupos = async (req, res) => {
     try {
         const { id } = req.params;
 
-        const [subgrupos] = await db.execute(`
+        const [subgrupos] = await db.query(`
       SELECT g.*
       FROM grupos_leads g
       INNER JOIN grupos_composicao gc ON g.id = gc.grupo_filho_id
@@ -475,7 +475,7 @@ exports.addSubgrupo = async (req, res) => {
 
         // TODO: Implementar verificação de ciclos mais profunda
 
-        await db.execute(
+        await db.query(
             'INSERT INTO grupos_composicao (grupo_pai_id, grupo_filho_id) VALUES (?, ?)',
             [id, grupoFilhoId]
         );
@@ -494,7 +494,7 @@ exports.removeSubgrupo = async (req, res) => {
     try {
         const { id, grupoFilhoId } = req.params;
 
-        const [result] = await db.execute(
+        const [result] = await db.query(
             'DELETE FROM grupos_composicao WHERE grupo_pai_id = ? AND grupo_filho_id = ?',
             [id, grupoFilhoId]
         );

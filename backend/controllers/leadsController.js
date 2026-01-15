@@ -34,7 +34,7 @@ exports.getAll = async (req, res) => {
 
         query += ' GROUP BY l.id ORDER BY l.nome';
 
-        const [leads] = await db.execute(query, params);
+        const [leads] = await db.query(query, params);
 
         res.json(leads);
     } catch (error) {
@@ -48,7 +48,7 @@ exports.getById = async (req, res) => {
     try {
         const { id } = req.params;
 
-        const [leads] = await db.execute(`
+        const [leads] = await db.query(`
       SELECT 
         l.*,
         g.nome as grupo_nome
@@ -62,7 +62,7 @@ exports.getById = async (req, res) => {
         }
 
         // Buscar campanhas associadas
-        const [campanhas] = await db.execute(`
+        const [campanhas] = await db.query(`
       SELECT 
         c.*,
         lc.status as status_lead,
@@ -97,12 +97,12 @@ exports.create = async (req, res) => {
             return res.status(400).json({ error: 'Email inválido' });
         }
 
-        const [result] = await db.execute(
+        const [result] = await db.query(
             'INSERT INTO leads (nome, email, telefone, grupo_id, observacoes) VALUES (?, ?, ?, ?, ?)',
             [nome, email || null, telefone || null, grupoId || null, observacoes || null]
         );
 
-        const [novoLead] = await db.execute(
+        const [novoLead] = await db.query(
             'SELECT * FROM leads WHERE id = ?',
             [result.insertId]
         );
@@ -129,7 +129,7 @@ exports.update = async (req, res) => {
             return res.status(400).json({ error: 'Email inválido' });
         }
 
-        const [result] = await db.execute(
+        const [result] = await db.query(
             'UPDATE leads SET nome = ?, email = ?, telefone = ?, grupo_id = ?, observacoes = ? WHERE id = ?',
             [nome, email || null, telefone || null, grupoId || null, observacoes || null, id]
         );
@@ -138,7 +138,7 @@ exports.update = async (req, res) => {
             return res.status(404).json({ error: 'Lead não encontrado' });
         }
 
-        const [leadAtualizado] = await db.execute(
+        const [leadAtualizado] = await db.query(
             'SELECT * FROM leads WHERE id = ?',
             [id]
         );
@@ -155,7 +155,7 @@ exports.delete = async (req, res) => {
     try {
         const { id } = req.params;
 
-        const [result] = await db.execute(
+        const [result] = await db.query(
             'DELETE FROM leads WHERE id = ?',
             [id]
         );
@@ -181,7 +181,7 @@ exports.associarCampanha = async (req, res) => {
             return res.status(400).json({ error: 'campanhaId é obrigatório' });
         }
 
-        await db.execute(
+        await db.query(
             'INSERT INTO leads_campanhas (lead_id, campanha_id, status, observacoes) VALUES (?, ?, ?, ?)',
             [id, campanhaId, status || 'pendente', observacoes || null]
         );
@@ -201,7 +201,7 @@ exports.desassociarCampanha = async (req, res) => {
     try {
         const { id, campanhaId } = req.params;
 
-        const [result] = await db.execute(
+        const [result] = await db.query(
             'DELETE FROM leads_campanhas WHERE lead_id = ? AND campanha_id = ?',
             [id, campanhaId]
         );
@@ -228,7 +228,7 @@ exports.atualizarStatusCampanha = async (req, res) => {
             return res.status(400).json({ error: 'Status inválido' });
         }
 
-        const [result] = await db.execute(
+        const [result] = await db.query(
             'UPDATE leads_campanhas SET status = ?, observacoes = ? WHERE lead_id = ? AND campanha_id = ?',
             [status, observacoes || null, id, campanhaId]
         );

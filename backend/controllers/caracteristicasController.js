@@ -3,7 +3,7 @@ const db = require('../config/database');
 // Listar todas as características
 exports.getAll = async (req, res) => {
     try {
-        const [caracteristicas] = await db.execute(`
+        const [caracteristicas] = await db.query(`
       SELECT 
         c.*,
         COUNT(DISTINCT gc.grupo_id) as total_grupos
@@ -25,7 +25,7 @@ exports.getById = async (req, res) => {
     try {
         const { id } = req.params;
 
-        const [caracteristicas] = await db.execute(
+        const [caracteristicas] = await db.query(
             'SELECT * FROM caracteristicas WHERE id = ?',
             [id]
         );
@@ -50,12 +50,12 @@ exports.create = async (req, res) => {
             return res.status(400).json({ error: 'Nome é obrigatório' });
         }
 
-        const [result] = await db.execute(
+        const [result] = await db.query(
             'INSERT INTO caracteristicas (nome, descricao) VALUES (?, ?)',
             [nome, descricao || null]
         );
 
-        const [novaCaracteristica] = await db.execute(
+        const [novaCaracteristica] = await db.query(
             'SELECT * FROM caracteristicas WHERE id = ?',
             [result.insertId]
         );
@@ -80,7 +80,7 @@ exports.update = async (req, res) => {
             return res.status(400).json({ error: 'Nome é obrigatório' });
         }
 
-        const [result] = await db.execute(
+        const [result] = await db.query(
             'UPDATE caracteristicas SET nome = ?, descricao = ? WHERE id = ?',
             [nome, descricao || null, id]
         );
@@ -89,7 +89,7 @@ exports.update = async (req, res) => {
             return res.status(404).json({ error: 'Característica não encontrada' });
         }
 
-        const [caracteristicaAtualizada] = await db.execute(
+        const [caracteristicaAtualizada] = await db.query(
             'SELECT * FROM caracteristicas WHERE id = ?',
             [id]
         );
@@ -110,7 +110,7 @@ exports.delete = async (req, res) => {
         const { id } = req.params;
 
         // Verificar se está em uso
-        const [grupos] = await db.execute(
+        const [grupos] = await db.query(
             'SELECT COUNT(*) as total FROM grupos_caracteristicas WHERE caracteristica_id = ?',
             [id]
         );
@@ -121,7 +121,7 @@ exports.delete = async (req, res) => {
             });
         }
 
-        const [result] = await db.execute(
+        const [result] = await db.query(
             'DELETE FROM caracteristicas WHERE id = ?',
             [id]
         );
@@ -142,7 +142,7 @@ exports.getGrupos = async (req, res) => {
     try {
         const { id } = req.params;
 
-        const [grupos] = await db.execute(`
+        const [grupos] = await db.query(`
       SELECT g.*
       FROM grupos_leads g
       INNER JOIN grupos_caracteristicas gc ON g.id = gc.grupo_id

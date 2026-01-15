@@ -22,7 +22,7 @@ exports.getAll = async (req, res) => {
         query += ' GROUP BY c.id ORDER BY c.created_at DESC';
 
         const params = status ? [status] : [];
-        const [campanhas] = await db.execute(query, params);
+        const [campanhas] = await db.query(query, params);
 
         res.json(campanhas);
     } catch (error) {
@@ -36,7 +36,7 @@ exports.getById = async (req, res) => {
     try {
         const { id } = req.params;
 
-        const [campanhas] = await db.execute(`
+        const [campanhas] = await db.query(`
       SELECT 
         c.*,
         COUNT(DISTINCT lc.lead_id) as total_leads,
@@ -73,12 +73,12 @@ exports.create = async (req, res) => {
             return res.status(400).json({ error: 'Status inválido' });
         }
 
-        const [result] = await db.execute(
+        const [result] = await db.query(
             'INSERT INTO campanhas (nome, descricao, data_inicio, data_fim, status) VALUES (?, ?, ?, ?, ?)',
             [nome, descricao || null, dataInicio || null, dataFim || null, status || 'planejamento']
         );
 
-        const [novaCampanha] = await db.execute(
+        const [novaCampanha] = await db.query(
             'SELECT * FROM campanhas WHERE id = ?',
             [result.insertId]
         );
@@ -105,7 +105,7 @@ exports.update = async (req, res) => {
             return res.status(400).json({ error: 'Status inválido' });
         }
 
-        const [result] = await db.execute(
+        const [result] = await db.query(
             'UPDATE campanhas SET nome = ?, descricao = ?, data_inicio = ?, data_fim = ?, status = ? WHERE id = ?',
             [nome, descricao || null, dataInicio || null, dataFim || null, status || 'planejamento', id]
         );
@@ -114,7 +114,7 @@ exports.update = async (req, res) => {
             return res.status(404).json({ error: 'Campanha não encontrada' });
         }
 
-        const [campanhaAtualizada] = await db.execute(
+        const [campanhaAtualizada] = await db.query(
             'SELECT * FROM campanhas WHERE id = ?',
             [id]
         );
@@ -131,7 +131,7 @@ exports.delete = async (req, res) => {
     try {
         const { id } = req.params;
 
-        const [result] = await db.execute(
+        const [result] = await db.query(
             'DELETE FROM campanhas WHERE id = ?',
             [id]
         );
@@ -152,7 +152,7 @@ exports.getGrupos = async (req, res) => {
     try {
         const { id } = req.params;
 
-        const [grupos] = await db.execute(`
+        const [grupos] = await db.query(`
       SELECT 
         g.*,
         COUNT(DISTINCT l.id) as total_leads
@@ -181,7 +181,7 @@ exports.associarGrupo = async (req, res) => {
             return res.status(400).json({ error: 'grupoId é obrigatório' });
         }
 
-        await db.execute(
+        await db.query(
             'INSERT INTO grupos_campanhas (grupo_id, campanha_id) VALUES (?, ?)',
             [grupoId, id]
         );
@@ -201,7 +201,7 @@ exports.desassociarGrupo = async (req, res) => {
     try {
         const { id, grupoId } = req.params;
 
-        const [result] = await db.execute(
+        const [result] = await db.query(
             'DELETE FROM grupos_campanhas WHERE grupo_id = ? AND campanha_id = ?',
             [grupoId, id]
         );
@@ -245,7 +245,7 @@ exports.getLeads = async (req, res) => {
 
         query += ' ORDER BY l.nome';
 
-        const [leads] = await db.execute(query, params);
+        const [leads] = await db.query(query, params);
 
         res.json(leads);
     } catch (error) {
@@ -259,7 +259,7 @@ exports.getEstatisticas = async (req, res) => {
     try {
         const { id } = req.params;
 
-        const [stats] = await db.execute(`
+        const [stats] = await db.query(`
       SELECT 
         COUNT(*) as total_leads,
         SUM(CASE WHEN status = 'pendente' THEN 1 ELSE 0 END) as pendentes,
