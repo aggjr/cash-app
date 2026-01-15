@@ -180,6 +180,7 @@ loadErrorCatalog()
     .then(() => migrateAddUserCompany()) // NEW: Add company_id to project_users
     .then(() => require('./migrate_add_user_preferences')()) // NEW: User preferences table
     .then(() => migrateMarketingTables()) // NEW: Marketing module tables
+    .then(() => startServer())
 
     .catch(err => {
         console.error('CRITICAL: Startup migration failed:', err);
