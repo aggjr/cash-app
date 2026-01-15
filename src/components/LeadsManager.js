@@ -66,7 +66,33 @@ export const LeadsManager = (project) => {
         { key: 'nome', label: 'Nome', width: 'auto', align: 'left', type: 'text' },
         { key: 'email', label: 'E-mail', width: '200px', align: 'left', type: 'text' },
         { key: 'telefone', label: 'Telefone', width: '150px', align: 'left', type: 'text' },
-        { key: 'grupo_nome', label: 'Grupo', width: '150px', align: 'left', type: 'text' }
+        {
+            key: 'grupos_nomes',
+            label: 'Grupos',
+            width: '200px',
+            align: 'left',
+            type: 'text',
+            render: (item) => {
+                if (!item.grupos_nomes) return '-';
+                // Replace | with badged items or just text? User asked for text with | but badges are nicer?
+                // User: "Uma alternativa é concatenar os nomes dos Grupos separados por um ' | '"
+                // User asked specifically for that. But badges are cool. 
+                // Let's stick to text first as requested "concatenar... separar por |".
+                // I'll make it bold or something.
+                return item.grupos_nomes;
+            }
+        },
+        {
+            key: 'caracteristicas_nomes',
+            label: 'Características',
+            width: '200px',
+            align: 'left',
+            type: 'text',
+            render: (item) => {
+                if (!item.caracteristicas_nomes) return '-';
+                return item.caracteristicas_nomes;
+            }
+        }
     ];
 
     const loadLeads = async () => {

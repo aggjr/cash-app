@@ -180,6 +180,7 @@ loadErrorCatalog()
     .then(() => migrateAddUserCompany()) // NEW: Add company_id to project_users
     .then(() => require('./migrate_add_user_preferences')()) // NEW: User preferences table
     .then(() => migrateMarketingTables()) // NEW: Marketing module tables
+    .then(() => require('./migrations/update_leads_multirelations')()) // NEW: Multi-groups and characteristics support
     .then(() => startServer())
 
     .catch(err => {
