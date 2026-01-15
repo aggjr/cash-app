@@ -1,7 +1,7 @@
 import { SharedTable } from './SharedTable.js';
 import { showToast } from '../utils/toast.js';
 import { getApiBaseUrl } from '../utils/apiConfig.js';
-import { Dialogs } from './Dialogs.js';
+import { CaracteristicaModal } from './CaracteristicaModal.js';
 
 export const CaracteristicasManager = (project) => {
     const container = document.createElement('div');
@@ -28,7 +28,7 @@ export const CaracteristicasManager = (project) => {
 
     const columns = [
         { key: 'nome', label: 'Nome', width: 'auto', align: 'left', type: 'text' },
-        { key: 'descricao', label: 'Descrição', width: '300px', align: 'left', type: 'text' },
+        { key: 'descricao', label: 'Descrição', width: '30%', align: 'left', type: 'text' },
         {
             key: 'total_grupos',
             label: 'Grupos',
@@ -38,9 +38,12 @@ export const CaracteristicasManager = (project) => {
             render: (item) => {
                 const badge = document.createElement('span');
                 badge.className = 'badge-info';
-                badge.textContent = `${item.total_grupos || 0} grupo(s)`;
-                badge.style.padding = '0.25rem 0.5rem';
-                badge.style.borderRadius = '4px';
+                badge.textContent = `${item.total_grupos || 0}`;
+                // Usage style
+                badge.style.backgroundColor = 'var(--color-primary-light)';
+                badge.style.color = 'var(--color-primary)';
+                badge.style.padding = '2px 8px';
+                badge.style.borderRadius = '12px';
                 badge.style.fontSize = '0.85rem';
                 return badge;
             }
@@ -64,7 +67,7 @@ export const CaracteristicasManager = (project) => {
                 btnEdit.style.border = 'none';
                 btnEdit.style.cursor = 'pointer';
                 btnEdit.style.fontSize = '1.1rem';
-                btnEdit.onclick = (e) => { e.stopPropagation(); editCaracteristica(item); };
+                btnEdit.onclick = (e) => { e.stopPropagation(); updateCaracteristica(item); };
 
                 const btnDelete = document.createElement('button');
                 btnDelete.innerHTML = '🗑️';
@@ -84,6 +87,10 @@ export const CaracteristicasManager = (project) => {
 
     const loadCaracteristicas = async () => {
         try {
+            if (sharedTable && container.querySelector('#table-container')) {
+                container.querySelector('#table-container').classList.add('loading');
+            }
+
             const response = await fetch(`${API_BASE_URL}/marketing/caracteristicas`, {
                 headers: getHeaders()
             });
@@ -95,11 +102,15 @@ export const CaracteristicasManager = (project) => {
                 }
                 updateFooter();
             } else {
-                showToast('Erro ao carregar características', 'error');
+                throw new Error('Erro ao carregar características');
             }
         } catch (error) {
             console.error('Error loading características:', error);
             showToast('Erro de conexão', 'error');
+        } finally {
+            if (sharedTable && container.querySelector('#table-container')) {
+                container.querySelector('#table-container').classList.remove('loading');
+            }
         }
     };
 
@@ -110,124 +121,52 @@ export const CaracteristicasManager = (project) => {
         }
     };
 
-    const showCaracteristicaModal = (caracteristica = null) => {
-        return new Promise((resolve) => {
-            const modal = document.createElement('div');
-            modal.className = 'modal-overlay';
-            modal.innerHTML = `
-                <div class="modal-content" style="max-width: 500px;">
-                    <div class="modal-header">
-                        <h3>${caracteristica ? '✏️ Editar' : '➕ Nova'} Característica</h3>
-                        <button class="modal-close" id="modal-close">✕</button>
-                    </div>
-                    <div class="modal-body">
-                        <div class="form-group">
-                            <label for="nome">Nome <span style="color: red;">*</span></label>
-                            <input type="text" id="nome" class="form-control" value="${caracteristica?.nome || ''}" required>
-                        </div>
-                        <div class="form-group">
-                            <label for="descricao">Descrição</label>
-                            <textarea id="descricao" class="form-control" rows="3">${caracteristica?.descricao || ''}</textarea>
-                        </div>
-                    </div>
-                    <div class="modal-footer">
-                        <button class="btn-secondary" id="btn-cancel">Cancelar</button>
-                        <button class="btn-primary" id="btn-save">Salvar</button>
-                    </div>
-                </div>
-            `;
+    const createCaracteristica = async () => {
+        await CaracteristicaModal.show({
+            caracteristica: null,
+            onSave: async (data) => {
+                const response = await fetch(`${API_BASE_URL}/marketing/caracteristicas`, {
+                    method: 'POST',
+                    headers: getHeaders(),
+                    body: JSON.stringify(data)
+                });
 
-            document.body.appendChild(modal);
-
-            const nomeInput = modal.querySelector('#nome');
-            const descricaoInput = modal.querySelector('#descricao');
-
-            const close = () => {
-                document.body.removeChild(modal);
-                resolve(null);
-            };
-
-            const save = () => {
-                const nome = nomeInput.value.trim();
-
-                // Validação
-                if (!nome) {
-                    nomeInput.style.borderColor = 'red';
-                    showToast('Nome é obrigatório', 'error');
-                    return;
+                if (response.ok) {
+                    showToast('Característica criada com sucesso!', 'success');
+                    loadCaracteristicas();
+                } else {
+                    const error = await response.json();
+                    throw new Error(error.error || 'Erro ao criar característica');
                 }
-
-                const data = {
-                    nome,
-                    descricao: descricaoInput.value.trim() || null
-                };
-
-                document.body.removeChild(modal);
-                resolve(data);
-            };
-
-            modal.querySelector('#modal-close').onclick = close;
-            modal.querySelector('#btn-cancel').onclick = close;
-            modal.querySelector('#btn-save').onclick = save;
-            modal.onclick = (e) => { if (e.target === modal) close(); };
-
-            // Focus no primeiro campo
-            setTimeout(() => nomeInput.focus(), 100);
+            }
         });
     };
 
-    const createCaracteristica = async () => {
-        const data = await showCaracteristicaModal();
-        if (!data) return;
+    const updateCaracteristica = async (caracteristica) => {
+        await CaracteristicaModal.show({
+            caracteristica: caracteristica,
+            onSave: async (data) => {
+                const response = await fetch(`${API_BASE_URL}/marketing/caracteristicas/${caracteristica.id}`, {
+                    method: 'PUT',
+                    headers: getHeaders(),
+                    body: JSON.stringify(data)
+                });
 
-        try {
-            const response = await fetch(`${API_BASE_URL}/marketing/caracteristicas`, {
-                method: 'POST',
-                headers: getHeaders(),
-                body: JSON.stringify(data)
-            });
-
-            if (response.ok) {
-                showToast('Característica criada com sucesso!', 'success');
-                loadCaracteristicas();
-            } else {
-                const error = await response.json();
-                showToast(error.error || 'Erro ao criar característica', 'error');
+                if (response.ok) {
+                    showToast('Característica atualizada com sucesso!', 'success');
+                    loadCaracteristicas();
+                } else {
+                    const error = await response.json();
+                    throw new Error(error.error || 'Erro ao atualizar característica');
+                }
             }
-        } catch (error) {
-            console.error('Error creating característica:', error);
-            showToast('Erro de conexão', 'error');
-        }
-    };
-
-    const editCaracteristica = async (caracteristica) => {
-        const data = await showCaracteristicaModal(caracteristica);
-        if (!data) return;
-
-        try {
-            const response = await fetch(`${API_BASE_URL}/marketing/caracteristicas/${caracteristica.id}`, {
-                method: 'PUT',
-                headers: getHeaders(),
-                body: JSON.stringify(data)
-            });
-
-            if (response.ok) {
-                showToast('Característica atualizada com sucesso!', 'success');
-                loadCaracteristicas();
-            } else {
-                const error = await response.json();
-                showToast(error.error || 'Erro ao atualizar característica', 'error');
-            }
-        } catch (error) {
-            console.error('Error updating característica:', error);
-            showToast('Erro de conexão', 'error');
-        }
+        });
     };
 
     const deleteCaracteristica = async (caracteristica) => {
-        const confirmed = await Dialogs.confirm(
+        const confirmed = await showCustomConfirm(
             `Tem certeza que deseja excluir a característica "${caracteristica.nome}"?`,
-            'Confirmar Exclusão'
+            'Sim, Excluir'
         );
 
         if (!confirmed) return;
@@ -246,12 +185,68 @@ export const CaracteristicasManager = (project) => {
                 showToast(error.error || 'Erro ao excluir característica', 'error');
             }
         } catch (error) {
-            console.error('Error deleting característica:', error);
             showToast('Erro de conexão', 'error');
         }
     };
 
-    // UI Setup
+    const showCustomConfirm = (message, confirmText = 'Sim') => {
+        return new Promise((resolve) => {
+            const overlay = document.createElement('div');
+            overlay.className = 'dialog-overlay';
+            overlay.style.position = 'fixed';
+            overlay.id = 'confirm-dialog-overlay';
+            overlay.style.top = '0';
+            overlay.style.left = '0';
+            overlay.style.right = '0';
+            overlay.style.bottom = '0';
+            overlay.style.background = 'rgba(0,0,0,0.4)';
+            overlay.style.display = 'flex';
+            overlay.style.alignItems = 'center';
+            overlay.style.justifyContent = 'center';
+            overlay.style.zIndex = '100000';
+
+            const box = document.createElement('div');
+            box.style.background = 'white';
+            box.style.padding = '24px';
+            box.style.borderRadius = '12px';
+            box.style.maxWidth = '400px';
+            box.style.width = '90%';
+            box.style.boxShadow = '0 10px 25px rgba(0,0,0,0.2)';
+            box.style.textAlign = 'center';
+
+            box.innerHTML = `
+                <h3 style="margin: 0 0 16px 0; color: var(--color-primary); font-size: 1.25rem;">Confirmação</h3>
+                <p style="margin: 0 0 24px 0; color: #555; line-height: 1.5;">${message}</p>
+                <div style="display: flex; gap: 12px; justify-content: center;">
+                    <button id="confirm-no" style="
+                        background: transparent; border: 1px solid #ccc; padding: 8px 16px; 
+                        border-radius: 6px; cursor: pointer; color: #555; font-weight: 500;">
+                        Não
+                    </button>
+                    <button id="confirm-yes" style="
+                        background: var(--color-primary); border: none; padding: 8px 16px; 
+                        border-radius: 6px; cursor: pointer; color: white; font-weight: 500;">
+                        ${confirmText}
+                    </button>
+                </div>
+            `;
+
+            overlay.appendChild(box);
+            document.body.appendChild(overlay);
+
+            const cleanup = (result) => {
+                if (document.body.contains(overlay)) {
+                    document.body.removeChild(overlay);
+                }
+                resolve(result);
+            };
+
+            box.querySelector('#confirm-yes').onclick = () => cleanup(true);
+            box.querySelector('#confirm-no').onclick = () => cleanup(false);
+            overlay.onclick = (e) => { if (e.target === overlay) cleanup(false); };
+        });
+    };
+
     container.innerHTML = `
         <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1rem;">
             <h2>🏷️ Características</h2>
@@ -268,10 +263,8 @@ export const CaracteristicasManager = (project) => {
         </div>
     `;
 
-    // Event Listeners
     container.querySelector('#btn-new').addEventListener('click', createCaracteristica);
 
-    // Initialize SharedTable
     const tableContainer = container.querySelector('#table-container');
     const footerElement = container.querySelector('#footer-summary');
     sharedTable = new SharedTable({
@@ -281,7 +274,6 @@ export const CaracteristicasManager = (project) => {
         footer: footerElement
     });
 
-    // Initial Load
     loadCaracteristicas();
 
     return container;

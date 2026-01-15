@@ -1,7 +1,7 @@
 import { SharedTable } from './SharedTable.js';
 import { showToast } from '../utils/toast.js';
 import { getApiBaseUrl } from '../utils/apiConfig.js';
-import { Dialogs } from './Dialogs.js';
+import { CampanhaModal } from './CampanhaModal.js';
 
 export const CampanhasManager = (project) => {
     const container = document.createElement('div');
@@ -28,13 +28,20 @@ export const CampanhasManager = (project) => {
 
     const formatDate = (dateString) => {
         if (!dateString) return '-';
-        const date = new Date(dateString);
-        return date.toLocaleDateString('pt-BR');
+        // Ajuste para timezone local se necessário ou apenas split
+        // Vamos usar split para pegar a data YYYY-MM-DD e mostrar DD/MM/YYYY
+        // Supondo que venha como string ISO
+        try {
+            const date = new Date(dateString);
+            return date.toLocaleDateString('pt-BR', { timeZone: 'UTC' });
+        } catch (e) {
+            return dateString;
+        }
     };
 
     const columns = [
         { key: 'nome', label: 'Nome', width: 'auto', align: 'left', type: 'text' },
-        { key: 'descricao', label: 'Descrição', width: '200px', align: 'left', type: 'text' },
+        { key: 'descricao', label: 'Descrição', width: '25%', align: 'left', type: 'text' },
         {
             key: 'data_inicio',
             label: 'Início',
@@ -67,15 +74,22 @@ export const CampanhasManager = (project) => {
             type: 'text',
             render: (item) => {
                 const statusMap = {
-                    'planejamento': { label: 'Planejamento', class: 'badge-info' },
-                    'ativa': { label: 'Ativa', class: 'badge-success' },
-                    'pausada': { label: 'Pausada', class: 'badge-warning' },
-                    'concluida': { label: 'Concluída', class: 'badge-secondary' },
-                    'cancelada': { label: 'Cancelada', class: 'badge-danger' }
+                    'planejamento': { label: 'Planejamento', class: 'badge-info', color: '#3b82f6', bg: '#eff6ff' },
+                    'ativa': { label: 'Ativa', class: 'badge-success', color: '#10b981', bg: '#ecfdf5' },
+                    'pausada': { label: 'Pausada', class: 'badge-warning', color: '#f59e0b', bg: '#fffbeb' },
+                    'concluida': { label: 'Concluída', class: 'badge-secondary', color: '#6b7280', bg: '#f3f4f6' },
+                    'cancelada': { label: 'Cancelada', class: 'badge-danger', color: '#ef4444', bg: '#fef2f2' }
                 };
                 const status = statusMap[item.status] || statusMap['planejamento'];
                 const badge = document.createElement('span');
-                badge.className = status.class;
+                // Custom styles for better look
+                badge.style.backgroundColor = status.bg;
+                badge.style.color = status.color;
+                badge.style.padding = '4px 10px';
+                badge.style.borderRadius = '20px';
+                badge.style.fontSize = '0.8rem';
+                badge.style.fontWeight = '600';
+                badge.style.display = 'inline-block';
                 badge.textContent = status.label;
                 return badge;
             }
@@ -90,6 +104,12 @@ export const CampanhasManager = (project) => {
                 const badge = document.createElement('span');
                 badge.className = 'badge-info';
                 badge.textContent = item.total_leads || 0;
+                // Reuse style from GruposLeads for consistency
+                badge.style.backgroundColor = 'var(--color-primary-light)';
+                badge.style.color = 'var(--color-primary)';
+                badge.style.padding = '2px 8px';
+                badge.style.borderRadius = '12px';
+                badge.style.fontSize = '0.85rem';
                 return badge;
             }
         },
@@ -112,7 +132,7 @@ export const CampanhasManager = (project) => {
                 btnEdit.style.border = 'none';
                 btnEdit.style.cursor = 'pointer';
                 btnEdit.style.fontSize = '1.1rem';
-                btnEdit.onclick = (e) => { e.stopPropagation(); editCampanha(item); };
+                btnEdit.onclick = (e) => { e.stopPropagation(); updateCampanha(item); };
 
                 const btnDelete = document.createElement('button');
                 btnDelete.innerHTML = '🗑️';
@@ -132,6 +152,10 @@ export const CampanhasManager = (project) => {
 
     const loadCampanhas = async () => {
         try {
+            if (sharedTable && container.querySelector('#table-container')) {
+                container.querySelector('#table-container').classList.add('loading');
+            }
+
             const response = await fetch(`${API_BASE_URL}/marketing/campanhas`, {
                 headers: getHeaders()
             });
@@ -142,10 +166,16 @@ export const CampanhasManager = (project) => {
                     sharedTable.render(campanhas);
                 }
                 updateFooter();
+            } else {
+                throw new Error('Falha ao carregar campanhas');
             }
         } catch (error) {
             console.error('Error loading campanhas:', error);
             showToast('Erro de conexão', 'error');
+        } finally {
+            if (sharedTable && container.querySelector('#table-container')) {
+                container.querySelector('#table-container').classList.remove('loading');
+            }
         }
     };
 
@@ -156,146 +186,52 @@ export const CampanhasManager = (project) => {
         }
     };
 
-    const showCampanhaModal = (campanha = null) => {
-        return new Promise((resolve) => {
-            const modal = document.createElement('div');
-            modal.className = 'modal-overlay';
-            modal.innerHTML = `
-                <div class="modal-content" style="max-width: 600px;">
-                    <div class="modal-header">
-                        <h3>${campanha ? '✏️ Editar' : '➕ Nova'} Campanha</h3>
-                        <button class="modal-close" id="modal-close">✕</button>
-                    </div>
-                    <div class="modal-body">
-                        <div class="form-group">
-                            <label for="nome">Nome <span style="color: red;">*</span></label>
-                            <input type="text" id="nome" class="form-control" value="${campanha?.nome || ''}" required>
-                        </div>
-                        <div class="form-group">
-                            <label for="descricao">Descrição</label>
-                            <textarea id="descricao" class="form-control" rows="3">${campanha?.descricao || ''}</textarea>
-                        </div>
-                        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 1rem;">
-                            <div class="form-group">
-                                <label for="dataInicio">Data Início</label>
-                                <input type="date" id="dataInicio" class="form-control" value="${campanha?.data_inicio || ''}">
-                            </div>
-                            <div class="form-group">
-                                <label for="dataFim">Data Fim</label>
-                                <input type="date" id="dataFim" class="form-control" value="${campanha?.data_fim || ''}">
-                            </div>
-                        </div>
-                        <div class="form-group">
-                            <label for="status">Status</label>
-                            <select id="status" class="form-control">
-                                <option value="planejamento" ${campanha?.status === 'planejamento' ? 'selected' : ''}>Planejamento</option>
-                                <option value="ativa" ${campanha?.status === 'ativa' ? 'selected' : ''}>Ativa</option>
-                                <option value="pausada" ${campanha?.status === 'pausada' ? 'selected' : ''}>Pausada</option>
-                                <option value="concluida" ${campanha?.status === 'concluida' ? 'selected' : ''}>Concluída</option>
-                                <option value="cancelada" ${campanha?.status === 'cancelada' ? 'selected' : ''}>Cancelada</option>
-                            </select>
-                        </div>
-                    </div>
-                    <div class="modal-footer">
-                        <button class="btn-secondary" id="btn-cancel">Cancelar</button>
-                        <button class="btn-primary" id="btn-save">Salvar</button>
-                    </div>
-                </div>
-            `;
+    const createCampanha = async () => {
+        await CampanhaModal.show({
+            campanha: null,
+            onSave: async (data) => {
+                const response = await fetch(`${API_BASE_URL}/marketing/campanhas`, {
+                    method: 'POST',
+                    headers: getHeaders(),
+                    body: JSON.stringify(data)
+                });
 
-            document.body.appendChild(modal);
-
-            const nomeInput = modal.querySelector('#nome');
-            const descricaoInput = modal.querySelector('#descricao');
-            const dataInicioInput = modal.querySelector('#dataInicio');
-            const dataFimInput = modal.querySelector('#dataFim');
-            const statusSelect = modal.querySelector('#status');
-
-            const close = () => {
-                document.body.removeChild(modal);
-                resolve(null);
-            };
-
-            const save = () => {
-                const nome = nomeInput.value.trim();
-
-                if (!nome) {
-                    nomeInput.style.borderColor = 'red';
-                    showToast('Nome é obrigatório', 'error');
-                    return;
+                if (response.ok) {
+                    showToast('Campanha criada com sucesso!', 'success');
+                    loadCampanhas();
+                } else {
+                    const error = await response.json();
+                    throw new Error(error.error || 'Erro ao criar campanha');
                 }
-
-                const data = {
-                    nome,
-                    descricao: descricaoInput.value.trim() || null,
-                    dataInicio: dataInicioInput.value || null,
-                    dataFim: dataFimInput.value || null,
-                    status: statusSelect.value
-                };
-
-                document.body.removeChild(modal);
-                resolve(data);
-            };
-
-            modal.querySelector('#modal-close').onclick = close;
-            modal.querySelector('#btn-cancel').onclick = close;
-            modal.querySelector('#btn-save').onclick = save;
-            modal.onclick = (e) => { if (e.target === modal) close(); };
-
-            setTimeout(() => nomeInput.focus(), 100);
+            }
         });
     };
 
-    const createCampanha = async () => {
-        const data = await showCampanhaModal();
-        if (!data) return;
+    const updateCampanha = async (campanha) => {
+        await CampanhaModal.show({
+            campanha: campanha,
+            onSave: async (data) => {
+                const response = await fetch(`${API_BASE_URL}/marketing/campanhas/${campanha.id}`, {
+                    method: 'PUT',
+                    headers: getHeaders(),
+                    body: JSON.stringify(data)
+                });
 
-        try {
-            const response = await fetch(`${API_BASE_URL}/marketing/campanhas`, {
-                method: 'POST',
-                headers: getHeaders(),
-                body: JSON.stringify(data)
-            });
-
-            if (response.ok) {
-                showToast('Campanha criada com sucesso!', 'success');
-                loadCampanhas();
-            } else {
-                const error = await response.json();
-                showToast(error.error || 'Erro ao criar campanha', 'error');
+                if (response.ok) {
+                    showToast('Campanha atualizada com sucesso!', 'success');
+                    loadCampanhas();
+                } else {
+                    const error = await response.json();
+                    throw new Error(error.error || 'Erro ao atualizar campanha');
+                }
             }
-        } catch (error) {
-            showToast('Erro de conexão', 'error');
-        }
-    };
-
-    const editCampanha = async (campanha) => {
-        const data = await showCampanhaModal(campanha);
-        if (!data) return;
-
-        try {
-            const response = await fetch(`${API_BASE_URL}/marketing/campanhas/${campanha.id}`, {
-                method: 'PUT',
-                headers: getHeaders(),
-                body: JSON.stringify(data)
-            });
-
-            if (response.ok) {
-                showToast('Campanha atualizada com sucesso!', 'success');
-                loadCampanhas();
-            } else {
-                const error = await response.json();
-                showToast(error.error || 'Erro ao atualizar campanha', 'error');
-            }
-        } catch (error) {
-            showToast('Erro de conexão', 'error');
-        }
+        });
     };
 
     const deleteCampanha = async (campanha) => {
-        const confirmed = await Dialogs.confirm(
+        const confirmed = await showCustomConfirm(
             `Tem certeza que deseja excluir a campanha "${campanha.nome}"?`,
-            'Confirmar Exclusão'
+            'Sim, Excluir'
         );
 
         if (!confirmed) return;
@@ -316,6 +252,65 @@ export const CampanhasManager = (project) => {
         } catch (error) {
             showToast('Erro de conexão', 'error');
         }
+    };
+
+    // Standard Custom Confirm
+    const showCustomConfirm = (message, confirmText = 'Sim') => {
+        return new Promise((resolve) => {
+            const overlay = document.createElement('div');
+            overlay.className = 'dialog-overlay';
+            overlay.style.position = 'fixed';
+            overlay.id = 'confirm-dialog-overlay'; // Unique ID to avoid conflicts if needed
+            overlay.style.top = '0';
+            overlay.style.left = '0';
+            overlay.style.right = '0';
+            overlay.style.bottom = '0';
+            overlay.style.background = 'rgba(0,0,0,0.4)';
+            overlay.style.display = 'flex';
+            overlay.style.alignItems = 'center';
+            overlay.style.justifyContent = 'center';
+            overlay.style.zIndex = '100000';
+
+            const box = document.createElement('div');
+            box.style.background = 'white';
+            box.style.padding = '24px';
+            box.style.borderRadius = '12px';
+            box.style.maxWidth = '400px';
+            box.style.width = '90%';
+            box.style.boxShadow = '0 10px 25px rgba(0,0,0,0.2)';
+            box.style.textAlign = 'center';
+
+            box.innerHTML = `
+                <h3 style="margin: 0 0 16px 0; color: var(--color-primary); font-size: 1.25rem;">Confirmação</h3>
+                <p style="margin: 0 0 24px 0; color: #555; line-height: 1.5;">${message}</p>
+                <div style="display: flex; gap: 12px; justify-content: center;">
+                    <button id="confirm-no" style="
+                        background: transparent; border: 1px solid #ccc; padding: 8px 16px; 
+                        border-radius: 6px; cursor: pointer; color: #555; font-weight: 500;">
+                        Não
+                    </button>
+                    <button id="confirm-yes" style="
+                        background: var(--color-primary); border: none; padding: 8px 16px; 
+                        border-radius: 6px; cursor: pointer; color: white; font-weight: 500;">
+                        ${confirmText}
+                    </button>
+                </div>
+            `;
+
+            overlay.appendChild(box);
+            document.body.appendChild(overlay);
+
+            const cleanup = (result) => {
+                if (document.body.contains(overlay)) {
+                    document.body.removeChild(overlay);
+                }
+                resolve(result);
+            };
+
+            box.querySelector('#confirm-yes').onclick = () => cleanup(true);
+            box.querySelector('#confirm-no').onclick = () => cleanup(false);
+            overlay.onclick = (e) => { if (e.target === overlay) cleanup(false); };
+        });
     };
 
     container.innerHTML = `
