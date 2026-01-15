@@ -25,6 +25,7 @@ const consolidadasRoutes = require('./routes/consolidadas');
 const debugRoutes = require('./routes/debug');
 const settingsRoutes = require('./routes/settings');
 const userManagementRoutes = require('./routes/userManagement');
+const marketingRoutes = require('./routes/marketing');
 
 const app = express();
 const PORT = process.env.PORT || 3001;
@@ -73,6 +74,7 @@ apiRouter.use('/loans', require('./routes/loans'));
 
 apiRouter.use('/tts', ttsRoutes); // Google Cloud TTS
 apiRouter.use('/user-preferences', require('./routes/userPreferences'));
+apiRouter.use('/marketing', marketingRoutes); // Marketing module
 
 // Static Uploads Serving
 // Static Uploads Serving
@@ -146,6 +148,7 @@ const migrateAuditLogUndo = require('./migrate_audit_log_undo');
 const migrateAccountCompanyRequired = require('./migrate_account_company_required');
 const migrateRemoveAccountType = require('./migrate_remove_account_type');
 const migrateAddUserCompany = require('./migrate_add_user_company');
+const migrateMarketingTables = require('./migrations/create_marketing_tables');
 
 
 loadErrorCatalog()
@@ -175,6 +178,7 @@ loadErrorCatalog()
     .then(() => migrateRemoveAccountType()) // NEW: Remove account_type column
     .then(() => migrateAddUserCompany()) // NEW: Add company_id to project_users
     .then(() => require('./migrate_add_user_preferences')()) // NEW: User preferences table
+    .then(() => migrateMarketingTables()) // NEW: Marketing module tables
 
     .catch(err => {
         console.error('CRITICAL: Startup migration failed:', err);

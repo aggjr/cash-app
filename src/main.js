@@ -28,6 +28,12 @@ import { LogAlteracoesManager } from './components/LogAlteracoesManager.js'
 import { DividasEmprestimosManager } from './components/DividasEmprestimosManager.js'
 import { GraficosIndicadoresManager } from './components/GraficosIndicadoresManager.js'
 
+// Marketing Module
+import { CampanhasManager } from './components/CampanhasManager.js'
+import { CaracteristicasManager } from './components/CaracteristicasManager.js'
+import { GruposLeadsManager } from './components/GruposLeadsManager.js'
+import { LeadsManager } from './components/LeadsManager.js'
+
 
 console.log('═══════════════════════════════════════');
 console.log('💰 CASH Frontend Starting');
@@ -211,7 +217,8 @@ function initAppLogic() {
       'aportes', 'retiradas', 'transferencias', 'extrato-conta', 'consolidada-financeira',
       'dre-competencia', 'previsao', 'graficos-visao-geral', 'graficos-estatisticos',
       'graficos-abc', 'usuarios', 'parametros-gerais', 'log-alteracoes',
-      'iva-analytics', 'dividas-emprestimos'
+      'iva-analytics', 'dividas-emprestimos',
+      'campanhas', 'caracteristicas', 'grupos-leads', 'leads'
     ];
 
     const treeIds = Object.keys(treeConfigs);
@@ -311,6 +318,12 @@ function initAppLogic() {
     if (itemId === 'log-alteracoes') return routeHandler(LogAlteracoesManager);
 
     if (itemId === 'dividas-emprestimos') return routeHandler(DividasEmprestimosManager);
+
+    // Marketing Module
+    if (itemId === 'campanhas') return routeHandler(CampanhasManager);
+    if (itemId === 'caracteristicas') return routeHandler(CaracteristicasManager);
+    if (itemId === 'grupos-leads') return routeHandler(GruposLeadsManager);
+    if (itemId === 'leads') return routeHandler(LeadsManager);
 
     console.warn(`[Navigate] Unknown route ID: ${itemId}`);
     return false;

@@ -72,6 +72,17 @@ const getMenuStructure = () => {
                 { id: 'consolidadas', label: 'Consolidadas', icon: '📑', path: ['Análise Financeira', 'Consolidadas'], description: 'Ver todas as transações consolidadas' },
                 { id: 'previsao', label: 'Previsão Fluxo', icon: '📈', path: ['Análise Financeira', 'Previsão Fluxo'], description: 'Ver previsão de fluxo de caixa' }
             ]
+        },
+        {
+            id: 'marketing',
+            label: 'Marketing',
+            icon: '📢',
+            children: [
+                { id: 'campanhas', label: 'Campanhas', icon: '📢', path: ['Marketing', 'Campanhas'], description: 'Gerenciar campanhas de marketing' },
+                { id: 'caracteristicas', label: 'Características', icon: '🏷️', path: ['Marketing', 'Características'], description: 'Gerenciar características para segmentação de leads' },
+                { id: 'grupos-leads', label: 'Grupos de Leads', icon: '👥', path: ['Marketing', 'Grupos de Leads'], description: 'Organizar leads em grupos hierárquicos' },
+                { id: 'leads', label: 'Leads', icon: '🎯', path: ['Marketing', 'Leads'], description: 'Gerenciar leads e contatos' }
+            ]
         }
     ];
 

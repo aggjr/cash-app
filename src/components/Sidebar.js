@@ -72,6 +72,17 @@ export const Sidebar = () => {
         { id: 'graficos-estatisticos', label: 'Controle Estatístico (XmR)', icon: '📐' },
         { id: 'graficos-abc', label: 'Curva ABC (Pareto)', icon: '🏆' }
       ]
+    },
+    {
+      id: 'marketing',
+      label: 'Marketing',
+      icon: '📢',
+      children: [
+        { id: 'campanhas', label: 'Campanhas', icon: '📢' },
+        { id: 'caracteristicas', label: 'Características', icon: '🏷️' },
+        { id: 'grupos-leads', label: 'Grupos de Leads', icon: '👥' },
+        { id: 'leads', label: 'Leads', icon: '🎯' }
+      ]
     }
   ];
 
