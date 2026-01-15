@@ -147,7 +147,7 @@ export const LeadsManager = (project) => {
                             showToast('Banco de dados configurado com sucesso! Recarregando...', 'success');
                             setTimeout(loadLeads, 1500);
                         } else {
-                            throw new Error(data.error || 'Erro desconhecido');
+                            throw new Error(data.details || data.error || 'Erro desconhecido');
                         }
                     } catch (err) {
                         showToast('Falha na correção: ' + err.message, 'error');
