@@ -1,6 +1,7 @@
 import { SharedTable } from './SharedTable.js';
 import { showToast } from '../utils/toast.js';
 import { getApiBaseUrl } from '../utils/apiConfig.js';
+import { LeadModal } from './LeadModal.js';
 
 export const LeadsManager = (project) => {
     const container = document.createElement('div');
@@ -70,6 +71,11 @@ export const LeadsManager = (project) => {
 
     const loadLeads = async () => {
         try {
+            // Show loading state if table exists
+            if (sharedTable && container.querySelector('#table-container')) {
+                container.querySelector('#table-container').classList.add('loading');
+            }
+
             const response = await fetch(`${API_BASE_URL}/marketing/leads`, {
                 headers: getHeaders()
             });
@@ -82,6 +88,10 @@ export const LeadsManager = (project) => {
         } catch (error) {
             console.error('Error loading leads:', error);
             showToast(error.message, 'error');
+        } finally {
+            if (sharedTable && container.querySelector('#table-container')) {
+                container.querySelector('#table-container').classList.remove('loading');
+            }
         }
     };
 
@@ -100,13 +110,45 @@ export const LeadsManager = (project) => {
     };
 
     const createLead = async () => {
-        showToast('Funcionalidade em desenvolvimento', 'info');
-        // TODO: Implementar modal de criação de lead
+        await LeadModal.show({
+            lead: null,
+            onSave: async (leadData) => {
+                const response = await fetch(`${API_BASE_URL}/marketing/leads`, {
+                    method: 'POST',
+                    headers: getHeaders(),
+                    body: JSON.stringify(leadData)
+                });
+
+                if (response.ok) {
+                    showToast('Lead criado com sucesso!', 'success');
+                    loadLeads();
+                } else {
+                    const error = await response.json();
+                    throw new Error(error.error || 'Erro ao criar lead');
+                }
+            }
+        });
     };
 
     const updateLead = async (lead) => {
-        showToast('Funcionalidade em desenvolvimento', 'info');
-        // TODO: Implementar modal de edição de lead
+        await LeadModal.show({
+            lead: lead,
+            onSave: async (leadData) => {
+                const response = await fetch(`${API_BASE_URL}/marketing/leads/${lead.id}`, {
+                    method: 'PUT',
+                    headers: getHeaders(),
+                    body: JSON.stringify(leadData)
+                });
+
+                if (response.ok) {
+                    showToast('Lead atualizado com sucesso!', 'success');
+                    loadLeads();
+                } else {
+                    const error = await response.json();
+                    throw new Error(error.error || 'Erro ao atualizar lead');
+                }
+            }
+        });
     };
 
     const deleteLead = async (id, nome) => {
