@@ -48,28 +48,37 @@ export const LeadModal = {
             modal.style.maxWidth = '700px';
             modal.style.width = '95%';
 
-            const renderCheckboxList = (items, selectedIds, label) => `
-                <div class="form-group">
-                    <label>${label}</label>
-                    <div style="
+            // Component IDs
+            const idGruposList = 'list-grupos';
+            const idGruposSearch = 'search-grupos';
+            const idCaracList = 'list-caracteristicas';
+            const idCaracSearch = 'search-caracteristicas';
+
+            const renderSearchableListHtml = (items, selectedIds, listId, searchId) => `
+                <div style="background: var(--color-bg-secondary); border: 1px solid var(--color-border-light); border-radius: 6px; padding: 0.75rem;">
+                    <div style="margin-bottom: 0.5rem; position: relative;">
+                        <input type="text" id="${searchId}" class="form-input" placeholder="🔍 Buscar..." 
+                            style="padding: 0.4rem 0.5rem; font-size: 0.9rem; margin-bottom: 0; width: 100%; border: 1px solid var(--color-border-light);" />
+                    </div>
+                    <div id="${listId}" style="
                         max-height: 150px; 
                         overflow-y: auto; 
-                        border: 1px solid var(--color-border-light); 
-                        border-radius: 6px; 
-                        padding: 0.5rem;
-                        background: var(--color-bg-secondary);
                         display: grid;
-                        grid-template-columns: repeat(auto-fill, minmax(140px, 1fr));
-                        gap: 0.5rem;
+                        grid-template-columns: repeat(auto-fill, minmax(180px, 1fr));
+                        gap: 0.25rem;
+                        padding-right: 0.25rem;
                     ">
                         ${items.length > 0 ? items.map(item => `
-                            <label style="display: flex; align-items: center; gap: 0.5rem; cursor: pointer; font-size: 0.9rem;">
+                            <label class="checkbox-item" style="
+                                display: flex; align-items: center; gap: 0.5rem; cursor: pointer; font-size: 0.9rem;
+                                padding: 0.25rem; border-radius: 4px; transition: background 0.1s;
+                            " onmouseover="this.style.backgroundColor='rgba(0,0,0,0.05)'" onmouseout="this.style.backgroundColor='transparent'">
                                 <input type="checkbox" value="${item.id}" 
                                     ${selectedIds.includes(item.id) ? 'checked' : ''} 
-                                    style="width: 16px; height: 16px; accent-color: var(--color-primary);">
-                                <span>${item.nome}</span>
+                                    style="width: 16px; height: 16px; accent-color: var(--color-primary); flex-shrink: 0;">
+                                <span class="item-name" style="white-space: nowrap; overflow: hidden; text-overflow: ellipsis;" title="${item.nome}">${item.nome}</span>
                             </label>
-                        `).join('') : '<p style="color: var(--color-text-muted); font-size: 0.85rem; padding: 0.5rem;">Nenhum item disponível.</p>'}
+                        `).join('') : '<p style="color: var(--color-text-muted); font-size: 0.85rem;">Nenhum item disponível.</p>'}
                     </div>
                 </div>
             `;
@@ -101,19 +110,26 @@ export const LeadModal = {
                                 value="${lead?.email || ''}" placeholder="email@exemplo.com" />
                         </div>
 
-                        ${renderCheckboxList(grupos, leadGruposIds, 'Grupos de Interesse')}
+                        <div class="form-group">
+                             <label>Grupos de Interesse</label>
+                             ${renderSearchableListHtml(grupos, leadGruposIds, idGruposList, idGruposSearch)}
+                        </div>
 
-                        ${renderCheckboxList(caracteristicas, leadCaracteristicasIds, 'Características')}
+                        <div class="form-group">
+                             <label>Características</label>
+                             ${renderSearchableListHtml(caracteristicas, leadCaracteristicasIds, idCaracList, idCaracSearch)}
+                        </div>
 
                         <div class="form-group">
                             <label for="lead-observacoes">Observações</label>
                             <textarea id="lead-observacoes" class="form-input" rows="2" 
                                 placeholder="Anotações sobre o lead...">${lead?.observacoes || ''}</textarea>
                         </div>
+            `;
 
-                    </div>
+            // Add Footer logic (separate block to keep innerHTML clean logic)
+            modal.innerHTML += `
                 </div>
-                
                 <div class="account-modal-footer" style="padding: 1rem; border-top: 1px solid var(--color-border-light);">
                     <button class="btn-secondary" id="modal-cancel" type="button">Cancelar</button>
                     <button class="btn-primary" id="modal-save" type="button">
@@ -125,116 +141,40 @@ export const LeadModal = {
             overlay.appendChild(modal);
             container.appendChild(overlay);
 
-            // Elements
-            const nomeInput = modal.querySelector('#lead-nome');
-            const emailInput = modal.querySelector('#lead-email');
-            const telefoneInput = modal.querySelector('#lead-telefone');
-            const observacoesInput = modal.querySelector('#lead-observacoes');
-            const saveBtn = modal.querySelector('#modal-save');
-            const cancelBtn = modal.querySelector('#modal-cancel');
-
-            // Helper to get checked items from a specific container (we need to target correct lists)
-            // But strict selectors might be tricky since lists are generated in HTML string.
-            // Let's rely on iterating form groups or querying by structure?
-            // Safer: Add IDs to the checkbox containers in `renderCheckboxList`.
-            // Re-rendering HTML with IDs.
-
-            // Re-render HTML above with IDs (I'll do it dynamically via replace or logic update before appending, but easier to just use querySelectorAll on whole modal for specific values)
-            // Wait, values are unique IDs across different tables (grupos ids vs caracteristicas ids).
-            // But an ID 1 might exist in both tables! Risks collision if I just select all checkboxes.
-            // I MUST scope them.
-
-            // Retrying renderCheckboxList with ID support
-            const idGrupos = 'list-grupos';
-            const idCaracteristicas = 'list-caracteristicas';
-
-            // Logic to reinject HTML with IDs:
-            const listGruposHTML = renderCheckboxList(grupos, leadGruposIds, 'Grupos de Interesse').replace('<div style="', `<div id="${idGrupos}" style="`);
-            const listCaracHTML = renderCheckboxList(caracteristicas, leadCaracteristicasIds, 'Características').replace('<div style="', `<div id="${idCaracteristicas}" style="`);
-
-            modal.querySelector('.form-grid').innerHTML = `
-                        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 1rem;">
-                            <div class="form-group">
-                                <label for="lead-nome">Nome <span class="required">*</span></label>
-                                <input type="text" id="lead-nome" class="form-input" 
-                                    value="${lead?.nome || ''}" placeholder="Nome do lead" required />
-                            </div>
-                            <div class="form-group">
-                                <label for="lead-telefone">Telefone</label>
-                                <input type="text" id="lead-telefone" class="form-input" 
-                                    value="${lead?.telefone || ''}" placeholder="(00) 00000-0000" />
-                            </div>
-                        </div>
-
-                        <div class="form-group">
-                            <label for="lead-email">E-mail</label>
-                            <input type="email" id="lead-email" class="form-input" 
-                                value="${lead?.email || ''}" placeholder="email@exemplo.com" />
-                        </div>
-
-                        <div class="form-group">
-                             <label>Grupos de Interesse</label>
-                             <div id="${idGrupos}" style="
-                                max-height: 150px; 
-                                overflow-y: auto; 
-                                border: 1px solid var(--color-border-light); 
-                                border-radius: 6px; 
-                                padding: 0.5rem;
-                                background: var(--color-bg-secondary);
-                                display: grid;
-                                grid-template-columns: repeat(auto-fill, minmax(140px, 1fr));
-                                gap: 0.5rem;
-                            ">
-                                ${grupos.length > 0 ? grupos.map(item => `
-                                    <label style="display: flex; align-items: center; gap: 0.5rem; cursor: pointer; font-size: 0.9rem;">
-                                        <input type="checkbox" value="${item.id}" 
-                                            ${leadGruposIds.includes(item.id) ? 'checked' : ''} 
-                                            style="width: 16px; height: 16px; accent-color: var(--color-primary);">
-                                        <span>${item.nome}</span>
-                                    </label>
-                                `).join('') : '<p style="color: var(--color-text-muted); font-size: 0.85rem; padding: 0.5rem;">Nenhum grupo disponível.</p>'}
-                            </div>
-                        </div>
-
-                        <div class="form-group">
-                             <label>Características</label>
-                             <div id="${idCaracteristicas}" style="
-                                max-height: 150px; 
-                                overflow-y: auto; 
-                                border: 1px solid var(--color-border-light); 
-                                border-radius: 6px; 
-                                padding: 0.5rem;
-                                background: var(--color-bg-secondary);
-                                display: grid;
-                                grid-template-columns: repeat(auto-fill, minmax(140px, 1fr));
-                                gap: 0.5rem;
-                            ">
-                                ${caracteristicas.length > 0 ? caracteristicas.map(item => `
-                                    <label style="display: flex; align-items: center; gap: 0.5rem; cursor: pointer; font-size: 0.9rem;">
-                                        <input type="checkbox" value="${item.id}" 
-                                            ${leadCaracteristicasIds.includes(item.id) ? 'checked' : ''} 
-                                            style="width: 16px; height: 16px; accent-color: var(--color-primary);">
-                                        <span>${item.nome}</span>
-                                    </label>
-                                `).join('') : '<p style="color: var(--color-text-muted); font-size: 0.85rem; padding: 0.5rem;">Nenhuma característica disponível.</p>'}
-                            </div>
-                        </div>
-
-                        <div class="form-group">
-                            <label for="lead-observacoes">Observações</label>
-                            <textarea id="lead-observacoes" class="form-input" rows="2" 
-                                placeholder="Anotações sobre o lead...">${lead?.observacoes || ''}</textarea>
-                        </div>
-            `;
-
-            // Refetch inputs after innerHTML rewrite
+            // Fetch elements
             const nomeInputRef = modal.querySelector('#lead-nome');
             const emailInputRef = modal.querySelector('#lead-email');
             const telefoneInputRef = modal.querySelector('#lead-telefone');
             const observacoesInputRef = modal.querySelector('#lead-observacoes');
+            const saveBtn = modal.querySelector('#modal-save');
+            const cancelBtn = modal.querySelector('#modal-cancel');
 
+            // --- Enable Search Logic ---
+            const setupSearch = (searchId, listId) => {
+                const searchInput = modal.querySelector(`#${searchId}`);
+                const listContainer = modal.querySelector(`#${listId}`);
+                if (!searchInput || !listContainer) return;
 
-            setTimeout(() => nomeInputRef.focus(), 100);
+                const items = listContainer.querySelectorAll('label.checkbox-item');
+
+                searchInput.addEventListener('input', (e) => {
+                    const term = e.target.value.toLowerCase();
+                    items.forEach(item => {
+                        const name = item.querySelector('.item-name').textContent.toLowerCase();
+                        if (name.includes(term)) {
+                            item.style.display = 'flex';
+                        } else {
+                            item.style.display = 'none';
+                        }
+                    });
+                });
+            };
+
+            setTimeout(() => {
+                nomeInputRef.focus();
+                setupSearch(idGruposSearch, idGruposList);
+                setupSearch(idCaracSearch, idCaracList);
+            }, 100);
 
             const close = () => {
                 const parent = overlay.parentNode;
@@ -252,11 +192,14 @@ export const LeadModal = {
                     return;
                 }
 
-                // Collect Checkboxes
-                const selectedGrupos = Array.from(modal.querySelector(`#${idGrupos}`).querySelectorAll('input:checked'))
+                // Collect Checkboxes (Note: we must collect ALL checked boxes, even if hidden by filter!
+                // querySelectorAll works on all descendants regardless of visibility style usually, unless using :visible)
+                // 'input:checked' gets checked elements even if display none.
+
+                const selectedGrupos = Array.from(modal.querySelector(`#${idGruposList}`).querySelectorAll('input:checked'))
                     .map(cb => parseInt(cb.value));
 
-                const selectedCaracteristicas = Array.from(modal.querySelector(`#${idCaracteristicas}`).querySelectorAll('input:checked'))
+                const selectedCaracteristicas = Array.from(modal.querySelector(`#${idCaracList}`).querySelectorAll('input:checked'))
                     .map(cb => parseInt(cb.value));
 
                 const data = {
