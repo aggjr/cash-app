@@ -29,25 +29,7 @@ export const CaracteristicasManager = (project) => {
     const columns = [
         { key: 'nome', label: 'Nome', width: 'auto', align: 'left', type: 'text' },
         { key: 'descricao', label: 'Descrição', width: '30%', align: 'left', type: 'text' },
-        {
-            key: 'total_grupos',
-            label: 'Grupos',
-            width: '100px',
-            align: 'center',
-            type: 'number',
-            render: (item) => {
-                const badge = document.createElement('span');
-                badge.className = 'badge-info';
-                badge.textContent = `${item.total_grupos || 0}`;
-                // Usage style
-                badge.style.backgroundColor = 'var(--color-primary-light)';
-                badge.style.color = 'var(--color-primary)';
-                badge.style.padding = '2px 8px';
-                badge.style.borderRadius = '12px';
-                badge.style.fontSize = '0.85rem';
-                return badge;
-            }
-        },
+
         {
             key: 'actions',
             label: 'Ações',
