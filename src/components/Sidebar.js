@@ -79,9 +79,9 @@ export const Sidebar = () => {
       icon: '📢',
       children: [
         { id: 'campanhas', label: 'Campanhas', icon: '📢' },
-        { id: 'caracteristicas', label: 'Características', icon: '🏷️' },
         { id: 'grupos-leads', label: 'Grupos de Leads', icon: '👥' },
-        { id: 'leads', label: 'Leads', icon: '🎯' }
+        { id: 'leads', label: 'Leads', icon: '🎯' },
+        { id: 'caracteristicas', label: 'Características', icon: '🏷️' }
       ]
     }
   ];

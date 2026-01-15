@@ -66,7 +66,25 @@ export const GruposLeadsManager = (project) => {
         { key: 'nome', label: 'Nome', width: 'auto', align: 'left', type: 'text' },
         { key: 'descricao', label: 'Descrição', width: '30%', align: 'left', type: 'text' },
         {
-            key: 'total_leads_diretos',
+            key: 'total_subgrupos',
+            label: 'Sub-grupos',
+            width: '100px',
+            align: 'center',
+            type: 'number',
+            render: (item) => {
+                const badge = document.createElement('span');
+                badge.style.backgroundColor = 'var(--color-bg-tertiary)';
+                badge.style.color = 'var(--color-text-secondary)';
+                badge.style.padding = '2px 8px';
+                badge.style.borderRadius = '12px';
+                badge.style.fontSize = '0.85rem';
+                badge.style.border = '1px solid var(--color-border-light)';
+                badge.innerHTML = `📂 ${item.total_subgrupos || 0}`;
+                return badge;
+            }
+        },
+        {
+            key: 'total_leads',
             label: 'Leads',
             width: '100px',
             align: 'center',
@@ -79,7 +97,7 @@ export const GruposLeadsManager = (project) => {
                 badge.style.padding = '2px 8px';
                 badge.style.borderRadius = '12px';
                 badge.style.fontSize = '0.85rem';
-                badge.innerHTML = `👤 ${item.total_leads_diretos || 0}`;
+                badge.innerHTML = `👤 ${item.total_leads || 0}`;
                 return badge;
             }
         },
