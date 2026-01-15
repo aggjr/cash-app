@@ -106,7 +106,10 @@ export const LeadsManager = (project) => {
                 headers: getHeaders()
             });
 
-            if (!response.ok) throw new Error('Falha ao carregar leads');
+            if (!response.ok) {
+                const errorData = await response.json();
+                throw new Error(errorData.details || errorData.error || 'Falha ao carregar leads');
+            }
 
             leads = await response.json();
             renderLeads();

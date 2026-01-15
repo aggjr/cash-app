@@ -58,7 +58,7 @@ exports.getAll = async (req, res) => {
         res.json(leadsParsed);
     } catch (error) {
         console.error('Erro ao buscar leads:', error);
-        res.status(500).json({ error: 'Erro ao buscar leads' });
+        res.status(500).json({ error: 'Erro ao buscar leads', details: error.message, sqlMessage: error.sqlMessage });
     }
 };
 
