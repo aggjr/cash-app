@@ -2,67 +2,28 @@ import { showToast } from '../utils/toast.js';
 import { getApiBaseUrl } from '../utils/apiConfig.js';
 
 export const LeadModal = {
-    show({ lead = null, onSave }) {
-        return new Promise(async (resolve) => {
+    show: async ({ lead = null, grupos = [], caracteristicas = [], onSave }) => {
+        return new Promise((resolve) => {
             const API_BASE_URL = getApiBaseUrl();
-            let container = document.getElementById('custom-dialog-container');
-            if (!container) {
-                container = document.createElement('div');
-                container.id = 'custom-dialog-container';
-                document.body.appendChild(container);
-            }
-
             const token = localStorage.getItem('token');
-            const isEdit = lead !== null;
+            const isEdit = !!lead;
 
-            // Data storage
-            let grupos = [];
-            let caracteristicas = [];
+            // IDs for elements
+            const idGruposList = `grupos-list-${Date.now()}`;
+            const idGruposSearch = `grupos-search-${Date.now()}`;
+            const idCaracList = `caracs-list-${Date.now()}`;
+            const idCaracSearch = `caracs-search-${Date.now()}`;
 
-            // Pre-selected values
-            const leadGruposIds = lead?.grupos ? (Array.isArray(lead.grupos) ? lead.grupos : []) : [];
-            const leadCaracteristicasIds = lead?.caracteristicas ? (Array.isArray(lead.caracteristicas) ? lead.caracteristicas : []) : [];
+            // State
+            const leadGruposIds = lead?.grupos || [];
+            const selectedCharValues = {};
 
-            // Fetch Dependencies Parallelly
-            try {
-                const [gruposRes, caracRes] = await Promise.all([
-                    fetch(`${API_BASE_URL}/marketing/grupos-leads`, { headers: { 'Authorization': `Bearer ${token}` } }),
-                    fetch(`${API_BASE_URL}/marketing/caracteristicas`, { headers: { 'Authorization': `Bearer ${token}` } })
-                ]);
-
-                if (gruposRes.ok) grupos = await gruposRes.json();
-                if (caracRes.ok) caracteristicas = await caracRes.json();
-
-            } catch (error) {
-                console.error('Error loading dependencies:', error);
-                showToast('Erro ao carregar dados auxiliares', 'error');
-            }
-
-            const overlay = document.createElement('div');
-            overlay.className = 'dialog-overlay';
-            overlay.style.zIndex = '1000';
-
-            const modal = document.createElement('div');
-            modal.className = 'account-modal animate-float-in';
-            // Make it wider to accommodate multiple lists? Or stacked? Stacked is fine.
-            modal.style.maxWidth = '700px';
-            modal.style.width = '95%';
-
-            // Component IDs
-            const idGruposList = 'list-grupos';
-            const idGruposSearch = 'search-grupos';
-            const idCaracList = 'list-caracteristicas';
-            const idCaracSearch = 'search-caracteristicas';
-
-            // --- State for Characteristics & Values ---
-            let selectedCharValues = {}; // Map: charId -> valorId
+            // Initialize selected characteristics
             if (lead?.caracteristicas_detalhadas) {
                 lead.caracteristicas_detalhadas.forEach(c => {
                     selectedCharValues[c.id] = c.valor_id;
                 });
             } else if (lead?.caracteristicas) {
-                // Legacy support or fallback: just IDs implies no values
-                // lead.caracteristicas is array of IDs [1, 2]
                 if (Array.isArray(lead.caracteristicas)) {
                     lead.caracteristicas.forEach(id => {
                         if (!selectedCharValues[id]) selectedCharValues[id] = null;
@@ -70,27 +31,43 @@ export const LeadModal = {
                 }
             }
 
-            let activeCharId = null; // Currently selected char to show values for
-            let valuesCache = {}; // charId -> [values]
-
             // --- UI Helpers ---
-            // Re-use standard renderer for Groups
-            const renderGenericList = (items, selectedIds, listId, searchId) => `
-                <div style="background: var(--color-bg-secondary); border: 1px solid var(--color-border-light); border-radius: 6px; padding: 0.75rem;">
-                    <div style="margin-bottom: 0.5rem;">
+            // Zebra-striped checkbox list (like SharedTable)
+            const renderZebraList = (items, selectedIds, listId, searchId) => `
+                <div style="background: white; border: 1px solid var(--color-border-light); border-radius: 6px; overflow: hidden;">
+                    <div style="padding: 0.75rem; background: var(--color-bg-secondary); border-bottom: 1px solid var(--color-border-light);">
                         <input type="text" id="${searchId}" class="form-input" placeholder="🔍 Buscar..." 
-                            style="padding: 0.4rem 0.5rem; font-size: 0.9rem; margin-bottom: 0; width: 100%; border: 1px solid var(--color-border-light);" />
+                            style="padding: 0.5rem; font-size: 0.9rem; margin: 0; width: 100%; border: 1px solid var(--color-border-light);" />
                     </div>
-                    <div id="${listId}" style="max-height: 150px; overflow-y: auto; display: grid; grid-template-columns: repeat(auto-fill, minmax(150px, 1fr)); gap: 0.25rem;">
-                        ${items.map(item => `
-                            <label class="checkbox-item" style="display: flex; align-items: center; gap: 0.5rem; cursor: pointer; padding: 0.25rem;">
-                                <input type="checkbox" value="${item.id}" ${selectedIds.includes(item.id) ? 'checked' : ''} style="accent-color: var(--color-primary);">
-                                <span class="item-name" style="font-size: 0.9rem;" title="${item.nome}">${item.nome}</span>
-                            </label>
-                        `).join('')}
+                    <div id="${listId}" style="max-height: 200px; overflow-y: auto;">
+                        ${items.map((item, index) => {
+                const isEven = index % 2 === 0;
+                const bgColor = isEven ? '#FFFFFF' : '#F3F4F6';
+                const isChecked = selectedIds.includes(item.id);
+                return `
+                                <label class="zebra-row" data-item-name="${item.nome.toLowerCase()}" 
+                                    style="display: flex; align-items: center; gap: 0.75rem; padding: 0.6rem 0.75rem; cursor: pointer; 
+                                           background-color: ${bgColor}; border-bottom: 1px solid #E5E7EB; transition: background-color 0.15s;"
+                                    onmouseenter="this.style.backgroundColor='#EDD8BB'" 
+                                    onmouseleave="this.style.backgroundColor='${bgColor}'">
+                                    <input type="checkbox" value="${item.id}" ${isChecked ? 'checked' : ''} 
+                                        style="accent-color: var(--color-primary); width: 16px; height: 16px; cursor: pointer; margin: 0;">
+                                    <span style="font-size: 0.95rem; color: var(--color-text-primary);">${item.nome}</span>
+                                </label>
+                            `;
+            }).join('')}
                     </div>
                 </div>
             `;
+
+            const container = document.body;
+            const overlay = document.createElement('div');
+            overlay.className = 'modal-overlay';
+            overlay.style.cssText = 'position: fixed; top: 0; left: 0; right: 0; bottom: 0; background: rgba(0,0,0,0.5); display: flex; align-items: center; justify-content: center; z-index: 1000;';
+
+            const modal = document.createElement('div');
+            modal.className = 'account-modal';
+            modal.style.cssText = 'background: white; border-radius: 12px; width: 90%; max-width: 700px; max-height: 90vh; overflow: hidden; display: flex; flex-direction: column;';
 
             modal.innerHTML = `
                 <div class="account-modal-body" style="padding: 1.5rem; max-height: 80vh; overflow-y: auto;">
@@ -121,13 +98,12 @@ export const LeadModal = {
 
                         <div class="form-group">
                              <label>Grupos de Interesse</label>
-                             ${renderGenericList(grupos, leadGruposIds, idGruposList, idGruposSearch)}
+                             ${renderZebraList(grupos, leadGruposIds, idGruposList, idGruposSearch)}
                         </div>
 
-                        <!-- CHARACTERISTICS SIMPLE LIST -->
                         <div class="form-group">
                              <label>Características</label>
-                             ${renderGenericList(caracteristicas, Object.keys(selectedCharValues).map(Number), idCaracList, idCaracSearch)}
+                             ${renderZebraList(caracteristicas, Object.keys(selectedCharValues).map(Number), idCaracList, idCaracSearch)}
                         </div>
 
                         <div class="form-group">
@@ -157,20 +133,34 @@ export const LeadModal = {
             const saveBtn = modal.querySelector('#modal-save');
             const cancelBtn = modal.querySelector('#modal-cancel');
 
-            // Characteristics search handled by renderGenericList
-
-            // Setup Group Search (Simple)
+            // Setup Search Handlers
             setTimeout(() => {
+                // Groups Search
                 const grpSearch = modal.querySelector(`#${idGruposSearch}`);
                 const grpList = modal.querySelector(`#${idGruposList}`);
                 if (grpSearch && grpList) {
                     grpSearch.addEventListener('input', (e) => {
-                        const t = e.target.value.toLowerCase();
-                        grpList.querySelectorAll('label').forEach(l => {
-                            l.style.display = l.textContent.toLowerCase().includes(t) ? 'flex' : 'none';
+                        const term = e.target.value.toLowerCase();
+                        grpList.querySelectorAll('.zebra-row').forEach(row => {
+                            const itemName = row.dataset.itemName || '';
+                            row.style.display = itemName.includes(term) ? 'flex' : 'none';
                         });
                     });
                 }
+
+                // Characteristics Search
+                const caracSearch = modal.querySelector(`#${idCaracSearch}`);
+                const caracList = modal.querySelector(`#${idCaracList}`);
+                if (caracSearch && caracList) {
+                    caracSearch.addEventListener('input', (e) => {
+                        const term = e.target.value.toLowerCase();
+                        caracList.querySelectorAll('.zebra-row').forEach(row => {
+                            const itemName = row.dataset.itemName || '';
+                            row.style.display = itemName.includes(term) ? 'flex' : 'none';
+                        });
+                    });
+                }
+
                 nomeInputRef.focus();
             }, 100);
 
@@ -194,12 +184,8 @@ export const LeadModal = {
                 const selectedGrupos = Array.from(modal.querySelector(`#${idGruposList}`).querySelectorAll('input:checked'))
                     .map(cb => parseInt(cb.value));
 
-                // Get selected characteristics from checkboxes
                 const selectedCaracs = Array.from(modal.querySelector(`#${idCaracList}`).querySelectorAll('input:checked'))
                     .map(cb => parseInt(cb.value));
-
-                // For now, send as simple IDs (backend will handle as before)
-                const finalCaracteristicas = selectedCaracs;
 
                 const data = {
                     nome: nomeInputRef.value.trim(),
@@ -207,7 +193,7 @@ export const LeadModal = {
                     telefone: telefoneInputRef.value.trim() || null,
                     observacoes: observacoesInputRef.value.trim() || null,
                     grupos: selectedGrupos,
-                    caracteristicas: finalCaracteristicas
+                    caracteristicas: selectedCaracs
                 };
 
                 saveBtn.disabled = true;
