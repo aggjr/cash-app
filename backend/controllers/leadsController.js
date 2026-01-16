@@ -36,6 +36,10 @@ exports.getAll = async (req, res) => {
             params.push(campanhaId);
         }
 
+        if (req.query.sem_grupo === 'true') {
+            conditions.push('l.id NOT IN (SELECT lead_id FROM leads_grupos)');
+        }
+
         if (conditions.length > 0) {
             query += ' WHERE ' + conditions.join(' AND ');
         }
