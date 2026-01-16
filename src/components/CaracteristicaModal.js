@@ -47,8 +47,7 @@ export const CaracteristicaModal = {
                         </div>
 
                         <!-- Container for Values Grid -->
-                        <div id="values-grid-container" style="display: ${isEdit ? 'block' : 'none'};"></div>
-                        ${!isEdit ? '<div style="color: #6c757d; font-size: 0.9rem; margin-top: 0.5rem; font-style: italic;">Salve a característica para adicionar valores.</div>' : ''}
+                        <div id="values-grid-container" style="display: block;"></div>
 
                     </div>
                 </div>
@@ -71,24 +70,32 @@ export const CaracteristicaModal = {
             const cancelBtn = modal.querySelector('#modal-cancel');
             const valuesContainer = modal.querySelector('#values-grid-container');
 
-            // Initialize Values Grid if in Edit Mode
+            let localValues = []; // Stores values when in create mode
+
+            // Initialize Grid
             if (isEdit) {
-                // Fetch existing values first? Or let the component fetch?
-                // The component expects initialValues. Let's fetch them here or make component fetch them.
-                // Making component simple: Pass ID, let it fetch or pass values if we have them.
-                // Since we don't have values in `caracteristica` object yet (unless we updated getAll/getById),
-                // better to fetch them.
-                // For simplicity, let's fetch them inside this setup logic:
+                // Edit Mode: Fetch existing
                 fetch(`${document.location.origin}/api/marketing/caracteristicas/${caracteristica.id}/valores`, {
                     headers: { 'Authorization': `Bearer ${localStorage.getItem('token')}` }
                 })
                     .then(res => res.json())
                     .then(values => {
                         if (Array.isArray(values)) {
-                            CaracteristicaValoresGrid.render(valuesContainer, caracteristica.id, values);
+                            // Edit mode uses immediate API mode (isLocal: false)
+                            CaracteristicaValoresGrid.render(valuesContainer, caracteristica.id, values, {
+                                isLocal: false
+                            });
                         }
                     })
                     .catch(err => console.error('Erro ao carregar valores:', err));
+            } else {
+                // Create Mode: Local state
+                CaracteristicaValoresGrid.render(valuesContainer, null, [], {
+                    isLocal: true,
+                    onChange: (values) => {
+                        localValues = values; // Update local state
+                    }
+                });
             }
 
             // Focus first field
@@ -113,7 +120,8 @@ export const CaracteristicaModal = {
 
                 const data = {
                     nome: nomeInput.value.trim(),
-                    descricao: descricaoInput.value.trim() || null
+                    descricao: descricaoInput.value.trim() || null,
+                    valores: isEdit ? undefined : localValues // Send values only on create
                 };
 
                 // Show saving state

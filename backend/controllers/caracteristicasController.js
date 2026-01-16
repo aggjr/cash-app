@@ -178,6 +178,23 @@ exports.getValues = async (req, res) => {
         );
         res.json(valores);
     } catch (error) {
+        // Self-healing: Create table if it doesn't exist
+        if (error.code === 'ER_NO_SUCH_TABLE') {
+            console.log('⚠️ Tabela inexistente detectada. Tentando criar automaticamente...');
+            try {
+                const createTable = require('../migrations/create_caracteristica_values');
+                await createTable();
+
+                // Retry query
+                const [valores] = await db.query(
+                    'SELECT * FROM caracteristica_valores WHERE caracteristica_id = ? ORDER BY ordem, valor',
+                    [id]
+                );
+                return res.json(valores);
+            } catch (migrationError) {
+                console.error('❌ Falha na automigração:', migrationError);
+            }
+        }
         console.error('Erro ao buscar valores:', error);
         res.status(500).json({ error: 'Erro ao buscar valores' });
     }
@@ -198,6 +215,24 @@ exports.addValue = async (req, res) => {
 
         res.status(201).json({ id: result.insertId, caracteristica_id: id, valor });
     } catch (error) {
+        // Self-healing for addValue as well
+        if (error.code === 'ER_NO_SUCH_TABLE') {
+            console.log('⚠️ Tabela inexistente detectada (addValue). Tentando criar automaticamente...');
+            try {
+                const createTable = require('../migrations/create_caracteristica_values');
+                await createTable();
+
+                // Retry insert
+                const [result] = await db.query(
+                    'INSERT INTO caracteristica_valores (caracteristica_id, valor) VALUES (?, ?)',
+                    [id, valor]
+                );
+                return res.status(201).json({ id: result.insertId, caracteristica_id: id, valor });
+            } catch (migrationError) {
+                console.error('❌ Falha na automigração (addValue):', migrationError);
+            }
+        }
+
         if (error.code === 'ER_DUP_ENTRY') {
             return res.status(409).json({ error: 'Este valor já existe para esta característica' });
         }

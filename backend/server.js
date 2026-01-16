@@ -182,6 +182,7 @@ loadErrorCatalog()
     .then(() => require('./migrate_add_user_preferences')()) // NEW: User preferences table
     .then(() => migrateMarketingTables()) // NEW: Marketing module tables
     .then(() => require('./migrations/update_leads_multirelations')()) // NEW: Multi-groups and characteristics support
+    .then(() => require('./migrations/create_caracteristica_values')()) // NEW: Characteristic values support
     .then(() => startServer())
 
     .catch(err => {
