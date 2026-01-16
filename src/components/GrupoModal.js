@@ -1,5 +1,6 @@
 import { getApiBaseUrl } from '../utils/apiConfig.js';
 import { showToast } from '../utils/toast.js';
+import { SharedTable } from './SharedTable.js';
 
 export const GrupoModal = {
     show({ grupo = null, onSave }) {
@@ -18,99 +19,39 @@ export const GrupoModal = {
 
                 let allCaracteristicas = [];
                 let allGrupos = [];
+                let allLeads = []; // For the table
 
                 let grupoCaracteristicasIds = [];
                 let grupoSubgruposIds = [];
+                let grupoLeadsIds = [];
 
                 // Fetch Dependencies Parallelly
                 try {
-                    const [caracRes, gruposRes] = await Promise.all([
+                    const [caracRes, gruposRes, leadsRes] = await Promise.all([
                         fetch(`${API_BASE_URL}/marketing/caracteristicas`, { headers: { 'Authorization': `Bearer ${token}` } }),
-                        fetch(`${API_BASE_URL}/marketing/grupos-leads`, { headers: { 'Authorization': `Bearer ${token}` } })
+                        fetch(`${API_BASE_URL}/marketing/grupos-leads`, { headers: { 'Authorization': `Bearer ${token}` } }),
+                        fetch(`${API_BASE_URL}/marketing/leads`, { headers: { 'Authorization': `Bearer ${token}` } })
                     ]);
 
                     if (caracRes.ok) allCaracteristicas = await caracRes.json();
                     if (gruposRes.ok) allGrupos = await gruposRes.json();
+                    if (leadsRes.ok) allLeads = await leadsRes.json();
                 } catch (error) {
                     console.error('Error loading dependencies:', error);
                     showToast('Erro ao carregar dados auxiliares', 'error');
                 }
 
-                // If editing, fetch group's details (characteristics and sub-groups)
-                // Note: The main GET /grupos-leads doesn't usually return detailed relations for all items if they list is huge.
-                // But typically we fetch details on Edit.
-                // Let's see if we can get details.
-                // Or maybe the main list (which is passed in 'grupo') already has some data? 
-                // The main list 'grupos-leads' returns 'g.*' and counts. It does NOT return the arrays of usage.
-
-                // We need to fetch current chars and current subgroups for THIS group.
                 if (isEdit) {
                     try {
-                        // 1. Characteristics (already had this endpoint)
-                        const charsRes = await fetch(`${API_BASE_URL}/marketing/grupos-leads/${grupo.id}/caracteristicas`, {
-                            headers: { 'Authorization': `Bearer ${token}` }
-                        });
-                        if (charsRes.ok) {
-                            const data = await charsRes.json();
-                            grupoCaracteristicasIds = data.filter(c => c.origem === 'direto').map(c => c.id);
-                        }
-
-                        // 2. Subgroups - We assume GET /:id returns the tree or create a specific endpoint?
-                        // Controller `getById` (line 146) returns `grupos[0]`. It does NOT join compositions.
-                        // Wait, `getById` in controller (checked earlier) was basic.
-                        // I might need to update Controller `getById` to return `subgrupos` IDs?
-                        // Or just fetch ALL and check `parent_id`?
-                        // `grupos_composicao` table has `grupo_pai_id`, `grupo_filho_id`.
-                        // I can fetch all composition or use a specific endpoint.
-                        // Since I didn't create a specific `GET /:id/subgrupos` endpoint yet...
-                        // But I DO have `getArvore` or `getLeadsExpandidos`.
-                        // Actually, I should probably just fetch the compositions for this group.
-
-                        // HACK: For now, I'll update `getById` in controller if needed, but I don't want to break flow.
-                        // Alternative: Update `getById` implies context switch.
-                        // Is there a way to get it? 
-                        // The user screen shows "Sub-grupos" count.
-
-                        // I will add a small fetch for `subgrupos` logic here?
-                        // Or better: Assume `grupo` passed might not have it.
-                        // I'll update the `gruposLeadsController.js` `getById` to return `subgrupos` array of IDs? 
-                        // Wait, `create` returns `novoGrupo[0]`.
-
-                        // Let's assume I need to fetch it.
-                        // I'll use `getArvore`? No, that's recursive.
-                        // I'll modify `getById` to returned `subgrupos` list?
-                        // OR, I can fetch `grupos-leads` (all) and in the modal logic, I don't know which ones are children unless I have that data.
-
-                        // CRITICAL: The Controller `getById` needs to return the relations!
-                        // The previous `LeadModal` worked because `leads` endpoint returns the aggregated string.
-                        // Here I need to EDIT.
-                        // I'll update `gruposLeadsController.js` `getById` to include `subgrupos` IDs and `caracteristicas` IDs!
-                        // That makes the frontend much simpler (1 call).
-
-                        // Can I do that quickly? Yes.
-                        // I'll update `gruposLeadsController.js` `getById` FIRST (or in parallel implicitly).
-                        // Actually I'll write `GrupoModal` assuming `getById` returns it, then I `update` the controller.
-                        // Code below assumes `GET /input/:id` will return extra fields.
-                        // But `GrupoModal` calls `fetch` separately currently.
-                        // I'll stick to separate fetching if existing endpoints support it.
-                        // If not, I'll add one.
-
-                        // Let's Add `GET /:id/details`? Or update `getById`.
-                        // Updating `getById` is cleaner.
-
-                        // Wait, I am currently in `GrupoModal.js` editing step.
-                        // I can update `GrupoModal` to fetch `GET /marketing/grupos-leads/${grupo.id}`.
-                        // And I will ensure that endpoint returns what I need.
-
                         const fullGroupRes = await fetch(`${API_BASE_URL}/marketing/grupos-leads/${grupo.id}`, {
                             headers: { 'Authorization': `Bearer ${token}` }
                         });
 
                         if (fullGroupRes.ok) {
                             const fullGroup = await fullGroupRes.json();
-                            // If I update controller, these will be present:
                             if (fullGroup.caracteristicas) grupoCaracteristicasIds = fullGroup.caracteristicas;
                             if (fullGroup.subgrupos) grupoSubgruposIds = fullGroup.subgrupos;
+                            if (fullGroup.leads) grupoLeadsIds = fullGroup.leads;
                         }
 
                     } catch (error) {
@@ -130,13 +71,18 @@ export const GrupoModal = {
 
                 const modal = document.createElement('div');
                 modal.className = 'account-modal animate-float-in';
-                modal.style.maxWidth = '700px';
+                modal.style.maxWidth = '900px'; // Increased width for table
                 modal.style.width = '95%';
+                modal.style.height = '90vh';
+                modal.style.display = 'flex';
+                modal.style.flexDirection = 'column';
 
                 const idCaracList = 'list-caracteristicas';
                 const idCaracSearch = 'search-caracteristicas';
                 const idSubList = 'list-subgrupos';
                 const idSubSearch = 'search-subgrupos';
+                const idLeadsTable = 'container-leads-table';
+                const idLeadsSearch = 'search-leads-table';
 
                 const renderSearchableListHtml = (items, selectedIds, listId, searchId, emptyMsg) => `
                     <div style="background: var(--color-bg-secondary); border: 1px solid var(--color-border-light); border-radius: 6px; padding: 0.75rem;">
@@ -166,7 +112,7 @@ export const GrupoModal = {
                 `;
 
                 modal.innerHTML = `
-                    <div class="account-modal-body" style="padding: 1.5rem;">
+                    <div class="account-modal-body" style="padding: 1.5rem; overflow-y: auto; flex: 1;">
                         <h3 style="margin: 0 0 1.5rem 0; color: var(--color-primary); font-size: 1.25rem;">
                             ${isEdit ? '✏️ Editar Grupo' : '👥 Novo Grupo de Leads'}
                         </h3>
@@ -185,12 +131,24 @@ export const GrupoModal = {
                                     placeholder="Descrição opcional...">${grupo?.descricao || ''}</textarea>
                             </div>
 
+                            <!-- LEADS SECTION -->
+                            <div class="form-group">
+                                <label>Leads Integrantes</label>
+                                <div style="background: white; border: 1px solid var(--color-border-light); border-radius: 8px; overflow: hidden; padding: 0.5rem; display: flex; flex-direction: column; height: 350px;">
+                                    <div style="margin-bottom: 0.5rem;">
+                                        <input type="text" id="${idLeadsSearch}" class="form-input" placeholder="🔍 Buscar Lead..." 
+                                            style="padding: 0.5rem; font-size: 0.9rem; width: 100%;" />
+                                    </div>
+                                    <div id="${idLeadsTable}" style="flex: 1; overflow: hidden; display: flex; flex-direction: column;"></div>
+                                </div>
+                                <small style="color: var(--color-text-muted); display: block; margin-top: 0.3rem;">
+                                    Selecione os leads que farão parte deste grupo.
+                                </small>
+                            </div>
+
                             <div class="form-group">
                                 <label>Sub-grupos (Este grupo contém...)</label>
                                 ${renderSearchableListHtml(availableSubgroups, grupoSubgruposIds, idSubList, idSubSearch, 'Nenhum outro grupo disponível.')}
-                                <small style="color: var(--color-text-muted); display: block; margin-top: 0.3rem;">
-                                    Selecione quais grupos fazem parte deste grupo (hierarquia).
-                                </small>
                             </div>
 
                             <div class="form-group">
@@ -217,7 +175,9 @@ export const GrupoModal = {
                 const descricaoInput = modal.querySelector('#grupo-descricao');
                 const saveBtn = modal.querySelector('#modal-save');
                 const cancelBtn = modal.querySelector('#modal-cancel');
+                const leadsSearchInput = modal.querySelector(`#${idLeadsSearch}`);
 
+                // Setup Search Logic for Lists
                 const setupSearch = (searchId, listId) => {
                     const searchInput = modal.querySelector(`#${searchId}`);
                     const listContainer = modal.querySelector(`#${listId}`);
@@ -232,10 +192,103 @@ export const GrupoModal = {
                     });
                 };
 
+                // Initialize SharedTable
+                let sharedTable = null;
                 setTimeout(() => {
                     nomeInput.focus();
                     setupSearch(idSubSearch, idSubList);
                     setupSearch(idCaracSearch, idCaracList);
+
+                    // Setup Leads Table
+                    const tableContainer = modal.querySelector(`#${idLeadsTable}`);
+                    if (tableContainer) {
+
+                        // 1. Transform Leads Data (Pivot) & Create Columns
+                        const dynamicColumns = [
+                            { key: 'nome', label: 'Nome', align: 'left', sticky: true, width: '200px' },
+                            { key: 'telefone', label: 'Whatsapp', width: '130px', sticky: true },
+                            { key: 'email', label: 'E-mail', width: '200px', sticky: true }
+                        ];
+
+                        // Add Characteristic Columns
+                        allCaracteristicas.forEach(c => {
+                            dynamicColumns.push({
+                                key: `char_${c.id}`,
+                                label: c.nome,
+                                width: '150px',
+                                type: 'text', // Enables filtering
+                                align: 'left'
+                            });
+                        });
+
+                        // Process Leads
+                        const processedLeads = allLeads.map(lead => {
+                            const newLead = { ...lead };
+
+                            // Parse JSON if available, otherwise fallback (though backend should send JSON now)
+                            let chars = [];
+                            if (lead.caracteristicas_json) {
+                                try {
+                                    // Handle double-encoding if it happens, or direct array
+                                    chars = typeof lead.caracteristicas_json === 'string'
+                                        ? JSON.parse(lead.caracteristicas_json)
+                                        : lead.caracteristicas_json;
+                                } catch (e) { console.error('Error parsing chars json', e); }
+                            }
+
+                            if (Array.isArray(chars)) {
+                                chars.forEach(c => {
+                                    // c: { id, nome, valor }
+                                    // Use 'valor' if present (Assigned Value), otherwise 'Sim' (if it's just a tag characteristic)
+                                    // Actually, for lead-characteristic relation, it might just be existence, 
+                                    // BUT the backend query `IF(cv.valor IS NOT NULL, ...)` suggests values exist.
+                                    // Let's use value or 'Sim'.
+                                    newLead[`char_${c.id}`] = c.valor || 'Sim'; // 'Sim' implies presence if no specific value
+                                });
+                            }
+                            return newLead;
+                        });
+
+                        sharedTable = new SharedTable({
+                            container: tableContainer,
+                            columns: dynamicColumns,
+                            enableSelection: true,
+                            footerRow: null // We use external summary now
+                        });
+
+                        // Set Initial Selection
+                        sharedTable.selection = new Set(grupoLeadsIds);
+
+                        // Initial Render
+                        sharedTable.render(processedLeads);
+
+                        // Search Logic for Leads (Updated to filter by flattened props too?)
+                        // User wanted "Multiple filters in parallel". SharedTable `applyClientSideFilter` handles column-specific filters.
+                        // The global search input below is properly for "Quick Search". 
+                        // We can keep it or remove it. User asked for "Advanced filters". 
+                        // SharedTable handles advanced column filters. 
+                        // I will keep this search box as a "Global Text Search" across visible columns.
+
+                        if (leadsSearchInput) {
+                            leadsSearchInput.addEventListener('input', (e) => {
+                                const term = e.target.value.toLowerCase();
+                                const filtered = processedLeads.filter(l => {
+                                    // Check fixed fields
+                                    if (l.nome && l.nome.toLowerCase().includes(term)) return true;
+                                    if (l.email && l.email.toLowerCase().includes(term)) return true;
+                                    if (l.telefone && l.telefone.includes(term)) return true;
+
+                                    // Check dynamic chars
+                                    return allCaracteristicas.some(c => {
+                                        const val = l[`char_${c.id}`];
+                                        return val && String(val).toLowerCase().includes(term);
+                                    });
+                                });
+                                sharedTable.render(filtered);
+                            });
+                        }
+                    }
+
                 }, 100);
 
                 const close = () => {
@@ -259,11 +312,14 @@ export const GrupoModal = {
                     const selectedSubgrupos = Array.from(modal.querySelector(`#${idSubList}`).querySelectorAll('input:checked'))
                         .map(cb => parseInt(cb.value));
 
+                    const selectedLeads = sharedTable ? Array.from(sharedTable.selection) : [];
+
                     const grupoData = {
                         nome: nomeInput.value.trim(),
                         descricao: descricaoInput.value.trim() || null,
                         caracteristicas: selectedCaracs,
-                        subgrupos: selectedSubgrupos
+                        subgrupos: selectedSubgrupos,
+                        leads: selectedLeads // Send leads array
                     };
 
                     saveBtn.disabled = true;

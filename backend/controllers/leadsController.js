@@ -11,8 +11,20 @@ exports.getAll = async (req, res) => {
         l.*,
         GROUP_CONCAT(DISTINCT gl.nome SEPARATOR ' | ') as grupos_nomes,
         GROUP_CONCAT(DISTINCT gl.id) as grupos_ids,
-        GROUP_CONCAT(DISTINCT CONCAT(c.nome, IF(cv.valor IS NOT NULL, CONCAT(': ', cv.valor), '')) SEPARATOR ' | ') as caracteristicas_nomes,
-        GROUP_CONCAT(DISTINCT c.id) as caracteristicas_ids,
+        group_concat(distinct gl.id) as grupos_ids,
+        CAST(
+            CONCAT(
+                '[',
+                GROUP_CONCAT(DISTINCT
+                    JSON_OBJECT(
+                        'id', c.id,
+                        'nome', c.nome,
+                        'valor', cv.valor
+                    )
+                ),
+                ']'
+            ) AS JSON
+        ) as caracteristicas_json,
         COUNT(DISTINCT lc.campanha_id) as total_campanhas
       FROM leads l
       LEFT JOIN leads_grupos lg ON l.id = lg.lead_id

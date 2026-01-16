@@ -342,16 +342,25 @@ export class SharedTable {
 
         this.container.innerHTML = ''; // Clear
 
-        const wrapper = document.createElement('div');
-        wrapper.className = 'table-wrapper';
-        wrapper.style.overflow = 'auto';
-        wrapper.style.flex = '1';
-        wrapper.style.border = '1px solid var(--color-border-light)';
-        wrapper.style.borderRadius = '8px';
+        // ... (inside render method)
+
+        // Calculate sticky offsets
+        let currentLeft = 0;
+        this.columns.forEach(col => {
+            col._left = currentLeft;
+            if (col.sticky) {
+                // Approximate width or use fixed width requirement for sticky cols
+                // We assume col.width is set in px. If auto, sticky might be tricky without DOM measurement.
+                // For now, enforce width for sticky columns in definition.
+                const w = parseInt(col.width || '100');
+                currentLeft += w;
+            }
+        });
 
         const table = document.createElement('table');
         table.style.width = '100%';
-        table.style.borderCollapse = 'collapse';
+        table.style.borderCollapse = 'separate'; // Needed for sticky? standard is collapse but separate often works better for borders
+        table.style.borderSpacing = '0';
         table.style.fontSize = 'var(--text-table)';
 
         // Header
@@ -359,9 +368,15 @@ export class SharedTable {
         const trHead = document.createElement('tr');
         trHead.style.backgroundColor = 'var(--color-primary)';
         trHead.style.color = 'white';
+        // trHead sticky handled in renderHeaderContent loop? No, the tr itself is sticky usually?
+        // Actually, for multiple sticky columns, we need TH sticky.
+        // But for sticky HEADER row, we want TR sticky or TH sticky top: 0.
+        // Let's do TH sticky top: 0 for all.
+
         trHead.style.position = 'sticky';
         trHead.style.top = '0';
-        trHead.style.zIndex = '10';
+        trHead.style.zIndex = '20'; // Header on top of everything
+
         trHead.innerHTML = this.renderHeaderContent();
         thead.appendChild(trHead);
         table.appendChild(thead);
@@ -369,27 +384,22 @@ export class SharedTable {
         // Body
         const tbody = document.createElement('tbody');
 
-        // Render Header Row (e.g., SALDO ANTERIOR)
-        if (this.headerRow) {
-            const trHeader = this.renderSpecialRow(this.headerRow, 'header-row');
-            tbody.appendChild(trHeader);
-        }
+        // ... Header Row logic ...
 
         if (this.currentData.length === 0) {
+            // ... empty state ...
             const tr = document.createElement('tr');
-            tr.innerHTML = `<td colspan="${this.columns.length}" style="text-align:center; padding: 2rem; color: var(--color-text-muted);">Nenhum registro encontrado.</td>`;
+            tr.innerHTML = `<td colspan="${this.columns.length + (this.enableSelection ? 1 : 0)}" style="text-align:center; padding: 2rem; color: var(--color-text-muted);">Nenhum registro encontrado.</td>`;
             tbody.appendChild(tr);
         } else {
             this.currentData.forEach((item, index) => {
                 const tr = document.createElement('tr');
                 tr.className = 'hoverable-row';
                 tr.style.borderBottom = '1px solid var(--color-border-light)';
-
-                // Zebra striping: alternate white and light gray
                 const isEven = index % 2 === 0;
                 tr.style.backgroundColor = isEven ? '#FFFFFF' : '#F3F4F6';
 
-                // Hover effect
+                // ... Hover listeners ...
                 tr.addEventListener('mouseenter', () => {
                     tr.style.backgroundColor = 'rgba(218, 177, 119, 0.5)';
                 });
@@ -397,33 +407,36 @@ export class SharedTable {
                     tr.style.backgroundColor = isEven ? '#FFFFFF' : '#F3F4F6';
                 });
 
-                // Checkbox Column
+                // Checkbox Column (Sticky?)
+                // If we want checkbox sticky, we need logic. Assuming checkbox is always first and sticky.
+                // Let's assume Checkbox IS sticky if enableSelection is true.
                 if (this.enableSelection) {
                     const tdCb = document.createElement('td');
                     tdCb.style.padding = 'var(--row-padding)';
                     tdCb.style.textAlign = 'center';
                     tdCb.style.width = '40px';
 
+                    // Sticky Checkbox
+                    tdCb.style.position = 'sticky';
+                    tdCb.style.left = '0';
+                    tdCb.style.zIndex = '10'; // Above normal cells, below header
+                    tdCb.style.backgroundColor = tr.style.backgroundColor; // Match row bg
+
+                    // Update currentLeft for other sticky columns
+                    // This creates an issue: renderHeaderContent calcs `_left` based on COLUMNS array.
+                    // Checkbox is extra. We need to offset columns by 40px if checkbox exists.
+
                     const cb = document.createElement('input');
                     cb.type = 'checkbox';
                     cb.className = 'row-cb';
                     cb.checked = this.selection.has(item.id);
-                    cb.style.cursor = 'pointer';
-                    cb.style.transform = 'scale(1.2)';
-
                     cb.onclick = (e) => {
                         e.stopPropagation();
                         if (e.target.checked) this.selection.add(item.id);
                         else this.selection.delete(item.id);
-
                         this.notifySelectionChange();
-                        // Optional: Update Select All Checkbox state without full re-render?
-                        // For now, simple enough.
-                        const allChecked = this.currentData.every(i => this.selection.has(i.id));
-                        const headerCb = this.container.querySelector('.select-all-cb');
-                        if (headerCb) headerCb.checked = allChecked;
+                        this.updateFooterSummary(); // Update Footer
                     };
-
                     tdCb.appendChild(cb);
                     tr.appendChild(tdCb);
                 }
@@ -434,6 +447,16 @@ export class SharedTable {
                     td.style.textAlign = col.align || 'left';
                     td.style.whiteSpace = 'nowrap';
                     if (col.width) td.style.width = col.width;
+
+                    if (col.sticky) {
+                        td.style.position = 'sticky';
+                        // Add Checkbox Width (40px) to left offset if selection enabled
+                        const checkboxOffset = this.enableSelection ? 40 : 0;
+                        td.style.left = (col._left + checkboxOffset) + 'px';
+                        td.style.zIndex = '5'; // Sticky cols above normal cells
+                        td.style.backgroundColor = tr.style.backgroundColor; // Ensure opacity
+                        td.style.borderRight = '1px solid #ddd'; // Separator
+                    }
 
                     if (col.render) {
                         const content = col.render(item);
@@ -446,14 +469,13 @@ export class SharedTable {
                             const num = parseFloat(val || 0);
                             let color = '';
                             if (col.colorLogic === 'blue') {
-                                color = '#3B82F6'; // Blue
+                                color = '#3B82F6';
                             } else {
                                 let isPositiveColor = false;
                                 if (col.colorLogic === 'inflow') isPositiveColor = num >= 0;
                                 else if (col.colorLogic === 'outflow') isPositiveColor = num < 0;
                                 color = isPositiveColor ? '#10B981' : '#EF4444';
                             }
-
                             td.style.color = color;
                             td.style.fontWeight = '600';
                         }
@@ -471,9 +493,17 @@ export class SharedTable {
             const trFooter = this.renderSpecialRow(this.footerRow, 'footer-row');
             tbody.appendChild(trFooter);
         }
+
         table.appendChild(tbody);
         wrapper.appendChild(table);
         this.container.appendChild(wrapper);
+
+        // --- SUMMARY FOOTER ---
+        this.renderFooterSummary();
+
+        // Attach events, restore scroll...
+        this.attachHeaderEvents(trHead);
+        this.restoreScrollPosition();
 
         // Add hover effect to rows
         const rows = tbody.querySelectorAll('.hoverable-row');
@@ -532,20 +562,56 @@ export class SharedTable {
                      </div>
                    </div>`;
 
-            return `<th style="text-align: ${col.align || 'left'}; padding: var(--row-padding); font-size: var(--text-table); width: ${col.width || 'auto'}; vertical-align: middle; color: white;">${content}</th>`;
+            return `<th style="text-align: ${col.align || 'left'}; padding: var(--row-padding); font-size: var(--text-table); width: ${col.width || 'auto'}; vertical-align: middle; color: white; ${col.sticky ? `position: sticky; left: ${col._left + (this.enableSelection ? 40 : 0)}px; z-index: 25; background-color: var(--color-primary);` : ''}">${content}</th>`;
         }).join('');
 
         // Prepend Checkbox Header if enabled
         if (this.enableSelection) {
             const isAllSelected = this.currentData.length > 0 && this.currentData.every(item => this.selection.has(item.id));
             const checkboxHtml = `
-                <th style="width: 40px; text-align: center; vertical-align: middle; padding: var(--row-padding);">
+                <th style="width: 40px; text-align: center; vertical-align: middle; padding: var(--row-padding); position: sticky; left: 0; z-index: 30; background-color: var(--color-primary);">
                     <input type="checkbox" class="select-all-cb" ${isAllSelected ? 'checked' : ''} style="cursor: pointer; transform: scale(1.2);">
                 </th>
             `;
             return checkboxHtml + headers;
         }
         return headers;
+    }
+
+    renderFooterSummary() {
+        const existingInfo = this.container.querySelector('.table-footer-summary');
+        if (existingInfo) existingInfo.remove();
+
+        const footer = document.createElement('div');
+        footer.className = 'table-footer-summary';
+        footer.style.padding = '0.75rem';
+        footer.style.borderTop = '1px solid var(--color-border-light)';
+        footer.style.backgroundColor = '#f9fafb';
+        footer.style.display = 'flex';
+        footer.style.justifyContent = 'space-between';
+        footer.style.alignItems = 'center';
+        footer.style.fontSize = '0.9rem';
+        footer.style.color = 'var(--color-text-secondary)';
+
+        this.container.appendChild(footer);
+        this.updateFooterSummary();
+    }
+
+    updateFooterSummary() {
+        const footer = this.container.querySelector('.table-footer-summary');
+        if (!footer) return;
+
+        const total = this.currentData.length;
+        const selected = this.selection.size;
+
+        footer.innerHTML = `
+            <div>
+                <strong>Total Visualizado:</strong> ${total}
+            </div>
+            <div>
+                <strong>Selecionados:</strong> <span style="color: var(--color-primary); font-weight: bold;">${selected}</span>
+            </div>
+        `;
     }
 
     attachHeaderEvents(headerRow) {
