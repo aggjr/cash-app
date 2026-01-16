@@ -19,6 +19,7 @@ export const LeadModal = {
             const selectedCharacteristics = new Set(); // IDs of checked characteristics
             const selectedCharValues = {}; // { charId: valueId }
             let activeCharId = null; // Currently selected char to show values
+            let activeValueId = null; // Currently selected value for editing
             let valuesCache = {}; // charId -> [values]
 
             // Initialize selected characteristics and values
@@ -367,7 +368,12 @@ export const LeadModal = {
                                 
                                 <!-- Left: Characteristics -->
                                 <div style="background: white; border: 1px solid var(--color-border-light); border-radius: 6px; overflow: hidden; display: flex; flex-direction: column;">
-                                    <div style="padding: 0.4rem; background: var(--color-bg-secondary); border-bottom: 1px solid var(--color-border-light);">
+                                    <div style="padding: 0.4rem; background: var(--color-bg-secondary); border-bottom: 1px solid var(--color-border-light); display: flex; flex-direction: column; gap: 0.25rem;">
+                                        <div style="display: flex; justify-content: flex-end; gap: 0.25rem;">
+                                            <button type="button" id="btn-add-char" class="action-btn" title="Adicionar" style="font-size:0.8rem; padding: 2px 6px;">➕</button>
+                                            <button type="button" id="btn-edit-char" class="action-btn" title="Editar" style="font-size:0.8rem; padding: 2px 6px;">✏️</button>
+                                            <button type="button" id="btn-del-char" class="action-btn" title="Deletar" style="font-size:0.8rem; padding: 2px 6px;">🗑️</button>
+                                        </div>
                                         <input type="text" id="${idCaracSearch}" class="form-input" placeholder="🔍 Buscar Característica..." 
                                             style="padding: 0.4rem; font-size: 0.9rem; margin: 0; width: 100%; border: 1px solid var(--color-border-light);" />
                                     </div>
@@ -378,7 +384,12 @@ export const LeadModal = {
 
                                 <!-- Right: Values -->
                                 <div style="background: white; border: 1px solid var(--color-border-light); border-radius: 6px; overflow: hidden; display: flex; flex-direction: column;">
-                                    <div style="padding: 0.4rem; background: var(--color-bg-secondary); border-bottom: 1px solid var(--color-border-light);">
+                                    <div style="padding: 0.4rem; background: var(--color-bg-secondary); border-bottom: 1px solid var(--color-border-light); display: flex; flex-direction: column; gap: 0.25rem;">
+                                        <div style="display: flex; justify-content: flex-end; gap: 0.25rem;">
+                                            <button type="button" id="btn-add-val" class="action-btn" title="Adicionar" style="font-size:0.8rem; padding: 2px 6px;">➕</button>
+                                            <button type="button" id="btn-edit-val" class="action-btn" title="Editar" style="font-size:0.8rem; padding: 2px 6px;">✏️</button>
+                                            <button type="button" id="btn-del-val" class="action-btn" title="Deletar" style="font-size:0.8rem; padding: 2px 6px;">🗑️</button>
+                                        </div>
                                         <input type="text" id="values-search" class="form-input" placeholder="🔍 Buscar Valor..." disabled
                                             style="padding: 0.4rem; font-size: 0.9rem; margin: 0; width: 100%; border: 1px solid var(--color-border-light); opacity: 0.6;" />
                                     </div>
@@ -449,10 +460,23 @@ export const LeadModal = {
                     const label = document.createElement('label');
                     label.className = 'zebra-row';
                     label.dataset.itemName = val.valor.toLowerCase();
-                    label.style.cssText = `display: flex; align-items: center; gap: 0.75rem; padding: 0.35rem 0.75rem; cursor: pointer; background-color: ${bgColor}; border-bottom: 1px solid #E5E7EB; transition: background-color 0.15s;`;
+                    label.style.cssText = `display: flex; align-items: center; gap: 0.75rem; padding: 0.25rem 0.5rem; cursor: pointer; background-color: ${bgColor}; border-bottom: 1px solid #E5E7EB; transition: background-color 0.15s; margin: 0;`;
 
-                    label.onmouseenter = () => label.style.backgroundColor = '#EDD8BB';
-                    label.onmouseleave = () => label.style.backgroundColor = bgColor;
+                    // Highlight active value for editing
+                    if (activeValueId === val.id) {
+                        label.style.backgroundColor = '#E0F2FE'; // Light blue
+                        label.style.borderLeft = '3px solid var(--color-primary)';
+                    }
+
+                    label.onmouseenter = () => label.style.backgroundColor = activeValueId === val.id ? '#E0F2FE' : '#EDD8BB';
+                    label.onmouseleave = () => label.style.backgroundColor = activeValueId === val.id ? '#E0F2FE' : bgColor;
+
+                    // Click to select for editing (separate from Checkbox/Radio if needed, but here sticking to row click)
+                    label.onclick = (e) => {
+                        // If clicking input, don't toggle edit select? No, allow it.
+                        activeValueId = val.id;
+                        renderValues(charId, values, charName);
+                    };
 
                     const radio = document.createElement('input');
                     radio.type = 'radio';
@@ -471,6 +495,9 @@ export const LeadModal = {
                             renderCharacteristics(currentFilter);
                         }
                     };
+
+                    // Stop propagation on radio click to allow native behavior but also bubble to row?
+                    radio.onclick = (e) => e.stopPropagation();
 
                     const span = document.createElement('span');
                     span.textContent = val.valor;
@@ -530,7 +557,7 @@ export const LeadModal = {
                     const label = document.createElement('label');
                     label.className = 'zebra-row';
                     label.dataset.itemName = c.nome.toLowerCase();
-                    label.style.cssText = `display: flex; align-items: center; gap: 0.75rem; padding: 0.35rem 0.75rem; cursor: pointer; background-color: ${bgColor}; border-bottom: 1px solid #E5E7EB; transition: background-color 0.15s;`;
+                    label.style.cssText = `display: flex; align-items: center; gap: 0.75rem; padding: 0.25rem 0.5rem; cursor: pointer; background-color: ${bgColor}; border-bottom: 1px solid #E5E7EB; transition: background-color 0.15s; margin: 0;`;
 
                     if (isActive) {
                         label.style.backgroundColor = '#DBEAFE';
@@ -657,6 +684,118 @@ export const LeadModal = {
                         e.target.value = value;
                     });
                 }
+
+                // --- CRUD Handlers ---
+                const manageApi = async (url, method, body = null) => {
+                    try {
+                        const opts = {
+                            method,
+                            headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` }
+                        };
+                        if (body) opts.body = JSON.stringify(body);
+                        const res = await fetch(API_BASE_URL + url, opts);
+                        if (!res.ok) throw new Error('Falha na operação');
+                        return await res.json();
+                    } catch (e) {
+                        console.error(e);
+                        showToast('error', 'Erro na operação. Tente novamente.');
+                        return null;
+                    }
+                };
+
+                // Add Char
+                modal.querySelector('#btn-add-char').onclick = async () => {
+                    const name = prompt("Nome da nova Característica:");
+                    if (name) {
+                        const res = await manageApi('/marketing/caracteristicas', 'POST', { nome: name });
+                        if (res) {
+                            caracteristicas.push(res);
+                            renderCharacteristics();
+                        }
+                    }
+                };
+
+                // Edit Char
+                modal.querySelector('#btn-edit-char').onclick = async () => {
+                    if (!activeCharId) return showToast('info', 'Selecione uma característica para editar');
+                    const char = caracteristicas.find(c => c.id == activeCharId);
+                    const name = prompt("Novo nome:", char?.nome);
+                    if (name) {
+                        const res = await manageApi(`/marketing/caracteristicas/${activeCharId}`, 'PUT', { nome: name });
+                        if (res) {
+                            char.nome = name;
+                            renderCharacteristics();
+                        }
+                    }
+                };
+
+                // Delete Char
+                modal.querySelector('#btn-del-char').onclick = async () => {
+                    if (!activeCharId) return showToast('info', 'Selecione uma característica para deletar');
+                    if (confirm("Tem certeza? Se houver uso, ela será apenas inativada.")) {
+                        // We assume backend handles Smart Delete (Soft/Hard check)
+                        const res = await manageApi(`/marketing/caracteristicas/${activeCharId}`, 'DELETE');
+                        if (res) {
+                            // Assuming success means deleted or inactivated
+                            // Remove from local list for visual feedback
+                            const idx = caracteristicas.findIndex(c => c.id == activeCharId);
+                            if (idx > -1) caracteristicas.splice(idx, 1);
+                            activeCharId = null;
+                            renderCharacteristics();
+                            valuesListEl.innerHTML = '';
+                        }
+                    }
+                };
+
+                // Add Value
+                modal.querySelector('#btn-add-val').onclick = async () => {
+                    if (!activeCharId) return showToast('info', 'Selecione uma característica primeiro');
+                    const name = prompt("Nome do novo Valor:");
+                    if (name) {
+                        const res = await manageApi(`/marketing/caracteristicas/${activeCharId}/valores`, 'POST', { valor: name });
+                        if (res) {
+                            // res is the new value
+                            if (!valuesCache[activeCharId]) valuesCache[activeCharId] = [];
+                            valuesCache[activeCharId].push(res);
+                            renderValues(activeCharId, valuesCache[activeCharId], '');
+                        }
+                    }
+                };
+
+                // Edit Value
+                modal.querySelector('#btn-edit-val').onclick = async () => {
+                    if (!activeValueId) return showToast('info', 'Selecione um valor para editar');
+                    const vals = valuesCache[activeCharId];
+                    const val = vals.find(v => v.id == activeValueId);
+                    const name = prompt("Novo nome:", val?.valor);
+                    if (name) {
+                        // Assuming generic value update endpoint or nested
+                        // Trying nested: PUT /marketing/caracteristicas/{charId}/valores/{valId}
+                        // OR Just /marketing/valores/{id} ?
+                        // Let's try /marketing/valores/{id} first as it is cleaner, or fallback.
+                        // Given the structure, use what is likely.
+                        const res = await manageApi(`/marketing/caracteristicas/${activeCharId}/valores/${activeValueId}`, 'PUT', { valor: name });
+                        if (res) {
+                            val.valor = name;
+                            renderValues(activeCharId, vals, '');
+                        }
+                    }
+                };
+
+                // Delete Value
+                modal.querySelector('#btn-del-val').onclick = async () => {
+                    if (!activeValueId) return showToast('info', 'Selecione um valor para deletar');
+                    if (confirm("Tem certeza?")) {
+                        const res = await manageApi(`/marketing/caracteristicas/${activeCharId}/valores/${activeValueId}`, 'DELETE');
+                        if (res) {
+                            const vals = valuesCache[activeCharId];
+                            const idx = vals.findIndex(v => v.id == activeValueId);
+                            if (idx > -1) vals.splice(idx, 1);
+                            activeValueId = null;
+                            renderValues(activeCharId, vals, '');
+                        }
+                    }
+                };
 
                 // Characteristics Search
                 caracSearchEl.addEventListener('input', (e) => {
