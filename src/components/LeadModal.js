@@ -1,6 +1,7 @@
 import { showToast } from '../utils/toast.js';
 import { showToast } from '../utils/toast.js';
 import { Dialogs } from './Dialogs.js';
+import { CaracteristicaModal } from './CaracteristicaModal.js';
 import { getApiBaseUrl } from '../utils/apiConfig.js';
 
 export const LeadModal = {
@@ -710,28 +711,45 @@ export const LeadModal = {
 
                 // Add Char
                 modal.querySelector('#btn-add-char').onclick = async () => {
-                    const name = await Dialogs.prompt("Nome da nova Característica:", "", "Nova Característica");
-                    if (name) {
-                        const res = await manageApi('/marketing/caracteristicas', 'POST', { nome: name });
-                        if (res) {
-                            caracteristicas.push(res);
-                            renderCharacteristics();
+                    await CaracteristicaModal.show({
+                        onSave: async (data) => {
+                            // Create Characteristic
+                            // data includes { nome, descricao, valores (array) }
+                            const res = await manageApi('/marketing/caracteristicas', 'POST', data);
+                            if (res) {
+                                caracteristicas.push(res); // Assuming backend returns full object with ID
+                                renderCharacteristics();
+                                showToast('Característica criada!', 'success');
+                            }
                         }
-                    }
+                    });
                 };
 
                 // Edit Char
                 modal.querySelector('#btn-edit-char').onclick = async () => {
                     if (!activeCharId) return showToast('info', 'Selecione uma característica para editar');
                     const char = caracteristicas.find(c => c.id == activeCharId);
-                    const name = await Dialogs.prompt("Novo nome:", char?.nome, "Editar Característica");
-                    if (name) {
-                        const res = await manageApi(`/marketing/caracteristicas/${activeCharId}`, 'PUT', { nome: name });
-                        if (res) {
-                            char.nome = name;
-                            renderCharacteristics();
+
+                    await CaracteristicaModal.show({
+                        caracteristica: char,
+                        onSave: async (data) => {
+                            // Update Characteristic
+                            const res = await manageApi(`/marketing/caracteristicas/${activeCharId}`, 'PUT', data);
+                            if (res) {
+                                char.nome = data.nome;
+                                char.descricao = data.descricao;
+                                renderCharacteristics();
+                                showToast('Característica atualizada!', 'success');
+
+                                // Also refresh values if currently viewing this char
+                                if (activeCharId === char.id) {
+                                    // Refresh values cache?
+                                    delete valuesCache[char.id];
+                                    loadValues(char.id, char.nome);
+                                }
+                            }
                         }
-                    }
+                    });
                 };
 
                 // Delete Char
@@ -742,11 +760,8 @@ export const LeadModal = {
                         "Excluir Característica"
                     );
                     if (confirmed) {
-                        // We assume backend handles Smart Delete (Soft/Hard check)
                         const res = await manageApi(`/marketing/caracteristicas/${activeCharId}`, 'DELETE');
                         if (res) {
-                            // Assuming success means deleted or inactivated
-                            // Remove from local list for visual feedback
                             const idx = caracteristicas.findIndex(c => c.id == activeCharId);
                             if (idx > -1) caracteristicas.splice(idx, 1);
                             activeCharId = null;
@@ -756,42 +771,62 @@ export const LeadModal = {
                     }
                 };
 
-                // Add Value
+                // Add Value -> Opens Parent Characteristic Modal (since values are managed there)
                 modal.querySelector('#btn-add-val').onclick = async () => {
                     if (!activeCharId) return showToast('info', 'Selecione uma característica primeiro');
-                    const name = await Dialogs.prompt("Nome do novo Valor:", "", "Novo Valor");
-                    if (name) {
-                        const res = await manageApi(`/marketing/caracteristicas/${activeCharId}/valores`, 'POST', { valor: name });
-                        if (res) {
-                            // res is the new value
-                            if (!valuesCache[activeCharId]) valuesCache[activeCharId] = [];
-                            valuesCache[activeCharId].push(res);
-                            renderValues(activeCharId, valuesCache[activeCharId], '');
+                    const char = caracteristicas.find(c => c.id == activeCharId);
+
+                    // Open Modal Edit Mode for the active char
+                    // User can add/edit values in that grid.
+                    await CaracteristicaModal.show({
+                        caracteristica: char,
+                        onSave: async (data) => {
+                            // Logic is same as Edit Char, as checking 'save' usually saves the parent data.
+                            // Values are saved instantly by the grid in Edit mode.
+                            const res = await manageApi(`/marketing/caracteristicas/${activeCharId}`, 'PUT', data);
+                            if (res) {
+                                char.nome = data.nome;
+                                char.descricao = data.descricao;
+                                renderCharacteristics();
+                                delete valuesCache[char.id];
+                                loadValues(char.id, char.nome);
+                            }
                         }
-                    }
+                    });
+
+                    // Reload values after closing modal to reflect changes
+                    delete valuesCache[char.id];
+                    loadValues(char.id, char.nome);
                 };
 
-                // Edit Value
+                // Edit Value -> Opens Parent Characteristic Modal
                 modal.querySelector('#btn-edit-val').onclick = async () => {
-                    if (!activeValueId) return showToast('info', 'Selecione um valor para editar');
-                    const vals = valuesCache[activeCharId];
-                    const val = vals.find(v => v.id == activeValueId);
-                    const name = await Dialogs.prompt("Novo nome:", val?.valor, "Editar Valor");
-                    if (name) {
-                        // Assuming generic value update endpoint or nested
-                        // Trying nested: PUT /marketing/caracteristicas/{charId}/valores/{valId}
-                        // OR Just /marketing/valores/{id} ?
-                        // Let's try /marketing/valores/{id} first as it is cleaner, or fallback.
-                        // Given the structure, use what is likely.
-                        const res = await manageApi(`/marketing/caracteristicas/${activeCharId}/valores/${activeValueId}`, 'PUT', { valor: name });
-                        if (res) {
-                            val.valor = name;
-                            renderValues(activeCharId, vals, '');
+                    // Same logic as Add Value: Open parent modal
+                    if (!activeCharId) return showToast('info', 'Selecione a característica dona do valor');
+                    const char = caracteristicas.find(c => c.id == activeCharId);
+
+                    await CaracteristicaModal.show({
+                        caracteristica: char,
+                        onSave: async (data) => {
+                            const res = await manageApi(`/marketing/caracteristicas/${activeCharId}`, 'PUT', data);
+                            if (res) {
+                                char.nome = data.nome;
+                                char.descricao = data.descricao;
+                                renderCharacteristics();
+                            }
                         }
-                    }
+                    });
+
+                    delete valuesCache[char.id];
+                    loadValues(char.id, char.nome);
                 };
 
-                // Delete Value
+                // Delete Value -> Keep Direct Action for speed? Or open modal? 
+                // User said: "Inclusion/alteration ... call same screen".
+                // Deletion he said "use warning modal".
+                // So Delete Value can stay as is (Direct with Confirmation). 
+                // BUT if he wants FULL management, maybe better to open modal?
+                // I'll stick to Direct Delete for Value as it is faster and compliant with "Delete uses warning modal".
                 modal.querySelector('#btn-del-val').onclick = async () => {
                     if (!activeValueId) return showToast('info', 'Selecione um valor para deletar');
                     const confirmed = await Dialogs.confirm("Tem certeza?", "Excluir Valor");

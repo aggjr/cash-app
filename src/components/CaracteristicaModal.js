@@ -16,7 +16,7 @@ export const CaracteristicaModal = {
 
             const overlay = document.createElement('div');
             overlay.className = 'dialog-overlay';
-            overlay.style.zIndex = '1000';
+            overlay.style.zIndex = '1100';
 
             const modal = document.createElement('div');
             modal.className = 'account-modal animate-float-in';
