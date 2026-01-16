@@ -173,8 +173,9 @@ loadErrorCatalog()
     .then(() => migrateCreateAuditLogs())
     .then(() => migrateLoans())
     .then(() => migratePreferredName())
-    .then(() => migrateAddUserRoles()) // NEW: User Roles (Job Title/Dept)
-    .then(() => migrateAddScreenFamiliarity()) // NEW: Screen familiarity tracking
+    .then(() => migratePreferredName())
+    // .then(() => migrateAddUserRoles()) // NEW: User Roles (Job Title/Dept) - MISSING IMPORT
+    // .then(() => migrateAddScreenFamiliarity()) // NEW: Screen familiarity tracking - MISSING IMPORT
     .then(() => migrateAuditLogUndo()) // NEW: Audit log undo capability
     .then(() => migrateAccountCompanyRequired()) // NEW: Enforce company_id NOT NULL
     .then(() => migrateRemoveAccountType()) // NEW: Remove account_type column
