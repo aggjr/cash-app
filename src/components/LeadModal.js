@@ -40,6 +40,7 @@ export const LeadModal = {
             // --- UI Helpers ---
             // Build Tree from flat list
             const buildTree = (items) => {
+                console.log('Building tree from items:', items.length);
                 const rootItems = [];
                 const lookup = {};
                 items.forEach(item => {
@@ -54,6 +55,7 @@ export const LeadModal = {
                         rootItems.push(item);
                     }
                 });
+                console.log('Tree built, roots:', rootItems.length);
 
                 // Helper to populate allDescendants
                 const populateDescendants = (node) => {
@@ -228,7 +230,10 @@ export const LeadModal = {
 
 
             const renderGroupTreeViewer = (filter = '') => {
+                console.log('Rendering Group Tree. Filter:', filter, 'Total Grupos:', grupos.length);
                 const term = filter.toLowerCase();
+                if (!grupos || grupos.length === 0) return '<div style="padding:1rem; color:#888;">Nenhum grupo carregado</div>';
+
                 const tree = buildTree(grupos);
 
                 // Helper to render a node
@@ -261,8 +266,8 @@ export const LeadModal = {
 
                     let html = `
                         <div class="tree-row" 
-                            style="display: flex; align-items: center; padding: 0.2rem 0.5rem; transition: background-color 0.1s; 
-                                   border-bottom: 1px solid var(--color-border-light);"
+                            style="display: flex; align-items: center; padding: 0.15rem 0.5rem; transition: background-color 0.1s; 
+                                   border-bottom: 1px solid var(--color-border-light); margin: 0;"
                             onmouseenter="this.style.backgroundColor='#F9FAFB'" 
                             onmouseleave="this.style.backgroundColor='transparent'">
                             
@@ -345,9 +350,9 @@ export const LeadModal = {
                         <div class="form-group">
                              <label>Grupos que é integrante</label>
                              <div style="background: white; border: 1px solid var(--color-border-light); border-radius: 6px; overflow: hidden;">
-                                <div style="padding: 0.75rem; background: var(--color-bg-secondary); border-bottom: 1px solid var(--color-border-light);">
+                                <div style="padding: 0.4rem; background: var(--color-bg-secondary); border-bottom: 1px solid var(--color-border-light);">
                                     <input type="text" id="${idGruposSearch}" class="form-input" placeholder="🔍 Buscar Grupos..." 
-                                        style="padding: 0.5rem; font-size: 0.9rem; margin: 0; width: 100%; border: 1px solid var(--color-border-light);" />
+                                        style="padding: 0.4rem; font-size: 0.9rem; margin: 0; width: 100%; border: 1px solid var(--color-border-light);" />
                                 </div>
                                 <div id="${idGruposList}" style="max-height: 300px; overflow-y: auto;">
                                     <!-- Tree will render here -->
@@ -362,9 +367,9 @@ export const LeadModal = {
                                 
                                 <!-- Left: Characteristics -->
                                 <div style="background: white; border: 1px solid var(--color-border-light); border-radius: 6px; overflow: hidden; display: flex; flex-direction: column;">
-                                    <div style="padding: 0.75rem; background: var(--color-bg-secondary); border-bottom: 1px solid var(--color-border-light);">
+                                    <div style="padding: 0.4rem; background: var(--color-bg-secondary); border-bottom: 1px solid var(--color-border-light);">
                                         <input type="text" id="${idCaracSearch}" class="form-input" placeholder="🔍 Buscar Característica..." 
-                                            style="padding: 0.5rem; font-size: 0.9rem; margin: 0; width: 100%; border: 1px solid var(--color-border-light);" />
+                                            style="padding: 0.4rem; font-size: 0.9rem; margin: 0; width: 100%; border: 1px solid var(--color-border-light);" />
                                     </div>
                                     <div id="${idCaracList}" style="flex: 1; overflow-y: auto;">
                                         <!-- Characteristics will be rendered here -->
@@ -373,9 +378,9 @@ export const LeadModal = {
 
                                 <!-- Right: Values -->
                                 <div style="background: white; border: 1px solid var(--color-border-light); border-radius: 6px; overflow: hidden; display: flex; flex-direction: column;">
-                                    <div style="padding: 0.75rem; background: var(--color-bg-secondary); border-bottom: 1px solid var(--color-border-light);">
+                                    <div style="padding: 0.4rem; background: var(--color-bg-secondary); border-bottom: 1px solid var(--color-border-light);">
                                         <input type="text" id="values-search" class="form-input" placeholder="🔍 Buscar Valor..." disabled
-                                            style="padding: 0.5rem; font-size: 0.9rem; margin: 0; width: 100%; border: 1px solid var(--color-border-light); opacity: 0.6;" />
+                                            style="padding: 0.4rem; font-size: 0.9rem; margin: 0; width: 100%; border: 1px solid var(--color-border-light); opacity: 0.6;" />
                                     </div>
                                     <div id="values-list" style="flex: 1; overflow-y: auto;">
                                         <div style="display: flex; align-items: center; justify-content: center; height: 100%; color: var(--color-text-muted); font-size: 0.9rem;">
