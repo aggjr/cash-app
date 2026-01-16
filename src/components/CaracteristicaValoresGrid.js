@@ -1,8 +1,10 @@
 import { showToast } from '../utils/toast.js';
 
 export const CaracteristicaValoresGrid = {
-    render(container, caracteristicaId, initialValues = []) {
+    render(container, caracteristicaId, initialValues = [], options = {}) {
         container.innerHTML = '';
+        const { isLocal = false, onChange = () => { } } = options;
+
         const state = {
             values: [...initialValues],
             isProcessing: false,
@@ -53,6 +55,12 @@ export const CaracteristicaValoresGrid = {
         listContainer.style.gap = '0.5rem';
         wrapper.appendChild(listContainer);
 
+        const notifyChange = () => {
+            if (isLocal && onChange) {
+                onChange(state.values);
+            }
+        };
+
         const renderList = () => {
             listContainer.innerHTML = '';
             if (state.values.length === 0) {
@@ -60,7 +68,10 @@ export const CaracteristicaValoresGrid = {
                 return;
             }
 
-            state.values.forEach(val => {
+            state.values.forEach((val, index) => {
+                // Use ID if available, otherwise use temporary ID or index for local tracking
+                const valId = val.id || `temp-${index}`;
+
                 const item = document.createElement('div');
                 item.style.display = 'flex';
                 item.style.justifyContent = 'space-between';
@@ -70,7 +81,7 @@ export const CaracteristicaValoresGrid = {
                 item.style.borderRadius = '4px';
                 item.style.border = '1px solid #dee2e6';
 
-                if (state.editingId === val.id) {
+                if (state.editingId === valId) {
                     // EDIT MODE
                     const inputEdit = document.createElement('input');
                     inputEdit.type = 'text';
@@ -101,32 +112,41 @@ export const CaracteristicaValoresGrid = {
                     saveBtn.onclick = async () => {
                         const novoValor = inputEdit.value.trim();
                         if (!novoValor) return;
-                        if (state.isProcessing) return;
 
-                        state.isProcessing = true;
-                        try {
-                            const response = await fetch(`${document.location.origin}/api/marketing/caracteristicas/valores/${val.id}`, {
-                                method: 'PUT',
-                                headers: {
-                                    'Content-Type': 'application/json',
-                                    'Authorization': `Bearer ${localStorage.getItem('token')}`
-                                },
-                                body: JSON.stringify({ valor: novoValor })
-                            });
+                        if (isLocal) {
+                            // Local Update
+                            val.valor = novoValor;
+                            state.editingId = null;
+                            renderList();
+                            notifyChange();
+                        } else {
+                            // API Update
+                            if (state.isProcessing) return;
+                            state.isProcessing = true;
+                            try {
+                                const response = await fetch(`${document.location.origin}/api/marketing/caracteristicas/valores/${val.id}`, {
+                                    method: 'PUT',
+                                    headers: {
+                                        'Content-Type': 'application/json',
+                                        'Authorization': `Bearer ${localStorage.getItem('token')}`
+                                    },
+                                    body: JSON.stringify({ valor: novoValor })
+                                });
 
-                            if (response.ok) {
-                                val.valor = novoValor;
-                                state.editingId = null;
-                                renderList();
-                                showToast('Valor atualizado!', 'success');
-                            } else {
-                                throw new Error('Falha ao atualizar');
+                                if (response.ok) {
+                                    val.valor = novoValor;
+                                    state.editingId = null;
+                                    renderList();
+                                    showToast('Valor atualizado!', 'success');
+                                } else {
+                                    throw new Error('Falha ao atualizar');
+                                }
+                            } catch (e) {
+                                console.error(e);
+                                showToast('Erro ao atualizar', 'error');
+                            } finally {
+                                state.isProcessing = false;
                             }
-                        } catch (e) {
-                            console.error(e);
-                            showToast('Erro ao atualizar', 'error');
-                        } finally {
-                            state.isProcessing = false;
                         }
                     };
 
@@ -167,35 +187,43 @@ export const CaracteristicaValoresGrid = {
                     deleteBtn.title = 'Remover';
 
                     editBtn.onclick = () => {
-                        state.editingId = val.id;
+                        state.editingId = valId;
                         renderList();
                     };
 
                     deleteBtn.onclick = async () => {
-                        if (state.isProcessing) return;
                         if (!confirm(`Remover valor "${val.valor}"?`)) return;
 
-                        state.isProcessing = true;
-                        try {
-                            const response = await fetch(`${document.location.origin}/api/marketing/caracteristicas/valores/${val.id}`, {
-                                method: 'DELETE',
-                                headers: {
-                                    'Authorization': `Bearer ${localStorage.getItem('token')}`
-                                }
-                            });
+                        if (isLocal) {
+                            // Local Delete
+                            state.values.splice(index, 1);
+                            renderList();
+                            notifyChange();
+                        } else {
+                            // API Delete
+                            if (state.isProcessing) return;
+                            state.isProcessing = true;
+                            try {
+                                const response = await fetch(`${document.location.origin}/api/marketing/caracteristicas/valores/${val.id}`, {
+                                    method: 'DELETE',
+                                    headers: {
+                                        'Authorization': `Bearer ${localStorage.getItem('token')}`
+                                    }
+                                });
 
-                            if (response.ok) {
-                                state.values = state.values.filter(v => v.id !== val.id);
-                                renderList();
-                                showToast('Valor removido', 'success');
-                            } else {
-                                throw new Error('Falha ao remover');
+                                if (response.ok) {
+                                    state.values = state.values.filter(v => v.id !== val.id);
+                                    renderList();
+                                    showToast('Valor removido', 'success');
+                                } else {
+                                    throw new Error('Falha ao remover');
+                                }
+                            } catch (err) {
+                                showToast('Erro ao remover valor', 'error');
+                                console.error(err);
+                            } finally {
+                                state.isProcessing = false;
                             }
-                        } catch (err) {
-                            showToast('Erro ao remover valor', 'error');
-                            console.error(err);
-                        } finally {
-                            state.isProcessing = false;
                         }
                     };
 
@@ -213,16 +241,20 @@ export const CaracteristicaValoresGrid = {
         addButton.onclick = async () => {
             const valor = input.value.trim();
             if (!valor) return;
-            if (state.isProcessing) return;
 
-            state.isProcessing = true;
-            addButton.disabled = true;
+            if (isLocal) {
+                // Local Add
+                state.values.push({ valor }); // No ID yet
+                input.value = '';
+                renderList();
+                notifyChange();
+            } else {
+                // API Add
+                if (state.isProcessing) return;
+                state.isProcessing = true;
+                addButton.disabled = true;
 
-            try {
-                // Determine if we are just adding to state (new characteristic mode) OR saving to DB (edit mode)
-                // For now, assuming Edit Mode mostly as per plan. 
-                // If ID is present, save immediately.
-                if (caracteristicaId) {
+                try {
                     const response = await fetch(`${document.location.origin}/api/marketing/caracteristicas/${caracteristicaId}/valores`, {
                         method: 'POST',
                         headers: {
@@ -241,18 +273,13 @@ export const CaracteristicaValoresGrid = {
                     } else {
                         throw new Error('Erro ao salvar valor');
                     }
-                } else {
-                    // Just local state? (Maybe not needed if we enforce creation first)
-                    // For simplicity, we disable adding values if not creating.
-                    showToast('Salve a característica antes de adicionar valores.', 'info');
+                } catch (err) {
+                    showToast('Erro ao adicionar valor', 'error');
+                    console.error(err);
+                } finally {
+                    state.isProcessing = false;
+                    addButton.disabled = false;
                 }
-
-            } catch (err) {
-                showToast('Erro ao adicionar valor', 'error');
-                console.error(err);
-            } finally {
-                state.isProcessing = false;
-                addButton.disabled = false;
             }
         };
 
