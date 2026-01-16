@@ -124,8 +124,10 @@ export const LeadModal = {
 
                                 <!-- Right: Values -->
                                 <div style="background: white; border: 1px solid var(--color-border-light); border-radius: 6px; overflow: hidden; display: flex; flex-direction: column;">
-                                    <div id="values-header" style="padding: 0.75rem; background: var(--color-bg-secondary); border-bottom: 1px solid var(--color-border-light); font-weight: 600; font-size: 0.95rem;">
-                                        Selecione uma característica
+                                    <div style="padding: 0.75rem; background: var(--color-bg-secondary); border-bottom: 1px solid var(--color-border-light);">
+                                        <div id="values-header" style="font-weight: 500; font-size: 0.9rem; color: #374151;">
+                                            Selecione uma característica
+                                        </div>
                                     </div>
                                     <div id="values-list" style="flex: 1; overflow-y: auto;">
                                         <div style="display: flex; align-items: center; justify-content: center; height: 100%; color: var(--color-text-muted); font-size: 0.9rem;">
@@ -310,11 +312,14 @@ export const LeadModal = {
                 });
             };
 
-            // Initial render
-            renderCharacteristics();
+            // Initial render will happen in setTimeout after DOM is ready
 
-            // Setup Search Handlers
+            // Setup Search Handlers and Initial Render
             setTimeout(() => {
+                // CRITICAL: Render characteristics FIRST
+                console.log('Rendering characteristics:', caracteristicas.length);
+                renderCharacteristics();
+
                 // Groups Search
                 const grpSearch = modal.querySelector(`#${idGruposSearch}`);
                 const grpList = modal.querySelector(`#${idGruposList}`);
