@@ -182,7 +182,7 @@ export const LeadsManager = (project) => {
         try {
             // Fetch grupos and caracteristicas
             const [gruposRes, caracsRes] = await Promise.all([
-                fetch(`${API_BASE_URL}/marketing/grupos`, { headers: getHeaders() }),
+                fetch(`${API_BASE_URL}/marketing/grupos-leads`, { headers: getHeaders() }),
                 fetch(`${API_BASE_URL}/marketing/caracteristicas`, { headers: getHeaders() })
             ]);
 
@@ -225,7 +225,7 @@ export const LeadsManager = (project) => {
         try {
             // Fetch grupos and caracteristicas
             const [gruposRes, caracsRes] = await Promise.all([
-                fetch(`${API_BASE_URL}/marketing/grupos`, { headers: getHeaders() }),
+                fetch(`${API_BASE_URL}/marketing/grupos-leads`, { headers: getHeaders() }),
                 fetch(`${API_BASE_URL}/marketing/caracteristicas`, { headers: getHeaders() })
             ]);
 
