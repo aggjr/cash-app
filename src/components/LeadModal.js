@@ -51,7 +51,7 @@ export const LeadModal = {
                 const isChecked = selectedIds.includes(item.id);
                 return `
                                 <label class="zebra-row" data-item-name="${item.nome.toLowerCase()}" 
-                                    style="display: flex; align-items: center; gap: 0.75rem; padding: 0.6rem 0.75rem; cursor: pointer; 
+                                    style="display: flex; align-items: center; gap: 0.75rem; padding: 0.35rem 0.75rem; cursor: pointer; 
                                            background-color: ${bgColor}; border-bottom: 1px solid #E5E7EB; transition: background-color 0.15s;"
                                     onmouseenter="this.style.backgroundColor='#EDD8BB'" 
                                     onmouseleave="this.style.backgroundColor='${bgColor}'">
@@ -195,7 +195,7 @@ export const LeadModal = {
                     const label = document.createElement('label');
                     label.className = 'zebra-row';
                     label.dataset.itemName = val.valor.toLowerCase();
-                    label.style.cssText = `display: flex; align-items: center; gap: 0.75rem; padding: 0.6rem 0.75rem; cursor: pointer; background-color: ${bgColor}; border-bottom: 1px solid #E5E7EB; transition: background-color 0.15s;`;
+                    label.style.cssText = `display: flex; align-items: center; gap: 0.75rem; padding: 0.35rem 0.75rem; cursor: pointer; background-color: ${bgColor}; border-bottom: 1px solid #E5E7EB; transition: background-color 0.15s;`;
 
                     label.onmouseenter = () => label.style.backgroundColor = '#EDD8BB';
                     label.onmouseleave = () => label.style.backgroundColor = bgColor;
@@ -276,7 +276,7 @@ export const LeadModal = {
                     const label = document.createElement('label');
                     label.className = 'zebra-row';
                     label.dataset.itemName = c.nome.toLowerCase();
-                    label.style.cssText = `display: flex; align-items: center; gap: 0.75rem; padding: 0.6rem 0.75rem; cursor: pointer; background-color: ${bgColor}; border-bottom: 1px solid #E5E7EB; transition: background-color 0.15s;`;
+                    label.style.cssText = `display: flex; align-items: center; gap: 0.75rem; padding: 0.35rem 0.75rem; cursor: pointer; background-color: ${bgColor}; border-bottom: 1px solid #E5E7EB; transition: background-color 0.15s;`;
 
                     if (isActive) {
                         label.style.backgroundColor = '#DBEAFE';
