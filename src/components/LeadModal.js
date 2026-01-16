@@ -10,6 +10,7 @@ export const LeadModal = {
             const API_BASE_URL = getApiBaseUrl();
             const token = localStorage.getItem('token');
             const isEdit = !!lead;
+            console.log('LeadModal loaded - Version Fix 2');
 
             // IDs for elements
             const idGruposList = `grupos-list-${Date.now()}`;
