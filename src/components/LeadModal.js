@@ -27,6 +27,8 @@ export const LeadModal = {
             let activeCharId = null; // Currently selected char to show values
             let activeValueId = null; // Currently selected value for editing
             let valuesCache = {}; // charId -> [values]
+            let grpList = null;
+            let grpSearch = null;
 
             // Initialize selected characteristics and values
             if (lead?.caracteristicas_detalhadas) {
@@ -44,7 +46,44 @@ export const LeadModal = {
             }
 
             // --- UI Helpers ---
-            // --- UI Helpers ---
+
+            // Render Group Tree Viewer
+            const renderGroupsTree = () => {
+                if (!grpList) return;
+
+                const filter = grpSearch ? grpSearch.value : '';
+                grpList.innerHTML = renderGroupTreeViewer(filter);
+
+                // Re-attach listeners because innerHTML wipes them
+                // Toggle Listeners are inline/ID based (document.getElementById in onclick), so they work if IDs are stable.
+
+                // Delegation for Groups Tree
+                grpList.onchange = (e) => {
+                    if (e.target.type === 'checkbox' && e.target.id.startsWith('chk-')) {
+                        const id = parseInt(e.target.id.replace('chk-', ''));
+                        const group = grupos.find(g => g.id === id);
+                        if (group) {
+                            handleGroupCheckFormatted(group, e.target.checked);
+                        }
+                    }
+                };
+
+                grpList.onclick = (e) => {
+                    // Check if clicked element is a toggle button
+                    // Logic to handle button click delegation if needed, though inline onclick handles most:
+                    // But we used event listener before.
+
+                    // Actually, the inline onclick="document.getElementById('btn-toggle-${node.id}').click()" 
+                    // triggers the button's click event.
+
+                    if (e.target.id && e.target.id.startsWith('btn-toggle-')) {
+                        e.stopPropagation();
+                        const id = parseInt(e.target.id.replace('btn-toggle-', ''));
+                        toggleGroup(id);
+                    }
+                };
+            };
+
             // Build Tree from flat list
             const buildTree = (items) => {
                 console.log('Building tree from items:', items.length);
@@ -479,8 +518,18 @@ export const LeadModal = {
 
                     // Click to select for editing (separate from Checkbox/Radio if needed, but here sticking to row click)
                     label.onclick = (e) => {
-                        // If clicking input, don't toggle edit select? No, allow it.
                         activeValueId = val.id;
+
+                        // Update selection
+                        selectedCharValues[charId] = parseInt(val.id);
+
+                        // Auto-check characteristic if not already checked
+                        if (!selectedCharacteristics.has(charId)) {
+                            selectedCharacteristics.add(charId);
+                            const currentFilter = caracSearchEl.value;
+                            renderCharacteristics(currentFilter);
+                        }
+
                         renderValues(charId, values, charName);
                     };
 
@@ -627,50 +676,16 @@ export const LeadModal = {
                 renderCharacteristics();
 
                 // Groups Search & Initial Render
-                const grpSearch = modal.querySelector(`#${idGruposSearch}`);
-                const grpList = modal.querySelector(`#${idGruposList}`);
-
-                // Helper to re-render tree ONLY
-                const renderGroupsTree = () => {
-                    if (grpList) {
-                        grpList.innerHTML = renderGroupTreeViewer(grpSearch ? grpSearch.value : '');
-
-                        // Re-attach listeners because innerHTML wipes them
-                        // Toggle Listeners are inline/ID based (document.getElementById in onclick), so they work if IDs are stable.
-                        // Actually inline onclick="document.getElementById..." works.
-                        // But we need to attach Checkbox listeners manually or use global delegation.
-                        // Let's use delegation on the container!
-                    }
-                };
-
-                // Delegation for Groups Tree
-                if (grpList) {
-                    grpList.addEventListener('change', (e) => {
-                        if (e.target.type === 'checkbox' && e.target.id.startsWith('chk-')) {
-                            const id = parseInt(e.target.id.replace('chk-', ''));
-                            const group = grupos.find(g => g.id === id);
-                            if (group) {
-                                handleGroupCheckFormatted(group, e.target.checked);
-                            }
-                        }
-                    });
-
-                    // Toggle Delegator (The expand button)
-                    grpList.addEventListener('click', (e) => {
-                        // Check if clicked element is a toggle button
-                        if (e.target.id && e.target.id.startsWith('btn-toggle-')) {
-                            e.stopPropagation(); // prevent label click if nested?
-                            const id = parseInt(e.target.id.replace('btn-toggle-', ''));
-                            toggleGroup(id);
-                        }
-                    });
-                }
+                grpSearch = modal.querySelector(`#${idGruposSearch}`);
+                grpList = modal.querySelector(`#${idGruposList}`);
 
                 if (grpSearch) {
                     grpSearch.addEventListener('input', (e) => {
                         renderGroupsTree();
                     });
                 }
+
+                renderGroupsTree(); // Initial Render
 
                 renderGroupsTree(); // Initial Render
 
@@ -876,8 +891,7 @@ export const LeadModal = {
                     return;
                 }
 
-                const selectedGrupos = Array.from(modal.querySelector(`#${idGruposList}`).querySelectorAll('input:checked'))
-                    .map(cb => parseInt(cb.value));
+                const selectedGrupos = Array.from(currentLeadGroups).map(id => parseInt(id));
 
                 // Build characteristics array with values
                 const finalCaracteristicas = Array.from(selectedCharacteristics).map(charId => ({
