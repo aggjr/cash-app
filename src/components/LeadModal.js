@@ -343,7 +343,7 @@ export const LeadModal = {
                         </div>
 
                         <div class="form-group">
-                             <label>Grupos</label> <!-- Renamed from Grupos de Interesse -->
+                             <label>Grupos que é integrante</label>
                              <div style="background: white; border: 1px solid var(--color-border-light); border-radius: 6px; overflow: hidden;">
                                 <div style="padding: 0.75rem; background: var(--color-bg-secondary); border-bottom: 1px solid var(--color-border-light);">
                                     <input type="text" id="${idGruposSearch}" class="form-input" placeholder="🔍 Buscar Grupos..." 
