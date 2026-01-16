@@ -212,7 +212,9 @@ export const LeadModal = {
                         // Auto-check characteristic if not already checked
                         if (!selectedCharacteristics.has(charId)) {
                             selectedCharacteristics.add(charId);
-                            renderCharacteristics();
+                            // Re-render characteristics interacting properly with search filter
+                            const currentFilter = caracSearchEl.value;
+                            renderCharacteristics(currentFilter);
                         }
                     };
 
@@ -304,7 +306,12 @@ export const LeadModal = {
                             loadValues(c.id, c.nome);
                         } else {
                             selectedCharacteristics.delete(c.id);
-                            delete selectedCharValues[c.id];
+                            selectedCharValues[c.id] = null; // Clear selected value
+
+                            // If this is the active characteristic, re-render values to clear radio selection
+                            if (activeCharId === c.id && valuesCache[c.id]) {
+                                renderValues(c.id, valuesCache[c.id], c.nome);
+                            }
                         }
                     };
 
