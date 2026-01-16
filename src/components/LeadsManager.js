@@ -179,45 +179,89 @@ export const LeadsManager = (project) => {
     };
 
     const createLead = async () => {
-        await LeadModal.show({
-            lead: null,
-            onSave: async (leadData) => {
-                const response = await fetch(`${API_BASE_URL}/marketing/leads`, {
-                    method: 'POST',
-                    headers: getHeaders(),
-                    body: JSON.stringify(leadData)
-                });
+        try {
+            // Fetch grupos and caracteristicas
+            const [gruposRes, caracsRes] = await Promise.all([
+                fetch(`${API_BASE_URL}/marketing/grupos`, { headers: getHeaders() }),
+                fetch(`${API_BASE_URL}/marketing/caracteristicas`, { headers: getHeaders() })
+            ]);
 
-                if (response.ok) {
-                    showToast('Lead criado com sucesso!', 'success');
-                    loadLeads();
-                } else {
-                    const error = await response.json();
-                    throw new Error(error.error || 'Erro ao criar lead');
-                }
+            if (!gruposRes.ok || !caracsRes.ok) {
+                throw new Error('Erro ao carregar dados para o formulário');
             }
-        });
+
+            const grupos = await gruposRes.json();
+            const caracteristicas = await caracsRes.json();
+
+            console.log('Loaded grupos:', grupos.length, 'caracteristicas:', caracteristicas.length);
+
+            await LeadModal.show({
+                lead: null,
+                grupos: grupos,
+                caracteristicas: caracteristicas,
+                onSave: async (leadData) => {
+                    const response = await fetch(`${API_BASE_URL}/marketing/leads`, {
+                        method: 'POST',
+                        headers: getHeaders(),
+                        body: JSON.stringify(leadData)
+                    });
+
+                    if (response.ok) {
+                        showToast('Lead criado com sucesso!', 'success');
+                        loadLeads();
+                    } else {
+                        const error = await response.json();
+                        throw new Error(error.error || 'Erro ao criar lead');
+                    }
+                }
+            });
+        } catch (error) {
+            console.error('Error in createLead:', error);
+            showToast(error.message || 'Erro ao abrir formulário', 'error');
+        }
     };
 
     const updateLead = async (lead) => {
-        await LeadModal.show({
-            lead: lead,
-            onSave: async (leadData) => {
-                const response = await fetch(`${API_BASE_URL}/marketing/leads/${lead.id}`, {
-                    method: 'PUT',
-                    headers: getHeaders(),
-                    body: JSON.stringify(leadData)
-                });
+        try {
+            // Fetch grupos and caracteristicas
+            const [gruposRes, caracsRes] = await Promise.all([
+                fetch(`${API_BASE_URL}/marketing/grupos`, { headers: getHeaders() }),
+                fetch(`${API_BASE_URL}/marketing/caracteristicas`, { headers: getHeaders() })
+            ]);
 
-                if (response.ok) {
-                    showToast('Lead atualizado com sucesso!', 'success');
-                    loadLeads();
-                } else {
-                    const error = await response.json();
-                    throw new Error(error.error || 'Erro ao atualizar lead');
-                }
+            if (!gruposRes.ok || !caracsRes.ok) {
+                throw new Error('Erro ao carregar dados para o formulário');
             }
-        });
+
+            const grupos = await gruposRes.json();
+            const caracteristicas = await caracsRes.json();
+
+            console.log('Loaded grupos:', grupos.length, 'caracteristicas:', caracteristicas.length);
+
+            await LeadModal.show({
+                lead: lead,
+                grupos: grupos,
+                caracteristicas: caracteristicas,
+                onSave: async (leadData) => {
+                    const response = await fetch(`${API_BASE_URL}/marketing/leads/${lead.id}`, {
+                        method: 'PUT',
+                        headers: getHeaders(),
+                        body: JSON.stringify(leadData)
+                    });
+
+                    if (response.ok) {
+                        showToast('Lead atualizado com sucesso!', 'success');
+                        loadLeads();
+                    } else {
+                        const error = await response.json();
+                        throw new Error(error.error || 'Erro ao atualizar lead');
+                    }
+                }
+            });
+        } catch (error) {
+            console.error('Error in updateLead:', error);
+            showToast(error.message || 'Erro ao abrir formulário', 'error');
+        }
     };
 
     const deleteLead = async (id, nome) => {
