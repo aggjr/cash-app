@@ -1,4 +1,6 @@
 import { showToast } from '../utils/toast.js';
+import { showToast } from '../utils/toast.js';
+import { Dialogs } from './Dialogs.js';
 import { getApiBaseUrl } from '../utils/apiConfig.js';
 
 export const LeadModal = {
@@ -13,6 +15,9 @@ export const LeadModal = {
             const idGruposSearch = `grupos-search-${Date.now()}`;
             const idCaracList = `caracs-list-${Date.now()}`;
             const idCaracSearch = `caracs-search-${Date.now()}`;
+
+            // Ensure Dialogs initialized
+            Dialogs.init();
 
             // State
             const leadGruposIds = lead?.grupos || [];
@@ -705,7 +710,7 @@ export const LeadModal = {
 
                 // Add Char
                 modal.querySelector('#btn-add-char').onclick = async () => {
-                    const name = prompt("Nome da nova Característica:");
+                    const name = await Dialogs.prompt("Nome da nova Característica:", "", "Nova Característica");
                     if (name) {
                         const res = await manageApi('/marketing/caracteristicas', 'POST', { nome: name });
                         if (res) {
@@ -719,7 +724,7 @@ export const LeadModal = {
                 modal.querySelector('#btn-edit-char').onclick = async () => {
                     if (!activeCharId) return showToast('info', 'Selecione uma característica para editar');
                     const char = caracteristicas.find(c => c.id == activeCharId);
-                    const name = prompt("Novo nome:", char?.nome);
+                    const name = await Dialogs.prompt("Novo nome:", char?.nome, "Editar Característica");
                     if (name) {
                         const res = await manageApi(`/marketing/caracteristicas/${activeCharId}`, 'PUT', { nome: name });
                         if (res) {
@@ -732,7 +737,11 @@ export const LeadModal = {
                 // Delete Char
                 modal.querySelector('#btn-del-char').onclick = async () => {
                     if (!activeCharId) return showToast('info', 'Selecione uma característica para deletar');
-                    if (confirm("Tem certeza? Se houver uso, ela será apenas inativada.")) {
+                    const confirmed = await Dialogs.confirm(
+                        "Tem certeza? Se houver uso, ela será apenas inativada.",
+                        "Excluir Característica"
+                    );
+                    if (confirmed) {
                         // We assume backend handles Smart Delete (Soft/Hard check)
                         const res = await manageApi(`/marketing/caracteristicas/${activeCharId}`, 'DELETE');
                         if (res) {
@@ -750,7 +759,7 @@ export const LeadModal = {
                 // Add Value
                 modal.querySelector('#btn-add-val').onclick = async () => {
                     if (!activeCharId) return showToast('info', 'Selecione uma característica primeiro');
-                    const name = prompt("Nome do novo Valor:");
+                    const name = await Dialogs.prompt("Nome do novo Valor:", "", "Novo Valor");
                     if (name) {
                         const res = await manageApi(`/marketing/caracteristicas/${activeCharId}/valores`, 'POST', { valor: name });
                         if (res) {
@@ -767,7 +776,7 @@ export const LeadModal = {
                     if (!activeValueId) return showToast('info', 'Selecione um valor para editar');
                     const vals = valuesCache[activeCharId];
                     const val = vals.find(v => v.id == activeValueId);
-                    const name = prompt("Novo nome:", val?.valor);
+                    const name = await Dialogs.prompt("Novo nome:", val?.valor, "Editar Valor");
                     if (name) {
                         // Assuming generic value update endpoint or nested
                         // Trying nested: PUT /marketing/caracteristicas/{charId}/valores/{valId}
@@ -785,7 +794,8 @@ export const LeadModal = {
                 // Delete Value
                 modal.querySelector('#btn-del-val').onclick = async () => {
                     if (!activeValueId) return showToast('info', 'Selecione um valor para deletar');
-                    if (confirm("Tem certeza?")) {
+                    const confirmed = await Dialogs.confirm("Tem certeza?", "Excluir Valor");
+                    if (confirmed) {
                         const res = await manageApi(`/marketing/caracteristicas/${activeCharId}/valores/${activeValueId}`, 'DELETE');
                         if (res) {
                             const vals = valuesCache[activeCharId];
