@@ -44,7 +44,7 @@ exports.getById = async (req, res) => {
 // Criar nova característica
 exports.create = async (req, res) => {
     try {
-        const { nome, descricao } = req.body;
+        const { nome, descricao, valores } = req.body;
 
         if (!nome) {
             return res.status(400).json({ error: 'Nome é obrigatório' });
@@ -55,9 +55,18 @@ exports.create = async (req, res) => {
             [nome, descricao || null]
         );
 
+        const newId = result.insertId;
+
+        // Insert values if present
+        if (valores && Array.isArray(valores) && valores.length > 0) {
+            const valuesSql = 'INSERT INTO caracteristica_valores (caracteristica_id, valor) VALUES ?';
+            const valuesData = valores.map(v => [newId, v.valor]); // v is {valor: 'x'} from frontend
+            await db.query(valuesSql, [valuesData]);
+        }
+
         const [novaCaracteristica] = await db.query(
             'SELECT * FROM caracteristicas WHERE id = ?',
-            [result.insertId]
+            [newId]
         );
 
         res.status(201).json(novaCaracteristica[0]);
@@ -154,5 +163,57 @@ exports.getGrupos = async (req, res) => {
     } catch (error) {
         console.error('Erro ao buscar grupos da característica:', error);
         res.status(500).json({ error: 'Erro ao buscar grupos' });
+    }
+};
+
+// --- VALORES ---
+
+// Listar valores de uma característica
+exports.getValues = async (req, res) => {
+    try {
+        const { id } = req.params;
+        const [valores] = await db.query(
+            'SELECT * FROM caracteristica_valores WHERE caracteristica_id = ? ORDER BY ordem, valor',
+            [id]
+        );
+        res.json(valores);
+    } catch (error) {
+        console.error('Erro ao buscar valores:', error);
+        res.status(500).json({ error: 'Erro ao buscar valores' });
+    }
+};
+
+// Adicionar valor
+exports.addValue = async (req, res) => {
+    try {
+        const { id } = req.params;
+        const { valor } = req.body;
+
+        if (!valor) return res.status(400).json({ error: 'Valor é obrigatório' });
+
+        const [result] = await db.query(
+            'INSERT INTO caracteristica_valores (caracteristica_id, valor) VALUES (?, ?)',
+            [id, valor]
+        );
+
+        res.status(201).json({ id: result.insertId, caracteristica_id: id, valor });
+    } catch (error) {
+        if (error.code === 'ER_DUP_ENTRY') {
+            return res.status(409).json({ error: 'Este valor já existe para esta característica' });
+        }
+        console.error('Erro ao adicionar valor:', error);
+        res.status(500).json({ error: 'Erro ao adicionar valor' });
+    }
+};
+
+// Remover valor
+exports.removeValue = async (req, res) => {
+    try {
+        const { id } = req.params; // ID do valor
+        await db.query('DELETE FROM caracteristica_valores WHERE id = ?', [id]);
+        res.json({ message: 'Valor removido com sucesso' });
+    } catch (error) {
+        console.error('Erro ao remover valor:', error);
+        res.status(500).json({ error: 'Erro ao remover valor' });
     }
 };

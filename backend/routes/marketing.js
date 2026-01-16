@@ -15,6 +15,9 @@ router.post('/caracteristicas', caracteristicasController.create);
 router.put('/caracteristicas/:id', caracteristicasController.update);
 router.delete('/caracteristicas/:id', caracteristicasController.delete);
 router.get('/caracteristicas/:id/grupos', caracteristicasController.getGrupos);
+router.get('/caracteristicas/:id/valores', caracteristicasController.getValues);
+router.post('/caracteristicas/:id/valores', caracteristicasController.addValue);
+router.delete('/caracteristicas/valores/:id', caracteristicasController.removeValue);
 
 // ============================================
 // GRUPOS DE LEADS
