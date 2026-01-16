@@ -1,5 +1,4 @@
 import { showToast } from '../utils/toast.js';
-import { showToast } from '../utils/toast.js';
 import { Dialogs } from './Dialogs.js';
 import { CaracteristicaModal } from './CaracteristicaModal.js';
 import { getApiBaseUrl } from '../utils/apiConfig.js';
