@@ -576,6 +576,8 @@ export const FechamentoContasManager = (project) => {
 
         // View Mode Toggle
         const modeDiv = document.createElement('div');
+        modeDiv.style.minWidth = '150px'; // Match other inputs
+
         const modeLabel = document.createElement('label');
         modeLabel.textContent = 'Visão';
         modeLabel.style.display = 'block';
@@ -589,24 +591,27 @@ export const FechamentoContasManager = (project) => {
         toggleContainer.style.backgroundColor = '#e5e7eb';
         toggleContainer.style.borderRadius = '6px';
         toggleContainer.style.padding = '2px';
+        toggleContainer.style.height = '38px'; // Match form-input height
 
         const btnMonthly = document.createElement('button');
         btnMonthly.textContent = 'Mensal';
-        btnMonthly.style.padding = '4px 12px';
+        btnMonthly.style.padding = '0 12px';
         btnMonthly.style.border = 'none';
         btnMonthly.style.borderRadius = '4px';
         btnMonthly.style.cursor = 'pointer';
         btnMonthly.style.flex = '1';
-        btnMonthly.style.fontSize = '0.85rem';
+        btnMonthly.style.fontSize = '0.9rem';
+        btnMonthly.style.fontWeight = '500';
 
         const btnDaily = document.createElement('button');
-        btnDaily.textContent = 'Diária';
-        btnDaily.style.padding = '4px 12px';
+        btnDaily.textContent = 'Diário';
+        btnDaily.style.padding = '0 12px';
         btnDaily.style.border = 'none';
         btnDaily.style.borderRadius = '4px';
         btnDaily.style.cursor = 'pointer';
         btnDaily.style.flex = '1';
-        btnDaily.style.fontSize = '0.85rem';
+        btnDaily.style.fontSize = '0.9rem';
+        btnDaily.style.fontWeight = '500';
 
         const updateToggle = () => {
             if (viewMode === 'monthly') {
