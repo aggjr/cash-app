@@ -37,33 +37,274 @@ export const LeadModal = {
             }
 
             // --- UI Helpers ---
-            // Zebra-striped checkbox list for Groups
-            const renderZebraList = (items, selectedIds, listId, searchId) => `
-                <div style="background: white; border: 1px solid var(--color-border-light); border-radius: 6px; overflow: hidden;">
-                    <div style="padding: 0.75rem; background: var(--color-bg-secondary); border-bottom: 1px solid var(--color-border-light);">
-                        <input type="text" id="${searchId}" class="form-input" placeholder="🔍 Buscar..." 
-                            style="padding: 0.5rem; font-size: 0.9rem; margin: 0; width: 100%; border: 1px solid var(--color-border-light);" />
-                    </div>
-                    <div id="${listId}" style="max-height: 200px; overflow-y: auto;">
-                        ${items.map((item, index) => {
-                const isEven = index % 2 === 0;
-                const bgColor = isEven ? '#FFFFFF' : '#F3F4F6';
-                const isChecked = selectedIds.includes(item.id);
-                return `
-                                <label class="zebra-row" data-item-name="${item.nome.toLowerCase()}" 
-                                    style="display: flex; align-items: center; gap: 0.75rem; padding: 0.35rem 0.75rem; cursor: pointer; 
-                                           background-color: ${bgColor}; border-bottom: 1px solid #E5E7EB; transition: background-color 0.15s;"
-                                    onmouseenter="this.style.backgroundColor='#EDD8BB'" 
-                                    onmouseleave="this.style.backgroundColor='${bgColor}'">
-                                    <input type="checkbox" value="${item.id}" ${isChecked ? 'checked' : ''} 
-                                        style="accent-color: var(--color-primary); width: 16px; height: 16px; cursor: pointer; margin: 0;">
-                                    <span style="font-size: 0.95rem; color: var(--color-text-primary);">${item.nome}</span>
-                                </label>
-                            `;
-            }).join('')}
-                    </div>
-                </div>
-            `;
+            // --- UI Helpers ---
+            // Build Tree from flat list
+            const buildTree = (items) => {
+                const rootItems = [];
+                const lookup = {};
+                items.forEach(item => {
+                    item.children = [];
+                    item.allDescendants = []; // For easy cascading
+                    lookup[item.id] = item;
+                });
+                items.forEach(item => {
+                    if (item.parent_id && lookup[item.parent_id]) {
+                        lookup[item.parent_id].children.push(item);
+                    } else {
+                        rootItems.push(item);
+                    }
+                });
+
+                // Helper to populate allDescendants
+                const populateDescendants = (node) => {
+                    node.children.forEach(child => {
+                        node.allDescendants.push(child.id);
+                        populateDescendants(child);
+                        node.allDescendants.push(...child.allDescendants);
+                    });
+                };
+                rootItems.forEach(populateDescendants);
+
+                return rootItems;
+            };
+
+            const expandedGroups = new Set();
+            // Default expand roots
+            // (Optional: expand all initially? or just roots?)
+
+            const currentLeadGroups = new Set(leadGruposIds.map(String)); // Ensure strings for comparison
+
+            const toggleGroup = (id) => {
+                if (expandedGroups.has(id)) expandedGroups.delete(id);
+                else expandedGroups.add(id);
+                renderGroupsTree(); // Re-render
+            };
+
+            const handleGroupCheck = (group, isChecked) => {
+                // 1. Handle current node
+                if (isChecked) currentLeadGroups.add(String(group.id));
+                else currentLeadGroups.delete(String(group.id));
+
+                // 2. Cascade Down (Select/Deselect all children)
+                const cascadeDown = (node) => {
+                    node.children.forEach(child => {
+                        if (isChecked) currentLeadGroups.add(String(child.id));
+                        else currentLeadGroups.delete(String(child.id));
+                        cascadeDown(child);
+                    });
+                };
+                cascadeDown(group);
+
+                // 3. Cascade Up (If deselecting last child, deselect parent. If selecting all children, select parent)
+                // Actually user said: "quando desmarcar o checkbox de todos os nós filhos, desmarcar o nó pai"
+                // And standard logic: if uncheck child, uncheck parent (because parent implies ALL). 
+                // Let's implement robust verifyUp:
+
+                // We need to find the parent. Since we don't have direct parent link easily accessible in the recursion without searching,
+                // we can rely on the flat list or lookup if we kept it.
+                // Simple approach: Re-verify all parents state based on children.
+                // Or just loop the flat 'grupos' list to find parent.
+
+                if (!isChecked) {
+                    // If unchecking, uncheck all ancestors
+                    let curr = group;
+                    while (curr.parent_id) {
+                        const parent = grupos.find(g => g.id == curr.parent_id);
+                        if (parent) {
+                            currentLeadGroups.delete(String(parent.id));
+                            curr = parent;
+                        } else break;
+                    }
+                } else {
+                    // If checking, check parent ONLY IF all siblings are checked? 
+                    // Or usually checking a child should PARTIALLY check parent. 
+                    // But we don't have partial state request.
+                    // User said: "Ao marcar um nó pai, marcar todos os nós filhos".
+                    // User said: "quando desmarcar o ckeckbox de todos os nós filhos, desmarcar o nó pai".
+                    // This implies if I have 3 children, and I deselect 1, parent is NOT deselected yet? 
+                    // "desmarcar o checkbox de TODOS os nós filhos" -> implies waiting for the last one.
+                    // OK.
+
+                    if (group.parent_id) {
+                        const parent = grupos.find(g => g.id == group.parent_id);
+                        if (parent) {
+                            // Check if all siblings are unchecked? 
+                            // Wait, user said "When deselect ALL children, deselect parent".
+                            // Means if 1 is checked, parent stays checked?
+                            // That sounds like "Parent = At least one child".
+                            // BUT "Selecting Parent -> Selects ALL children". This is contradictory if Parent = At least one.
+                            // Usually:
+                            // Parent Selected = All Children Selected.
+                            // Parent Deselected = At least one child Deselected.
+                            // Parent Indeterminate = Some children selected.
+
+                            // Let's stick to strict Hierarchical Sets if possible, or loose "Folder" logic.
+                            // User Request literal: "desmarcar o checkbox de TODOS os nós filhos, desmarcar o nó pai"
+                            // This implies that if 1 child is checked, parent REMAINS checked.
+                            // This means Parent logic is "Are any children checked? Then I am checked".
+                            // BUT "Checking Parent -> Checks ALL children".
+                            // This is "Union" logic. 
+
+                            // Let's implement:
+                            // Check Parent -> Check All Children.
+                            // Check Child -> Check Parent (because parent represents the group presence).
+                            // Uncheck Child -> Check if any other children are checked. If NONE, uncheck Parent.
+
+                            currentLeadGroups.add(String(parent.id)); // Auto-check parent if child checked
+
+                            // We might need to propagate this up
+                        }
+                    }
+                }
+
+                renderGroupsTree();
+            };
+
+            // Check if any child of a parent is checked to keep parent checked (for Uncheck event)
+            const reevaluateParentState = (parentId) => {
+                const parent = grupos.find(g => g.id == parentId);
+                if (!parent) return;
+
+                const children = grupos.filter(g => g.parent_id == parentId);
+                const hasCheckedChild = children.some(c => currentLeadGroups.has(String(c.id)));
+
+                if (!hasCheckedChild) {
+                    currentLeadGroups.delete(String(parentId));
+                    if (parent.parent_id) reevaluateParentState(parent.parent_id);
+                }
+            };
+
+            // Refined Check Handler using the specific logic requested
+            const handleGroupCheckFormatted = (group, isChecked) => {
+                const strId = String(group.id);
+
+                if (isChecked) {
+                    currentLeadGroups.add(strId);
+                    // Cascade Down: Check all children
+                    const cascadeSelect = (node) => {
+                        // Find children in flat list for robustness
+                        const children = grupos.filter(g => g.parent_id == node.id);
+                        children.forEach(c => {
+                            currentLeadGroups.add(String(c.id));
+                            cascadeSelect(c);
+                        });
+                    };
+                    cascadeSelect(group);
+
+                    // Cascade Up: Check parent (because now this group is active)
+                    // "Marcar um pai marca os filhos". User didn't explicitly say "Marcar um filho marca o pai",
+                    // but usually yes for "Folders". If I am in a subfolder, I am in the folder.
+                    let curr = group;
+                    while (curr.parent_id) {
+                        const parent = grupos.find(g => g.id == curr.parent_id);
+                        if (parent) {
+                            currentLeadGroups.add(String(parent.id));
+                            curr = parent;
+                        } else break;
+                    }
+
+                } else {
+                    currentLeadGroups.delete(strId);
+                    // Cascade Down: Deselect all children
+                    // Logical consequence: if I leave the folder, I leave subfolders?
+                    // User said "Ao marcar um nó pai, marcar todos". Didn't say uncheck.
+                    // But usually yes. Let's uncheck children.
+                    const cascadeDeselect = (node) => {
+                        const children = grupos.filter(g => g.parent_id == node.id);
+                        children.forEach(c => {
+                            currentLeadGroups.delete(String(c.id));
+                            cascadeDeselect(c);
+                        });
+                    };
+                    cascadeDeselect(group);
+
+                    // Cascade Up: "Quando desmarcar checkbox de TODOS os nós filhos, desmarcar o nó pai"
+                    if (group.parent_id) {
+                        reevaluateParentState(group.parent_id);
+                    }
+                }
+                renderGroupsTree();
+            };
+
+
+            const renderGroupTreeViewer = (filter = '') => {
+                const term = filter.toLowerCase();
+                const tree = buildTree(grupos);
+
+                // Helper to render a node
+                const renderNode = (node, level = 0) => {
+                    // Filter Logic:
+                    // Show if:
+                    // 1. Name matches (highlight?)
+                    // 2. A child matches (then expand self)
+                    // 3. A parent matched (so show self) -> Implicit in tree traversal if we don't prune.
+
+                    const nameMatch = node.nome.toLowerCase().includes(term);
+                    const childrenNodes = grupos.filter(g => g.parent_id == node.id);
+                    const hasMatchingDescendant = (n) => {
+                        const kids = grupos.filter(g => g.parent_id == n.id);
+                        if (n.nome.toLowerCase().includes(term)) return true;
+                        return kids.some(k => hasMatchingDescendant(k));
+                    };
+                    const childMatches = hasMatchingDescendant(node);
+
+                    if (term && !nameMatch && !childMatches) return ''; // Hide if no match in branch
+
+                    // Auto-expand if filtering and has matching kids
+                    if (term && childMatches) expandedGroups.add(node.id);
+
+                    const isExpanded = expandedGroups.has(node.id);
+                    const isChecked = currentLeadGroups.has(String(node.id));
+                    const hasChildren = childrenNodes.length > 0;
+
+                    const indent = level * 1.2; // rem
+
+                    let html = `
+                        <div class="tree-row" 
+                            style="display: flex; align-items: center; padding: 0.2rem 0.5rem; transition: background-color 0.1s; 
+                                   border-bottom: 1px solid var(--color-border-light);"
+                            onmouseenter="this.style.backgroundColor='#F9FAFB'" 
+                            onmouseleave="this.style.backgroundColor='transparent'">
+                            
+                            <div style="width: ${indent}rem;"></div>
+                            
+                            <!-- Toggle Icon -->
+                            <div style="width: 20px; display: flex; justify-content: center; cursor: pointer; margin-right: 4px;"
+                                 onclick="document.getElementById('btn-toggle-${node.id}').click()">
+                                <button id="btn-toggle-${node.id}" type="button" 
+                                    style="background:none; border:none; cursor:pointer; font-size: 0.7rem; color: #6B7280; visibility: ${hasChildren ? 'visible' : 'hidden'};"
+                                >
+                                    ${isExpanded ? '▼' : '▶'}
+                                </button>
+                            </div>
+                            
+                            <!-- Checkbox -->
+                            <input type="checkbox" id="chk-${node.id}" 
+                                ${isChecked ? 'checked' : ''}
+                                style="accent-color: var(--color-primary); width: 14px; height: 14px; cursor: pointer; margin-right: 8px;"
+                            />
+                            
+                            <!-- Label -->
+                            <label for="chk-${node.id}" style="display: flex; align-items: center; cursor: pointer; flex: 1;">
+                                <span style="margin-right: 6px; font-size: 1rem;">📂</span>
+                                <span style="font-size: 0.9rem; color: var(--color-text-primary); ${nameMatch && term ? 'font-weight:bold; background:#FEF3C7;' : ''}">
+                                    ${node.nome}
+                                </span>
+                            </label>
+                        </div>
+                    `;
+
+                    if (isExpanded && hasChildren) {
+                        const sortedChildren = childrenNodes.sort((a, b) => a.nome.localeCompare(b.nome));
+                        html += sortedChildren.map(child => renderNode(child, level + 1)).join('');
+                    }
+
+                    return html;
+                };
+
+                const sortedRoots = tree.sort((a, b) => a.nome.localeCompare(b.nome));
+                return sortedRoots.map(root => renderNode(root)).join('');
+            };
 
             const container = document.body;
             const overlay = document.createElement('div');
@@ -102,8 +343,16 @@ export const LeadModal = {
                         </div>
 
                         <div class="form-group">
-                             <label>Grupos de Interesse</label>
-                             ${renderZebraList(grupos, leadGruposIds, idGruposList, idGruposSearch)}
+                             <label>Grupos</label> <!-- Renamed from Grupos de Interesse -->
+                             <div style="background: white; border: 1px solid var(--color-border-light); border-radius: 6px; overflow: hidden;">
+                                <div style="padding: 0.75rem; background: var(--color-bg-secondary); border-bottom: 1px solid var(--color-border-light);">
+                                    <input type="text" id="${idGruposSearch}" class="form-input" placeholder="🔍 Buscar Grupos..." 
+                                        style="padding: 0.5rem; font-size: 0.9rem; margin: 0; width: 100%; border: 1px solid var(--color-border-light);" />
+                                </div>
+                                <div id="${idGruposList}" style="max-height: 300px; overflow-y: auto;">
+                                    <!-- Tree will render here -->
+                                </div>
+                             </div>
                         </div>
 
                         <!-- DUAL COLUMN CHARACTERISTICS & VALUES -->
@@ -339,18 +588,53 @@ export const LeadModal = {
                 console.log('Rendering characteristics:', caracteristicas.length);
                 renderCharacteristics();
 
-                // Groups Search
+                // Groups Search & Initial Render
                 const grpSearch = modal.querySelector(`#${idGruposSearch}`);
                 const grpList = modal.querySelector(`#${idGruposList}`);
-                if (grpSearch && grpList) {
-                    grpSearch.addEventListener('input', (e) => {
-                        const term = e.target.value.toLowerCase();
-                        grpList.querySelectorAll('.zebra-row').forEach(row => {
-                            const itemName = row.dataset.itemName || '';
-                            row.style.display = itemName.includes(term) ? 'flex' : 'none';
-                        });
+
+                // Helper to re-render tree ONLY
+                const renderGroupsTree = () => {
+                    if (grpList) {
+                        grpList.innerHTML = renderGroupTreeViewer(grpSearch ? grpSearch.value : '');
+
+                        // Re-attach listeners because innerHTML wipes them
+                        // Toggle Listeners are inline/ID based (document.getElementById in onclick), so they work if IDs are stable.
+                        // Actually inline onclick="document.getElementById..." works.
+                        // But we need to attach Checkbox listeners manually or use global delegation.
+                        // Let's use delegation on the container!
+                    }
+                };
+
+                // Delegation for Groups Tree
+                if (grpList) {
+                    grpList.addEventListener('change', (e) => {
+                        if (e.target.type === 'checkbox' && e.target.id.startsWith('chk-')) {
+                            const id = parseInt(e.target.id.replace('chk-', ''));
+                            const group = grupos.find(g => g.id === id);
+                            if (group) {
+                                handleGroupCheckFormatted(group, e.target.checked);
+                            }
+                        }
+                    });
+
+                    // Toggle Delegator (The expand button)
+                    grpList.addEventListener('click', (e) => {
+                        // Check if clicked element is a toggle button
+                        if (e.target.id && e.target.id.startsWith('btn-toggle-')) {
+                            e.stopPropagation(); // prevent label click if nested?
+                            const id = parseInt(e.target.id.replace('btn-toggle-', ''));
+                            toggleGroup(id);
+                        }
                     });
                 }
+
+                if (grpSearch) {
+                    grpSearch.addEventListener('input', (e) => {
+                        renderGroupsTree();
+                    });
+                }
+
+                renderGroupsTree(); // Initial Render
 
                 // Characteristics Search
                 caracSearchEl.addEventListener('input', (e) => {
