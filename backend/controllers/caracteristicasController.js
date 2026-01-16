@@ -252,3 +252,30 @@ exports.removeValue = async (req, res) => {
         res.status(500).json({ error: 'Erro ao remover valor' });
     }
 };
+
+// Atualizar valor
+exports.updateValue = async (req, res) => {
+    try {
+        const { id } = req.params; // ID do valor
+        const { valor } = req.body;
+
+        if (!valor) return res.status(400).json({ error: 'Valor é obrigatório' });
+
+        const [result] = await db.query(
+            'UPDATE caracteristica_valores SET valor = ? WHERE id = ?',
+            [valor, id]
+        );
+
+        if (result.affectedRows === 0) {
+            return res.status(404).json({ error: 'Valor não encontrado' });
+        }
+
+        res.json({ id, valor, message: 'Valor atualizado com sucesso' });
+    } catch (error) {
+        if (error.code === 'ER_DUP_ENTRY') {
+            return res.status(409).json({ error: 'Este valor já existe para esta característica' });
+        }
+        console.error('Erro ao atualizar valor:', error);
+        res.status(500).json({ error: 'Erro ao atualizar valor' });
+    }
+};

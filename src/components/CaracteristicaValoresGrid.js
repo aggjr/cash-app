@@ -5,7 +5,8 @@ export const CaracteristicaValoresGrid = {
         container.innerHTML = '';
         const state = {
             values: [...initialValues],
-            isProcessing: false
+            isProcessing: false,
+            editingId: null
         };
 
         const wrapper = document.createElement('div');
@@ -69,49 +70,141 @@ export const CaracteristicaValoresGrid = {
                 item.style.borderRadius = '4px';
                 item.style.border = '1px solid #dee2e6';
 
-                const textSpan = document.createElement('span');
-                textSpan.textContent = val.valor;
-                textSpan.style.fontSize = '0.9rem';
+                if (state.editingId === val.id) {
+                    // EDIT MODE
+                    const inputEdit = document.createElement('input');
+                    inputEdit.type = 'text';
+                    inputEdit.value = val.valor;
+                    inputEdit.className = 'form-input';
+                    inputEdit.style.flex = '1';
+                    inputEdit.style.padding = '0.25rem 0.5rem';
+                    inputEdit.style.marginRight = '0.5rem';
 
-                const deleteBtn = document.createElement('button');
-                deleteBtn.innerHTML = '🗑️';
-                deleteBtn.style.background = 'none';
-                deleteBtn.style.border = 'none';
-                deleteBtn.style.cursor = 'pointer';
-                deleteBtn.style.fontSize = '0.9rem';
-                deleteBtn.title = 'Remover';
+                    const actionsDiv = document.createElement('div');
+                    actionsDiv.style.display = 'flex';
+                    actionsDiv.style.gap = '0.25rem';
 
-                deleteBtn.onclick = async () => {
-                    if (state.isProcessing) return;
-                    if (!confirm(`Remover valor "${val.valor}"?`)) return;
+                    const saveBtn = document.createElement('button');
+                    saveBtn.innerHTML = '✅';
+                    saveBtn.title = 'Salvar';
+                    saveBtn.style.background = 'none';
+                    saveBtn.style.border = 'none';
+                    saveBtn.style.cursor = 'pointer';
 
-                    state.isProcessing = true;
-                    try {
-                        // Calls backend directly
-                        const response = await fetch(`${document.location.origin}/api/marketing/caracteristicas/valores/${val.id}`, {
-                            method: 'DELETE',
-                            headers: {
-                                'Authorization': `Bearer ${localStorage.getItem('token')}`
+                    const cancelBtn = document.createElement('button');
+                    cancelBtn.innerHTML = '❌';
+                    cancelBtn.title = 'Cancelar';
+                    cancelBtn.style.background = 'none';
+                    cancelBtn.style.border = 'none';
+                    cancelBtn.style.cursor = 'pointer';
+
+                    saveBtn.onclick = async () => {
+                        const novoValor = inputEdit.value.trim();
+                        if (!novoValor) return;
+                        if (state.isProcessing) return;
+
+                        state.isProcessing = true;
+                        try {
+                            const response = await fetch(`${document.location.origin}/api/marketing/caracteristicas/valores/${val.id}`, {
+                                method: 'PUT',
+                                headers: {
+                                    'Content-Type': 'application/json',
+                                    'Authorization': `Bearer ${localStorage.getItem('token')}`
+                                },
+                                body: JSON.stringify({ valor: novoValor })
+                            });
+
+                            if (response.ok) {
+                                val.valor = novoValor;
+                                state.editingId = null;
+                                renderList();
+                                showToast('Valor atualizado!', 'success');
+                            } else {
+                                throw new Error('Falha ao atualizar');
                             }
-                        });
-
-                        if (response.ok) {
-                            state.values = state.values.filter(v => v.id !== val.id);
-                            renderList();
-                            showToast('Valor removido', 'success');
-                        } else {
-                            throw new Error('Falha ao remover');
+                        } catch (e) {
+                            console.error(e);
+                            showToast('Erro ao atualizar', 'error');
+                        } finally {
+                            state.isProcessing = false;
                         }
-                    } catch (err) {
-                        showToast('Erro ao remover valor', 'error');
-                        console.error(err);
-                    } finally {
-                        state.isProcessing = false;
-                    }
-                };
+                    };
 
-                item.appendChild(textSpan);
-                item.appendChild(deleteBtn);
+                    cancelBtn.onclick = () => {
+                        state.editingId = null;
+                        renderList();
+                    };
+
+                    actionsDiv.appendChild(saveBtn);
+                    actionsDiv.appendChild(cancelBtn);
+                    item.appendChild(inputEdit);
+                    item.appendChild(actionsDiv);
+
+                } else {
+                    // VIEW MODE
+                    const textSpan = document.createElement('span');
+                    textSpan.textContent = val.valor;
+                    textSpan.style.fontSize = '0.9rem';
+
+                    const actionsDiv = document.createElement('div');
+                    actionsDiv.style.display = 'flex';
+                    actionsDiv.style.gap = '0.25rem';
+
+                    const editBtn = document.createElement('button');
+                    editBtn.innerHTML = '✏️';
+                    editBtn.style.background = 'none';
+                    editBtn.style.border = 'none';
+                    editBtn.style.cursor = 'pointer';
+                    editBtn.style.fontSize = '0.9rem';
+                    editBtn.title = 'Editar';
+
+                    const deleteBtn = document.createElement('button');
+                    deleteBtn.innerHTML = '🗑️';
+                    deleteBtn.style.background = 'none';
+                    deleteBtn.style.border = 'none';
+                    deleteBtn.style.cursor = 'pointer';
+                    deleteBtn.style.fontSize = '0.9rem';
+                    deleteBtn.title = 'Remover';
+
+                    editBtn.onclick = () => {
+                        state.editingId = val.id;
+                        renderList();
+                    };
+
+                    deleteBtn.onclick = async () => {
+                        if (state.isProcessing) return;
+                        if (!confirm(`Remover valor "${val.valor}"?`)) return;
+
+                        state.isProcessing = true;
+                        try {
+                            const response = await fetch(`${document.location.origin}/api/marketing/caracteristicas/valores/${val.id}`, {
+                                method: 'DELETE',
+                                headers: {
+                                    'Authorization': `Bearer ${localStorage.getItem('token')}`
+                                }
+                            });
+
+                            if (response.ok) {
+                                state.values = state.values.filter(v => v.id !== val.id);
+                                renderList();
+                                showToast('Valor removido', 'success');
+                            } else {
+                                throw new Error('Falha ao remover');
+                            }
+                        } catch (err) {
+                            showToast('Erro ao remover valor', 'error');
+                            console.error(err);
+                        } finally {
+                            state.isProcessing = false;
+                        }
+                    };
+
+                    actionsDiv.appendChild(editBtn);
+                    actionsDiv.appendChild(deleteBtn);
+                    item.appendChild(textSpan);
+                    item.appendChild(actionsDiv);
+                }
+
                 listContainer.appendChild(item);
             });
         };

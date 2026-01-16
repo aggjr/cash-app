@@ -184,6 +184,7 @@ loadErrorCatalog()
     .then(() => migrateMarketingTables()) // NEW: Marketing module tables
     .then(() => require('./migrations/update_leads_multirelations')()) // NEW: Multi-groups and characteristics support
     .then(() => require('./migrations/create_caracteristica_values')()) // NEW: Characteristic values support
+    .then(() => require('./migrations/update_leads_chars_values')()) // NEW: Lead characteristic selected values
     .then(() => startServer())
 
     .catch(err => {

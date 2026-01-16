@@ -17,6 +17,7 @@ router.delete('/caracteristicas/:id', caracteristicasController.delete);
 router.get('/caracteristicas/:id/grupos', caracteristicasController.getGrupos);
 router.get('/caracteristicas/:id/valores', caracteristicasController.getValues);
 router.post('/caracteristicas/:id/valores', caracteristicasController.addValue);
+router.put('/caracteristicas/valores/:id', caracteristicasController.updateValue);
 router.delete('/caracteristicas/valores/:id', caracteristicasController.removeValue);
 
 // ============================================
