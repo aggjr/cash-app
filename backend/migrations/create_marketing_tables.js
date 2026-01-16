@@ -130,7 +130,7 @@ async function createMarketingTables() {
 
   } catch (error) {
     console.error('❌ Erro ao criar tabelas de Marketing:', error.message);
-    // Não fazer throw para não quebrar a cadeia de migrations
+    throw error; // Re-throw para interromper cadeia
   }
 }
 

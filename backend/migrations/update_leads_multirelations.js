@@ -82,6 +82,7 @@ async function updateLeadsMultiRelations() {
 
     } catch (error) {
         console.error('❌ Erro na migração updateLeadsMultiRelations:', error);
+        throw error;
     }
 }
 

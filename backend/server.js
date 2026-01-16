@@ -75,6 +75,7 @@ apiRouter.use('/loans', require('./routes/loans'));
 apiRouter.use('/tts', ttsRoutes); // Google Cloud TTS
 apiRouter.use('/user-preferences', require('./routes/userPreferences'));
 apiRouter.use('/marketing', marketingRoutes); // Marketing module
+apiRouter.use('/integration', require('./routes/integration')); // External integrations (WhatsApp)
 apiRouter.use('/migration', require('./routes/migration')); // TEMPORARY: Auto-migration endpoint
 
 // Static Uploads Serving
