@@ -600,8 +600,9 @@ export const GruposLeadsManager = (project) => {
                         // selectGroup calls renderGroupsTree and updateLeadsTableSelection.
                         // Then we enter edit mode.
                         setTimeout(() => {
+                            console.log('Auto-entering edit mode for new group:', result.id);
                             enterEditMode();
-                        }, 200);
+                        }, 500);
                     }
 
                 } else {
