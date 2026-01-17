@@ -633,20 +633,6 @@ export const LeadsManager = (project) => {
         }
     });
 
-    // Initialize SharedTable
-    const tableContainer = container.querySelector('#table-container');
-    const footerElement = container.querySelector('#footer-summary');
-    sharedTable = new SharedTable({
-        container: tableContainer,
-        columns: columns,
-        data: [],
-        footer: footerElement,
-        enableSelection: true,
-        onSelectionChange: (items, set) => {
-            updateBulkBar(set.size);
-        }
-    });
-
     // Load data
     loadLeads();
 
