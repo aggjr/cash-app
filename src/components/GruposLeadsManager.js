@@ -2,7 +2,8 @@ import { SharedTable } from './SharedTable.js';
 import { showToast } from '../utils/toast.js';
 import { getApiBaseUrl } from '../utils/apiConfig.js';
 import { GrupoModal } from './GrupoModal.js';
-import { LeadModal } from './LeadModal.js'; // Full Modal
+import { LeadModal } from './LeadModal.js';
+import { SimpleLeadModal } from './SimpleLeadModal.js'; // Added import
 
 export const GruposLeadsManager = (project) => {
     const container = document.createElement('div');
@@ -672,6 +673,31 @@ export const GruposLeadsManager = (project) => {
                     } else {
                         const error = await response.json();
                         throw new Error(error.error || 'Erro ao criar lead');
+                    }
+                } catch (e) {
+                    showToast(e.message, 'error');
+                }
+            }
+        });
+    };
+
+    const updateSimpleLead = async (lead) => {
+        await SimpleLeadModal.show({
+            lead: lead,
+            onSave: async (leadData) => {
+                try {
+                    const response = await fetch(`${API_BASE_URL}/marketing/leads/${lead.id}`, {
+                        method: 'PUT',
+                        headers: getHeaders(),
+                        body: JSON.stringify(leadData)
+                    });
+
+                    if (response.ok) {
+                        showToast('Lead atualizado com sucesso!', 'success');
+                        loadData();
+                    } else {
+                        const error = await response.json();
+                        throw new Error(error.error || 'Erro ao atualizar lead');
                     }
                 } catch (e) {
                     showToast(e.message, 'error');
