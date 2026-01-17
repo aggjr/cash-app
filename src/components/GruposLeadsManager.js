@@ -847,8 +847,8 @@ export const GruposLeadsManager = (project) => {
         </button>
     `;
 
-    tableContainer.style.position = 'relative'; // Ensure relative for absolute placement
-    tableContainer.appendChild(bulkActionsContainer); // Append to table container to stay within panel
+    rightPanel.style.position = 'relative'; // Ensure relative for absolute placement
+    rightPanel.appendChild(bulkActionsContainer); // Append to Right Panel (stable) instead of Table Container (wiped)
 
     const updateBulkBar = (selectedCount) => {
         const countSpan = bulkActionsContainer.querySelector('#bulk-selected-count');

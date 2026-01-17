@@ -462,12 +462,6 @@ export const LeadsManager = (project) => {
         </button>
     `;
 
-    // Append to table container (must exist now)
-    const tableContainerEl = container.querySelector('#table-container');
-    if (tableContainerEl) {
-        tableContainerEl.appendChild(bulkActionsContainer);
-    }
-
     // Attach listener to bulk char button
     bulkActionsContainer.querySelector('#btn-bulk-char').addEventListener('click', () => {
         if (sharedTable && sharedTable.selection.size > 0) {
