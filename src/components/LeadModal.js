@@ -539,19 +539,27 @@ export const LeadModal = {
                     label.onmouseleave = () => label.style.backgroundColor = activeValueId === val.id ? '#E0F2FE' : bgColor;
 
                     // Click to select for editing (separate from Checkbox/Radio if needed, but here sticking to row click)
+                    // Click to select for editing
                     label.onclick = (e) => {
-                        activeValueId = val.id;
+                        // Prevent triggering if clicking radio directly (handled by radio.onclick bubbling? No, radio has stopProp)
+                        // But radio.onchange handles logic. 
+                        // If we click row, we want same logic.
 
-                        // Update selection
+                        activeValueId = val.id;
                         selectedCharValues[charId] = parseInt(val.id);
 
-                        // Auto-check characteristic if not already checked
-                        // Robust lookup to handle string/int mismatch
+                        // Auto-check logic
                         const charObj = caracteristicas.find(c => c.id == charId);
-                        if (charObj && !selectedCharacteristics.has(charObj.id)) {
-                            selectedCharacteristics.add(charObj.id);
-                            const currentFilter = caracSearchEl.value;
-                            renderCharacteristics(currentFilter);
+                        if (charObj) {
+                            if (!selectedCharacteristics.has(charObj.id)) {
+                                console.log('[LeadModal] Auto-checking characteristic:', charObj.nome);
+                                selectedCharacteristics.add(charObj.id);
+                                if (caracSearchEl) {
+                                    renderCharacteristics(caracSearchEl.value || '');
+                                } else {
+                                    renderCharacteristics();
+                                }
+                            }
                         }
 
                         renderValues(charId, values, charName);
@@ -565,18 +573,24 @@ export const LeadModal = {
                     radio.style.cssText = 'accent-color: var(--color-primary); width: 16px; height: 16px; cursor: pointer; margin: 0;';
 
                     radio.onchange = () => {
+                        console.log(`[LeadModal] Radio Change: Char ${charId} -> Val ${val.id}`);
                         selectedCharValues[charId] = parseInt(val.id);
-                        // Auto-check characteristic if not already checked
+
                         const charObj = caracteristicas.find(c => c.id == charId);
-                        if (charObj && !selectedCharacteristics.has(charObj.id)) {
-                            // Re-render characteristics interacting properly with search filter
-                            const currentFilter = caracSearchEl.value;
-                            renderCharacteristics(currentFilter);
+                        if (charObj) {
+                            if (!selectedCharacteristics.has(charObj.id)) {
+                                console.log('[LeadModal] Auto-checking characteristic (via radio):', charObj.nome);
+                                selectedCharacteristics.add(charObj.id);
+                                if (caracSearchEl) {
+                                    renderCharacteristics(caracSearchEl.value || '');
+                                } else {
+                                    renderCharacteristics();
+                                }
+                            }
                         }
-                        console.log(`LeadModal: Selected Value Change [Radio] Char ${charId} -> Val ${val.id}`);
                     };
 
-                    // Stop propagation on radio click to allow native behavior but also bubble to row?
+                    // Stop propagation so row click doesn't double-trigger (though row click sets same state)
                     radio.onclick = (e) => e.stopPropagation();
 
                     const span = document.createElement('span');
