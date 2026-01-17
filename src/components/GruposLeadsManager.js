@@ -223,6 +223,68 @@ export const GruposLeadsManager = (project) => {
         nameSpan.style.flex = '1';
         nameSpan.style.fontWeight = isSelected ? '600' : '400';
         nameSpan.style.color = isSelected ? 'var(--color-primary)' : 'inherit';
+
+        // Inline Rename (Double Click)
+        if (group.id !== 'ALL') {
+            nameSpan.title = 'Duplo clique para renomear';
+            nameSpan.ondblclick = (e) => {
+                e.stopPropagation();
+
+                const currentName = group.nome;
+                const input = document.createElement('input');
+                input.type = 'text';
+                input.value = currentName;
+                input.style.border = '1px solid var(--color-primary)';
+                input.style.borderRadius = '4px';
+                input.style.padding = '2px 4px';
+                input.style.fontSize = 'inherit';
+                input.style.width = '100%';
+
+                const save = async () => {
+                    const newName = input.value.trim();
+                    if (!newName || newName === currentName) {
+                        nameSpan.textContent = `${currentName}${countText}`;
+                        return;
+                    }
+
+                    nameSpan.innerHTML = '<i>Salvando...</i>';
+
+                    try {
+                        const response = await fetch(`${API_BASE_URL}/marketing/grupos-leads/${group.id}`, {
+                            method: 'PUT',
+                            headers: getHeaders(),
+                            body: JSON.stringify({ nome: newName, descricao: group.descricao || '' }) // backend might require desc?
+                        });
+
+                        if (response.ok) {
+                            showToast('Grupo renomeado!', 'success');
+                            loadData(); // Reload to refresh tree order/names
+                        } else {
+                            throw new Error('Erro ao salvar');
+                        }
+                    } catch (err) {
+                        showToast('Erro ao renomear', 'error');
+                        nameSpan.textContent = `${currentName}${countText}`;
+                    }
+                };
+
+                input.onkeydown = (k) => {
+                    if (k.key === 'Enter') { k.preventDefault(); input.blur(); } // blur triggers save
+                    if (k.key === 'Escape') {
+                        nameSpan.textContent = `${currentName}${countText}`;
+                        input.onblur = null; // Disable save
+                    }
+                };
+
+                input.onblur = save;
+                input.onclick = (ev) => ev.stopPropagation(); // Prevent row selection logic
+
+                nameSpan.textContent = '';
+                nameSpan.appendChild(input);
+                input.focus();
+            };
+        }
+
         row.appendChild(nameSpan);
 
         const actionsDiv = document.createElement('div');
