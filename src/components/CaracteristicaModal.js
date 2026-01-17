@@ -55,7 +55,7 @@ export const CaracteristicaModal = {
                 <div class="account-modal-footer" style="padding: 1rem; border-top: 1px solid var(--color-border-light);">
                     <button class="btn-secondary" id="modal-cancel" type="button">Cancelar</button>
                     <button class="btn-primary" id="modal-save" type="button">
-                        ${isEdit ? 'Salvar Alterações' : 'Criar Característica'}
+                        ${isEdit ? 'Salvar Alterações' : 'Salvar Característica'}
                     </button>
                 </div>
             `;
@@ -136,7 +136,7 @@ export const CaracteristicaModal = {
                     console.error(error);
                     showToast(error.message || 'Erro ao salvar', 'error');
                     saveBtn.disabled = false;
-                    saveBtn.textContent = isEdit ? 'Salvar Alterações' : 'Criar Característica';
+                    saveBtn.textContent = isEdit ? 'Salvar Alterações' : 'Salvar Característica';
                 }
             };
         });
