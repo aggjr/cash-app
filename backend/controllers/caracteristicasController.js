@@ -13,7 +13,16 @@ exports.getAll = async (req, res) => {
       ORDER BY c.nome
     `);
 
-        res.json(caracteristicas);
+        // Fetch all values
+        const [allValues] = await db.query('SELECT * FROM caracteristica_valores');
+
+        // Attach values to characteristics
+        const result = caracteristicas.map(c => {
+            const cValues = allValues.filter(v => v.caracteristica_id === c.id).map(v => v.valor);
+            return { ...c, valores: cValues };
+        });
+
+        res.json(result);
     } catch (error) {
         console.error('Erro ao buscar características:', error);
         res.status(500).json({ error: 'Erro ao buscar características' });
