@@ -296,30 +296,29 @@ exports.create = async (req, res) => {
                 );
             }
         }
-    }
 
         // Adicionar leads se fornecidos
         if (leads && Array.isArray(leads) && leads.length > 0) {
-        const values = leads.map(leadId => [leadId, grupoId]);
-        await db.query(
-            'INSERT INTO leads_grupos (lead_id, grupo_id) VALUES ?',
-            [values]
+            const values = leads.map(leadId => [leadId, grupoId]);
+            await db.query(
+                'INSERT INTO leads_grupos (lead_id, grupo_id) VALUES ?',
+                [values]
+            );
+        }
+
+        const [novoGrupo] = await db.query(
+            'SELECT * FROM grupos_leads WHERE id = ?',
+            [grupoId]
         );
-    }
 
-    const [novoGrupo] = await db.query(
-        'SELECT * FROM grupos_leads WHERE id = ?',
-        [grupoId]
-    );
-
-    res.status(201).json(novoGrupo[0]);
-} catch (error) {
-    if (error.code === 'ER_DUP_ENTRY') {
-        return res.status(409).json({ error: 'Já existe um grupo com este nome' });
+        res.status(201).json(novoGrupo[0]);
+    } catch (error) {
+        if (error.code === 'ER_DUP_ENTRY') {
+            return res.status(409).json({ error: 'Já existe um grupo com este nome' });
+        }
+        console.error('Erro ao criar grupo:', error);
+        res.status(500).json({ error: 'Erro ao criar grupo' });
     }
-    console.error('Erro ao criar grupo:', error);
-    res.status(500).json({ error: 'Erro ao criar grupo' });
-}
 };
 
 // Atualizar grupo
