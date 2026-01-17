@@ -352,11 +352,8 @@ export class SharedTable {
         wrapper.style.border = '1px solid var(--color-border-light)';
         wrapper.style.borderRadius = '8px';
 
-        // Disabled State Visuals
-        if (!this.enabled) {
-            wrapper.style.opacity = '0.6';
-            wrapper.style.pointerEvents = 'none';
-        }
+        // Disabled State Visuals (Moved to Table level to allow scrolling)
+        // if (!this.enabled) { ... }
 
         // Calculate sticky offsets
         let currentLeft = 0;
@@ -378,6 +375,12 @@ export class SharedTable {
         table.style.borderSpacing = '0';
         table.style.fontSize = 'var(--text-table)';
         table.style.tableLayout = 'fixed'; // Enforce strict widths
+
+        // Disabled State Visuals (Applied to table to keep wrapper scrollable)
+        if (!this.enabled) {
+            table.style.opacity = '0.6';
+            table.style.pointerEvents = 'none';
+        }
 
         // Header
         const thead = document.createElement('thead');
