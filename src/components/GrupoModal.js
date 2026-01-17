@@ -71,7 +71,7 @@ export const GrupoModal = {
 
                 const modal = document.createElement('div');
                 modal.className = 'account-modal animate-float-in';
-                modal.style.maxWidth = '900px'; // Increased width for table
+                modal.style.maxWidth = '1200px'; // Wide design for table
                 modal.style.width = '95%';
                 modal.style.height = '90vh';
                 modal.style.display = 'flex';
@@ -134,7 +134,7 @@ export const GrupoModal = {
                             <!-- LEADS SECTION -->
                             <div class="form-group">
                                 <label>Leads Integrantes</label>
-                                <div style="background: white; border: 1px solid var(--color-border-light); border-radius: 8px; overflow: hidden; padding: 0.5rem; display: flex; flex-direction: column; height: 350px;">
+                                <div style="background: white; border: 1px solid var(--color-border-light); border-radius: 8px; overflow: hidden; padding: 0.5rem; display: flex; flex-direction: column; height: 500px;">
                                     <div style="margin-bottom: 0.5rem;">
                                         <input type="text" id="${idLeadsSearch}" class="form-input" placeholder="🔍 Buscar Lead..." 
                                             style="padding: 0.5rem; font-size: 0.9rem; width: 100%;" />
