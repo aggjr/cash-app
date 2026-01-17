@@ -1008,6 +1008,7 @@ export const GruposLeadsManager = (project) => {
         container: tableContainer,
         columns: getColumns(),
         data: [],
+        enabled: false, // Start Inactive/Read-Only
         enableSelection: true,
         footer: footerSummary,
         summaryLabels: {
