@@ -820,6 +820,8 @@ export const GruposLeadsManager = (project) => {
     const tableContainer = document.createElement('div');
     tableContainer.id = 'table-container';
     tableContainer.style.flex = '1';
+    tableContainer.style.display = 'flex';
+    tableContainer.style.flexDirection = 'column';
     tableContainer.style.overflow = 'hidden';
     rightPanel.appendChild(tableContainer);
 
