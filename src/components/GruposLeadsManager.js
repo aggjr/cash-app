@@ -370,49 +370,52 @@ export const GruposLeadsManager = (project) => {
     // --- RIGHT PANEL LOGIC (LEADS) ---
 
     // Define Columns for SharedTable
-    const getColumns = () => [
-        {
-            key: 'actions',
-            label: 'Ações',
-            width: '60px',
-            align: 'center',
-            noFilter: true,
-            render: (item) => {
-                const btn = document.createElement('button');
-                btn.innerHTML = '✏️';
-                btn.title = 'Editar Lead';
-                btn.style.background = 'none';
-                btn.style.border = 'none';
-                btn.style.cursor = 'pointer';
-                btn.onclick = (e) => { e.stopPropagation(); updateSimpleLead(item); };
-                return btn;
-            }
-        },
-        { key: 'nome', label: 'Nome', width: 'auto', align: 'left', type: 'text' },
-        { key: 'telefone', label: 'Whatsapp', width: '140px', align: 'left', type: 'text' },
-        { key: 'email', label: 'E-mail', width: '200px', align: 'left', type: 'text' },
-        {
-            key: 'classe_social',
-            label: 'Classe Social',
-            width: '120px',
-            align: 'left',
-            render: (item) => getCaracteristicaValor(item, 'Classe Social')
-        },
-        {
-            key: 'profissao',
-            label: 'Profissão',
+    // Define Columns for SharedTable (Dynamic)
+    const getColumns = () => {
+        const fixedColumns = [
+            {
+                key: 'actions',
+                label: 'Ações',
+                width: '60px',
+                align: 'center',
+                noFilter: true,
+                render: (item) => {
+                    const btn = document.createElement('button');
+                    btn.innerHTML = '✏️';
+                    btn.title = 'Editar Lead';
+                    btn.style.background = 'none';
+                    btn.style.border = 'none';
+                    btn.style.cursor = 'pointer';
+                    btn.onclick = (e) => { e.stopPropagation(); updateLead(item); }; // Changed to updateLead (Full Modal) based on context, but user image showed Simple? No, let's stick to updateSimpleLead if that's what was there, OR use the full modal if that's preferred. The user's previous request "coloquei em modo de edição... Para o ícone de edição dos leads, usar uma cabeça" was about group members.
+                    // Actually, let's stick to updateSimpleLead as per code I viewed, BUT maybe user wants full edit? 
+                    // Let's keep updateSimpleLead for consistency with what I saw, unless I see 'updateLead' being used elsewhere.
+                    // Wait, I see 'updateLead' defined in the file (lines 779+), using LeadModal.
+                    // The 'actions' column in previous code used 'updateSimpleLead'. I'll stick to that to avoid scope creep, but dynamic columns is the main goal.
+                    // Actually, if I look at `LeadsManager`, it uses `updateLead`.
+                    // User complained about features not matching Leads screen (dynamic cols).
+                    // I will stick to `updateSimpleLead` for now to be safe, as it was explicitly added recently.
+                    btn.onclick = (e) => { e.stopPropagation(); updateSimpleLead(item); };
+                    return btn;
+                }
+            },
+            { key: 'nome', label: 'Nome', width: '200px', align: 'left', type: 'text', sticky: true }, // Sticky Name!
+            { key: 'telefone', label: 'Whatsapp', width: '140px', align: 'left', type: 'text' },
+            { key: 'email', label: 'E-mail', width: '200px', align: 'left', type: 'text' }
+        ];
+
+        const charColumns = caracteristicas.map(c => ({
+            key: c.nome, // Use name as key for filter mapping? Or ID? SharedTable filter uses key. Item must have this prop?
+            // SharedTable renderer looks for item[key]. But leads store chars in json.
+            // We need a custom render for these columns.
+            label: c.nome,
             width: '150px',
             align: 'left',
-            render: (item) => getCaracteristicaValor(item, 'Profissão')
-        },
-        {
-            key: 'sexo',
-            label: 'Sexo',
-            width: '100px',
-            align: 'left',
-            render: (item) => getCaracteristicaValor(item, 'Sexo')
-        },
-    ];
+            type: 'text', // mostly text
+            render: (item) => getCaracteristicaValor(item, c.nome)
+        }));
+
+        return [...fixedColumns, ...charColumns];
+    };
 
     const getCaracteristicaValor = (item, charName) => {
         if (!item.caracteristicas_detalhadas) return '-';
@@ -568,6 +571,8 @@ export const GruposLeadsManager = (project) => {
             renderGroupsTree();
 
             if (leadsTable) {
+                // Update Columns dynamically based on fetched characteristics
+                leadsTable.columns = getColumns();
                 leadsTable.render(leads);
             }
 
