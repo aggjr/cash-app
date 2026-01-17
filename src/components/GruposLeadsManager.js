@@ -314,7 +314,8 @@ export const GruposLeadsManager = (project) => {
         // Actions only for real groups (not 'ALL')
         if (group.id !== 'ALL') {
             // Edit Members
-            actionsDiv.appendChild(createActionBtn('📋', 'Editar Membros', '#3b82f6', () => {
+            const usersIcon = `<svg viewBox="0 0 24 24" fill="currentColor" width="16" height="16"><path d="M16 11c1.66 0 2.99-1.34 2.99-3S17.66 5 16 5c-1.66 0-3 1.34-3 3s1.34 3 3 3zm-8 0c1.66 0 2.99-1.34 2.99-3S9.66 5 8 5C6.34 5 5 6.34 5 8s1.34 3 3 3zm0 2c-2.33 0-7 1.17-7 3.5V19h14v-2.5c0-2.33-4.67-3.5-7-3.5zm8 0c-.29 0-.62.02-.97.05 1.16.84 1.97 1.97 1.97 3.45V19h6v-2.5c0-2.33-4.67-3.5-7-3.5z"/></svg>`;
+            actionsDiv.appendChild(createActionBtn(usersIcon, 'Editar Membros', '#3b82f6', () => {
                 if (selectedGroupId !== group.id) selectGroup(group.id);
                 // Allow table selection update to propagate
                 setTimeout(() => enterEditMode(), 100);
@@ -454,12 +455,22 @@ export const GruposLeadsManager = (project) => {
         updateRightHeaderTitle();
     };
 
+    const refreshRightHeader = () => {
+        const oldHeader = rightPanel.querySelector('#right-panel-header');
+        if (oldHeader) oldHeader.remove();
+        const newHeader = renderRightHeader();
+        rightPanel.insertBefore(newHeader, rightPanel.firstChild);
+    };
+
     const updateRightHeaderTitle = () => {
         const titleEl = rightPanel.querySelector('#right-panel-title');
         if (titleEl) {
             if (selectedGroupId) {
                 const group = grupos.find(g => g.id === selectedGroupId);
-                titleEl.textContent = group ? `Leads em: ${group.nome}` : 'Listagem geral dos leads';
+                // Preserve 'Editando:' prefix if in edit mode
+                const prefix = isEditingGroup ? 'Editando: ' : '';
+                const baseTitle = group ? `Leads em: ${group.nome}` : 'Listagem geral dos leads';
+                titleEl.textContent = prefix + baseTitle;
             } else {
                 titleEl.textContent = 'Listagem geral dos leads';
             }
@@ -468,6 +479,7 @@ export const GruposLeadsManager = (project) => {
 
     const renderRightHeader = () => {
         const header = document.createElement('div');
+        header.id = 'right-panel-header'; // Add ID for replacement
         header.style.padding = '0 0 1rem 0';
         header.style.display = 'flex';
         header.style.justifyContent = 'space-between';
@@ -500,11 +512,13 @@ export const GruposLeadsManager = (project) => {
                 header.querySelector('#btn-save-edit').onclick = saveGroupChanges;
             } else {
                 // View Mode - Show Edit Button
+                const usersIcon = `<svg viewBox="0 0 24 24" fill="currentColor" width="20" height="20" style="display:block;"><path d="M16 11c1.66 0 2.99-1.34 2.99-3S17.66 5 16 5c-1.66 0-3 1.34-3 3s1.34 3 3 3zm-8 0c1.66 0 2.99-1.34 2.99-3S9.66 5 8 5C6.34 5 5 6.34 5 8s1.34 3 3 3zm0 2c-2.33 0-7 1.17-7 3.5V19h14v-2.5c0-2.33-4.67-3.5-7-3.5zm8 0c-.29 0-.62.02-.97.05 1.16.84 1.97 1.97 1.97 3.45V19h6v-2.5c0-2.33-4.67-3.5-7-3.5z"/></svg>`;
+
                 header.innerHTML = `
                     <div style="display:flex; align-items:center; gap:8px;">
                         <h3 id="right-panel-title" style="margin:0; font-size:1.1rem; color:var(--color-primary);">${title}</h3>
-                        <button id="btn-edit-group-members" title="Editar Membros do Grupo" style="background:none; border:none; cursor:pointer; font-size:1.2rem;">
-                            ✏️
+                        <button id="btn-edit-group-members" title="Editar Membros do Grupo" style="background:none; border:none; cursor:pointer; color: var(--color-primary);">
+                           ${usersIcon}
                         </button>
                     </div>
                     <div style="display:flex; gap:0.5rem;">
@@ -667,7 +681,7 @@ export const GruposLeadsManager = (project) => {
         isEditingGroup = true;
         initialGroupSelection = new Set(leadsTable.selection); // Snapshot
         leadsTable.updateOptions({ enabled: true }); // Unlock table
-        updateRightHeaderTitle();
+        refreshRightHeader(); // Correctly update UI
         showToast('Modo de edição ativado. Selecione/Desmarque leads.', 'info');
     };
 
@@ -678,7 +692,7 @@ export const GruposLeadsManager = (project) => {
         leadsTable.render(leads); // Force re-render to visually revert
         leadsTable.updateOptions({ enabled: false }); // Lock table
         leadsTable.updateFooterSummary();
-        updateRightHeaderTitle();
+        refreshRightHeader(); // Correctly update UI
     };
 
     const saveGroupChanges = async () => {
