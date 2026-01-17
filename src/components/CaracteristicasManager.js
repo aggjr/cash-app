@@ -27,8 +27,19 @@ export const CaracteristicasManager = (project) => {
     };
 
     const columns = [
-        { key: 'nome', label: 'Nome', width: 'auto', align: 'left', type: 'text' },
-        { key: 'descricao', label: 'Descrição', width: '30%', align: 'left', type: 'text' },
+        { key: 'nome', label: 'Nome', width: '20%', align: 'left', type: 'text' },
+        { key: 'descricao', label: 'Descrição', width: '25%', align: 'left', type: 'text' },
+        {
+            key: 'valores',
+            label: 'Valores Possíveis',
+            width: 'auto',
+            align: 'left',
+            render: (item) => {
+                if (!item.valores || !Array.isArray(item.valores)) return '-';
+                // Handle both object {valor: ...} and string formats
+                return item.valores.map(v => v.valor || v).join(' | ');
+            }
+        },
 
         {
             key: 'actions',
