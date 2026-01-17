@@ -27,11 +27,24 @@ export class SharedTable {
     }
 
     // Allow updating options dynamically
+    // Allow updating options dynamically
     updateOptions({ enableSelection, onSelectionChange, enabled }) {
-        if (enableSelection !== undefined) this.enableSelection = enableSelection;
-        if (onSelectionChange !== undefined) this.onSelectionChange = onSelectionChange;
-        if (enabled !== undefined) this.enabled = enabled;
-        console.log('🛡️ SharedTable v0.2.20 - Options Updated');
+        let shouldRender = false;
+        if (enableSelection !== undefined) {
+            this.enableSelection = enableSelection;
+            shouldRender = true;
+        }
+        if (onSelectionChange !== undefined) {
+            this.onSelectionChange = onSelectionChange;
+            // Callback change doesn't require render
+        }
+        if (enabled !== undefined) {
+            this.enabled = enabled;
+            shouldRender = true;
+        }
+        console.log('🛡️ SharedTable v0.2.21 - Options Updated', { enabled, enableSelection });
+
+        if (shouldRender) this.render();
     }
 
     getHeaders() {
