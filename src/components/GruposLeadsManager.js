@@ -2,21 +2,49 @@ import { SharedTable } from './SharedTable.js';
 import { showToast } from '../utils/toast.js';
 import { getApiBaseUrl } from '../utils/apiConfig.js';
 import { GrupoModal } from './GrupoModal.js';
+import { SimpleLeadModal } from './SimpleLeadModal.js';
 
 export const GruposLeadsManager = (project) => {
     const container = document.createElement('div');
     container.className = 'glass-panel';
     const API_BASE_URL = getApiBaseUrl();
-    container.style.padding = '1rem';
+    container.style.padding = '0'; // Remover padding interno para usar layout split
     container.style.margin = '0.5rem';
     container.style.height = 'calc(100vh - 60px)';
     container.style.width = 'calc(100% - 1rem)';
     container.style.maxWidth = 'none';
     container.style.display = 'flex';
-    container.style.flexDirection = 'column';
+    container.style.overflow = 'hidden';
 
+    // State
     let grupos = [];
-    let sharedTable = null;
+    let leads = [];
+    let selectedGroupId = null;
+    let expandedGroups = new Set();
+    let leadsTable = null;
+
+    // --- Layout Split ---
+
+    // Left Panel (Hierarchy)
+    const leftPanel = document.createElement('div');
+    leftPanel.style.width = '400px';
+    leftPanel.style.minWidth = '300px';
+    leftPanel.style.borderRight = '1px solid var(--color-border-light)';
+    leftPanel.style.display = 'flex';
+    leftPanel.style.flexDirection = 'column';
+    leftPanel.style.backgroundColor = '#fafafa';
+
+    // Right Panel (Leads List)
+    const rightPanel = document.createElement('div');
+    rightPanel.style.flex = '1';
+    rightPanel.style.display = 'flex';
+    rightPanel.style.flexDirection = 'column';
+    rightPanel.style.padding = '1rem';
+    rightPanel.style.overflow = 'hidden';
+    rightPanel.style.backgroundColor = '#ffffff';
+
+    container.appendChild(leftPanel);
+    container.appendChild(rightPanel);
 
     const getHeaders = () => {
         const token = localStorage.getItem('token');
@@ -26,140 +54,373 @@ export const GruposLeadsManager = (project) => {
         };
     };
 
-    // Columns Configuration
-    const columns = [
+    // --- LEFT PANEL LOGIC (GROUPS) ---
+
+    const renderLeftHeader = () => {
+        const header = document.createElement('div');
+        header.style.padding = '1rem';
+        header.style.borderBottom = '1px solid var(--color-border-light)';
+        header.style.display = 'flex';
+        header.style.justifyContent = 'space-between';
+        header.style.alignItems = 'center';
+        header.style.backgroundColor = 'white';
+
+        header.innerHTML = `
+            <h3 style="margin:0; font-size:1.1rem; color:var(--color-primary);">👥 Grupos de Leads</h3>
+            <div style="display:flex; gap:0.5rem;">
+                <!-- Botão 'Atualizar' -->
+                <button id="btn-refresh-groups" title="Atualizar Lista" style="
+                    background: none; border: 1px solid var(--color-border-light); border-radius: 4px; 
+                    cursor: pointer; padding: 4px 8px; color: var(--color-text-secondary);">
+                    🔄
+                </button>
+                <button id="btn-new-root-group" class="btn-primary" style="padding: 4px 12px; font-size: 0.9rem;">
+                    + Novo
+                </button>
+            </div>
+        `;
+
+        header.querySelector('#btn-refresh-groups').onclick = loadData;
+        header.querySelector('#btn-new-root-group').onclick = () => createGrupo(null);
+
+        return header;
+    };
+
+    const buildTree = (items) => {
+        const rootItems = [];
+        const lookup = {};
+        items.forEach(item => {
+            item.children = [];
+            lookup[item.id] = item;
+        });
+        items.forEach(item => {
+            if (item.parent_id && lookup[item.parent_id]) {
+                lookup[item.parent_id].children.push(item);
+            } else {
+                rootItems.push(item);
+            }
+        });
+        return rootItems;
+    };
+
+    const selectGroup = (groupId) => {
+        selectedGroupId = groupId;
+        renderGroupsTree(); // Re-render para atualizar destaque
+        updateLeadsTableSelection(); // Atualizar tabela da direita
+    };
+
+    const toggleExpand = (e, groupId) => {
+        e.stopPropagation();
+        if (expandedGroups.has(groupId)) expandedGroups.delete(groupId);
+        else expandedGroups.add(groupId);
+        renderGroupsTree();
+    };
+
+    const renderGroupNode = (group, level = 0) => {
+        const hasChildren = group.children && group.children.length > 0;
+        const isExpanded = expandedGroups.has(group.id);
+        const isSelected = selectedGroupId === group.id;
+        const paddingLeft = level * 1.5;
+
+        // Container do Node
+        const nodeContainer = document.createElement('div');
+        nodeContainer.className = 'group-node';
+
+        // Estilo da Linha
+        const row = document.createElement('div');
+        row.style.display = 'flex';
+        row.style.alignItems = 'center';
+        row.style.padding = '8px 12px';
+        row.style.cursor = 'pointer';
+        row.style.userSelect = 'none';
+        row.style.borderBottom = '1px solid #f0f0f0';
+        row.style.backgroundColor = isSelected ? '#e0f2fe' : 'transparent'; // Destaque se selecionado
+
+        row.onmouseover = () => { if (!isSelected) row.style.backgroundColor = '#f9fafb'; };
+        row.onmouseout = () => { if (!isSelected) row.style.backgroundColor = 'transparent'; };
+        row.onclick = () => selectGroup(group.id);
+
+        // Identação
+        const indent = document.createElement('div');
+        indent.style.width = `${paddingLeft}rem`;
+        row.appendChild(indent);
+
+        // Ícone Toggle (Seta)
+        const toggleIcon = document.createElement('span');
+        toggleIcon.style.width = '20px';
+        toggleIcon.style.display = 'inline-flex';
+        toggleIcon.style.justifyContent = 'center';
+        toggleIcon.style.marginRight = '4px';
+        toggleIcon.style.color = '#6b7280';
+        toggleIcon.style.fontSize = '0.7rem';
+
+        if (hasChildren) {
+            toggleIcon.textContent = isExpanded ? '▼' : '▶';
+            toggleIcon.style.cursor = 'pointer';
+            toggleIcon.onclick = (e) => toggleExpand(e, group.id);
+        } else {
+            toggleIcon.innerHTML = '&nbsp;';
+        }
+        row.appendChild(toggleIcon);
+
+        // Checkbox Visual (conforme mockup)
+        const checkbox = document.createElement('input');
+        checkbox.type = 'checkbox';
+        checkbox.checked = true; // Visual
+        checkbox.style.marginRight = '8px';
+        checkbox.onclick = (e) => e.stopPropagation();
+        row.appendChild(checkbox);
+
+        // Ícone Pasta
+        const folderIcon = document.createElement('span');
+        folderIcon.textContent = isExpanded ? '📂' : '📁';
+        folderIcon.style.marginRight = '8px';
+        row.appendChild(folderIcon);
+
+        // Nome
+        const nameSpan = document.createElement('span');
+        nameSpan.textContent = group.nome;
+        nameSpan.style.flex = '1';
+        nameSpan.style.fontWeight = isSelected ? '600' : '400';
+        nameSpan.style.color = isSelected ? 'var(--color-primary)' : 'inherit';
+        row.appendChild(nameSpan);
+
+        // Badges (Totalizadores)
+        // Leads
+        if (group.total_leads > 0) {
+            const badge = document.createElement('span');
+            badge.textContent = group.total_leads;
+            badge.title = `${group.total_leads} Leads neste grupo`;
+            badge.style.backgroundColor = '#dbeafe';
+            badge.style.color = '#1e40af';
+            badge.style.fontSize = '0.75rem';
+            badge.style.padding = '2px 6px';
+            badge.style.borderRadius = '999px';
+            badge.style.marginLeft = '4px';
+            row.appendChild(badge);
+        }
+
+        const actionsDiv = document.createElement('div');
+        actionsDiv.className = 'group-actions';
+        actionsDiv.style.marginLeft = '8px';
+        actionsDiv.style.display = 'flex';
+        actionsDiv.style.gap = '4px';
+
+        // Botões Pequenos
+        const createActionBtn = (icon, title, color, handler) => {
+            const btn = document.createElement('button');
+            btn.innerHTML = icon;
+            btn.title = title;
+            btn.style.border = 'none';
+            btn.style.background = 'none';
+            btn.style.cursor = 'pointer';
+            btn.style.fontSize = '0.9rem';
+            btn.style.padding = '2px';
+            btn.style.color = color || '#6b7280';
+            btn.onclick = (e) => { e.stopPropagation(); handler(); };
+            return btn;
+        };
+
+        // Add Subgroup
+        actionsDiv.appendChild(createActionBtn('➕', 'Novo Sub-grupo', '#10b981', () => createGrupo(group.id)));
+
+        // Edit
+        actionsDiv.appendChild(createActionBtn('✏️', 'Editar Grupo', '#f59e0b', () => updateGrupo(group)));
+
+        // Delete
+        actionsDiv.appendChild(createActionBtn('🗑️', 'Excluir Grupo', '#ef4444', () => deleteGrupo(group)));
+
+        row.appendChild(actionsDiv);
+
+        nodeContainer.appendChild(row);
+
+        // Render Children
+        if (hasChildren && isExpanded) {
+            const childrenContainer = document.createElement('div');
+            group.children.forEach(child => {
+                childrenContainer.appendChild(renderGroupNode(child, level + 1));
+            });
+            nodeContainer.appendChild(childrenContainer);
+        }
+
+        return nodeContainer;
+    };
+
+    const renderGroupsTree = () => {
+        const treeContainer = leftPanel.querySelector('#groups-tree-container');
+        if (!treeContainer) return;
+
+        treeContainer.innerHTML = '';
+        const treeData = buildTree(grupos);
+
+        if (treeData.length === 0) {
+            treeContainer.innerHTML = '<div style="padding:1rem; color:#888; text-align:center;">Nenhum grupo cadastrado</div>';
+            return;
+        }
+
+        treeData.forEach(rootGroup => {
+            treeContainer.appendChild(renderGroupNode(rootGroup));
+        });
+    };
+
+    // --- RIGHT PANEL LOGIC (LEADS) ---
+
+    // Define Columns for SharedTable
+    const getColumns = () => [
         {
             key: 'actions',
             label: 'Ações',
-            width: '80px',
+            width: '60px',
             align: 'center',
             noFilter: true,
             render: (item) => {
-                const div = document.createElement('div');
-                div.style.display = 'flex';
-                div.style.gap = '0.5rem';
-                div.style.justifyContent = 'center';
-
-                const btnEdit = document.createElement('button');
-                btnEdit.innerHTML = '✏️';
-                btnEdit.title = 'Editar';
-                btnEdit.style.background = 'none';
-                btnEdit.style.border = 'none';
-                btnEdit.style.cursor = 'pointer';
-                btnEdit.style.fontSize = '1.1rem';
-                btnEdit.onclick = (e) => { e.stopPropagation(); updateGrupo(item); };
-
-                const btnDelete = document.createElement('button');
-                btnDelete.innerHTML = '🗑️';
-                btnDelete.title = 'Excluir';
-                btnDelete.style.background = 'none';
-                btnDelete.style.border = 'none';
-                btnDelete.style.cursor = 'pointer';
-                btnDelete.style.fontSize = '1.1rem';
-                btnDelete.onclick = (e) => { e.stopPropagation(); deleteGrupo(item); };
-
-                div.appendChild(btnEdit);
-                div.appendChild(btnDelete);
-                return div;
+                const btn = document.createElement('button');
+                btn.innerHTML = '✏️';
+                btn.title = 'Editar Lead';
+                btn.style.background = 'none';
+                btn.style.border = 'none';
+                btn.style.cursor = 'pointer';
+                btn.onclick = (e) => { e.stopPropagation(); updateSimpleLead(item); };
+                return btn;
             }
         },
         { key: 'nome', label: 'Nome', width: 'auto', align: 'left', type: 'text' },
-        { key: 'descricao', label: 'Descrição', width: '30%', align: 'left', type: 'text' },
+        { key: 'telefone', label: 'Whatsapp', width: '140px', align: 'left', type: 'text' },
+        { key: 'email', label: 'E-mail', width: '200px', align: 'left', type: 'text' },
         {
-            key: 'total_subgrupos',
-            label: 'Sub-grupos',
-            width: '100px',
-            align: 'center',
-            type: 'number',
-            render: (item) => {
-                const badge = document.createElement('span');
-                badge.style.backgroundColor = 'var(--color-bg-tertiary)';
-                badge.style.color = 'var(--color-text-secondary)';
-                badge.style.padding = '2px 8px';
-                badge.style.borderRadius = '12px';
-                badge.style.fontSize = '0.85rem';
-                badge.style.border = '1px solid var(--color-border-light)';
-                badge.innerHTML = `📂 ${item.total_subgrupos || 0}`;
-                return badge;
-            }
-        },
-        {
-            key: 'total_leads',
-            label: 'Leads',
-            width: '100px',
-            align: 'center',
-            type: 'number',
-            render: (item) => {
-                const badge = document.createElement('span');
-                badge.className = 'badge-info';
-                badge.style.backgroundColor = 'var(--color-primary-light)';
-                badge.style.color = 'var(--color-primary)';
-                badge.style.padding = '2px 8px';
-                badge.style.borderRadius = '12px';
-                badge.style.fontSize = '0.85rem';
-                badge.innerHTML = `👤 ${item.total_leads || 0}`;
-                return badge;
-            }
-        },
-        {
-            key: 'total_caracteristicas',
-            label: 'Características',
+            key: 'classe_social',
+            label: 'Classe Social',
             width: '120px',
-            align: 'center',
-            type: 'number',
-            render: (item) => {
-                const badge = document.createElement('span');
-                badge.className = 'badge-success';
-                badge.style.backgroundColor = '#10b98120';
-                badge.style.color = '#059669';
-                badge.style.padding = '2px 8px';
-                badge.style.borderRadius = '12px';
-                badge.style.fontSize = '0.85rem';
-                badge.innerHTML = `🏷️ ${item.total_caracteristicas || 0}`;
-                return badge;
+            align: 'left',
+            render: (item) => getCaracteristicaValor(item, 'Classe Social')
+        },
+        {
+            key: 'profissao',
+            label: 'Profissão',
+            width: '150px',
+            align: 'left',
+            render: (item) => getCaracteristicaValor(item, 'Profissão')
+        },
+        {
+            key: 'sexo',
+            label: 'Sexo',
+            width: '100px',
+            align: 'left',
+            render: (item) => getCaracteristicaValor(item, 'Sexo')
+        },
+    ];
+
+    const getCaracteristicaValor = (item, charName) => {
+        if (!item.caracteristicas_detalhadas) return '-';
+        if (typeof item.caracteristicas_detalhadas === 'string') {
+            try { item.caracteristicas_detalhadas = JSON.parse(item.caracteristicas_detalhadas); } catch (e) { }
+        }
+        if (Array.isArray(item.caracteristicas_detalhadas)) {
+            const char = item.caracteristicas_detalhadas.find(c => c.nome === charName);
+            return char ? char.valor : '-';
+        }
+        return '-';
+    };
+
+    const updateLeadsTableSelection = () => {
+        if (!leadsTable || !selectedGroupId) {
+            if (leadsTable) leadsTable.clearSelection();
+            return;
+        }
+
+        const selectedGroupIds = new Set();
+        leads.forEach(lead => {
+            if (lead.grupos && Array.isArray(lead.grupos)) {
+                if (lead.grupos.includes(selectedGroupId) || lead.grupos.includes(String(selectedGroupId))) {
+                    selectedGroupIds.add(lead.id);
+                }
+            }
+        });
+
+        leadsTable.selection = selectedGroupIds;
+        leadsTable.render(leads); // Re-render para atualizar checkboxes visuais
+        leadsTable.updateFooterSummary();
+
+        updateRightHeaderTitle();
+    };
+
+    const updateRightHeaderTitle = () => {
+        const titleEl = rightPanel.querySelector('#right-panel-title');
+        if (titleEl) {
+            if (selectedGroupId) {
+                const group = grupos.find(g => g.id === selectedGroupId);
+                titleEl.textContent = group ? `Leads em: ${group.nome}` : 'Listagem geral dos leads';
+            } else {
+                titleEl.textContent = 'Listagem geral dos leads';
             }
         }
-    ];
+    };
+
+    const renderRightHeader = () => {
+        const header = document.createElement('div');
+        header.style.padding = '0 0 1rem 0';
+        header.style.display = 'flex';
+        header.style.justifyContent = 'space-between';
+        header.style.alignItems = 'center';
+
+        header.innerHTML = `
+            <h3 id="right-panel-title" style="margin:0; font-size:1.1rem; color:var(--color-primary);">Listagem geral dos leads</h3>
+             <div style="display:flex; gap:0.5rem;">
+                <button id="btn-new-simple-lead" class="btn-primary" title="Novo Lead Simplificado" style="padding: 4px 12px; font-size: 0.9rem;">
+                    + Lead
+                </button>
+                <button id="btn-create-group-from-filter" class="btn-secondary" title="Criar novo grupo com os leads selecionados/filtrados">
+                    ⚡ Criar Grupo da Seleção
+                </button>
+             </div>
+        `;
+
+        header.querySelector('#btn-create-group-from-filter').onclick = createGroupFromSelection;
+        header.querySelector('#btn-new-simple-lead').onclick = createSimpleLead;
+
+        return header;
+    };
+
+    // --- ACTIONS ---
 
     const loadData = async () => {
         try {
-            if (sharedTable && container.querySelector('#table-container')) {
-                container.querySelector('#table-container').classList.add('loading');
+            leftPanel.style.opacity = '0.7';
+            if (leadsTable) container.querySelector('#table-container')?.classList.add('loading');
+
+            const [gruposRes, leadsRes] = await Promise.all([
+                fetch(`${API_BASE_URL}/marketing/grupos-leads`, { headers: getHeaders() }),
+                fetch(`${API_BASE_URL}/marketing/leads`, { headers: getHeaders() })
+            ]);
+
+            if (!gruposRes.ok || !leadsRes.ok) throw new Error('Falha ao carregar dados');
+
+            grupos = await gruposRes.json();
+            leads = await leadsRes.json();
+
+            renderGroupsTree();
+
+            if (leadsTable) {
+                leadsTable.render(leads);
             }
 
-            const response = await fetch(`${API_BASE_URL}/marketing/grupos-leads`, {
-                headers: getHeaders()
-            });
-
-            if (!response.ok) throw new Error('Falha ao carregar grupos');
-
-            grupos = await response.json();
-
-            if (sharedTable) {
-                sharedTable.render(grupos);
+            if (selectedGroupId && !grupos.find(g => g.id === selectedGroupId)) {
+                selectedGroupId = null;
             }
-            updateFooter();
+            updateLeadsTableSelection();
 
         } catch (error) {
-            console.error('Error loading groups:', error);
-            showToast(error.message, 'error');
+            console.error('Error loading data:', error);
+            showToast('Erro ao carregar dados.', 'error');
         } finally {
-            if (sharedTable && container.querySelector('#table-container')) {
-                container.querySelector('#table-container').classList.remove('loading');
-            }
+            leftPanel.style.opacity = '1';
+            if (leadsTable) container.querySelector('#table-container')?.classList.remove('loading');
         }
     };
 
-    const updateFooter = () => {
-        const totalCount = container.querySelector('#total-count');
-        if (totalCount) {
-            totalCount.textContent = grupos.length;
-        }
-    };
-
-    const createGrupo = async () => {
+    const createGrupo = async (parentId = null) => {
         await GrupoModal.show({
-            grupo: null,
+            grupo: parentId ? { parent_id: parentId } : null,
             onSave: async (grupoData) => {
                 const response = await fetch(`${API_BASE_URL}/marketing/grupos-leads`, {
                     method: 'POST',
@@ -215,6 +476,7 @@ export const GruposLeadsManager = (project) => {
 
             if (response.ok) {
                 showToast('Grupo excluído com sucesso!', 'success');
+                if (selectedGroupId === grupo.id) selectedGroupId = null;
                 loadData();
             } else {
                 const error = await response.json();
@@ -225,7 +487,193 @@ export const GruposLeadsManager = (project) => {
         }
     };
 
-    // Custom confirmation dialog (Standardized)
+    const createSimpleLead = async () => {
+        await SimpleLeadModal.show({
+            lead: null,
+            onSave: async (leadData) => {
+                try {
+                    if (selectedGroupId) {
+                        leadData.grupos = [selectedGroupId];
+                    }
+
+                    const response = await fetch(`${API_BASE_URL}/marketing/leads`, {
+                        method: 'POST',
+                        headers: getHeaders(),
+                        body: JSON.stringify(leadData)
+                    });
+
+                    if (response.ok) {
+                        showToast('Lead criado com sucesso!', 'success');
+                        loadData();
+                    } else {
+                        const error = await response.json();
+                        throw new Error(error.error || 'Erro ao criar lead');
+                    }
+                } catch (e) {
+                    showToast(e.message, 'error');
+                }
+            }
+        });
+    };
+
+    const updateSimpleLead = async (lead) => {
+        await SimpleLeadModal.show({
+            lead: lead,
+            onSave: async (leadData) => {
+                try {
+                    const response = await fetch(`${API_BASE_URL}/marketing/leads/${lead.id}`, {
+                        method: 'PUT',
+                        headers: getHeaders(),
+                        body: JSON.stringify(leadData)
+                    });
+
+                    if (response.ok) {
+                        showToast('Lead atualizado com sucesso!', 'success');
+                        loadData();
+                    } else {
+                        const error = await response.json();
+                        throw new Error(error.error || 'Erro ao atualizar lead');
+                    }
+                } catch (e) {
+                    showToast(e.message, 'error');
+                }
+            }
+        });
+    };
+
+    const handleMembershipChange = async (selectedIds, allSelectedSet) => {
+        if (!selectedGroupId) return;
+
+        const currentGroupMembers = leads.filter(l =>
+            l.grupos && (l.grupos.includes(selectedGroupId) || l.grupos.includes(String(selectedGroupId)))
+        ).map(l => l.id);
+
+        const newSelection = Array.from(allSelectedSet);
+
+        const toAdd = newSelection.filter(id => !currentGroupMembers.includes(id));
+        const toRemove = currentGroupMembers.filter(id => !newSelection.includes(id));
+
+        if (toAdd.length === 0 && toRemove.length === 0) return;
+
+        console.log(`Updating Group ${selectedGroupId}: +${toAdd.length} / -${toRemove.length}`);
+
+        try {
+            const promises = [];
+
+            toAdd.forEach(leadId => {
+                promises.push(
+                    fetch(`${API_BASE_URL}/marketing/leads/${leadId}/groups`, {
+                        method: 'POST',
+                        headers: getHeaders(),
+                        body: JSON.stringify({ group_id: selectedGroupId })
+                    })
+                );
+            });
+
+            toRemove.forEach(leadId => {
+                promises.push(
+                    fetch(`${API_BASE_URL}/marketing/leads/${leadId}/groups/${selectedGroupId}`, {
+                        method: 'DELETE',
+                        headers: getHeaders()
+                    })
+                );
+            });
+
+            await Promise.all(promises);
+            showToast('Associações atualizadas', 'success');
+
+            leads.forEach(l => {
+                if (toAdd.includes(l.id)) {
+                    if (!l.grupos) l.grupos = [];
+                    if (!l.grupos.includes(selectedGroupId)) l.grupos.push(selectedGroupId);
+                }
+                if (toRemove.includes(l.id)) {
+                    if (l.grupos) l.grupos = l.grupos.filter(g => g != selectedGroupId);
+                }
+            });
+
+            const gr = grupos.find(g => g.id === selectedGroupId);
+            if (gr) {
+                gr.total_leads = (gr.total_leads || 0) + toAdd.length - toRemove.length;
+                renderGroupsTree();
+            }
+
+        } catch (e) {
+            console.error(e);
+            showToast('Erro ao atualizar associações', 'error');
+            loadData();
+        }
+    };
+
+    const createGroupFromSelection = async () => {
+        if (!leadsTable || leadsTable.selection.size === 0) {
+            return showToast('Selecione leads primeiro', 'warning');
+        }
+
+        await GrupoModal.show({
+            grupo: null,
+            onSave: async (grupoData) => {
+                const res = await fetch(`${API_BASE_URL}/marketing/grupos-leads`, {
+                    method: 'POST',
+                    headers: getHeaders(),
+                    body: JSON.stringify(grupoData)
+                });
+
+                if (!res.ok) throw new Error('Falha ao criar grupo');
+                const newGroup = await res.json();
+
+                const selectedIds = Array.from(leadsTable.selection);
+                const promises = selectedIds.map(leadId =>
+                    fetch(`${API_BASE_URL}/marketing/leads/${leadId}/groups`, {
+                        method: 'POST',
+                        headers: getHeaders(),
+                        body: JSON.stringify({ group_id: newGroup.id })
+                    })
+                );
+
+                await Promise.all(promises);
+
+                showToast(`Grupo "${newGroup.nome}" criado com ${selectedIds.length} leads!`, 'success');
+                loadData();
+            }
+        });
+    };
+
+    // --- INITIALIZATION ---
+
+    leftPanel.appendChild(renderLeftHeader());
+
+    const treeContainer = document.createElement('div');
+    treeContainer.id = 'groups-tree-container';
+    treeContainer.style.flex = '1';
+    treeContainer.style.overflowY = 'auto';
+    leftPanel.appendChild(treeContainer);
+
+    rightPanel.appendChild(renderRightHeader());
+
+    const tableContainer = document.createElement('div');
+    tableContainer.id = 'table-container';
+    tableContainer.style.flex = '1';
+    tableContainer.style.overflow = 'hidden';
+    rightPanel.appendChild(tableContainer);
+
+    const footerSummary = document.createElement('div');
+    footerSummary.id = 'footer-summary';
+    rightPanel.appendChild(footerSummary);
+
+    leadsTable = new SharedTable({
+        container: tableContainer,
+        columns: getColumns(),
+        data: [],
+        enableSelection: true,
+        footer: footerSummary,
+        onSelectionChange: (items, set) => {
+            if (selectedGroupId && items) {
+                handleMembershipChange(null, set);
+            }
+        }
+    });
+
     const showCustomConfirm = (message, confirmText = 'Sim') => {
         return new Promise((resolve) => {
             const overlay = document.createElement('div');
@@ -281,37 +729,6 @@ export const GruposLeadsManager = (project) => {
         });
     };
 
-    // Build UI
-    container.innerHTML = `
-        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1rem;">
-            <h2>👥 Grupos de Leads</h2>
-        </div>
-
-        <div style="margin-bottom: 1rem;">
-            <button id="btn-new-grupo" class="btn-primary">+ Novo Grupo</button>
-        </div>
-
-        <div id="table-container" style="flex: 1; overflow: hidden;"></div>
-        
-        <div id="footer-summary" style="margin-top: 1rem; font-size: 0.85rem; color: var(--color-text-muted);">
-            Total: <span id="total-count">0</span> grupo(s)
-        </div>
-    `;
-
-    // Event Listeners
-    container.querySelector('#btn-new-grupo').addEventListener('click', createGrupo);
-
-    // Initialize SharedTable
-    const tableContainer = container.querySelector('#table-container');
-    const footerElement = container.querySelector('#footer-summary');
-    sharedTable = new SharedTable({
-        container: tableContainer,
-        columns: columns,
-        data: [],
-        footer: footerElement
-    });
-
-    // Load data
     loadData();
 
     return container;
