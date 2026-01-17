@@ -392,7 +392,7 @@ export class SharedTable {
         // Disabled State Visuals (Applied to table to keep wrapper scrollable)
         if (!this.enabled) {
             table.style.opacity = '0.6';
-            table.style.pointerEvents = 'none';
+            // table.style.pointerEvents = 'none'; // REMOVED to allow scrolling
         }
 
         // Header
@@ -465,6 +465,7 @@ export class SharedTable {
                     cb.checked = this.selection.has(item.id);
                     cb.onclick = (e) => {
                         e.stopPropagation();
+                        if (!this.enabled) return;
                         if (e.target.checked) this.selection.add(item.id);
                         else this.selection.delete(item.id);
                         this.notifySelectionChange();
@@ -583,23 +584,24 @@ export class SharedTable {
 
             const content = col.noFilter
                 ? col.label
-                : `<div class="header-sort-trigger" data-key="${col.key}" style="${containerStyle} cursor: grab;" title="Clique para ordenar, Arraste para mover">
+                : `<div class="header-sort-trigger" data-key="${col.key}" style="${containerStyle} cursor: ${this.enabled ? 'grab' : 'default'};" title="${this.enabled ? 'Clique para ordenar, Arraste para mover' : ''}">
                      ${spacer}
                      <span style="${spanStyle}">${col.label}</span>
                      <div style="display: flex; flex-direction: column; align-items: center; margin-left: 0; width: 14px; flex-shrink: 0;">
-                         <div class="filter-trigger" data-key="${col.key}" style="cursor: pointer; line-height: 0; margin-bottom: 2px;" title="Filtrar">
+                         <div class="filter-trigger" data-key="${col.key}" style="cursor: ${this.enabled ? 'pointer' : 'default'}; line-height: 0; margin-bottom: 2px;" title="Filtrar">
                              <span style="color: ${color}; opacity: 1;">
                                  <svg viewBox="0 0 24 24" fill="${color}" class="filter-icon" width="14" height="14" style="opacity: 1;"><path d="M10 18h4v-2h-4v2zM3 6v2h18V6H3zm3 7h12v-2H6v2z"/></svg>
                              </span>
                          </div>
-                         <div class="sort-toggle" data-key="${col.key}" style="cursor: pointer; line-height: 1; font-size: 0.75rem; user-select: none; color: white;" title="Alternar Ordenação">
+                         <div class="sort-toggle" data-key="${col.key}" style="cursor: ${this.enabled ? 'pointer' : 'default'}; line-height: 1; font-size: 0.75rem; user-select: none; color: white;" title="Alternar Ordenação">
                              ${isSortKey ? (isAsc ? '▲' : '▼') : '⇅'}
                          </div>
                      </div>
                    </div>`;
 
-            // Added draggable attributes
-            return `<th draggable="true" data-col-key="${col.key}" class="draggable-header" style="box-sizing: border-box; text-align: ${col.align || 'left'}; padding: var(--row-padding); font-size: var(--text-table); width: ${col.width || 'auto'}; vertical-align: middle; color: white; cursor: move; ${col.sticky ? `position: sticky; left: ${col._left + (this.enableSelection ? 40 : 0)}px; z-index: 25; background-color: var(--color-primary);` : ''}">${content}</th>`;
+            // Added draggable attributes conditionally
+            const isDraggable = this.enabled && !col.sticky;
+            return `<th ${isDraggable ? 'draggable="true"' : ''} data-col-key="${col.key}" class="${isDraggable ? 'draggable-header' : ''}" style="box-sizing: border-box; text-align: ${col.align || 'left'}; padding: var(--row-padding); font-size: var(--text-table); width: ${col.width || 'auto'}; vertical-align: middle; color: white; cursor: ${isDraggable ? 'move' : 'default'}; ${col.sticky ? `position: sticky; left: ${col._left + (this.enableSelection ? 40 : 0)}px; z-index: 25; background-color: var(--color-primary);` : ''}">${content}</th>`;
         }).join('');
 
         // Prepend Checkbox Header if enabled
@@ -607,7 +609,7 @@ export class SharedTable {
             const isAllSelected = this.currentData.length > 0 && this.currentData.every(item => this.selection.has(item.id));
             const checkboxHtml = `
                 <th style="box-sizing: border-box; width: 40px; text-align: center; vertical-align: middle; padding: var(--row-padding); position: sticky; left: 0; z-index: 30; background-color: var(--color-primary);">
-                    <input type="checkbox" class="select-all-cb" ${isAllSelected ? 'checked' : ''} style="cursor: pointer; transform: scale(1.2);">
+                    <input type="checkbox" class="select-all-cb" ${isAllSelected ? 'checked' : ''} style="cursor: ${this.enabled ? 'pointer' : 'default'}; transform: scale(1.2);" ${!this.enabled ? 'disabled' : ''}>
                 </th>
             `;
             return checkboxHtml + headers;
@@ -665,6 +667,7 @@ export class SharedTable {
             if (selectAllCb) {
                 selectAllCb.onclick = (e) => {
                     e.stopPropagation();
+                    if (!this.enabled) { e.preventDefault(); return; }
                     const isChecked = e.target.checked;
                     if (isChecked) {
                         this.currentData.forEach(item => this.selection.add(item.id));
@@ -688,6 +691,7 @@ export class SharedTable {
                 // But sort-btn stops propagation? Yes. Line 244.
                 // Filter stops propagation? Yes. Line 237.
                 // So this only fires for Label/Background.
+                if (!this.enabled) return;
 
                 const key = trigger.dataset.key;
                 const col = this.columns.find(c => c.key === key);
@@ -710,6 +714,7 @@ export class SharedTable {
         headerRow.querySelectorAll('.filter-trigger').forEach(trigger => {
             trigger.onclick = (e) => {
                 e.stopPropagation();
+                if (!this.enabled) return;
                 this.showAdvancedMenu(trigger.dataset.key, trigger);
             };
         });
@@ -717,6 +722,7 @@ export class SharedTable {
         headerRow.querySelectorAll('.sort-toggle').forEach(toggle => {
             toggle.onclick = (e) => {
                 e.stopPropagation(); // Prevents triggering header-sort-trigger
+                if (!this.enabled) return;
                 const key = toggle.dataset.key;
                 const col = this.columns.find(c => c.key === key);
                 if (!col) return;
@@ -739,6 +745,7 @@ export class SharedTable {
         const draggables = headerRow.querySelectorAll('.draggable-header');
         draggables.forEach(th => {
             th.addEventListener('dragstart', (e) => {
+                if (!this.enabled) { e.preventDefault(); return; }
                 e.dataTransfer.setData('text/plain', th.dataset.colKey);
                 e.dataTransfer.effectAllowed = 'move';
                 th.style.opacity = '0.5';
