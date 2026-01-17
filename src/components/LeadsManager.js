@@ -166,23 +166,36 @@ export const LeadsManager = (project) => {
             const cols = buildColumns(caracteristicas);
 
             if (!sharedTable) {
-                const tableContainer = container.querySelector('#table-container');
-                const footerSummaryElement = container.querySelector('#footer-summary');
+                try {
+                    console.log('Initializing SharedTable with cols:', cols);
+                    const tableContainer = container.querySelector('#table-container');
+                    const footerSummaryElement = container.querySelector('#footer-summary');
 
-                sharedTable = new SharedTable({
-                    container: tableContainer,
-                    columns: cols,
-                    data: leads,
-                    enableSelection: true,
-                    footer: null, // No special footer row needed here?
-                    summaryLabels: { total: 'Total Visualizado', selected: 'Selecionados' },
-                    onSelectionChange: (items, set) => {
-                        updateBulkBar(set.size);
-                    }
-                });
+                    if (!tableContainer) throw new Error('Table container not found');
+
+                    sharedTable = new SharedTable({
+                        container: tableContainer,
+                        columns: cols,
+                        data: leads,
+                        enableSelection: true,
+                        footer: null, // No special footer row needed here?
+                        summaryLabels: { total: 'Total Visualizado', selected: 'Selecionados' },
+                        onSelectionChange: (items, set) => {
+                            updateBulkBar(set.size);
+                        }
+                    });
+                } catch (renderErr) {
+                    console.error('SharedTable Render Error:', renderErr);
+                    showToast('Erro ao renderizar tabela: ' + renderErr.message, 'error');
+                }
             } else {
-                sharedTable.columns = cols;
-                sharedTable.render(leads); // Updates data and re-renders with new columns
+                try {
+                    sharedTable.columns = cols;
+                    sharedTable.render(leads); // Updates data and re-renders with new columns
+                } catch (renderErr) {
+                    console.error('SharedTable Update Error:', renderErr);
+                    showToast('Erro ao atualizar tabela: ' + renderErr.message, 'error');
+                }
             }
 
         } catch (error) {
