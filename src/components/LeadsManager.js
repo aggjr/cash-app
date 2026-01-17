@@ -355,7 +355,7 @@ export const LeadsManager = (project) => {
             <button id="btn-new-lead" class="btn-primary">+ Novo Lead</button>
         </div>
 
-        <div id="table-container" style="flex: 1; overflow: hidden;"></div>
+        <div id="table-container" style="flex: 1; overflow: auto; position: relative;"></div>
         
         <div id="footer-summary" style="margin-top: 1rem; font-size: 0.85rem; color: var(--color-text-muted);">
             Total: <span id="total-count">0</span> lead(s)

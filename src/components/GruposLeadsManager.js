@@ -821,6 +821,46 @@ export const GruposLeadsManager = (project) => {
     footerSummary.id = 'footer-summary';
     rightPanel.appendChild(footerSummary);
 
+    // Bulk Actions UI
+    const bulkActionsContainer = document.createElement('div');
+    bulkActionsContainer.id = 'bulk-actions-bar-groups';
+    bulkActionsContainer.style.position = 'absolute';
+    bulkActionsContainer.style.bottom = '40px';
+    bulkActionsContainer.style.left = '50%';
+    bulkActionsContainer.style.transform = 'translateX(-50%) translateY(100px)'; // Hidden by default
+    bulkActionsContainer.style.backgroundColor = 'var(--color-bg-primary)';
+    bulkActionsContainer.style.border = '1px solid var(--color-border-light)';
+    bulkActionsContainer.style.borderRadius = '8px';
+    bulkActionsContainer.style.padding = '12px 24px';
+    bulkActionsContainer.style.boxShadow = '0 4px 12px rgba(0,0,0,0.15)';
+    bulkActionsContainer.style.display = 'flex';
+    bulkActionsContainer.style.alignItems = 'center';
+    bulkActionsContainer.style.gap = '16px';
+    bulkActionsContainer.style.zIndex = '100';
+    bulkActionsContainer.style.transition = 'transform 0.3s ease-out';
+
+    bulkActionsContainer.innerHTML = `
+        <span id="bulk-selected-count" style="font-weight: 600; color: var(--color-text-primary);">0 selecionados</span>
+        <div style="height: 24px; width: 1px; background: var(--color-border-light);"></div>
+        <button id="btn-bulk-char" class="btn-secondary" style="font-size: 0.9rem; padding: 6px 12px;">
+            ✏️ Alterar Característica
+        </button>
+    `;
+
+    tableContainer.style.position = 'relative'; // Ensure relative for absolute placement
+    tableContainer.appendChild(bulkActionsContainer); // Append to table container to stay within panel
+
+    const updateBulkBar = (selectedCount) => {
+        const countSpan = bulkActionsContainer.querySelector('#bulk-selected-count');
+        if (countSpan) countSpan.textContent = `${selectedCount} selecionado${selectedCount !== 1 ? 's' : ''}`;
+
+        if (selectedCount > 0) {
+            bulkActionsContainer.style.transform = 'translateX(-50%) translateY(-20px)';
+        } else {
+            bulkActionsContainer.style.transform = 'translateX(-50%) translateY(100px)';
+        }
+    };
+
     leadsTable = new SharedTable({
         container: tableContainer,
         columns: getColumns(),
@@ -867,52 +907,6 @@ export const GruposLeadsManager = (project) => {
         },
         enabled: true // Always enabled for selection (Bulk Actions vs Edit Mode handled logic-side)
     });
-
-    // Bulk Actions UI
-    const bulkActionsContainer = document.createElement('div');
-    bulkActionsContainer.id = 'bulk-actions-bar-groups';
-    bulkActionsContainer.style.position = 'absolute';
-    bulkActionsContainer.style.bottom = '40px';
-    bulkActionsContainer.style.left = '50%';
-    bulkActionsContainer.style.transform = 'translateX(-50%) translateY(100px)'; // Hidden by default
-    bulkActionsContainer.style.backgroundColor = 'var(--color-bg-primary)';
-    bulkActionsContainer.style.border = '1px solid var(--color-border-light)';
-    bulkActionsContainer.style.borderRadius = '8px';
-    bulkActionsContainer.style.padding = '12px 24px';
-    bulkActionsContainer.style.boxShadow = '0 4px 12px rgba(0,0,0,0.15)';
-    bulkActionsContainer.style.display = 'flex';
-    bulkActionsContainer.style.alignItems = 'center';
-    bulkActionsContainer.style.gap = '16px';
-    bulkActionsContainer.style.zIndex = '100';
-    bulkActionsContainer.style.transition = 'transform 0.3s ease-out';
-
-    bulkActionsContainer.innerHTML = `
-        <span id="bulk-selected-count" style="font-weight: 600; color: var(--color-text-primary);">0 selecionados</span>
-        <div style="height: 24px; width: 1px; background: var(--color-border-light);"></div>
-        <button id="btn-bulk-char" class="btn-secondary" style="font-size: 0.9rem; padding: 6px 12px;">
-            ✏️ Alterar Característica
-        </button>
-    `;
-
-    tableContainer.style.position = 'relative'; // Ensure relative for absolute placement
-    tableContainer.appendChild(bulkActionsContainer); // Append to table container to stay within panel
-
-    const updateBulkBar = (selectedCount) => {
-        // Only show Bulk Bar if NOT editing group (assuming editing group dominates selection semantics)
-        // OR allow it? User said "allow alteration there too".
-        // If I am editing group, I might want to bulk edit properties of the members I just picked.
-        // If I Click "Bulk Edit", I edit the selected leads (which are the group members).
-        // This seems powerful. Let's allow it.
-
-        const countSpan = bulkActionsContainer.querySelector('#bulk-selected-count');
-        if (countSpan) countSpan.textContent = `${selectedCount} selecionado${selectedCount !== 1 ? 's' : ''}`;
-
-        if (selectedCount > 0) {
-            bulkActionsContainer.style.transform = 'translateX(-50%) translateY(-20px)';
-        } else {
-            bulkActionsContainer.style.transform = 'translateX(-50%) translateY(100px)';
-        }
-    };
 
     // Bulk Modal Logic (Copy from LeadsManager)
     const showBulkCharModal = async (selectedIds) => {
@@ -1021,20 +1015,7 @@ export const GruposLeadsManager = (project) => {
                     if (res.ok) {
                         showToast('Alteração em massa realizada!', 'success');
                         document.body.removeChild(overlay);
-
-                        // Reload data to reflect changes
-                        // If we are editing group, we might lose unsaved selection changes if we full reload?
-                        // Actually, 'loadData' reloads EVERYTHING.
-                        // If we are editing, we ideally shouldn't reload the whole tree.
-                        // But characteristic changes affect the table columns.
-                        // We must reload table data.
-                        // `selectGroup` re-fetches logic? No, `selectGroup` uses `grupos` state but also fetches leads via `renderLeadsTable`?
-                        // `renderLeadsTable` uses `SharedTable.data`.
-                        // We need to re-fetch the leads list.
-                        // Let's call `loadData()` which is safe but heavy.
-                        // Or trigger a refresh of the current view.
                         loadData(); // Simplest.
-
                     } else {
                         throw new Error('Falha na atualização');
                     }
@@ -1054,11 +1035,15 @@ export const GruposLeadsManager = (project) => {
         }
     };
 
-    bulkActionsContainer.querySelector('#btn-bulk-char').addEventListener('click', () => {
-        if (leadsTable && leadsTable.selection.size > 0) {
-            showBulkCharModal(Array.from(leadsTable.selection));
-        }
-    });
+    // Attach listener to bulk char button
+    const btnBulk = bulkActionsContainer.querySelector('#btn-bulk-char');
+    if (btnBulk) {
+        btnBulk.addEventListener('click', () => {
+            if (leadsTable && leadsTable.selection.size > 0) {
+                showBulkCharModal(Array.from(leadsTable.selection));
+            }
+        });
+    }
 
     const showCustomConfirm = (message, confirmText = 'Sim') => {
         return new Promise((resolve) => {
