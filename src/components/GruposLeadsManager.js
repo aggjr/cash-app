@@ -2,7 +2,7 @@ import { SharedTable } from './SharedTable.js';
 import { showToast } from '../utils/toast.js';
 import { getApiBaseUrl } from '../utils/apiConfig.js';
 import { GrupoModal } from './GrupoModal.js';
-import { SimpleLeadModal } from './SimpleLeadModal.js';
+import { LeadModal } from './LeadModal.js'; // Full Modal
 
 export const GruposLeadsManager = (project) => {
     const container = document.createElement('div');
@@ -20,8 +20,11 @@ export const GruposLeadsManager = (project) => {
     let grupos = [];
     let leads = [];
     let selectedGroupId = null;
+    let isEditingGroup = false; // New: Controls Read-Only state
     let expandedGroups = new Set(['ALL']); // Always start with ALL expanded
     let leadsTable = null;
+    let initialGroupSelection = new Set(); // To track changes during edit
+    let caracteristicas = []; // Added for LeadModal
 
     // --- Layout Split ---
 
@@ -105,6 +108,23 @@ export const GruposLeadsManager = (project) => {
 
     const selectGroup = (groupId) => {
         selectedGroupId = groupId;
+        isEditingGroup = false; // Reset edit state on switch
+
+        if (leadsTable) {
+            // Default to Read-Only effectively
+            // But wait, if groupId is ALL, maybe enable? 
+            // User Request: "Ao selecionar um determinado grupo, ele deve vir travado... Para editar... clicar no lápis"
+            // Implies All groups are read-only initially.
+            // What about 'ALL'? 'ALL' is standard list. Can we edit 'ALL'? Probably not add to 'ALL', just edit leads.
+            // Let's keep it consistent: always locked for 'membership editing'.
+            // But 'ALL' doesn't have membership editing (it's dynamic).
+            // So for ALL, we should disable the 'Edit' button? Yes, logic in updateRightHeaderTitle handles that.
+            // For Checkboxes in ALL? They serve no purpose if we can't 'Remove from ALL'.
+            // So ALL should be read-only always for checkboxes.
+
+            leadsTable.updateOptions({ enabled: false });
+        }
+
         renderGroupsTree(); // Re-render para atualizar destaque
         updateLeadsTableSelection(); // Atualizar tabela da direita
     };
@@ -128,6 +148,8 @@ export const GruposLeadsManager = (project) => {
 
         // Estilo da Linha
         const row = document.createElement('div');
+        row.className = 'group-row';
+        row.dataset.groupId = group.id; // Add ID for lookup
         row.style.display = 'flex';
         row.style.alignItems = 'center';
         row.style.padding = '8px 12px';
@@ -194,6 +216,7 @@ export const GruposLeadsManager = (project) => {
 
         // Nome com Contagem
         const nameSpan = document.createElement('span');
+        nameSpan.className = 'group-name-span';
         const countText = group.total_leads ? ` (${group.total_leads})` : ' (0)';
         nameSpan.textContent = `${group.nome}${countText}`;
         nameSpan.style.flex = '1';
@@ -380,20 +403,55 @@ export const GruposLeadsManager = (project) => {
         header.style.justifyContent = 'space-between';
         header.style.alignItems = 'center';
 
-        header.innerHTML = `
-            <h3 id="right-panel-title" style="margin:0; font-size:1.1rem; color:var(--color-primary);">Listagem geral dos leads</h3>
-             <div style="display:flex; gap:0.5rem;">
-                <button id="btn-new-simple-lead" class="btn-primary" title="Novo Lead Simplificado" style="padding: 4px 12px; font-size: 0.9rem;">
-                    + Lead
-                </button>
-                <button id="btn-create-group-from-filter" class="btn-secondary" title="Criar novo grupo com os leads selecionados/filtrados">
-                    ⚡ Criar Grupo da Seleção
-                </button>
-             </div>
-        `;
-
-        header.querySelector('#btn-create-group-from-filter').onclick = createGroupFromSelection;
-        header.querySelector('#btn-new-simple-lead').onclick = createSimpleLead;
+        if (isSelected && selectedGroupId !== 'ALL') {
+            // In Edit Mode?
+            if (isEditingGroup) {
+                // Save / Cancel
+                header.innerHTML = `
+                    <div style="display:flex; align-items:center; gap:8px;">
+                        <h3 id="right-panel-title" style="margin:0; font-size:1.1rem; color:var(--color-primary);">Editando: ${title}</h3>
+                    </div>
+                    <div style="display:flex; gap:0.5rem;">
+                        <button id="btn-cancel-edit" class="btn-secondary" style="padding: 4px 12px; font-size: 0.9rem;">
+                            ❌ Cancelar
+                        </button>
+                        <button id="btn-save-edit" class="btn-primary" style="padding: 4px 12px; font-size: 0.9rem; background-color: #10B981; border-color: #10B981;">
+                            💾 Salvar Alterações
+                        </button>
+                    </div>
+                 `;
+                header.querySelector('#btn-cancel-edit').onclick = cancelEditMode;
+                header.querySelector('#btn-save-edit').onclick = saveGroupChanges;
+            } else {
+                // View Mode - Show Edit Button
+                header.innerHTML = `
+                    <div style="display:flex; align-items:center; gap:8px;">
+                        <h3 id="right-panel-title" style="margin:0; font-size:1.1rem; color:var(--color-primary);">${title}</h3>
+                        <button id="btn-edit-group-members" title="Editar Membros do Grupo" style="background:none; border:none; cursor:pointer; font-size:1.2rem;">
+                            ✏️
+                        </button>
+                    </div>
+                    <div style="display:flex; gap:0.5rem;">
+                        <button id="btn-new-lead" class="btn-primary" title="Novo Lead Completo" style="padding: 4px 12px; font-size: 0.9rem;">
+                            + Lead
+                        </button>
+                    </div>
+                 `;
+                header.querySelector('#btn-edit-group-members').onclick = enterEditMode;
+                header.querySelector('#btn-new-lead').onclick = createLead;
+            }
+        } else {
+            // Default View (ALL or None)
+            header.innerHTML = `
+                <h3 id="right-panel-title" style="margin:0; font-size:1.1rem; color:var(--color-primary);">${title}</h3>
+                 <div style="display:flex; gap:0.5rem;">
+                    <button id="btn-new-lead" class="btn-primary" title="Novo Lead Completo" style="padding: 4px 12px; font-size: 0.9rem;">
+                        + Lead
+                    </button>
+                 </div>
+            `;
+            header.querySelector('#btn-new-lead').onclick = createLead;
+        }
 
         return header;
     };
@@ -405,15 +463,17 @@ export const GruposLeadsManager = (project) => {
             leftPanel.style.opacity = '0.7';
             if (leadsTable) container.querySelector('#table-container')?.classList.add('loading');
 
-            const [gruposRes, leadsRes] = await Promise.all([
+            const [gruposRes, leadsRes, caracsRes] = await Promise.all([
                 fetch(`${API_BASE_URL}/marketing/grupos-leads`, { headers: getHeaders() }),
-                fetch(`${API_BASE_URL}/marketing/leads`, { headers: getHeaders() })
+                fetch(`${API_BASE_URL}/marketing/leads`, { headers: getHeaders() }),
+                fetch(`${API_BASE_URL}/marketing/caracteristicas`, { headers: getHeaders() })
             ]);
 
-            if (!gruposRes.ok || !leadsRes.ok) throw new Error('Falha ao carregar dados');
+            if (!gruposRes.ok || !leadsRes.ok || !caracsRes.ok) throw new Error('Falha ao carregar dados');
 
             grupos = await gruposRes.json();
             leads = await leadsRes.json();
+            caracteristicas = await caracsRes.json(); // Global var needs to be defined
 
             renderGroupsTree();
 
@@ -436,8 +496,12 @@ export const GruposLeadsManager = (project) => {
     };
 
     const createGrupo = async (parentId = null) => {
+        // 'ALL' is the virtual root, so creating a child of ALL means creating a Root Group (parent_id = null)
+        const realParentId = (parentId === 'ALL') ? null : parentId;
+
         await GrupoModal.show({
-            grupo: parentId ? { parent_id: parentId } : null,
+            grupo: realParentId ? { parent_id: realParentId } : null,
+            minimal: true, // Minimal Creation Mode
             onSave: async (grupoData) => {
                 const response = await fetch(`${API_BASE_URL}/marketing/grupos-leads`, {
                     method: 'POST',
@@ -446,8 +510,24 @@ export const GruposLeadsManager = (project) => {
                 });
 
                 if (response.ok) {
+                    const result = await response.json();
                     showToast('Grupo criado com sucesso!', 'success');
-                    loadData();
+
+                    // Reload Data
+                    await loadData();
+
+                    // Auto-Select the new Group and Enter Edit Mode
+                    if (result.id) {
+                        selectGroup(result.id);
+
+                        // Small delay to ensure render completes? 
+                        // selectGroup calls renderGroupsTree and updateLeadsTableSelection.
+                        // Then we enter edit mode.
+                        setTimeout(() => {
+                            enterEditMode();
+                        }, 200);
+                    }
+
                 } else {
                     const error = await response.json();
                     throw new Error(error.error || 'Erro ao criar grupo');
@@ -504,12 +584,73 @@ export const GruposLeadsManager = (project) => {
         }
     };
 
-    const createSimpleLead = async () => {
-        await SimpleLeadModal.show({
+    // --- EDIT MODE LOGIC ---
+
+    const enterEditMode = () => {
+        isEditingGroup = true;
+        initialGroupSelection = new Set(leadsTable.selection); // Snapshot
+        leadsTable.updateOptions({ enabled: true }); // Unlock table
+        updateRightHeaderTitle();
+        showToast('Modo de edição ativado. Selecione/Desmarque leads.', 'info');
+    };
+
+    const cancelEditMode = () => {
+        isEditingGroup = false;
+        // Revert selection
+        leadsTable.selection = new Set(initialGroupSelection);
+        leadsTable.render(leads); // Force re-render to visually revert
+        leadsTable.updateOptions({ enabled: false }); // Lock table
+        leadsTable.updateFooterSummary();
+        updateRightHeaderTitle();
+    };
+
+    const saveGroupChanges = async () => {
+        if (!selectedGroupId) return;
+
+        const currentSelection = leadsTable.selection;
+
+        // Diff Logic
+        // initial (db state) vs current
+        const toAdd = [...currentSelection].filter(id => !initialGroupSelection.has(id));
+        const toRemove = [...initialGroupSelection].filter(id => !currentSelection.has(id));
+
+        if (toAdd.length === 0 && toRemove.length === 0) {
+            isEditingGroup = false;
+            leadsTable.updateOptions({ enabled: false });
+            updateRightHeaderTitle();
+            return;
+        }
+
+        const confirm = await showToast(`Salvando... (+${toAdd.length}, -${toRemove.length})`, 'info');
+
+        // We reuse handleMembershipChange but need to ensure it uses the diff we just calculated
+        // Actually handleMembershipChange uses `leads` (cache) to calc diff vs allSelectedSet.
+        // It should match exactly if we pass currentSelection.
+
+        await handleMembershipChange(null, currentSelection);
+
+        isEditingGroup = false;
+        leadsTable.updateOptions({ enabled: false });
+        updateRightHeaderTitle();
+        showToast('Grupo atualizado com sucesso!', 'success');
+
+        // Refresh data to ensure consistency? 
+        // handleMembershipChange does API calls but doesnt reload leads array fully. 
+        // Ideally reload for safety.
+        loadData();
+    };
+
+    // --- FULL LEAD MODAL ---
+
+    const createLead = async () => {
+        await LeadModal.show({
             lead: null,
+            grupos: grupos,
+            caracteristicas: caracteristicas,
             onSave: async (leadData) => {
                 try {
-                    if (selectedGroupId) {
+                    // If created while in a group, auto-add?
+                    if (selectedGroupId && selectedGroupId !== 'ALL') {
                         leadData.grupos = [selectedGroupId];
                     }
 
@@ -533,9 +674,11 @@ export const GruposLeadsManager = (project) => {
         });
     };
 
-    const updateSimpleLead = async (lead) => {
-        await SimpleLeadModal.show({
+    const updateLead = async (lead) => {
+        await LeadModal.show({
             lead: lead,
+            grupos: grupos,
+            caracteristicas: caracteristicas,
             onSave: async (leadData) => {
                 try {
                     const response = await fetch(`${API_BASE_URL}/marketing/leads/${lead.id}`, {
@@ -689,10 +832,39 @@ export const GruposLeadsManager = (project) => {
             selected: 'Leads Selecionados (no Grupo)'
         },
         onSelectionChange: (items, set) => {
-            if (selectedGroupId && items) {
-                handleMembershipChange(null, set);
+            // Update Footer (handled by SharedTable internals, but we can hook here)
+
+            // Dynamic Group Counter Update
+            if (isEditingGroup && selectedGroupId && selectedGroupId !== 'ALL') {
+                const count = set.size;
+                const groupRow = container.querySelector(`.group-row[data-group-id="${selectedGroupId}"]`);
+                if (groupRow) {
+                    const nameSpan = groupRow.querySelector('.group-name-span');
+
+                    const findGroup = (list, id) => {
+                        for (const g of list) {
+                            if (g.id === id) return g;
+                            if (g.children) {
+                                const found = findGroup(g.children, id);
+                                if (found) return found;
+                            }
+                        }
+                        return null;
+                    };
+                    const groupData = findGroup(grupos, selectedGroupId);
+
+                    if (nameSpan && groupData) {
+                        nameSpan.textContent = `${groupData.nome} (${count})`;
+                        // Highlight change?
+                        nameSpan.style.color = '#eab308'; // Transition color or just keep primary?
+                        setTimeout(() => {
+                            if (selectedGroupId === groupData.id) nameSpan.style.color = 'var(--color-primary)';
+                        }, 500);
+                    }
+                }
             }
-        }
+        },
+        enabled: false // Start disabled
     });
 
     const showCustomConfirm = (message, confirmText = 'Sim') => {

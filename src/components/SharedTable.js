@@ -1,7 +1,7 @@
 import { getApiBaseUrl } from '../utils/apiConfig.js';
 
 export class SharedTable {
-    constructor({ container, columns, projectId, endpointPrefix, onFilterChange, onSortChange, enableSelection, onSelectionChange, headerRow, footerRow, summaryLabels }) {
+    constructor({ container, columns, projectId, endpointPrefix, onFilterChange, onSortChange, enableSelection, onSelectionChange, headerRow, footerRow, summaryLabels, enabled = true }) {
         this.container = container;
         this.columns = columns;
         this.projectId = projectId;
@@ -13,6 +13,7 @@ export class SharedTable {
         this.headerRow = headerRow; // Optional: { data: {...}, style: {...}, className: '' }
         this.footerRow = footerRow; // Optional: { data: {...}, style: {...}, className: '' }
         this.summaryLabels = summaryLabels || { total: 'Total Visualizado', selected: 'Selecionados' };
+        this.enabled = enabled;
         this.API_BASE_URL = getApiBaseUrl();
 
         // State
@@ -26,10 +27,11 @@ export class SharedTable {
     }
 
     // Allow updating options dynamically
-    updateOptions({ enableSelection, onSelectionChange }) {
+    updateOptions({ enableSelection, onSelectionChange, enabled }) {
         if (enableSelection !== undefined) this.enableSelection = enableSelection;
         if (onSelectionChange !== undefined) this.onSelectionChange = onSelectionChange;
-        console.log('🛡️ SharedTable v0.2.20 - Fixed Wrapper Reference');
+        if (enabled !== undefined) this.enabled = enabled;
+        console.log('🛡️ SharedTable v0.2.20 - Options Updated');
     }
 
     getHeaders() {
@@ -349,6 +351,12 @@ export class SharedTable {
         wrapper.style.flex = '1';
         wrapper.style.border = '1px solid var(--color-border-light)';
         wrapper.style.borderRadius = '8px';
+
+        // Disabled State Visuals
+        if (!this.enabled) {
+            wrapper.style.opacity = '0.6';
+            wrapper.style.pointerEvents = 'none';
+        }
 
         // Calculate sticky offsets
         let currentLeft = 0;

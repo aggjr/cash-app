@@ -3,7 +3,7 @@ import { showToast } from '../utils/toast.js';
 import { SharedTable } from './SharedTable.js';
 
 export const GrupoModal = {
-    show({ grupo = null, onSave }) {
+    show({ grupo = null, onSave, minimal = false }) {
         return new Promise(async (resolve) => {
             try {
                 const API_BASE_URL = getApiBaseUrl();
@@ -26,22 +26,24 @@ export const GrupoModal = {
                 let grupoLeadsIds = [];
 
                 // Fetch Dependencies Parallelly
-                try {
-                    const [caracRes, gruposRes, leadsRes] = await Promise.all([
-                        fetch(`${API_BASE_URL}/marketing/caracteristicas`, { headers: { 'Authorization': `Bearer ${token}` } }),
-                        fetch(`${API_BASE_URL}/marketing/grupos-leads`, { headers: { 'Authorization': `Bearer ${token}` } }),
-                        fetch(`${API_BASE_URL}/marketing/leads`, { headers: { 'Authorization': `Bearer ${token}` } })
-                    ]);
+                if (!minimal) {
+                    try {
+                        const [caracRes, gruposRes, leadsRes] = await Promise.all([
+                            fetch(`${API_BASE_URL}/marketing/caracteristicas`, { headers: { 'Authorization': `Bearer ${token}` } }),
+                            fetch(`${API_BASE_URL}/marketing/grupos-leads`, { headers: { 'Authorization': `Bearer ${token}` } }),
+                            fetch(`${API_BASE_URL}/marketing/leads`, { headers: { 'Authorization': `Bearer ${token}` } })
+                        ]);
 
-                    if (caracRes.ok) allCaracteristicas = await caracRes.json();
-                    if (gruposRes.ok) allGrupos = await gruposRes.json();
-                    if (leadsRes.ok) allLeads = await leadsRes.json();
-                } catch (error) {
-                    console.error('Error loading dependencies:', error);
-                    showToast('Erro ao carregar dados auxiliares', 'error');
+                        if (caracRes.ok) allCaracteristicas = await caracRes.json();
+                        if (gruposRes.ok) allGrupos = await gruposRes.json();
+                        if (leadsRes.ok) allLeads = await leadsRes.json();
+                    } catch (error) {
+                        console.error('Error loading dependencies:', error);
+                        showToast('Erro ao carregar dados auxiliares', 'error');
+                    }
                 }
 
-                if (isEdit) {
+                if (isEdit && !minimal) {
                     try {
                         const fullGroupRes = await fetch(`${API_BASE_URL}/marketing/grupos-leads/${grupo.id}`, {
                             headers: { 'Authorization': `Bearer ${token}` }
@@ -60,7 +62,7 @@ export const GrupoModal = {
                 }
 
                 // Filter available groups for Sub-groups (Exclude self)
-                const availableSubgroups = isEdit
+                const availableSubgroups = (isEdit && !minimal)
                     ? allGrupos.filter(g => g.id !== grupo.id)
                     : allGrupos;
 
@@ -71,9 +73,16 @@ export const GrupoModal = {
 
                 const modal = document.createElement('div');
                 modal.className = 'account-modal animate-float-in';
-                modal.style.maxWidth = '1200px'; // Wide design for table
-                modal.style.width = '95%';
-                modal.style.height = '90vh';
+                if (minimal) {
+                    modal.style.maxWidth = '500px';
+                    modal.style.width = '90%';
+                    modal.style.height = 'auto'; // Auto height for minimal
+                    modal.style.maxHeight = '90vh';
+                } else {
+                    modal.style.maxWidth = '1200px'; // Wide design for table
+                    modal.style.width = '95%';
+                    modal.style.height = '90vh';
+                }
                 modal.style.display = 'flex';
                 modal.style.flexDirection = 'column';
 
@@ -97,6 +106,7 @@ export const GrupoModal = {
                             grid-template-columns: repeat(auto-fill, minmax(180px, 1fr));
                             gap: 0.25rem;
                             padding-right: 0.25rem;
+                            scrollbar-width: thin;
                         ">
                             ${items.length > 0 ? items.map(item => `
                                 <label class="checkbox-item" style="display: flex; align-items: center; gap: 0.5rem; cursor: pointer; font-size: 0.9rem; padding: 0.25rem; border-radius: 4px; transition: background 0.1s;"
@@ -131,30 +141,32 @@ export const GrupoModal = {
                                     placeholder="Descrição opcional...">${grupo?.descricao || ''}</textarea>
                             </div>
 
-                            <!-- LEADS SECTION -->
-                            <div class="form-group">
-                                <label>Leads Integrantes</label>
-                                <div style="background: white; border: 1px solid var(--color-border-light); border-radius: 8px; overflow: hidden; padding: 0.5rem; display: flex; flex-direction: column; height: 500px;">
-                                    <div style="margin-bottom: 0.5rem;">
-                                        <input type="text" id="${idLeadsSearch}" class="form-input" placeholder="🔍 Buscar Lead..." 
-                                            style="padding: 0.5rem; font-size: 0.9rem; width: 100%;" />
+                            ${!minimal ? `
+                                <!-- LEADS SECTION -->
+                                <div class="form-group">
+                                    <label>Leads Integrantes</label>
+                                    <div style="background: white; border: 1px solid var(--color-border-light); border-radius: 8px; overflow: hidden; padding: 0.5rem; display: flex; flex-direction: column; height: 500px;">
+                                        <div style="margin-bottom: 0.5rem;">
+                                            <input type="text" id="${idLeadsSearch}" class="form-input" placeholder="🔍 Buscar Lead..." 
+                                                style="padding: 0.5rem; font-size: 0.9rem; width: 100%;" />
+                                        </div>
+                                        <div id="${idLeadsTable}" style="flex: 1; overflow: hidden; display: flex; flex-direction: column;"></div>
                                     </div>
-                                    <div id="${idLeadsTable}" style="flex: 1; overflow: hidden; display: flex; flex-direction: column;"></div>
+                                    <small style="color: var(--color-text-muted); display: block; margin-top: 0.3rem;">
+                                        Selecione os leads que farão parte deste grupo.
+                                    </small>
                                 </div>
-                                <small style="color: var(--color-text-muted); display: block; margin-top: 0.3rem;">
-                                    Selecione os leads que farão parte deste grupo.
-                                </small>
-                            </div>
 
-                            <div class="form-group">
-                                <label>Sub-grupos (Este grupo contém...)</label>
-                                ${renderSearchableListHtml(availableSubgroups, grupoSubgruposIds, idSubList, idSubSearch, 'Nenhum outro grupo disponível.')}
-                            </div>
+                                <div class="form-group">
+                                    <label>Sub-grupos (Este grupo contém...)</label>
+                                    ${renderSearchableListHtml(availableSubgroups, grupoSubgruposIds, idSubList, idSubSearch, 'Nenhum outro grupo disponível.')}
+                                </div>
 
-                            <div class="form-group">
-                                <label>Características (Critérios)</label>
-                                ${renderSearchableListHtml(allCaracteristicas, grupoCaracteristicasIds, idCaracList, idCaracSearch, 'Nenhuma característica cadastrada.')}
-                            </div>
+                                <div class="form-group">
+                                    <label>Características (Critérios)</label>
+                                    ${renderSearchableListHtml(allCaracteristicas, grupoCaracteristicasIds, idCaracList, idCaracSearch, 'Nenhuma característica cadastrada.')}
+                                </div>
+                            ` : ''}
 
                         </div>
                     </div>
@@ -177,11 +189,12 @@ export const GrupoModal = {
                 const cancelBtn = modal.querySelector('#modal-cancel');
                 const leadsSearchInput = modal.querySelector(`#${idLeadsSearch}`);
 
-                // Setup Search Logic for Lists
+                // Setup Search Logic for Lists (only if lists exist)
                 const setupSearch = (searchId, listId) => {
                     const searchInput = modal.querySelector(`#${searchId}`);
                     const listContainer = modal.querySelector(`#${listId}`);
                     if (!searchInput || !listContainer) return;
+                    // ... (rest is safe if elements found)
                     const items = listContainer.querySelectorAll('label.checkbox-item');
                     searchInput.addEventListener('input', (e) => {
                         const term = e.target.value.toLowerCase();
@@ -196,99 +209,100 @@ export const GrupoModal = {
                 let sharedTable = null;
                 setTimeout(() => {
                     nomeInput.focus();
-                    setupSearch(idSubSearch, idSubList);
-                    setupSearch(idCaracSearch, idCaracList);
+                    if (!minimal) {
+                        setupSearch(idSubSearch, idSubList);
+                        setupSearch(idCaracSearch, idCaracList);
 
-                    // Setup Leads Table
-                    const tableContainer = modal.querySelector(`#${idLeadsTable}`);
-                    if (tableContainer) {
+                        // Setup Leads Table
+                        const tableContainer = modal.querySelector(`#${idLeadsTable}`);
+                        if (tableContainer) {
 
-                        // 1. Transform Leads Data (Pivot) & Create Columns
-                        const dynamicColumns = [
-                            { key: 'nome', label: 'Nome', align: 'left', sticky: true, width: '200px' },
-                            { key: 'telefone', label: 'Whatsapp', width: '130px', sticky: true },
-                            { key: 'email', label: 'E-mail', width: '200px', sticky: true }
-                        ];
+                            // 1. Transform Leads Data (Pivot) & Create Columns
+                            const dynamicColumns = [
+                                { key: 'nome', label: 'Nome', align: 'left', sticky: true, width: '200px' },
+                                { key: 'telefone', label: 'Whatsapp', width: '130px', sticky: true },
+                                { key: 'email', label: 'E-mail', width: '200px', sticky: true }
+                            ];
 
-                        // Add Characteristic Columns
-                        allCaracteristicas.forEach(c => {
-                            dynamicColumns.push({
-                                key: `char_${c.id}`,
-                                label: c.nome,
-                                width: '150px',
-                                type: 'text', // Enables filtering
-                                align: 'left'
-                            });
-                        });
-
-                        // Process Leads
-                        const processedLeads = allLeads.map(lead => {
-                            const newLead = { ...lead };
-
-                            // Parse JSON if available, otherwise fallback (though backend should send JSON now)
-                            let chars = [];
-                            if (lead.caracteristicas_json) {
-                                try {
-                                    // Handle double-encoding if it happens, or direct array
-                                    chars = typeof lead.caracteristicas_json === 'string'
-                                        ? JSON.parse(lead.caracteristicas_json)
-                                        : lead.caracteristicas_json;
-                                } catch (e) { console.error('Error parsing chars json', e); }
-                            }
-
-                            if (Array.isArray(chars)) {
-                                chars.forEach(c => {
-                                    // c: { id, nome, valor }
-                                    // Use 'valor' if present (Assigned Value), otherwise 'Sim' (if it's just a tag characteristic)
-                                    // Actually, for lead-characteristic relation, it might just be existence, 
-                                    // BUT the backend query `IF(cv.valor IS NOT NULL, ...)` suggests values exist.
-                                    // Let's use value or 'Sim'.
-                                    newLead[`char_${c.id}`] = c.valor || 'Sim'; // 'Sim' implies presence if no specific value
+                            // Add Characteristic Columns
+                            allCaracteristicas.forEach(c => {
+                                dynamicColumns.push({
+                                    key: `char_${c.id}`,
+                                    label: c.nome,
+                                    width: '150px',
+                                    type: 'text', // Enables filtering
+                                    align: 'left'
                                 });
-                            }
-                            return newLead;
-                        });
+                            });
 
-                        sharedTable = new SharedTable({
-                            container: tableContainer,
-                            columns: dynamicColumns,
-                            enableSelection: true,
-                            footerRow: null // We use external summary now
-                        });
+                            // Process Leads
+                            const processedLeads = allLeads.map(lead => {
+                                const newLead = { ...lead };
 
-                        // Set Initial Selection
-                        sharedTable.selection = new Set(grupoLeadsIds);
+                                // Parse JSON if available, otherwise fallback (though backend should send JSON now)
+                                let chars = [];
+                                if (lead.caracteristicas_json) {
+                                    try {
+                                        // Handle double-encoding if it happens, or direct array
+                                        chars = typeof lead.caracteristicas_json === 'string'
+                                            ? JSON.parse(lead.caracteristicas_json)
+                                            : lead.caracteristicas_json;
+                                    } catch (e) { console.error('Error parsing chars json', e); }
+                                }
 
-                        // Initial Render
-                        sharedTable.render(processedLeads);
-
-                        // Search Logic for Leads (Updated to filter by flattened props too?)
-                        // User wanted "Multiple filters in parallel". SharedTable `applyClientSideFilter` handles column-specific filters.
-                        // The global search input below is properly for "Quick Search". 
-                        // We can keep it or remove it. User asked for "Advanced filters". 
-                        // SharedTable handles advanced column filters. 
-                        // I will keep this search box as a "Global Text Search" across visible columns.
-
-                        if (leadsSearchInput) {
-                            leadsSearchInput.addEventListener('input', (e) => {
-                                const term = e.target.value.toLowerCase();
-                                const filtered = processedLeads.filter(l => {
-                                    // Check fixed fields
-                                    if (l.nome && l.nome.toLowerCase().includes(term)) return true;
-                                    if (l.email && l.email.toLowerCase().includes(term)) return true;
-                                    if (l.telefone && l.telefone.includes(term)) return true;
-
-                                    // Check dynamic chars
-                                    return allCaracteristicas.some(c => {
-                                        const val = l[`char_${c.id}`];
-                                        return val && String(val).toLowerCase().includes(term);
+                                if (Array.isArray(chars)) {
+                                    chars.forEach(c => {
+                                        // c: { id, nome, valor }
+                                        // Use 'valor' if present (Assigned Value), otherwise 'Sim' (if it's just a tag characteristic)
+                                        // Actually, for lead-characteristic relation, it might just be existence, 
+                                        // BUT the backend query `IF(cv.valor IS NOT NULL, ...)` suggests values exist.
+                                        // Let's use value or 'Sim'.
+                                        newLead[`char_${c.id}`] = c.valor || 'Sim'; // 'Sim' implies presence if no specific value
                                     });
-                                });
-                                sharedTable.render(filtered);
+                                }
+                                return newLead;
                             });
+
+                            sharedTable = new SharedTable({
+                                container: tableContainer,
+                                columns: dynamicColumns,
+                                enableSelection: true,
+                                footerRow: null // We use external summary now
+                            });
+
+                            // Set Initial Selection
+                            sharedTable.selection = new Set(grupoLeadsIds);
+
+                            // Initial Render
+                            sharedTable.render(processedLeads);
+
+                            // Search Logic for Leads (Updated to filter by flattened props too?)
+                            // User wanted "Multiple filters in parallel". SharedTable `applyClientSideFilter` handles column-specific filters.
+                            // The global search input below is properly for "Quick Search". 
+                            // We can keep it or remove it. User asked for "Advanced filters". 
+                            // SharedTable handles advanced column filters. 
+                            // I will keep this search box as a "Global Text Search" across visible columns.
+
+                            if (leadsSearchInput) {
+                                leadsSearchInput.addEventListener('input', (e) => {
+                                    const term = e.target.value.toLowerCase();
+                                    const filtered = processedLeads.filter(l => {
+                                        // Check fixed fields
+                                        if (l.nome && l.nome.toLowerCase().includes(term)) return true;
+                                        if (l.email && l.email.toLowerCase().includes(term)) return true;
+                                        if (l.telefone && l.telefone.includes(term)) return true;
+
+                                        // Check dynamic chars
+                                        return allCaracteristicas.some(c => {
+                                            const val = l[`char_${c.id}`];
+                                            return val && String(val).toLowerCase().includes(term);
+                                        });
+                                    });
+                                    sharedTable.render(filtered);
+                                });
+                            }
                         }
                     }
-
                 }, 100);
 
                 const close = () => {
@@ -306,10 +320,10 @@ export const GrupoModal = {
                         return;
                     }
 
-                    const selectedCaracs = Array.from(modal.querySelector(`#${idCaracList}`).querySelectorAll('input:checked'))
+                    const selectedCaracs = minimal ? [] : Array.from(modal.querySelector(`#${idCaracList}`).querySelectorAll('input:checked'))
                         .map(cb => parseInt(cb.value));
 
-                    const selectedSubgrupos = Array.from(modal.querySelector(`#${idSubList}`).querySelectorAll('input:checked'))
+                    const selectedSubgrupos = minimal ? [] : Array.from(modal.querySelector(`#${idSubList}`).querySelectorAll('input:checked'))
                         .map(cb => parseInt(cb.value));
 
                     const selectedLeads = sharedTable ? Array.from(sharedTable.selection) : [];
