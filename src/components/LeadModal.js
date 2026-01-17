@@ -524,8 +524,10 @@ export const LeadModal = {
                         selectedCharValues[charId] = parseInt(val.id);
 
                         // Auto-check characteristic if not already checked
-                        if (!selectedCharacteristics.has(charId)) {
-                            selectedCharacteristics.add(charId);
+                        // Robust lookup to handle string/int mismatch
+                        const charObj = caracteristicas.find(c => c.id == charId);
+                        if (charObj && !selectedCharacteristics.has(charObj.id)) {
+                            selectedCharacteristics.add(charObj.id);
                             const currentFilter = caracSearchEl.value;
                             renderCharacteristics(currentFilter);
                         }
@@ -543,8 +545,9 @@ export const LeadModal = {
                     radio.onchange = () => {
                         selectedCharValues[charId] = parseInt(val.id);
                         // Auto-check characteristic if not already checked
-                        if (!selectedCharacteristics.has(charId)) {
-                            selectedCharacteristics.add(charId);
+                        const charObj = caracteristicas.find(c => c.id == charId);
+                        if (charObj && !selectedCharacteristics.has(charObj.id)) {
+                            selectedCharacteristics.add(charObj.id);
                             // Re-render characteristics interacting properly with search filter
                             const currentFilter = caracSearchEl.value;
                             renderCharacteristics(currentFilter);
