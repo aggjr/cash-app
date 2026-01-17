@@ -362,6 +362,7 @@ export class SharedTable {
             }
         });
 
+        const table = document.createElement('table');
         table.style.width = '100%';
         table.style.borderCollapse = 'separate'; // Needed for sticky
         table.style.borderSpacing = '0';
