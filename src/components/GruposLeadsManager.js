@@ -313,7 +313,14 @@ export const GruposLeadsManager = (project) => {
 
         // Actions only for real groups (not 'ALL')
         if (group.id !== 'ALL') {
-            // Edit
+            // Edit Members
+            actionsDiv.appendChild(createActionBtn('📋', 'Editar Membros', '#3b82f6', () => {
+                if (selectedGroupId !== group.id) selectGroup(group.id);
+                // Allow table selection update to propagate
+                setTimeout(() => enterEditMode(), 100);
+            }));
+
+            // Edit Group (Name/Desc)
             actionsDiv.appendChild(createActionBtn('✏️', 'Editar Grupo', '#f59e0b', () => updateGrupo(group)));
 
             // Delete
