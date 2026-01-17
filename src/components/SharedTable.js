@@ -363,7 +363,8 @@ export class SharedTable {
         });
 
         const table = document.createElement('table');
-        table.style.width = '100%';
+        table.style.width = 'max-content';
+        table.style.minWidth = '100%';
         table.style.borderCollapse = 'separate'; // Needed for sticky
         table.style.borderSpacing = '0';
         table.style.fontSize = 'var(--text-table)';
