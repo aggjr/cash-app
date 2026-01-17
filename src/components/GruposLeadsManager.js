@@ -740,8 +740,7 @@ export const GruposLeadsManager = (project) => {
 
         const currentSelection = leadsTable.selection;
 
-        // Diff Logic
-        // initial (db state) vs current
+        // Diff Logic: initial (snapshot) vs current (user edits)
         const toAdd = [...currentSelection].filter(id => !initialGroupSelection.has(id));
         const toRemove = [...initialGroupSelection].filter(id => !currentSelection.has(id));
 
@@ -754,21 +753,48 @@ export const GruposLeadsManager = (project) => {
 
         const confirm = await showToast(`Salvando... (+${toAdd.length}, -${toRemove.length})`, 'info');
 
-        // We reuse handleMembershipChange but need to ensure it uses the diff we just calculated
-        // Actually handleMembershipChange uses `leads` (cache) to calc diff vs allSelectedSet.
-        // It should match exactly if we pass currentSelection.
+        try {
+            const promises = [];
 
-        await handleMembershipChange(null, currentSelection);
+            // Add new members
+            toAdd.forEach(leadId => {
+                promises.push(
+                    fetch(`${API_BASE_URL}/marketing/leads/${leadId}/groups`, {
+                        method: 'POST',
+                        headers: getHeaders(),
+                        body: JSON.stringify({ group_id: selectedGroupId })
+                    })
+                );
+            });
 
-        isEditingGroup = false;
-        leadsTable.updateOptions({ enabled: false });
-        updateRightHeaderTitle();
-        showToast('Grupo atualizado com sucesso!', 'success');
+            // Remove unselected members
+            toRemove.forEach(leadId => {
+                promises.push(
+                    fetch(`${API_BASE_URL}/marketing/leads/${leadId}/groups/${selectedGroupId}`, {
+                        method: 'DELETE',
+                        headers: getHeaders()
+                    })
+                );
+            });
 
-        // Refresh data to ensure consistency? 
-        // handleMembershipChange does API calls but doesnt reload leads array fully. 
-        // Ideally reload for safety.
-        loadData();
+            await Promise.all(promises);
+
+            showToast('Grupo atualizado com sucesso!', 'success');
+
+            isEditingGroup = false;
+            // Important: Disable table immediately to prevent further edits while reloading
+            leadsTable.updateOptions({ enabled: false });
+
+            // Reload to reflect changes definitively from server
+            await loadData();
+
+        } catch (error) {
+            console.error('Erro ao salvar grupo:', error);
+            showToast('Erro ao salvar alterações.', 'error');
+            // Do not exit edit mode on error so user can retry?
+            // Or exit and let them see what happened? 
+            // Better to stay in edit mode if it fails.
+        }
     };
 
     // --- FULL LEAD MODAL ---
