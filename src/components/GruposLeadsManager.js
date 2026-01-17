@@ -403,6 +403,12 @@ export const GruposLeadsManager = (project) => {
         header.style.justifyContent = 'space-between';
         header.style.alignItems = 'center';
 
+        let title = 'Listagem geral dos leads';
+        if (selectedGroupId && selectedGroupId !== 'ALL') {
+            const g = grupos.find(x => x.id === selectedGroupId);
+            if (g) title = `Leads em: ${g.nome}`;
+        }
+
         if (selectedGroupId && selectedGroupId !== 'ALL') {
             // In Edit Mode?
             if (isEditingGroup) {
