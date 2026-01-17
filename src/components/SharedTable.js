@@ -362,11 +362,11 @@ export class SharedTable {
             }
         });
 
-        const table = document.createElement('table');
         table.style.width = '100%';
-        table.style.borderCollapse = 'separate'; // Needed for sticky? standard is collapse but separate often works better for borders
+        table.style.borderCollapse = 'separate'; // Needed for sticky
         table.style.borderSpacing = '0';
         table.style.fontSize = 'var(--text-table)';
+        table.style.tableLayout = 'fixed'; // Enforce strict widths
 
         // Header
         const thead = document.createElement('thead');
@@ -402,21 +402,22 @@ export class SharedTable {
                 tr.className = 'hoverable-row';
                 tr.style.borderBottom = '1px solid var(--color-border-light)';
                 const isEven = index % 2 === 0;
-                tr.style.backgroundColor = isEven ? '#FFFFFF' : '#F3F4F6';
+                tr.style.setProperty('--row-bg', isEven ? '#FFFFFF' : '#F3F4F6');
+                tr.style.backgroundColor = 'var(--row-bg)';
 
                 // ... Hover listeners ...
                 tr.addEventListener('mouseenter', () => {
-                    tr.style.backgroundColor = 'rgba(218, 177, 119, 0.5)';
+                    tr.style.setProperty('--row-bg', '#EDD8BB');
+                    // Also ensure direct style is updated if needed, but var should suffice for children inheriting
                 });
                 tr.addEventListener('mouseleave', () => {
-                    tr.style.backgroundColor = isEven ? '#FFFFFF' : '#F3F4F6';
+                    tr.style.setProperty('--row-bg', isEven ? '#FFFFFF' : '#F3F4F6');
                 });
 
                 // Checkbox Column (Sticky?)
-                // If we want checkbox sticky, we need logic. Assuming checkbox is always first and sticky.
-                // Let's assume Checkbox IS sticky if enableSelection is true.
                 if (this.enableSelection) {
                     const tdCb = document.createElement('td');
+                    tdCb.style.boxSizing = 'border-box'; // Fix Width
                     tdCb.style.padding = 'var(--row-padding)';
                     tdCb.style.textAlign = 'center';
                     tdCb.style.width = '40px';
@@ -425,7 +426,7 @@ export class SharedTable {
                     tdCb.style.position = 'sticky';
                     tdCb.style.left = '0';
                     tdCb.style.zIndex = '10'; // Above normal cells, below header
-                    tdCb.style.backgroundColor = tr.style.backgroundColor; // Match row bg
+                    tdCb.style.backgroundColor = 'var(--row-bg)'; // Match row bg dynamic
 
                     // Update currentLeft for other sticky columns
                     // This creates an issue: renderHeaderContent calcs `_left` based on COLUMNS array.
@@ -448,9 +449,12 @@ export class SharedTable {
 
                 this.columns.forEach(col => {
                     const td = document.createElement('td');
+                    td.style.boxSizing = 'border-box'; // Fix Width
                     td.style.padding = 'var(--row-padding)';
                     td.style.textAlign = col.align || 'left';
                     td.style.whiteSpace = 'nowrap';
+                    td.style.overflow = 'hidden'; // Ensure content doesn't balloon width
+                    td.style.textOverflow = 'ellipsis';
                     if (col.width) td.style.width = col.width;
 
                     if (col.sticky) {
@@ -459,7 +463,7 @@ export class SharedTable {
                         const checkboxOffset = this.enableSelection ? 40 : 0;
                         td.style.left = (col._left + checkboxOffset) + 'px';
                         td.style.zIndex = '5'; // Sticky cols above normal cells
-                        td.style.backgroundColor = tr.style.backgroundColor; // Ensure opacity
+                        td.style.backgroundColor = 'var(--row-bg)'; // Sync with row hover
                         td.style.borderRight = '1px solid #ddd'; // Separator
                     }
 
@@ -567,14 +571,14 @@ export class SharedTable {
                      </div>
                    </div>`;
 
-            return `<th style="text-align: ${col.align || 'left'}; padding: var(--row-padding); font-size: var(--text-table); width: ${col.width || 'auto'}; vertical-align: middle; color: white; ${col.sticky ? `position: sticky; left: ${col._left + (this.enableSelection ? 40 : 0)}px; z-index: 25; background-color: var(--color-primary);` : ''}">${content}</th>`;
+            return `<th style="box-sizing: border-box; text-align: ${col.align || 'left'}; padding: var(--row-padding); font-size: var(--text-table); width: ${col.width || 'auto'}; vertical-align: middle; color: white; ${col.sticky ? `position: sticky; left: ${col._left + (this.enableSelection ? 40 : 0)}px; z-index: 25; background-color: var(--color-primary);` : ''}">${content}</th>`;
         }).join('');
 
         // Prepend Checkbox Header if enabled
         if (this.enableSelection) {
             const isAllSelected = this.currentData.length > 0 && this.currentData.every(item => this.selection.has(item.id));
             const checkboxHtml = `
-                <th style="width: 40px; text-align: center; vertical-align: middle; padding: var(--row-padding); position: sticky; left: 0; z-index: 30; background-color: var(--color-primary);">
+                <th style="box-sizing: border-box; width: 40px; text-align: center; vertical-align: middle; padding: var(--row-padding); position: sticky; left: 0; z-index: 30; background-color: var(--color-primary);">
                     <input type="checkbox" class="select-all-cb" ${isAllSelected ? 'checked' : ''} style="cursor: pointer; transform: scale(1.2);">
                 </th>
             `;
