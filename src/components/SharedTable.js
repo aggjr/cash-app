@@ -821,10 +821,10 @@ export class SharedTable {
                 && (!extraDraft.textIn || extraDraft.textIn.length === 0)
                 && (!extraDraft.dateIn || extraDraft.dateIn.length === 0);
 
-            // Reset all active filters (Single Filter Mode)
-            this.activeFilters = {};
-
-            if (!isEmpty) {
+            // Multi-Filter Logic: Do NOT reset other filters. Only update current column.
+            if (isEmpty) {
+                delete this.activeFilters[colKey];
+            } else {
                 this.activeFilters[colKey] = extraDraft;
             }
 
