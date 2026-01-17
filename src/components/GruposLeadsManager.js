@@ -704,8 +704,23 @@ export const GruposLeadsManager = (project) => {
 
     const enterEditMode = () => {
         isEditingGroup = true;
-        initialGroupSelection = new Set(leadsTable.selection); // Snapshot
-        leadsTable.updateOptions({ enabled: true }); // Unlock table
+
+        // Force recalculation of selection from source to ensure accuracy
+        const groupMembers = new Set();
+        if (leads && selectedGroupId) {
+            leads.forEach(lead => {
+                if (lead.grupos && Array.isArray(lead.grupos)) {
+                    if (lead.grupos.includes(selectedGroupId) || lead.grupos.includes(String(selectedGroupId))) {
+                        groupMembers.add(lead.id);
+                    }
+                }
+            });
+        }
+
+        leadsTable.selection = groupMembers;
+        initialGroupSelection = new Set(groupMembers); // Snapshot
+
+        leadsTable.updateOptions({ enabled: true }); // Unlock table (triggers render)
         refreshRightHeader(); // Correctly update UI
         showToast('Modo de edição ativado. Selecione/Desmarque leads.', 'info');
     };
