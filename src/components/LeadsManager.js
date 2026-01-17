@@ -184,6 +184,7 @@ export const LeadsManager = (project) => {
                             updateBulkBar(set.size);
                         }
                     });
+                    sharedTable.render(leads); // Force initial render
                 } catch (renderErr) {
                     console.error('SharedTable Render Error:', renderErr);
                     showToast('Erro ao renderizar tabela: ' + renderErr.message, 'error');
