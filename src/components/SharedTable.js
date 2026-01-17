@@ -583,7 +583,7 @@ export class SharedTable {
 
             const content = col.noFilter
                 ? col.label
-                : `<div class="header-sort-trigger" data-key="${col.key}" style="${containerStyle} cursor: pointer;" title="Clique para ordenar">
+                : `<div class="header-sort-trigger" data-key="${col.key}" style="${containerStyle} cursor: grab;" title="Clique para ordenar, Arraste para mover">
                      ${spacer}
                      <span style="${spanStyle}">${col.label}</span>
                      <div style="display: flex; flex-direction: column; align-items: center; margin-left: 0; width: 14px; flex-shrink: 0;">
@@ -598,7 +598,8 @@ export class SharedTable {
                      </div>
                    </div>`;
 
-            return `<th style="box-sizing: border-box; text-align: ${col.align || 'left'}; padding: var(--row-padding); font-size: var(--text-table); width: ${col.width || 'auto'}; vertical-align: middle; color: white; ${col.sticky ? `position: sticky; left: ${col._left + (this.enableSelection ? 40 : 0)}px; z-index: 25; background-color: var(--color-primary);` : ''}">${content}</th>`;
+            // Added draggable attributes
+            return `<th draggable="true" data-col-key="${col.key}" class="draggable-header" style="box-sizing: border-box; text-align: ${col.align || 'left'}; padding: var(--row-padding); font-size: var(--text-table); width: ${col.width || 'auto'}; vertical-align: middle; color: white; cursor: move; ${col.sticky ? `position: sticky; left: ${col._left + (this.enableSelection ? 40 : 0)}px; z-index: 25; background-color: var(--color-primary);` : ''}">${content}</th>`;
         }).join('');
 
         // Prepend Checkbox Header if enabled
@@ -732,6 +733,58 @@ export class SharedTable {
                 this.sortConfig = { key, direction: dir };
                 if (this.onSortChange) this.onSortChange(this.sortConfig);
             };
+        });
+
+        // Drag and Drop Logic
+        const draggables = headerRow.querySelectorAll('.draggable-header');
+        draggables.forEach(th => {
+            th.addEventListener('dragstart', (e) => {
+                e.dataTransfer.setData('text/plain', th.dataset.colKey);
+                e.dataTransfer.effectAllowed = 'move';
+                th.style.opacity = '0.5';
+            });
+
+            th.addEventListener('dragend', (e) => {
+                th.style.opacity = '1';
+                draggables.forEach(h => h.style.borderLeft = ''); // Cleanup
+            });
+
+            th.addEventListener('dragover', (e) => {
+                e.preventDefault(); // Necessary to allow dropping
+                e.dataTransfer.dropEffect = 'move';
+            });
+
+            th.addEventListener('dragenter', (e) => {
+                e.preventDefault();
+                th.style.borderLeft = '4px solid var(--color-gold)';
+                th.style.transition = 'border 0.2s';
+            });
+
+            th.addEventListener('dragleave', (e) => {
+                th.style.borderLeft = '';
+            });
+
+            th.addEventListener('drop', (e) => {
+                e.stopPropagation();
+                e.preventDefault();
+
+                const sourceKey = e.dataTransfer.getData('text/plain');
+                const targetKey = th.dataset.colKey;
+
+                if (sourceKey && targetKey && sourceKey !== targetKey) {
+                    const sourceIndex = this.columns.findIndex(c => c.key === sourceKey);
+                    const targetIndex = this.columns.findIndex(c => c.key === targetKey);
+
+                    if (sourceIndex > -1 && targetIndex > -1) {
+                        // Move source to target position
+                        const [removed] = this.columns.splice(sourceIndex, 1);
+                        this.columns.splice(targetIndex, 0, removed);
+
+                        console.log(`🔄 Reordered Column ${sourceKey} to index ${targetIndex}`);
+                        this.render(); // Re-render table with new order
+                    }
+                }
+            });
         });
     }
 
