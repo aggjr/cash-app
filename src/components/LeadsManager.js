@@ -365,6 +365,205 @@ export const LeadsManager = (project) => {
     // Event Listeners
     container.querySelector('#btn-new-lead').addEventListener('click', createLead);
 
+    // Bulk Actions UI
+    const bulkActionsContainer = document.createElement('div');
+    bulkActionsContainer.id = 'bulk-actions-bar';
+    bulkActionsContainer.style.position = 'absolute';
+    bulkActionsContainer.style.bottom = '40px'; // Above footer
+    bulkActionsContainer.style.left = '50%';
+    bulkActionsContainer.style.transform = 'translateX(-50%) translateY(100px)'; // Hidden by default
+    bulkActionsContainer.style.backgroundColor = 'var(--color-bg-primary)';
+    bulkActionsContainer.style.border = '1px solid var(--color-border-light)';
+    bulkActionsContainer.style.borderRadius = '8px';
+    bulkActionsContainer.style.padding = '12px 24px';
+    bulkActionsContainer.style.boxShadow = '0 4px 12px rgba(0,0,0,0.15)';
+    bulkActionsContainer.style.display = 'flex';
+    bulkActionsContainer.style.alignItems = 'center';
+    bulkActionsContainer.style.gap = '16px';
+    bulkActionsContainer.style.zIndex = '100';
+    bulkActionsContainer.style.transition = 'transform 0.3s ease-out';
+
+    bulkActionsContainer.innerHTML = `
+        <span id="bulk-selected-count" style="font-weight: 600; color: var(--color-text-primary);">0 selecionados</span>
+        <div style="height: 24px; width: 1px; background: var(--color-border-light);"></div>
+        <button id="btn-bulk-char" class="btn-secondary" style="font-size: 0.9rem; padding: 6px 12px;">
+            ✏️ Alterar Característica
+        </button>
+    `;
+
+    container.appendChild(bulkActionsContainer);
+    container.style.position = 'relative'; // Ensure container is relative for absolute bar
+
+    const updateBulkBar = (selectedCount) => {
+        const countSpan = bulkActionsContainer.querySelector('#bulk-selected-count');
+        if (countSpan) countSpan.textContent = `${selectedCount} selecionado${selectedCount !== 1 ? 's' : ''}`;
+
+        if (selectedCount > 0) {
+            bulkActionsContainer.style.transform = 'translateX(-50%) translateY(-20px)';
+        } else {
+            bulkActionsContainer.style.transform = 'translateX(-50%) translateY(100px)';
+        }
+    };
+
+    // Bulk Characteristic Modal
+    const showBulkCharModal = async (selectedIds) => {
+        try {
+            const caracsRes = await fetch(`${API_BASE_URL}/marketing/caracteristicas`, { headers: getHeaders() });
+            if (!caracsRes.ok) throw new Error('Erro ao carregar características');
+            const caracteristicas = await caracsRes.json();
+
+            // Create Simple Modal Overlay
+            const overlay = document.createElement('div');
+            overlay.className = 'dialog-overlay';
+            overlay.style.zIndex = '10000';
+
+            overlay.innerHTML = `
+                <div class="account-modal animate-float-in" style="max-width: 400px; width: 90%; padding: 20px;">
+                    <h3 style="margin-top: 0; color: var(--color-primary);">Alterar Característica em Massa</h3>
+                    <p style="color: #666; font-size: 0.9rem; margin-bottom: 20px;">
+                        Aplicar alteração para <strong>${selectedIds.length}</strong> leads selecionados.
+                    </p>
+
+                    <div class="form-group">
+                        <label>Característica</label>
+                        <select id="bulk-char-select" class="form-input">
+                            <option value="">Selecione...</option>
+                            ${caracteristicas.map(c => `<option value="${c.id}" data-type="${c.tipo}">${c.nome}</option>`).join('')}
+                        </select>
+                    </div>
+
+                    <div id="bulk-value-container" class="form-group" style="display: none;">
+                        <label>Valor</label>
+                        <div id="bulk-value-input-wrapper"></div>
+                    </div>
+
+                    <div style="display: flex; justify-content: flex-end; gap: 10px; margin-top: 20px;">
+                        <button id="bulk-cancel" class="btn-secondary">Cancelar</button>
+                        <button id="bulk-confirm" class="btn-primary" disabled>Aplicar</button>
+                    </div>
+                </div>
+            `;
+            document.body.appendChild(overlay);
+
+            const selectChar = overlay.querySelector('#bulk-char-select');
+            const valueContainer = overlay.querySelector('#bulk-value-container');
+            const valueWrapper = overlay.querySelector('#bulk-value-input-wrapper');
+            const confirmBtn = overlay.querySelector('#bulk-confirm');
+            const cancelBtn = overlay.querySelector('#bulk-cancel');
+
+            let selectedCharValues = [];
+
+            selectChar.addEventListener('change', async (e) => {
+                const charId = e.target.value;
+                confirmBtn.disabled = true;
+
+                if (!charId) {
+                    valueContainer.style.display = 'none';
+                    return;
+                }
+
+                // Fetch values for this characteristic to check if it has preset values
+                // Or use the 'tipo' if we had it. 
+                // Let's assume we need to fetch possible values if it's a list type?
+                // Actually, backend query `marketing/caracteristicas` might not return values.
+                // We should check `caracteristicasController`. `getAll` just returns chars.
+                // We need to fetch values for the selected char OR assume boolean/text.
+                // Let's safe fetch values.
+
+                try {
+                    // Try to fetch values. If 404 or empty, assume text input?
+                    // Or if backend `caracteristicas` object implies type?
+                    // Currently `caracteristicas` table has `tipo`. 
+                    // Let's stick to consistent UI. If it has predefined values, show select.
+                    // If not, show text.
+                    // We can check `caracteristicas/:id/valores`.
+                    const valsRes = await fetch(`${API_BASE_URL}/marketing/caracteristicas/${charId}/valores`, { headers: getHeaders() });
+                    if (valsRes.ok) {
+                        selectedCharValues = await valsRes.json();
+                    } else {
+                        selectedCharValues = [];
+                    }
+                } catch (err) { selectedCharValues = []; }
+
+                valueContainer.style.display = 'block';
+                valueWrapper.innerHTML = '';
+
+                if (selectedCharValues.length > 0) {
+                    const sel = document.createElement('select');
+                    sel.className = 'form-input';
+                    sel.innerHTML = `
+                        <option value="">Selecione o valor...</option>
+                        ${selectedCharValues.map(v => `<option value="${v.id}">${v.valor}</option>`).join('')}
+                    `;
+                    sel.onchange = () => { confirmBtn.disabled = !sel.value; };
+                    valueWrapper.appendChild(sel);
+                } else {
+                    // If no values, maybe it's a simple tag (Boolean) or Text?
+                    // Currently system seems to rely on `valor_id` (from `caracteristica_valores`). 
+                    // If there are no `caracteristica_valores`, we can't assign a `valor_id`.
+                    // Does the system support free text values? 
+                    // `leads_caracteristicas` has `valor_id` FK. It might NOT verify FK if nullable?
+                    // But `marketingController` uses `valor_id`.
+                    // So we MUST have a `valor_id`.
+                    // If a characteristic has no values, we cannot assign it? 
+                    // Or maybe "Sim" is a default value?
+                    // Let's warn user if no values found.
+                    valueWrapper.innerHTML = '<span style="color: orange; font-size: 0.9rem;">Esta característica não possui valores pré-definidos. Cadastre valores em Marketing > Características antes de usar.</span>';
+                }
+            });
+
+            confirmBtn.onclick = async () => {
+                const charId = selectChar.value;
+                const valSelect = valueWrapper.querySelector('select');
+                const valId = valSelect ? valSelect.value : null;
+
+                if (!charId || !valId) return;
+
+                confirmBtn.disabled = true;
+                confirmBtn.textContent = 'Aplicando...';
+
+                try {
+                    const res = await fetch(`${API_BASE_URL}/marketing/leads/bulk-characteristic`, {
+                        method: 'POST',
+                        headers: getHeaders(),
+                        body: JSON.stringify({
+                            leadsIds: selectedIds,
+                            caracteristicaId: charId,
+                            valorId: valId
+                        })
+                    });
+
+                    if (res.ok) {
+                        showToast('Alteração em massa realizada!', 'success');
+                        document.body.removeChild(overlay);
+                        sharedTable.section = new Set(); // Clear
+                        updateBulkBar(0);
+                        loadLeads();
+                    } else {
+                        throw new Error('Falha na atualização');
+                    }
+                } catch (err) {
+                    showToast('Erro ao aplicar alteração', 'error');
+                    confirmBtn.disabled = false;
+                    confirmBtn.textContent = 'Aplicar';
+                }
+            };
+
+            cancelBtn.onclick = () => document.body.removeChild(overlay);
+            overlay.onclick = (e) => { if (e.target === overlay) document.body.removeChild(overlay); };
+
+        } catch (error) {
+            console.error(error);
+            showToast('Erro ao abrir alteração em massa', 'error');
+        }
+    };
+
+    bulkActionsContainer.querySelector('#btn-bulk-char').addEventListener('click', () => {
+        if (sharedTable && sharedTable.selection.size > 0) {
+            showBulkCharModal(Array.from(sharedTable.selection));
+        }
+    });
+
     // Initialize SharedTable
     const tableContainer = container.querySelector('#table-container');
     const footerElement = container.querySelector('#footer-summary');
@@ -372,7 +571,11 @@ export const LeadsManager = (project) => {
         container: tableContainer,
         columns: columns,
         data: [],
-        footer: footerElement
+        footer: footerElement,
+        enableSelection: true,
+        onSelectionChange: (items, set) => {
+            updateBulkBar(set.size);
+        }
     });
 
     // Load data

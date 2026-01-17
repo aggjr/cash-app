@@ -173,6 +173,7 @@ exports.create = async (req, res) => {
 
 // Atualizar lead
 exports.update = async (req, res) => {
+    // ... (existing update logic)
     try {
         const { id } = req.params;
         const { nome, email, telefone, grupos, caracteristicas, observacoes } = req.body;
@@ -214,6 +215,58 @@ exports.update = async (req, res) => {
     } catch (error) {
         console.error('Erro ao atualizar lead:', error);
         res.status(500).json({ error: 'Erro ao atualizar lead' });
+    }
+};
+
+// Bulk Update Characteristic for multiple leads
+exports.bulkCharacteristic = async (req, res) => {
+    try {
+        const { leadsIds, caracteristicaId, valorId } = req.body;
+
+        if (!Array.isArray(leadsIds) || leadsIds.length === 0) {
+            return res.status(400).json({ error: 'Lista de leads inválida' });
+        }
+        if (!caracteristicaId) {
+            return res.status(400).json({ error: 'Característica é obrigatória' });
+        }
+
+        // Strategy: Remove this characteristic from all selected leads first (to avoid duplicates or conflict), then insert new value.
+        // This ensures all selected leads will "have" this characteristic with the "new" value.
+
+        const connection = await db.getConnection();
+        await connection.beginTransaction();
+
+        try {
+            // 1. Delete existing entry for this characteristic for these leads
+            const placeholders = leadsIds.map(() => '?').join(',');
+            await connection.query(
+                `DELETE FROM leads_caracteristicas WHERE caracteristica_id = ? AND lead_id IN (${placeholders})`,
+                [caracteristicaId, ...leadsIds]
+            );
+
+            // 2. Insert new values
+            // leadsIds.map(id => [id, caracteristicaId, valorId])
+            const insertValues = leadsIds.map(leadId => [leadId, caracteristicaId, valorId || null]);
+
+            await connection.query(
+                'INSERT INTO leads_caracteristicas (lead_id, caracteristica_id, valor_id) VALUES ?',
+                [insertValues]
+            );
+
+            await connection.commit();
+            connection.release();
+
+            res.json({ message: 'Características atualizadas em massa com sucesso' });
+
+        } catch (err) {
+            await connection.rollback();
+            connection.release();
+            throw err;
+        }
+
+    } catch (error) {
+        console.error('Erro na atualização em massa:', error);
+        res.status(500).json({ error: 'Erro ao atualizar características em massa' });
     }
 };
 

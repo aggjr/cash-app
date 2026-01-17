@@ -50,6 +50,7 @@ router.get('/leads/:id', leadsController.getById);
 router.post('/leads', leadsController.create);
 router.put('/leads/:id', leadsController.update);
 router.delete('/leads/:id', leadsController.delete);
+router.post('/leads/bulk-characteristic', leadsController.bulkCharacteristic);
 
 // Associações com campanhas
 router.post('/leads/:id/campanhas', leadsController.associarCampanha);
