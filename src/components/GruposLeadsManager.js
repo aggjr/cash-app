@@ -20,7 +20,7 @@ export const GruposLeadsManager = (project) => {
     let grupos = [];
     let leads = [];
     let selectedGroupId = null;
-    let expandedGroups = new Set();
+    let expandedGroups = new Set(['ALL']); // Always start with ALL expanded
     let leadsTable = null;
 
     // --- Layout Split ---
@@ -163,12 +163,27 @@ export const GruposLeadsManager = (project) => {
         }
         row.appendChild(toggleIcon);
 
-        // Checkbox Visual (conforme mockup)
+        // Checkbox Visual (conforme mockup) - Logic: Checkbox reflects selection state of the folder
         const checkbox = document.createElement('input');
         checkbox.type = 'checkbox';
-        checkbox.checked = true; // Visual
+        checkbox.checked = isSelected; // Checkbox indicates "This group is active"
         checkbox.style.marginRight = '8px';
-        checkbox.onclick = (e) => e.stopPropagation();
+        checkbox.style.cursor = 'pointer';
+
+        // Clicking checkbox acts same as clicking row (selects group)
+        checkbox.onclick = (e) => {
+            e.stopPropagation();
+            // If already checked (selected), maybe we want to unselect? 
+            // For now, let's enforce "Click to Select". If user clicks checked box, it stays selected.
+            // Or toggle? User request: "se um grupo for selecionado... leads devem ser marcados".
+            // So checkbox = selection activator.
+            if (!isSelected) {
+                selectGroup(group.id);
+            } else {
+                // Optional: Unselect if clicking active? 
+                selectGroup(null);
+            }
+        };
         row.appendChild(checkbox);
 
         // Ícone Pasta
@@ -177,28 +192,14 @@ export const GruposLeadsManager = (project) => {
         folderIcon.style.marginRight = '8px';
         row.appendChild(folderIcon);
 
-        // Nome
+        // Nome com Contagem
         const nameSpan = document.createElement('span');
-        nameSpan.textContent = group.nome;
+        const countText = group.total_leads ? ` (${group.total_leads})` : ' (0)';
+        nameSpan.textContent = `${group.nome}${countText}`;
         nameSpan.style.flex = '1';
         nameSpan.style.fontWeight = isSelected ? '600' : '400';
         nameSpan.style.color = isSelected ? 'var(--color-primary)' : 'inherit';
         row.appendChild(nameSpan);
-
-        // Badges (Totalizadores)
-        // Leads
-        if (group.total_leads > 0) {
-            const badge = document.createElement('span');
-            badge.textContent = group.total_leads;
-            badge.title = `${group.total_leads} Leads neste grupo`;
-            badge.style.backgroundColor = '#dbeafe';
-            badge.style.color = '#1e40af';
-            badge.style.fontSize = '0.75rem';
-            badge.style.padding = '2px 6px';
-            badge.style.borderRadius = '999px';
-            badge.style.marginLeft = '4px';
-            row.appendChild(badge);
-        }
 
         const actionsDiv = document.createElement('div');
         actionsDiv.className = 'group-actions';
@@ -224,11 +225,14 @@ export const GruposLeadsManager = (project) => {
         // Add Subgroup
         actionsDiv.appendChild(createActionBtn('➕', 'Novo Sub-grupo', '#10b981', () => createGrupo(group.id)));
 
-        // Edit
-        actionsDiv.appendChild(createActionBtn('✏️', 'Editar Grupo', '#f59e0b', () => updateGrupo(group)));
+        // Actions only for real groups (not 'ALL')
+        if (group.id !== 'ALL') {
+            // Edit
+            actionsDiv.appendChild(createActionBtn('✏️', 'Editar Grupo', '#f59e0b', () => updateGrupo(group)));
 
-        // Delete
-        actionsDiv.appendChild(createActionBtn('🗑️', 'Excluir Grupo', '#ef4444', () => deleteGrupo(group)));
+            // Delete
+            actionsDiv.appendChild(createActionBtn('🗑️', 'Excluir Grupo', '#ef4444', () => deleteGrupo(group)));
+        }
 
         row.appendChild(actionsDiv);
 
@@ -251,16 +255,22 @@ export const GruposLeadsManager = (project) => {
         if (!treeContainer) return;
 
         treeContainer.innerHTML = '';
-        const treeData = buildTree(grupos);
+        const realRoots = buildTree(grupos);
 
-        if (treeData.length === 0) {
-            treeContainer.innerHTML = '<div style="padding:1rem; color:#888; text-align:center;">Nenhum grupo cadastrado</div>';
-            return;
-        }
+        // Virtual Root: "Todos os Leads"
+        // This group acts as a container for all other groups and represents "All Leads"
+        const virtualRoot = {
+            id: 'ALL',
+            nome: 'Todos os Leads',
+            children: realRoots,
+            total_leads: leads.length // All leads count
+        };
 
-        treeData.forEach(rootGroup => {
-            treeContainer.appendChild(renderGroupNode(rootGroup));
-        });
+        // Render just the virtual root
+        // Force expand ALL for better UX since it's the container
+        if (!expandedGroups.has('ALL')) expandedGroups.add('ALL');
+
+        treeContainer.appendChild(renderGroupNode(virtualRoot));
     };
 
     // --- RIGHT PANEL LOGIC (LEADS) ---
@@ -329,13 +339,20 @@ export const GruposLeadsManager = (project) => {
         }
 
         const selectedGroupIds = new Set();
-        leads.forEach(lead => {
-            if (lead.grupos && Array.isArray(lead.grupos)) {
-                if (lead.grupos.includes(selectedGroupId) || lead.grupos.includes(String(selectedGroupId))) {
-                    selectedGroupIds.add(lead.id);
+
+        if (selectedGroupId === 'ALL') {
+            // Select ALL leads
+            leads.forEach(lead => selectedGroupIds.add(lead.id));
+        } else {
+            // Select leads in specific group
+            leads.forEach(lead => {
+                if (lead.grupos && Array.isArray(lead.grupos)) {
+                    if (lead.grupos.includes(selectedGroupId) || lead.grupos.includes(String(selectedGroupId))) {
+                        selectedGroupIds.add(lead.id);
+                    }
                 }
-            }
-        });
+            });
+        }
 
         leadsTable.selection = selectedGroupIds;
         leadsTable.render(leads); // Re-render para atualizar checkboxes visuais
@@ -667,6 +684,10 @@ export const GruposLeadsManager = (project) => {
         data: [],
         enableSelection: true,
         footer: footerSummary,
+        summaryLabels: {
+            total: 'Total Geral de Leads Cadastrados',
+            selected: 'Leads Selecionados (no Grupo)'
+        },
         onSelectionChange: (items, set) => {
             if (selectedGroupId && items) {
                 handleMembershipChange(null, set);

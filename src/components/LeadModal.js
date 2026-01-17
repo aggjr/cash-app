@@ -545,19 +545,41 @@ export const LeadModal = {
                         // But radio.onchange handles logic. 
                         // If we click row, we want same logic.
 
-                        activeValueId = val.id;
-                        selectedCharValues[charId] = parseInt(val.id);
+                        const isCurrentlySelected = selectedCharValues[charId] == val.id;
 
-                        // Auto-check logic
-                        const charObj = caracteristicas.find(c => c.id == charId);
-                        if (charObj) {
-                            if (!selectedCharacteristics.has(charObj.id)) {
-                                console.log('[LeadModal] Auto-checking characteristic:', charObj.nome);
-                                selectedCharacteristics.add(charObj.id);
+                        if (isCurrentlySelected) {
+                            // Deselect
+                            selectedCharValues[charId] = null;
+                            console.log(`[LeadModal] Unchecked Value: Char ${charId} -> Val ${val.id}`);
+
+                            // If no value selected, uncheck characteristic
+                            const charObj = caracteristicas.find(c => c.id == charId);
+                            if (charObj && selectedCharacteristics.has(charObj.id)) {
+                                console.log('[LeadModal] Auto-unchecking characteristic:', charObj.nome);
+                                selectedCharacteristics.delete(charObj.id);
                                 if (caracSearchEl) {
                                     renderCharacteristics(caracSearchEl.value || '');
                                 } else {
                                     renderCharacteristics();
+                                }
+                            }
+                        } else {
+                            // Select (Exclusive)
+                            activeValueId = val.id;
+                            selectedCharValues[charId] = parseInt(val.id);
+                            console.log(`[LeadModal] Checked Value: Char ${charId} -> Val ${val.id}`);
+
+                            // Auto-check logic if not already checked
+                            const charObj = caracteristicas.find(c => c.id == charId);
+                            if (charObj) {
+                                if (!selectedCharacteristics.has(charObj.id)) {
+                                    console.log('[LeadModal] Auto-checking characteristic:', charObj.nome);
+                                    selectedCharacteristics.add(charObj.id);
+                                    if (caracSearchEl) {
+                                        renderCharacteristics(caracSearchEl.value || '');
+                                    } else {
+                                        renderCharacteristics();
+                                    }
                                 }
                             }
                         }
@@ -565,53 +587,48 @@ export const LeadModal = {
                         renderValues(charId, values, charName);
                     };
 
-                    const radio = document.createElement('input');
-                    radio.type = 'radio';
-                    radio.name = `values-${charId}`;
-                    radio.value = val.id;
-                    radio.checked = isChecked;
-                    radio.style.cssText = 'accent-color: var(--color-primary); width: 16px; height: 16px; cursor: pointer; margin: 0;';
+                    const checkbox = document.createElement('input');
+                    checkbox.type = 'checkbox';
+                    // radio.name removed for checkbox
+                    checkbox.value = val.id;
+                    checkbox.checked = isChecked;
+                    checkbox.style.cssText = 'accent-color: var(--color-primary); width: 16px; height: 16px; cursor: pointer; margin: 0;';
 
-                    radio.onchange = () => {
-                        console.log(`[LeadModal] Radio Change: Char ${charId} -> Val ${val.id}`);
-                        selectedCharValues[charId] = parseInt(val.id);
-
-                        const charObj = caracteristicas.find(c => c.id == charId);
-                        if (charObj) {
-                            if (!selectedCharacteristics.has(charObj.id)) {
-                                console.log('[LeadModal] Auto-checking characteristic (via radio):', charObj.nome);
-                                selectedCharacteristics.add(charObj.id);
-                                if (caracSearchEl) {
-                                    renderCharacteristics(caracSearchEl.value || '');
-                                } else {
-                                    renderCharacteristics();
-                                }
-                            }
-                        }
+                    checkbox.onclick = (e) => {
+                        e.stopPropagation();
+                        label.click();
                     };
 
-                    // Stop propagation so row click doesn't double-trigger (though row click sets same state)
-                    radio.onclick = (e) => e.stopPropagation();
+
 
                     const span = document.createElement('span');
                     span.textContent = val.valor;
                     span.style.cssText = 'font-size: 0.95rem; color: var(--color-text-primary);';
 
-                    label.appendChild(radio);
+                    label.appendChild(checkbox);
                     label.appendChild(span);
                     valuesListEl.appendChild(label);
                 });
             };
 
-            const loadValues = async (charId, charName) => {
+            const loadValues = async (charId, charName, autoSelectFirst = false) => {
                 activeCharId = charId;
                 valuesSearchEl.value = '';
                 valuesSearchEl.disabled = true;
                 valuesSearchEl.style.opacity = '0.6';
                 valuesListEl.innerHTML = '<div style="display: flex; align-items: center; justify-content: center; height: 100%; color: var(--color-text-muted);">Carregando...</div>';
 
+                const processValues = (values) => {
+                    if (autoSelectFirst && values && values.length > 0) {
+                        // User requested: "Se marcar caract, auto-marcar PRIMEIRO valor"
+                        selectedCharValues[charId] = values[0].id;
+                        console.log(`[LeadModal] Auto-selected first value: ${values[0].valor} for ${charName}`);
+                    }
+                    renderValues(charId, values, charName);
+                };
+
                 if (valuesCache[charId]) {
-                    renderValues(charId, valuesCache[charId], charName);
+                    processValues(valuesCache[charId]);
                     return;
                 }
 
@@ -622,7 +639,7 @@ export const LeadModal = {
                     if (res.ok) {
                         const values = await res.json();
                         valuesCache[charId] = values;
-                        renderValues(charId, values, charName);
+                        processValues(values);
                     } else {
                         valuesSearchEl.disabled = true;
                         valuesSearchEl.style.opacity = '0.6';
@@ -678,7 +695,8 @@ export const LeadModal = {
                         if (checkbox.checked) {
                             selectedCharacteristics.add(c.id);
                             if (!selectedCharValues[c.id]) selectedCharValues[c.id] = null;
-                            loadValues(c.id, c.nome);
+                            // Auto Select First Value = TRUE when Checking Characteristic
+                            loadValues(c.id, c.nome, true);
                         } else {
                             selectedCharacteristics.delete(c.id);
                             selectedCharValues[c.id] = null; // Clear selected value

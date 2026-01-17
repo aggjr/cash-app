@@ -1,7 +1,7 @@
 import { getApiBaseUrl } from '../utils/apiConfig.js';
 
 export class SharedTable {
-    constructor({ container, columns, projectId, endpointPrefix, onFilterChange, onSortChange, enableSelection, onSelectionChange, headerRow, footerRow }) {
+    constructor({ container, columns, projectId, endpointPrefix, onFilterChange, onSortChange, enableSelection, onSelectionChange, headerRow, footerRow, summaryLabels }) {
         this.container = container;
         this.columns = columns;
         this.projectId = projectId;
@@ -12,6 +12,7 @@ export class SharedTable {
         this.onSelectionChange = onSelectionChange;
         this.headerRow = headerRow; // Optional: { data: {...}, style: {...}, className: '' }
         this.footerRow = footerRow; // Optional: { data: {...}, style: {...}, className: '' }
+        this.summaryLabels = summaryLabels || { total: 'Total Visualizado', selected: 'Selecionados' };
         this.API_BASE_URL = getApiBaseUrl();
 
         // State
@@ -612,15 +613,23 @@ export class SharedTable {
         const footer = this.container.querySelector('.table-footer-summary');
         if (!footer) return;
 
-        const total = this.currentData.length;
+        const totalOriginal = this.originalData ? this.originalData.length : 0;
+        const totalVisualized = this.currentData.length;
         const selected = this.selection.size;
+
+        let totalText = `<strong>${this.summaryLabels.total}:</strong> ${totalOriginal}`;
+
+        // If filtered, show visualizado details
+        if (totalVisualized !== totalOriginal) {
+            totalText += ` <span style="font-size: 0.8em; margin-left: 8px;">(Visualizado: ${totalVisualized})</span>`;
+        }
 
         footer.innerHTML = `
             <div>
-                <strong>Total Visualizado:</strong> ${total}
+                ${totalText}
             </div>
             <div>
-                <strong>Selecionados:</strong> <span style="color: var(--color-primary); font-weight: bold;">${selected}</span>
+                <strong>${this.summaryLabels.selected}:</strong> <span style="color: var(--color-primary); font-weight: bold;">${selected}</span>
             </div>
         `;
     }
