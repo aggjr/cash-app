@@ -28,7 +28,7 @@ export class SharedTable {
     updateOptions({ enableSelection, onSelectionChange }) {
         if (enableSelection !== undefined) this.enableSelection = enableSelection;
         if (onSelectionChange !== undefined) this.onSelectionChange = onSelectionChange;
-        console.log('🛡️ SharedTable v0.2.19 - Secure Filter Loaded');
+        console.log('🛡️ SharedTable v0.2.20 - Fixed Wrapper Reference');
     }
 
     getHeaders() {
@@ -342,7 +342,12 @@ export class SharedTable {
 
         this.container.innerHTML = ''; // Clear
 
-        // ... (inside render method)
+        const wrapper = document.createElement('div');
+        wrapper.className = 'table-wrapper';
+        wrapper.style.overflow = 'auto';
+        wrapper.style.flex = '1';
+        wrapper.style.border = '1px solid var(--color-border-light)';
+        wrapper.style.borderRadius = '8px';
 
         // Calculate sticky offsets
         let currentLeft = 0;
