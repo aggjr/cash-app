@@ -17,6 +17,21 @@ export const LeadsManager = (project) => {
 
     let leads = [];
     let sharedTable = null;
+    let currentCaracteristicas = [];
+
+    const updateBulkBar = (selectedCount) => {
+        const bar = container.querySelector('#bulk-actions-bar');
+        if (!bar) return;
+
+        const countSpan = bar.querySelector('#bulk-selected-count');
+        if (countSpan) countSpan.textContent = `${selectedCount} selecionado${selectedCount !== 1 ? 's' : ''}`;
+
+        if (selectedCount > 0) {
+            bar.style.transform = 'translateX(-50%) translateY(-20px)';
+        } else {
+            bar.style.transform = 'translateX(-50%) translateY(100px)';
+        }
+    };
 
     const getHeaders = () => {
         const token = localStorage.getItem('token');
@@ -26,74 +41,77 @@ export const LeadsManager = (project) => {
         };
     };
 
-    // Define Columns for SharedTable
-    const columns = [
-        {
-            key: 'actions',
-            label: 'Ações',
-            width: '80px',
-            align: 'center',
-            noFilter: true,
-            render: (item) => {
-                const div = document.createElement('div');
-                div.style.display = 'flex';
-                div.style.gap = '0.5rem';
-                div.style.justifyContent = 'center';
+    const buildColumns = (caracteristicas) => {
+        const cols = [
+            {
+                key: 'actions',
+                label: 'Ações',
+                width: '80px',
+                align: 'center',
+                noFilter: true,
+                sticky: true, // Fixed
+                render: (item) => {
+                    const div = document.createElement('div');
+                    div.style.display = 'flex';
+                    div.style.gap = '0.5rem';
+                    div.style.justifyContent = 'center';
 
-                const btnEdit = document.createElement('button');
-                btnEdit.innerHTML = '✏️';
-                btnEdit.title = 'Editar';
-                btnEdit.style.background = 'none';
-                btnEdit.style.border = 'none';
-                btnEdit.style.cursor = 'pointer';
-                btnEdit.style.fontSize = '1.1rem';
-                btnEdit.onclick = (e) => { e.stopPropagation(); updateLead(item); };
+                    const btnEdit = document.createElement('button');
+                    btnEdit.innerHTML = '✏️';
+                    btnEdit.title = 'Editar';
+                    btnEdit.style.background = 'none';
+                    btnEdit.style.border = 'none';
+                    btnEdit.style.cursor = 'pointer';
+                    btnEdit.style.fontSize = '1.1rem';
+                    btnEdit.onclick = (e) => { e.stopPropagation(); updateLead(item); };
 
-                const btnDelete = document.createElement('button');
-                btnDelete.innerHTML = '🗑️';
-                btnDelete.title = 'Excluir';
-                btnDelete.style.background = 'none';
-                btnDelete.style.border = 'none';
-                btnDelete.style.cursor = 'pointer';
-                btnDelete.style.fontSize = '1.1rem';
-                btnDelete.onclick = (e) => { e.stopPropagation(); deleteLead(item.id, item.nome); };
+                    const btnDelete = document.createElement('button');
+                    btnDelete.innerHTML = '🗑️';
+                    btnDelete.title = 'Excluir';
+                    btnDelete.style.background = 'none';
+                    btnDelete.style.border = 'none';
+                    btnDelete.style.cursor = 'pointer';
+                    btnDelete.style.fontSize = '1.1rem';
+                    btnDelete.onclick = (e) => { e.stopPropagation(); deleteLead(item.id, item.nome); };
 
-                div.appendChild(btnEdit);
-                div.appendChild(btnDelete);
-                return div;
+                    div.appendChild(btnEdit);
+                    div.appendChild(btnDelete);
+                    return div;
+                }
+            },
+            { key: 'nome', label: 'Nome', width: '300px', align: 'left', type: 'text', sticky: true }, // Fixed
+            { key: 'email', label: 'E-mail', width: '200px', align: 'left', type: 'text' },
+            { key: 'telefone', label: 'Telefone', width: '150px', align: 'left', type: 'text' },
+            {
+                key: 'grupos_nomes',
+                label: 'Grupos',
+                width: '200px',
+                align: 'left',
+                type: 'text',
+                render: (item) => item.grupos_nomes || '-'
             }
-        },
-        { key: 'nome', label: 'Nome', width: 'auto', align: 'left', type: 'text' },
-        { key: 'email', label: 'E-mail', width: '200px', align: 'left', type: 'text' },
-        { key: 'telefone', label: 'Telefone', width: '150px', align: 'left', type: 'text' },
-        {
-            key: 'grupos_nomes',
-            label: 'Grupos',
-            width: '200px',
-            align: 'left',
-            type: 'text',
-            render: (item) => {
-                if (!item.grupos_nomes) return '-';
-                // Replace | with badged items or just text? User asked for text with | but badges are nicer?
-                // User: "Uma alternativa é concatenar os nomes dos Grupos separados por um ' | '"
-                // User asked specifically for that. But badges are cool. 
-                // Let's stick to text first as requested "concatenar... separar por |".
-                // I'll make it bold or something.
-                return item.grupos_nomes;
-            }
-        },
-        {
-            key: 'caracteristicas_nomes',
-            label: 'Características',
-            width: '200px',
-            align: 'left',
-            type: 'text',
-            render: (item) => {
-                if (!item.caracteristicas_nomes) return '-';
-                return item.caracteristicas_nomes;
-            }
+        ];
+
+        // Dynamic Characteristic Columns
+        if (caracteristicas && caracteristicas.length > 0) {
+            caracteristicas.forEach(c => {
+                cols.push({
+                    key: `char_${c.id}`,
+                    label: c.nome,
+                    width: '150px',
+                    align: 'left',
+                    type: 'text',
+                    render: (item) => {
+                        // Value is already pre-processed into char_{id} or we parse here.
+                        // Let's assume pre-processing.
+                        return item[`char_${c.id}`] || '-';
+                    }
+                });
+            });
         }
-    ];
+
+        return cols;
+    };
 
     const loadLeads = async () => {
         try {
@@ -102,17 +120,70 @@ export const LeadsManager = (project) => {
                 container.querySelector('#table-container').classList.add('loading');
             }
 
-            const response = await fetch(`${API_BASE_URL}/marketing/leads`, {
-                headers: getHeaders()
-            });
+            const [leadsRes, caracsRes] = await Promise.all([
+                fetch(`${API_BASE_URL}/marketing/leads`, { headers: getHeaders() }),
+                fetch(`${API_BASE_URL}/marketing/caracteristicas`, { headers: getHeaders() })
+            ]);
 
-            if (!response.ok) {
-                const errorData = await response.json();
+            if (!leadsRes.ok) {
+                const errorData = await leadsRes.json();
                 throw new Error(errorData.details || errorData.error || 'Falha ao carregar leads');
             }
+            // Characteristics optional
+            let caracteristicas = [];
+            if (caracsRes.ok) {
+                caracteristicas = await caracsRes.json();
+            }
+            currentCaracteristicas = caracteristicas;
 
-            leads = await response.json();
-            renderLeads();
+            leads = await leadsRes.json();
+
+            // Pre-process Leads for Characteristcs
+            // Expecting item.caracteristicas_json (array of objects {id, nome, valor, valor_id})
+            leads.forEach(lead => {
+                if (lead.caracteristicas_json) {
+                    try {
+                        const chars = typeof lead.caracteristicas_json === 'string'
+                            ? JSON.parse(lead.caracteristicas_json)
+                            : lead.caracteristicas_json;
+
+                        if (Array.isArray(chars)) {
+                            chars.forEach(c => {
+                                // Flatten to char_{id} = "Value"
+                                lead[`char_${c.id}`] = c.valor || '-';
+                            });
+                        }
+                    } catch (e) {
+                        console.warn('Erro parsing json caracteristicas', e);
+                    }
+                }
+            });
+
+            // Update Total
+            const totalSpan = container.querySelector('#total-count');
+            if (totalSpan) totalSpan.textContent = leads.length;
+
+            const cols = buildColumns(caracteristicas);
+
+            if (!sharedTable) {
+                const tableContainer = container.querySelector('#table-container');
+                const footerSummaryElement = container.querySelector('#footer-summary');
+
+                sharedTable = new SharedTable({
+                    container: tableContainer,
+                    columns: cols,
+                    data: leads,
+                    enableSelection: true,
+                    footer: null, // No special footer row needed here?
+                    summaryLabels: { total: 'Total Visualizado', selected: 'Selecionados' },
+                    onSelectionChange: (items, set) => {
+                        updateBulkBar(set.size);
+                    }
+                });
+            } else {
+                sharedTable.columns = cols;
+                sharedTable.render(leads); // Updates data and re-renders with new columns
+            }
 
         } catch (error) {
             console.error('Error loading leads:', error);
@@ -390,6 +461,19 @@ export const LeadsManager = (project) => {
             ✏️ Alterar Característica
         </button>
     `;
+
+    // Append to table container (must exist now)
+    const tableContainerEl = container.querySelector('#table-container');
+    if (tableContainerEl) {
+        tableContainerEl.appendChild(bulkActionsContainer);
+    }
+
+    // Attach listener to bulk char button
+    bulkActionsContainer.querySelector('#btn-bulk-char').addEventListener('click', () => {
+        if (sharedTable && sharedTable.selection.size > 0) {
+            showBulkCharModal(Array.from(sharedTable.selection));
+        }
+    });
 
     container.appendChild(bulkActionsContainer);
     container.style.position = 'relative'; // Ensure container is relative for absolute bar
