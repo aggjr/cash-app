@@ -19,7 +19,8 @@ exports.getAll = async (req, res) => {
                     JSON_OBJECT(
                         'id', c.id,
                         'nome', c.nome,
-                        'valor', cv.valor
+                        'valor', cv.valor,
+                        'valor_id', cv.id
                     )
                 ),
                 ']'

@@ -31,7 +31,29 @@ export const LeadModal = {
             let grpSearch = null;
 
             // Initialize selected characteristics and values
-            if (lead?.caracteristicas_detalhadas) {
+            if (lead?.caracteristicas_json) {
+                let chars = [];
+                try {
+                    chars = typeof lead.caracteristicas_json === 'string'
+                        ? JSON.parse(lead.caracteristicas_json)
+                        : lead.caracteristicas_json;
+                } catch (e) {
+                    console.error('Error parsing chars json in Modal', e);
+                }
+
+                if (Array.isArray(chars)) {
+                    chars.forEach(c => {
+                        selectedCharacteristics.add(c.id);
+                        if (c.valor_id) {
+                            selectedCharValues[c.id] = c.valor_id;
+                        } else {
+                            // Only set to null if not already set, to avoid overwriting if mixed sources? 
+                            // Unlikely mixed, but safe to set null if undefined.
+                            if (selectedCharValues[c.id] === undefined) selectedCharValues[c.id] = null;
+                        }
+                    });
+                }
+            } else if (lead?.caracteristicas_detalhadas) {
                 lead.caracteristicas_detalhadas.forEach(c => {
                     selectedCharacteristics.add(c.id);
                     selectedCharValues[c.id] = c.valor_id;
