@@ -42,16 +42,16 @@ export const LeadModal = {
                 }
 
                 if (Array.isArray(chars)) {
+                    console.log('LeadModal: Parsed characteristics:', chars);
                     chars.forEach(c => {
                         selectedCharacteristics.add(c.id);
                         if (c.valor_id) {
                             selectedCharValues[c.id] = c.valor_id;
                         } else {
-                            // Only set to null if not already set, to avoid overwriting if mixed sources? 
-                            // Unlikely mixed, but safe to set null if undefined.
                             if (selectedCharValues[c.id] === undefined) selectedCharValues[c.id] = null;
                         }
                     });
+                    console.log('LeadModal: Initial selectedCharValues:', JSON.parse(JSON.stringify(selectedCharValues)));
                 }
             } else if (lead?.caracteristicas_detalhadas) {
                 lead.caracteristicas_detalhadas.forEach(c => {
@@ -569,11 +569,11 @@ export const LeadModal = {
                         // Auto-check characteristic if not already checked
                         const charObj = caracteristicas.find(c => c.id == charId);
                         if (charObj && !selectedCharacteristics.has(charObj.id)) {
-                            selectedCharacteristics.add(charObj.id);
                             // Re-render characteristics interacting properly with search filter
                             const currentFilter = caracSearchEl.value;
                             renderCharacteristics(currentFilter);
                         }
+                        console.log(`LeadModal: Selected Value Change [Radio] Char ${charId} -> Val ${val.id}`);
                     };
 
                     // Stop propagation on radio click to allow native behavior but also bubble to row?
@@ -932,6 +932,9 @@ export const LeadModal = {
                     grupos: selectedGrupos,
                     caracteristicas: finalCaracteristicas
                 };
+
+                console.log('LeadModal: Saving Data Payload:', data);
+                console.log('LeadModal: Characteristics Payload:', finalCaracteristicas);
 
                 saveBtn.disabled = true;
                 saveBtn.textContent = 'Salvando...';
