@@ -472,16 +472,7 @@ export const LeadsManager = (project) => {
     container.appendChild(bulkActionsContainer);
     container.style.position = 'relative'; // Ensure container is relative for absolute bar
 
-    const updateBulkBar = (selectedCount) => {
-        const countSpan = bulkActionsContainer.querySelector('#bulk-selected-count');
-        if (countSpan) countSpan.textContent = `${selectedCount} selecionado${selectedCount !== 1 ? 's' : ''}`;
 
-        if (selectedCount > 0) {
-            bulkActionsContainer.style.transform = 'translateX(-50%) translateY(-20px)';
-        } else {
-            bulkActionsContainer.style.transform = 'translateX(-50%) translateY(100px)';
-        }
-    };
 
     // Bulk Characteristic Modal
     const showBulkCharModal = async (selectedIds) => {
