@@ -404,14 +404,12 @@ export const GruposLeadsManager = (project) => {
         ];
 
         const charColumns = caracteristicas.map(c => ({
-            key: c.nome, // Use name as key for filter mapping? Or ID? SharedTable filter uses key. Item must have this prop?
-            // SharedTable renderer looks for item[key]. But leads store chars in json.
-            // We need a custom render for these columns.
+            key: `char_${c.id}`,
             label: c.nome,
             width: '150px',
             align: 'left',
-            type: 'text', // mostly text
-            render: (item) => getCaracteristicaValor(item, c.nome)
+            type: 'text',
+            render: (item) => item[`char_${c.id}`] || '-'
         }));
 
         return [...fixedColumns, ...charColumns];
@@ -567,6 +565,28 @@ export const GruposLeadsManager = (project) => {
             grupos = await gruposRes.json();
             leads = await leadsRes.json();
             caracteristicas = await caracsRes.json(); // Global var needs to be defined
+
+            // Pre-process Leads for Characteristics (Parse JSON)
+            leads.forEach(lead => {
+                if (lead.caracteristicas_json) {
+                    try {
+                        const chars = typeof lead.caracteristicas_json === 'string'
+                            ? JSON.parse(lead.caracteristicas_json)
+                            : lead.caracteristicas_json;
+
+                        if (Array.isArray(chars)) {
+                            chars.forEach(c => {
+                                // Flatten to char_{id} = "Value"
+                                if (c.id) {
+                                    lead[`char_${c.id}`] = c.valor || '-';
+                                }
+                            });
+                        }
+                    } catch (e) {
+                        console.warn('Erro parsing json caracteristicas', e);
+                    }
+                }
+            });
 
             renderGroupsTree();
 
