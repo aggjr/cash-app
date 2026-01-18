@@ -46,7 +46,9 @@ export const LeadModal = {
                     chars.forEach(c => {
                         selectedCharacteristics.add(c.id);
                         if (c.valor_id) {
-                            selectedCharValues[c.id] = c.valor_id;
+                            // Ensure valor_id is stored as number
+                            selectedCharValues[c.id] = parseInt(c.valor_id);
+                            console.log(`[LeadModal] Init: charId ${c.id} -> valor_id ${parseInt(c.valor_id)}`);
                         } else {
                             if (selectedCharValues[c.id] === undefined) selectedCharValues[c.id] = null;
                         }
@@ -56,7 +58,7 @@ export const LeadModal = {
             } else if (lead?.caracteristicas_detalhadas) {
                 lead.caracteristicas_detalhadas.forEach(c => {
                     selectedCharacteristics.add(c.id);
-                    selectedCharValues[c.id] = c.valor_id;
+                    selectedCharValues[c.id] = c.valor_id ? parseInt(c.valor_id) : null;
                 });
             } else if (lead?.caracteristicas) {
                 if (Array.isArray(lead.caracteristicas)) {
@@ -518,11 +520,17 @@ export const LeadModal = {
                 valuesSearchEl.style.opacity = '1';
 
                 const currentVal = selectedCharValues[charId];
+                console.log(`[LeadModal.renderValues] Rendering values for charId ${charId}, currentVal: ${currentVal}, type: ${typeof currentVal}`);
 
                 values.forEach((val, index) => {
                     const isEven = index % 2 === 0;
                     const bgColor = isEven ? '#FFFFFF' : '#F3F4F6';
-                    const isChecked = currentVal == val.id;
+                    // Ensure both values are compared as numbers to avoid type mismatch
+                    const valIdNum = parseInt(val.id);
+                    const currentValNum = currentVal ? parseInt(currentVal) : null;
+                    const isChecked = currentValNum === valIdNum;
+                    
+                    console.log(`[LeadModal.renderValues] val.id=${val.id} (${typeof val.id}), currentVal=${currentVal} (${typeof currentVal}), isChecked=${isChecked}`);
 
                     const label = document.createElement('label');
                     label.className = 'zebra-row';
@@ -619,15 +627,19 @@ export const LeadModal = {
                 valuesListEl.innerHTML = '<div style="display: flex; align-items: center; justify-content: center; height: 100%; color: var(--color-text-muted);">Carregando...</div>';
 
                 const processValues = (values) => {
+                    console.log(`[LeadModal] Processing values for charId ${charId}:`, values);
+                    console.log(`[LeadModal] Current selectedCharValues[${charId}]:`, selectedCharValues[charId]);
+                    
                     if (autoSelectFirst && values && values.length > 0) {
                         // User requested: "Se marcar caract, auto-marcar PRIMEIRO valor"
                         selectedCharValues[charId] = values[0].id;
-                        console.log(`[LeadModal] Auto-selected first value: ${values[0].valor} for ${charName}`);
+                        console.log(`[LeadModal] Auto-selected first value: ${values[0].valor} (id: ${values[0].id}) for ${charName}`);
                     }
                     renderValues(charId, values, charName);
                 };
 
                 if (valuesCache[charId]) {
+                    console.log(`[LeadModal] Using cached values for charId ${charId}`);
                     processValues(valuesCache[charId]);
                     return;
                 }
@@ -638,15 +650,17 @@ export const LeadModal = {
                     });
                     if (res.ok) {
                         const values = await res.json();
+                        console.log(`[LeadModal] Loaded values from API for charId ${charId}:`, values);
                         valuesCache[charId] = values;
                         processValues(values);
                     } else {
+                        console.error(`[LeadModal] API error loading values for charId ${charId}:`, res.status);
                         valuesSearchEl.disabled = true;
                         valuesSearchEl.style.opacity = '0.6';
                         valuesListEl.innerHTML = '<div style="display: flex; align-items: center; justify-content: center; height: 100%; color: var(--color-text-muted);">Erro ao carregar valores</div>';
                     }
                 } catch (e) {
-                    console.error(e);
+                    console.error(`[LeadModal] Error loading values for charId ${charId}:`, e);
                     valuesSearchEl.disabled = true;
                     valuesSearchEl.style.opacity = '0.6';
                     valuesListEl.innerHTML = '<div style="display: flex; align-items: center; justify-content: center; height: 100%; color: var(--color-text-muted);">Erro ao carregar valores</div>';
