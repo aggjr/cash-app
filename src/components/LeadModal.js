@@ -436,35 +436,41 @@ export const LeadModal = {
                             <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 1rem; height: 300px;">
                                 
                                 <!-- Left: Characteristics -->
-                                <div style="background: white; border: 1px solid var(--color-border-light); border-radius: 6px; overflow: hidden; display: flex; flex-direction: column;">
-                                    <div style="padding: 0.4rem; background: var(--color-bg-secondary); border-bottom: 1px solid var(--color-border-light); display: flex; flex-direction: column; gap: 0.25rem;">
-                                        <div style="display: flex; justify-content: flex-end; gap: 0.25rem;">
-                                            <button type="button" id="btn-add-char" class="action-btn" title="Adicionar" style="font-size:0.8rem; padding: 2px 6px;">➕</button>
-                                            <button type="button" id="btn-edit-char" class="action-btn" title="Editar" style="font-size:0.8rem; padding: 2px 6px;">✏️</button>
-                                            <button type="button" id="btn-del-char" class="action-btn" title="Deletar" style="font-size:0.8rem; padding: 2px 6px;">🗑️</button>
+                                <div style="display: flex; flex-direction: column;">
+                                    <h4 style="margin: 0 0 0.5rem 0; font-size: 0.95rem; color: var(--color-text-primary); font-weight: 600;">Características</h4>
+                                    <div style="background: white; border: 1px solid var(--color-border-light); border-radius: 6px; overflow: hidden; display: flex; flex-direction: column; flex: 1;">
+                                        <div style="padding: 0.4rem; background: var(--color-bg-secondary); border-bottom: 1px solid var(--color-border-light); display: flex; flex-direction: column; gap: 0.25rem;">
+                                            <div style="display: flex; justify-content: flex-end; gap: 0.25rem;">
+                                                <button type="button" id="btn-add-char" class="action-btn" title="Adicionar" style="font-size:0.8rem; padding: 2px 6px;">➕</button>
+                                                <button type="button" id="btn-edit-char" class="action-btn" title="Editar" style="font-size:0.8rem; padding: 2px 6px;">✏️</button>
+                                                <button type="button" id="btn-del-char" class="action-btn" title="Deletar" style="font-size:0.8rem; padding: 2px 6px;">🗑️</button>
+                                            </div>
+                                            <input type="text" id="${idCaracSearch}" class="form-input" placeholder="🔍 Buscar Característica..." 
+                                                style="padding: 0.4rem; font-size: 0.9rem; margin: 0; width: 100%; border: 1px solid var(--color-border-light);" />
                                         </div>
-                                        <input type="text" id="${idCaracSearch}" class="form-input" placeholder="🔍 Buscar Característica..." 
-                                            style="padding: 0.4rem; font-size: 0.9rem; margin: 0; width: 100%; border: 1px solid var(--color-border-light);" />
-                                    </div>
-                                    <div id="${idCaracList}" style="flex: 1; overflow-y: auto;">
-                                        <!-- Characteristics will be rendered here -->
+                                        <div id="${idCaracList}" style="flex: 1; overflow-y: auto;">
+                                            <!-- Characteristics will be rendered here -->
+                                        </div>
                                     </div>
                                 </div>
 
                                 <!-- Right: Values -->
-                                <div style="background: white; border: 1px solid var(--color-border-light); border-radius: 6px; overflow: hidden; display: flex; flex-direction: column;">
-                                    <div style="padding: 0.4rem; background: var(--color-bg-secondary); border-bottom: 1px solid var(--color-border-light); display: flex; flex-direction: column; gap: 0.25rem;">
-                                        <div style="display: flex; justify-content: flex-end; gap: 0.25rem;">
-                                            <button type="button" id="btn-add-val" class="action-btn" title="Adicionar" style="font-size:0.8rem; padding: 2px 6px;">➕</button>
-                                            <button type="button" id="btn-edit-val" class="action-btn" title="Editar" style="font-size:0.8rem; padding: 2px 6px;">✏️</button>
-                                            <button type="button" id="btn-del-val" class="action-btn" title="Deletar" style="font-size:0.8rem; padding: 2px 6px;">🗑️</button>
+                                <div style="display: flex; flex-direction: column;">
+                                    <h4 style="margin: 0 0 0.5rem 0; font-size: 0.95rem; color: var(--color-text-primary); font-weight: 600;">Valores</h4>
+                                    <div style="background: white; border: 1px solid var(--color-border-light); border-radius: 6px; overflow: hidden; display: flex; flex-direction: column; flex: 1;">
+                                        <div style="padding: 0.4rem; background: var(--color-bg-secondary); border-bottom: 1px solid var(--color-border-light); display: flex; flex-direction: column; gap: 0.25rem;">
+                                            <div style="display: flex; justify-content: flex-end; gap: 0.25rem;">
+                                                <button type="button" id="btn-add-val" class="action-btn" title="Adicionar" style="font-size:0.8rem; padding: 2px 6px;">➕</button>
+                                                <button type="button" id="btn-edit-val" class="action-btn" title="Editar" style="font-size:0.8rem; padding: 2px 6px;">✏️</button>
+                                                <button type="button" id="btn-del-val" class="action-btn" title="Deletar" style="font-size:0.8rem; padding: 2px 6px;">🗑️</button>
+                                            </div>
+                                            <input type="text" id="values-search" class="form-input" placeholder="🔍 Buscar Valor..." disabled
+                                                style="padding: 0.4rem; font-size: 0.9rem; margin: 0; width: 100%; border: 1px solid var(--color-border-light); opacity: 0.6;" />
                                         </div>
-                                        <input type="text" id="values-search" class="form-input" placeholder="🔍 Buscar Valor..." disabled
-                                            style="padding: 0.4rem; font-size: 0.9rem; margin: 0; width: 100%; border: 1px solid var(--color-border-light); opacity: 0.6;" />
-                                    </div>
-                                    <div id="values-list" style="flex: 1; overflow-y: auto;">
-                                        <div style="display: flex; align-items: center; justify-content: center; height: 100%; color: var(--color-text-muted); font-size: 0.9rem;">
-                                            Valores aparecerão aqui
+                                        <div id="values-list" style="flex: 1; overflow-y: auto;">
+                                            <div style="display: flex; align-items: center; justify-content: center; height: 100%; color: var(--color-text-muted); font-size: 0.9rem;">
+                                                Valores aparecerão aqui
+                                            </div>
                                         </div>
                                     </div>
                                 </div>
