@@ -54,10 +54,13 @@ export const LeadModal = {
                     console.log('LeadModal: Parsed characteristics from JSON:', chars);
                     chars.forEach(c => {
                         selectedCharacteristics.add(c.id);
+                        // Log raw item for debug
+                        console.log(`[LeadModal] Processing Char from JSON:`, c);
+
                         if (c.valor_id) {
-                            // Ensure valor_id is stored as number
-                            selectedCharValues[c.id] = parseInt(c.valor_id);
-                            console.log(`[LeadModal] Init from JSON: charId ${c.id} -> valor_id ${parseInt(c.valor_id)}`);
+                            // Ensure valor_id is stored as number, but handle string inputs safely
+                            selectedCharValues[c.id] = c.valor_id;
+                            console.log(`[LeadModal] Init from JSON: charId ${c.id} -> valor_id ${c.valor_id}`);
                         } else {
                             if (selectedCharValues[c.id] === undefined) selectedCharValues[c.id] = null;
                         }
@@ -535,11 +538,14 @@ export const LeadModal = {
                     const isEven = index % 2 === 0;
                     const bgColor = isEven ? '#FFFFFF' : '#F3F4F6';
                     // Ensure both values are compared as numbers to avoid type mismatch
-                    const valIdNum = parseInt(val.id);
-                    const currentValNum = currentVal ? parseInt(currentVal) : null;
-                    const isChecked = currentValNum === valIdNum;
-                    
-                    console.log(`[LeadModal.renderValues] val.id=${val.id} (${typeof val.id}), currentVal=${currentVal} (${typeof currentVal}), isChecked=${isChecked}`);
+                    const valId = val.id;
+                    const selectedVal = selectedCharValues[charId];
+                    // Robust comparison using String() to handle mismatched types (string vs number)
+                    const isChecked = (valId !== null && valId !== undefined && selectedVal !== null && selectedVal !== undefined)
+                        && (String(valId) === String(selectedVal));
+
+                    // Console log restricted to active editing to reduce noise, or keep for debugging this issue
+                    // console.log(`[LeadModal.renderValues] Check: val=${valId} sel=${selectedVal} => ${isChecked}`);
 
                     const label = document.createElement('label');
                     label.className = 'zebra-row';
@@ -638,7 +644,7 @@ export const LeadModal = {
                 const processValues = (values) => {
                     console.log(`[LeadModal] Processing values for charId ${charId}:`, values);
                     console.log(`[LeadModal] Current selectedCharValues[${charId}]:`, selectedCharValues[charId]);
-                    
+
                     if (autoSelectFirst && values && values.length > 0) {
                         // User requested: "Se marcar caract, auto-marcar PRIMEIRO valor"
                         selectedCharValues[charId] = values[0].id;

@@ -20,7 +20,7 @@ exports.getAll = async (req, res) => {
                         'id', c.id,
                         'nome', c.nome,
                         'valor', cv.valor,
-                        'valor_id', cv.id
+                        'valor_id', lcar.valor_id
                     )
                 ),
                 ']'
@@ -58,6 +58,9 @@ exports.getAll = async (req, res) => {
         }
 
         query += ' GROUP BY l.id ORDER BY l.nome';
+
+        // Set max length for GROUP_CONCAT to avoid truncation of JSON
+        await db.query('SET SESSION group_concat_max_len = 1000000');
 
         const [leads] = await db.query(query, params);
 
