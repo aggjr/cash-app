@@ -732,6 +732,16 @@ export const LeadModal = {
                 console.log('Rendering characteristics:', caracteristicas.length);
                 renderCharacteristics();
 
+                // If editing and has selected characteristics, auto-load first characteristic's values
+                if (isEdit && selectedCharacteristics.size > 0) {
+                    const firstCharId = Array.from(selectedCharacteristics)[0];
+                    const firstChar = caracteristicas.find(c => c.id === firstCharId);
+                    if (firstChar) {
+                        console.log('[LeadModal] Auto-loading values for:', firstChar.nome);
+                        loadValues(firstCharId, firstChar.nome);
+                    }
+                }
+
                 // Groups Search & Initial Render
                 grpSearch = modal.querySelector(`#${idGruposSearch}`);
                 grpList = modal.querySelector(`#${idGruposList}`);
