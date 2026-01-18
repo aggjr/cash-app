@@ -432,12 +432,11 @@ export const LeadModal = {
 
                         <!-- DUAL COLUMN CHARACTERISTICS & VALUES -->
                         <div class="form-group">
-                            <label>Características e Valores</label>
                             <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 1rem; height: 300px;">
                                 
                                 <!-- Left: Characteristics -->
                                 <div style="display: flex; flex-direction: column;">
-                                    <h4 style="margin: 0 0 0.5rem 0; font-size: 0.95rem; color: var(--color-text-primary); font-weight: 600;">Características</h4>
+                                    <h4 style="margin: 0 0 0.5rem 0; font-size: 1rem; color: var(--color-text-primary); font-weight: 600;">Características</h4>
                                     <div style="background: white; border: 1px solid var(--color-border-light); border-radius: 6px; overflow: hidden; display: flex; flex-direction: column; flex: 1;">
                                         <div style="padding: 0.4rem; background: var(--color-bg-secondary); border-bottom: 1px solid var(--color-border-light); display: flex; flex-direction: column; gap: 0.25rem;">
                                             <div style="display: flex; justify-content: flex-end; gap: 0.25rem;">
@@ -456,7 +455,7 @@ export const LeadModal = {
 
                                 <!-- Right: Values -->
                                 <div style="display: flex; flex-direction: column;">
-                                    <h4 style="margin: 0 0 0.5rem 0; font-size: 0.95rem; color: var(--color-text-primary); font-weight: 600;">Valores</h4>
+                                    <h4 style="margin: 0 0 0.5rem 0; font-size: 1rem; color: var(--color-text-primary); font-weight: 600;">Valores</h4>
                                     <div style="background: white; border: 1px solid var(--color-border-light); border-radius: 6px; overflow: hidden; display: flex; flex-direction: column; flex: 1;">
                                         <div style="padding: 0.4rem; background: var(--color-bg-secondary); border-bottom: 1px solid var(--color-border-light); display: flex; flex-direction: column; gap: 0.25rem;">
                                             <div style="display: flex; justify-content: flex-end; gap: 0.25rem;">
