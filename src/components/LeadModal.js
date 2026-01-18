@@ -31,7 +31,16 @@ export const LeadModal = {
             let grpSearch = null;
 
             // Initialize selected characteristics and values
-            if (lead?.caracteristicas_json) {
+            if (lead?.caracteristicas_detalhadas && Array.isArray(lead.caracteristicas_detalhadas)) {
+                // Use detailed characteristics with valor_id (from getById endpoint)
+                console.log('LeadModal: Using caracteristicas_detalhadas:', lead.caracteristicas_detalhadas);
+                lead.caracteristicas_detalhadas.forEach(c => {
+                    selectedCharacteristics.add(c.id);
+                    selectedCharValues[c.id] = c.valor_id ? parseInt(c.valor_id) : null;
+                    console.log(`[LeadModal] Init from detalhadas: charId ${c.id} -> valor_id ${c.valor_id}`);
+                });
+            } else if (lead?.caracteristicas_json) {
+                // Fallback to caracteristicas_json if available
                 let chars = [];
                 try {
                     chars = typeof lead.caracteristicas_json === 'string'
@@ -42,24 +51,19 @@ export const LeadModal = {
                 }
 
                 if (Array.isArray(chars)) {
-                    console.log('LeadModal: Parsed characteristics:', chars);
+                    console.log('LeadModal: Parsed characteristics from JSON:', chars);
                     chars.forEach(c => {
                         selectedCharacteristics.add(c.id);
                         if (c.valor_id) {
                             // Ensure valor_id is stored as number
                             selectedCharValues[c.id] = parseInt(c.valor_id);
-                            console.log(`[LeadModal] Init: charId ${c.id} -> valor_id ${parseInt(c.valor_id)}`);
+                            console.log(`[LeadModal] Init from JSON: charId ${c.id} -> valor_id ${parseInt(c.valor_id)}`);
                         } else {
                             if (selectedCharValues[c.id] === undefined) selectedCharValues[c.id] = null;
                         }
                     });
                     console.log('LeadModal: Initial selectedCharValues:', JSON.parse(JSON.stringify(selectedCharValues)));
                 }
-            } else if (lead?.caracteristicas_detalhadas) {
-                lead.caracteristicas_detalhadas.forEach(c => {
-                    selectedCharacteristics.add(c.id);
-                    selectedCharValues[c.id] = c.valor_id ? parseInt(c.valor_id) : null;
-                });
             } else if (lead?.caracteristicas) {
                 if (Array.isArray(lead.caracteristicas)) {
                     lead.caracteristicas.forEach(id => {

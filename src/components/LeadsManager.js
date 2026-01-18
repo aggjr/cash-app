@@ -308,6 +308,13 @@ export const LeadsManager = (project) => {
 
     const updateLead = async (lead) => {
         try {
+            // Fetch lead details to get complete characteristics with valor_id
+            const leadDetailsRes = await fetch(`${API_BASE_URL}/marketing/leads/${lead.id}`, { headers: getHeaders() });
+            if (!leadDetailsRes.ok) {
+                throw new Error('Erro ao carregar detalhes do lead');
+            }
+            const leadDetails = await leadDetailsRes.json();
+
             // Fetch grupos and caracteristicas
             const [gruposRes, caracsRes] = await Promise.all([
                 fetch(`${API_BASE_URL}/marketing/grupos-leads`, { headers: getHeaders() }),
@@ -322,9 +329,11 @@ export const LeadsManager = (project) => {
             const caracteristicas = await caracsRes.json();
 
             console.log('Loaded grupos:', grupos.length, 'caracteristicas:', caracteristicas.length);
+            console.log('Lead details:', leadDetails);
 
+            // Use leadDetails which has caracteristicas_detalhadas with valor_id
             await LeadModal.show({
-                lead: lead,
+                lead: leadDetails,
                 grupos: grupos,
                 caracteristicas: caracteristicas,
                 onSave: async (leadData) => {
