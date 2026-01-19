@@ -48,10 +48,55 @@ export const CampanhaWizard = {
                 }
             };
 
-            // ... (renderStepBadge function remains same)
+            // Header (Stepper)
+            const header = document.createElement('div');
+            Object.assign(header.style, {
+                padding: '1.5rem', borderBottom: '1px solid #eee',
+                display: 'flex', justifyContent: 'center', gap: '3rem', position: 'relative'
+            });
 
-            // --- BODY ---
-            // ...
+            // Close Button
+            const btnClose = document.createElement('button');
+            btnClose.id = 'btn-close-wizard';
+            btnClose.innerHTML = '×';
+            Object.assign(btnClose.style, {
+                position: 'absolute', top: '1rem', right: '1rem',
+                background: 'none', border: 'none', fontSize: '2rem', cursor: 'pointer', color: '#999'
+            });
+            header.appendChild(btnClose);
+
+            const renderStepBadge = (step, label) => {
+                const wrapper = document.createElement('div');
+                wrapper.className = 'step-badge';
+                wrapper.dataset.step = step;
+                Object.assign(wrapper.style, { display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '0.5rem', position: 'relative' });
+
+                const circle = document.createElement('div');
+                Object.assign(circle.style, {
+                    width: '32px', height: '32px', borderRadius: '50%',
+                    display: 'flex', alignItems: 'center', justifyContent: 'center',
+                    fontWeight: 'bold', color: 'white', transition: 'all 0.3s'
+                });
+
+                const text = document.createElement('span');
+                text.textContent = label;
+                text.style.fontSize = '0.85rem';
+                text.style.transition = 'all 0.3s';
+
+                wrapper.appendChild(circle);
+                wrapper.appendChild(text);
+                return wrapper;
+            };
+
+            header.appendChild(renderStepBadge(1, 'Configuração e Público'));
+            header.appendChild(renderStepBadge(2, 'Mensagem'));
+            header.appendChild(renderStepBadge(3, 'Confirmação e Disparo'));
+
+            // Body
+            const body = document.createElement('div');
+            body.style.flex = '1';
+            body.style.position = 'relative';
+            body.style.overflow = 'hidden';
 
             // STEP 1: CONFIG & AUDIENCE
             const renderStep1 = () => {
