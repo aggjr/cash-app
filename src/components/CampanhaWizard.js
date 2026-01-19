@@ -117,7 +117,7 @@ export const CampanhaWizard = {
                 });
 
                 formDiv.innerHTML = `
-                    <div class="form-group" style="flex: 2; min-width: 300px;">
+                    <div class="form-group" style="flex: 1; min-width: 250px;">
                         <label style="font-size:0.85rem; color:#666; display:block; margin-bottom:4px;">Nome da Campanha *</label>
                         <input type="text" id="campaign-name" class="form-input" value="${state.config.nome}" placeholder="Ex: Promoção de Natal" style="width:100%; padding:8px; border:1px solid #ddd; border-radius:6px;" />
                     </div>
@@ -129,13 +129,13 @@ export const CampanhaWizard = {
                         <label style="font-size:0.85rem; color:#666; display:block; margin-bottom:4px;">Fim</label>
                         <input type="date" id="campaign-end" class="form-input" value="${state.config.dataFim}" style="width:100%; padding:8px; border:1px solid #ddd; border-radius:6px;" />
                     </div>
-                    <div class="form-group" style="display: flex; gap: 1.5rem; padding-bottom: 0.5rem; margin-left: auto;">
-                         <label style="display:flex; align-items:center; cursor:pointer; font-size:0.9rem;">
-                            <input type="checkbox" id="check-use-email" ${state.config.useEmail ? 'checked' : ''} style="margin-right:8px; width:16px; height:16px;">
+                    <div class="form-group" style="display: flex; gap: 1rem; padding-bottom: 10px; align-items: center;">
+                         <label style="display:flex; align-items:center; cursor:pointer; font-size:0.9rem; user-select:none;">
+                            <input type="checkbox" id="check-use-email" ${state.config.useEmail ? 'checked' : ''} style="margin-right:6px; width:16px; height:16px;">
                             <span>📧 E-mail</span>
                          </label>
-                         <label style="display:flex; align-items:center; cursor:pointer; font-size:0.9rem;">
-                            <input type="checkbox" id="check-use-whatsapp" ${state.config.useWhatsapp ? 'checked' : ''} style="margin-right:8px; width:16px; height:16px;">
+                         <label style="display:flex; align-items:center; cursor:pointer; font-size:0.9rem; user-select:none;">
+                            <input type="checkbox" id="check-use-whatsapp" ${state.config.useWhatsapp ? 'checked' : ''} style="margin-right:6px; width:16px; height:16px;">
                             <span>💬 WhatsApp</span>
                          </label>
                     </div>
@@ -233,39 +233,109 @@ export const CampanhaWizard = {
 
             const renderGroupNode = (node, level = 0) => {
                 const div = document.createElement('div');
-                div.style.paddingLeft = `${level * 20}px`;
-                div.style.margin = '2px 0';
+                div.className = 'group-node';
 
-                const content = document.createElement('div');
-                content.style.display = 'flex';
-                content.style.alignItems = 'center';
-                content.style.padding = '4px';
-                content.style.cursor = 'pointer';
-                content.className = 'wizard-tree-node hover-bg-gray';
+                const row = document.createElement('div');
+                row.className = 'group-row';
+                // Mimic inline styles from GruposLeadsManager
+                Object.assign(row.style, {
+                    display: 'flex', alignItems: 'center', padding: '8px 12px',
+                    cursor: 'pointer', borderBottom: '1px solid #f0f0f0',
+                    userSelect: 'none', transition: 'background 0.2s',
+                    backgroundColor: state.groups.has(node.id) ? '#e0f2fe' : 'transparent'
+                });
 
+                row.onmouseover = () => { if (!state.groups.has(node.id)) row.style.backgroundColor = '#f9fafb'; };
+                row.onmouseout = () => { if (!state.groups.has(node.id)) row.style.backgroundColor = 'transparent'; };
+
+                // Indent
+                const indent = document.createElement('div');
+                indent.style.width = `${level * 1.5}rem`;
+                row.appendChild(indent);
+
+                const hasChildren = node.children && node.children.length > 0;
+
+                // Toggle Icon
+                const toggleIcon = document.createElement('span');
+                Object.assign(toggleIcon.style, {
+                    width: '20px', display: 'inline-flex', justifyContent: 'center',
+                    marginRight: '4px', color: '#6b7280', fontSize: '0.7rem'
+                });
+
+                if (hasChildren) {
+                    toggleIcon.textContent = node.expanded ? '▼' : '▶'; // Initialize collapsed usually
+                    // Use expanded state if node has it, default to collapsed
+                    if (node.expanded === undefined) node.expanded = false;
+                    toggleIcon.textContent = node.expanded ? '▼' : '▶';
+
+                    toggleIcon.style.cursor = 'pointer';
+                    toggleIcon.onclick = (e) => {
+                        e.stopPropagation();
+                        node.expanded = !node.expanded;
+                        // Toggle visibility logic
+                        const childrenContainer = div.querySelector('.group-children');
+                        if (childrenContainer) {
+                            childrenContainer.style.display = node.expanded ? 'block' : 'none';
+                            toggleIcon.textContent = node.expanded ? '▼' : '▶';
+                            const fIcon = row.querySelector('.folder-icon');
+                            if (fIcon) fIcon.textContent = node.expanded ? '📂' : '📁';
+                        }
+                    };
+                } else {
+                    toggleIcon.innerHTML = '&nbsp;';
+                }
+                row.appendChild(toggleIcon);
+
+                // Checkbox
                 const checkbox = document.createElement('input');
                 checkbox.type = 'checkbox';
                 checkbox.checked = state.groups.has(node.id);
                 checkbox.style.marginRight = '8px';
+                checkbox.style.cursor = 'pointer';
                 checkbox.onclick = (e) => {
                     e.stopPropagation();
                     toggleGroup(node, checkbox.checked);
+                    // Update visuals
+                    row.style.backgroundColor = checkbox.checked ? '#e0f2fe' : 'transparent';
+                    const lbl = row.querySelector('.group-name-span');
+                    if (lbl) {
+                        lbl.style.fontWeight = checkbox.checked ? '600' : '400';
+                        lbl.style.color = checkbox.checked ? 'var(--color-primary)' : 'inherit';
+                    }
+                };
+                row.appendChild(checkbox);
+
+                // Folder Icon
+                const folderIcon = document.createElement('span');
+                folderIcon.className = 'folder-icon';
+                folderIcon.textContent = hasChildren ? (node.expanded ? '📂' : '📁') : '👥';
+                folderIcon.style.marginRight = '8px';
+                row.appendChild(folderIcon);
+
+                // Label
+                const label = document.createElement('span');
+                label.className = 'group-name-span';
+                label.textContent = `${node.nome} (${node.total_leads || 0})`;
+                label.style.flex = '1';
+                label.style.fontWeight = state.groups.has(node.id) ? '600' : '400';
+                label.style.color = state.groups.has(node.id) ? 'var(--color-primary)' : 'inherit';
+                row.appendChild(label);
+
+                // Allow row click to select
+                row.onclick = () => {
+                    checkbox.checked = !checkbox.checked;
+                    toggleGroup(node, checkbox.checked);
+                    row.style.backgroundColor = checkbox.checked ? '#e0f2fe' : 'transparent';
+                    label.style.fontWeight = checkbox.checked ? '600' : '400';
+                    label.style.color = checkbox.checked ? 'var(--color-primary)' : 'inherit';
                 };
 
-                const icon = document.createElement('span');
-                icon.textContent = node.children && node.children.length > 0 ? '📁' : '👥';
-                icon.style.marginRight = '5px';
+                div.appendChild(row);
 
-                const label = document.createElement('span');
-                label.textContent = `${node.nome} (${node.total_leads || 0})`;
-
-                content.appendChild(checkbox);
-                content.appendChild(icon);
-                content.appendChild(label);
-                div.appendChild(content);
-
-                if (node.children && node.children.length > 0) {
+                if (hasChildren) {
                     const childrenDiv = document.createElement('div');
+                    childrenDiv.className = 'group-children';
+                    childrenDiv.style.display = node.expanded ? 'block' : 'none';
                     node.children.forEach(child => childrenDiv.appendChild(renderGroupNode(child, level + 1)));
                     div.appendChild(childrenDiv);
                 }
