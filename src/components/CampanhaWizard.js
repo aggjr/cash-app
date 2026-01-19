@@ -132,14 +132,14 @@ export const CampanhaWizard = {
                         <label style="font-size:0.85rem; color:#666; display:block; margin-bottom:4px;">Fim</label>
                         <input type="date" id="campaign-end" class="form-input" value="${state.config.dataFim}" style="width:100%; padding:8px; border:1px solid #ddd; border-radius:6px;" />
                     </div>
-                    <div class="form-group" style="display:flex; gap:1rem; align-items:center; white-space:nowrap; flex-shrink:0;">
+                    <div class="form-group" style="display:flex; gap:1rem; align-items:center; white-space:nowrap; flex-direction:row !important; flex-wrap:nowrap !important; flex-shrink:0;">
                          <label style="display:flex; align-items:center; cursor:pointer; font-size:0.9rem; user-select:none; white-space: nowrap;">
                             <input type="checkbox" id="check-use-email" ${state.config.useEmail ? 'checked' : ''} style="margin-right:6px; width:16px; height:16px;">
-                            <span>📧 E-mail</span>
+                            <span>E-mail</span>
                          </label>
                          <label style="display:flex; align-items:center; cursor:pointer; font-size:0.9rem; user-select:none; white-space: nowrap;">
                             <input type="checkbox" id="check-use-whatsapp" ${state.config.useWhatsapp ? 'checked' : ''} style="margin-right:6px; width:16px; height:16px;">
-                            <span>💬 WhatsApp</span>
+                            <span>WhatsApp</span>
                          </label>
                     </div>
                 `;
@@ -366,7 +366,13 @@ export const CampanhaWizard = {
                     return;
                 }
 
-                const response = await fetch(`${API_BASE_URL}/marketing/leads?grupos=${Array.from(state.groups).join(',')}`, {
+                const groupIds = Array.from(state.groups).filter(id => id !== 'ALL');
+                if (groupIds.length === 0) {
+                    renderLeadsTable([]);
+                    return;
+                }
+
+                const response = await fetch(`${API_BASE_URL}/marketing/leads?grupos=${groupIds.join(',')}`, {
                     headers: getHeaders()
                 });
 
