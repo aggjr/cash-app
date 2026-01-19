@@ -738,8 +738,37 @@ export const LeadModal = {
                     span.style.cssText = 'font-size: 0.95rem; color: var(--color-text-primary); flex: 1;';
 
                     label.onclick = (e) => {
-                        if (e.target === checkbox) return;
-                        loadValues(c.id, c.nome);
+                        if (e.target === checkbox) return; // Let checkbox handle its own click
+
+                        const isAlreadyActive = activeCharId === c.id;
+
+                        if (isChecked) {
+                            if (isAlreadyActive) {
+                                // Case 3: Checked + Active -> Click Again -> Uncheck & Deactivate
+                                console.log(`[LeadModal] Interaction: Checked + Active -> Uncheck (${c.nome})`);
+                                selectedCharacteristics.delete(c.id);
+                                selectedCharValues[c.id] = null;
+                                activeCharId = null;
+
+                                // Reset Values Panel
+                                valuesSearchEl.disabled = true;
+                                valuesSearchEl.style.opacity = '0.6';
+                                valuesSearchEl.value = '';
+                                valuesListEl.innerHTML = '<div style="display: flex; align-items: center; justify-content: center; height: 100%; color: var(--color-text-muted); font-size: 0.9rem;">Valores aparecerão aqui</div>';
+                            } else {
+                                // Case 2: Checked + Inactive -> Click -> Just Activate (View)
+                                console.log(`[LeadModal] Interaction: Checked + Inactive -> View (${c.nome})`);
+                                // Do NOT auto-select first here, just view existing selection
+                                loadValues(c.id, c.nome, false);
+                            }
+                        } else {
+                            // Case 1: Unchecked -> Click -> Check & Activate & Auto-Select
+                            console.log(`[LeadModal] Interaction: Unchecked -> Check & Select (${c.nome})`);
+                            selectedCharacteristics.add(c.id);
+                            // Auto-select first value since it's a fresh check
+                            loadValues(c.id, c.nome, true);
+                        }
+
                         renderCharacteristics(filter);
                     };
 
