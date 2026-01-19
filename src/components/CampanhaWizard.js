@@ -121,8 +121,8 @@ export const CampanhaWizard = {
 
                 formDiv.innerHTML = `
                     <div class="form-group" style="flex: 1 1 40%; min-width:220px; max-width:600px;">
-                        <label style="font-size:0.85rem; color:#666; display:block; margin-bottom:4px;">Nome da Campanha (V3) *</label>
-                        <input type="text" id="campaign-name" class="form-input" value="${state.config.nome}" placeholder="Ex: Promoção de Natal (V3)" style="width:100%; padding:8px; border:1px solid #ddd; border-radius:6px;" />
+                        <label style="font-size:0.85rem; color:#666; display:block; margin-bottom:4px;">Nome da Campanha (V3.2) *</label>
+                        <input type="text" id="campaign-name" class="form-input" value="${state.config.nome}" placeholder="Ex: Promoção de Natal (V3.2)" style="width:100%; padding:8px; border:1px solid #ddd; border-radius:6px;" />
                     </div>
                     <div class="form-group" style="width: 140px;">
                         <label style="font-size:0.85rem; color:#666; display:block; margin-bottom:4px;">Início</label>
@@ -132,7 +132,7 @@ export const CampanhaWizard = {
                         <label style="font-size:0.85rem; color:#666; display:block; margin-bottom:4px;">Fim</label>
                         <input type="date" id="campaign-end" class="form-input" value="${state.config.dataFim}" style="width:100%; padding:8px; border:1px solid #ddd; border-radius:6px;" />
                     </div>
-                    <div class="form-group" style="display:flex; gap:1rem; align-items:center; white-space:nowrap; flex-direction:row !important; flex-wrap:nowrap !important; flex-shrink:0;">
+                    <div class="form-group" style="display:flex; gap:1rem; align-items:center; white-space:nowrap; flex-direction:row !important; flex-wrap:nowrap !important; flex-shrink:0; min-width: 200px;">
                          <label style="display:flex; align-items:center; cursor:pointer; font-size:0.9rem; user-select:none; white-space: nowrap;">
                             <input type="checkbox" id="check-use-email" ${state.config.useEmail ? 'checked' : ''} style="margin-right:6px; width:16px; height:16px;">
                             <span>E-mail</span>
@@ -214,16 +214,30 @@ export const CampanhaWizard = {
                     const groups = await res.json();
 
                     const realRoots = buildTree(groups);
+
                     // Virtual Root
                     treeRoot = {
                         id: 'ALL',
                         nome: 'Todos os Leads',
                         children: realRoots,
                         expanded: true, // Auto expand root
-                        total_leads: groups.find(g => g.id === 'ALL')?.total_leads || groups.reduce((acc, g) => acc + (g.total_leads || 0), 0) // Approx
+                        total_leads: '...' // Placeholder, will update
                     };
 
                     refreshTree();
+
+                    // Calculate Unique Total Leads (if 'ALL' missing in groups)
+                    // Fetch all leads involved in these groups to get unique count
+                    const allGroupIds = groups.filter(g => g.id !== 'ALL').map(g => g.id).join(',');
+                    if (allGroupIds) {
+                        const countRes = await fetch(`${API_BASE_URL}/marketing/leads?grupos=${allGroupIds}`, { headers: getHeaders() });
+                        if (countRes.ok) {
+                            const allLeads = await countRes.json();
+                            treeRoot.total_leads = allLeads.length;
+                            refreshTree();
+                        }
+                    }
+
                 } catch (e) {
                     container.innerHTML = `<div style="color:red; padding:1rem;">Erro: ${e.message}</div>`;
                 }
