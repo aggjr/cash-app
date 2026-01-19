@@ -144,9 +144,33 @@ export const CampanhaWizard = {
                 const splitDiv = document.createElement('div');
                 Object.assign(splitDiv.style, { display: 'flex', flex: '1', gap: '1rem', overflow: 'hidden' });
 
-                // ... (Tree and List setup remains same)
+                // Tree Column
+                const treeCol = document.createElement('div');
+                Object.assign(treeCol.style, { flex: '1', border: '1px solid #ddd', borderRadius: '8px', overflow: 'hidden', display: 'flex', flexDirection: 'column' });
+                treeCol.innerHTML = `<div style="padding:0.5rem; background:#f8f9fa; border-bottom:1px solid #ddd; font-weight:bold;">Grupos (Origem)</div>`;
 
-                // ... 
+                const treeContent = document.createElement('div');
+                Object.assign(treeContent.style, { flex: '1', overflowY: 'auto', padding: '0.5rem' });
+                treeContent.id = 'wizard-tree-content';
+                treeCol.appendChild(treeContent);
+
+                // List Column (Preview)
+                const listCol = document.createElement('div');
+                Object.assign(listCol.style, { flex: '1', border: '1px solid #ddd', borderRadius: '8px', overflow: 'hidden', display: 'flex', flexDirection: 'column' });
+                listCol.innerHTML = `
+                    <div style="padding:0.5rem; background:#f8f9fa; border-bottom:1px solid #ddd; font-weight:bold; display:flex; justify-content:space-between;">
+                        <span>Leads Selecionados (Preview)</span>
+                        <span id="wizard-lead-count" style="background:#ddd; padding:2px 8px; borderRadius:12px; font-size:0.8rem;">0 leads</span>
+                    </div>
+                `;
+
+                const listContent = document.createElement('div');
+                Object.assign(listContent.style, { flex: '1', overflowY: 'auto' });
+                listContent.id = 'wizard-leads-table';
+                listCol.appendChild(listContent);
+
+                splitDiv.appendChild(treeCol);
+                splitDiv.appendChild(listCol);
 
                 stepContainer.appendChild(formDiv);
                 stepContainer.appendChild(splitDiv);
