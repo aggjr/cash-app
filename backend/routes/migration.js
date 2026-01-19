@@ -16,6 +16,10 @@ router.get('/run-marketing-migration', async (req, res) => {
     // 2. Atualização N:N Leads
     await updateLeadsMultiRelations();
 
+    // 3. Colunas de Mensagem da Campanha
+    const migrateCampaignMessages = require('../migrate_add_campaign_messages');
+    await migrateCampaignMessages();
+
     console.log('✅ Fix concluído com sucesso!');
     res.json({
       success: true,
