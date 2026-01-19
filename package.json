@@ -18,5 +18,10 @@
         "echarts": "^5.6.0",
         "quill": "^2.0.3",
         "quill-blot-formatter": "^1.0.5"
+    },
+    "overrides": {
+        "quill-blot-formatter": {
+            "quill": "$quill"
+        }
     }
 }
