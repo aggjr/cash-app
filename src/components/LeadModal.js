@@ -618,7 +618,7 @@ export const LeadModal = {
                     span.textContent = val.valor;
                     span.style.cssText = 'font-size: 0.95rem; color: var(--color-text-primary);';
 
-                    label.appendChild(checkbox);
+                    label.appendChild(radio);
                     label.appendChild(span);
                     valuesListEl.appendChild(label);
                 });
