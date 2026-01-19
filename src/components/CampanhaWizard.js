@@ -834,16 +834,17 @@ export const CampanhaWizard = {
                         updateStatusItem(channel, leadId, 'OK', 'green', true);
                     } else {
                         const err = await res.json();
-                        updateStatusItem(channel, leadId, 'Falha', 'red', true);
-                        console.error(`Falha ${channel} lead ${leadId}:`, err);
+                        const errorMessage = err.error || 'Erro desconhecido';
+                        updateStatusItem(channel, leadId, 'Falha', 'red', true, errorMessage);
+                        console.error(`Falha ${channel} lead ${leadId}:`, errorMessage);
                     }
                 } catch (e) {
-                    updateStatusItem(channel, leadId, 'Erro', 'red', true);
+                    updateStatusItem(channel, leadId, 'Erro', 'red', true, e.message);
                     console.error(`Erro ${channel} lead ${leadId}:`, e);
                 }
             };
 
-            const updateStatusItem = (channel, leadId, text, color, bold = false) => {
+            const updateStatusItem = (channel, leadId, text, color, bold = false, tooltip = '') => {
                 const el = document.getElementById(`item-${channel}-${leadId}`);
                 if (!el) return;
                 const badge = el.querySelector('.status-badge');
@@ -851,6 +852,10 @@ export const CampanhaWizard = {
                     badge.textContent = text;
                     badge.style.color = color;
                     badge.style.fontWeight = bold ? 'bold' : 'normal';
+                    if (tooltip) {
+                        badge.title = tooltip;
+                        badge.style.cursor = 'help';
+                    }
                 }
             };
 
