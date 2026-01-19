@@ -121,8 +121,8 @@ export const CampanhaWizard = {
 
                 formDiv.innerHTML = `
                     <div class="form-group" style="flex: 1 1 40%; min-width:220px; max-width:600px;">
-                        <label style="font-size:0.85rem; color:#666; display:block; margin-bottom:4px;">Nome da Campanha (V3.2) *</label>
-                        <input type="text" id="campaign-name" class="form-input" value="${state.config.nome}" placeholder="Ex: Promoção de Natal (V3.2)" style="width:100%; padding:8px; border:1px solid #ddd; border-radius:6px;" />
+                        <label style="font-size:0.85rem; color:#666; display:block; margin-bottom:4px;">Nome da Campanha (V3.3) *</label>
+                        <input type="text" id="campaign-name" class="form-input" value="${state.config.nome}" placeholder="Ex: Promoção de Natal (V3.3)" style="width:100%; padding:8px; border:1px solid #ddd; border-radius:6px;" />
                     </div>
                     <div class="form-group" style="width: 140px;">
                         <label style="font-size:0.85rem; color:#666; display:block; margin-bottom:4px;">Início</label>
@@ -391,7 +391,19 @@ export const CampanhaWizard = {
                 });
 
                 if (response.ok) {
-                    state.leads = await response.json();
+                    const rawLeads = await response.json();
+
+                    // Dedup by ID
+                    const uniqueLeads = [];
+                    const seen = new Set();
+                    rawLeads.forEach(l => {
+                        if (!seen.has(l.id)) {
+                            seen.add(l.id);
+                            uniqueLeads.push(l);
+                        }
+                    });
+
+                    state.leads = uniqueLeads;
                     document.getElementById('wizard-lead-count').textContent = `${state.leads.length} leads`;
                     renderLeadsTable(state.leads);
                 }
@@ -413,7 +425,8 @@ export const CampanhaWizard = {
                     container: tableContainer,
                     columns: columns,
                     data: leads,
-                    compact: true // Logic handled by CSS var above
+                    compact: true, // Logic handled by CSS var above
+                    enableSelection: false // User requested no selection for this view
                 });
             };
 
