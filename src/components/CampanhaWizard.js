@@ -121,8 +121,8 @@ export const CampanhaWizard = {
 
                 formDiv.innerHTML = `
                     <div class="form-group" style="flex: 1 1 40%; min-width:220px; max-width:600px;">
-                        <label style="font-size:0.85rem; color:#666; display:block; margin-bottom:4px;">Nome da Campanha (V3.3) *</label>
-                        <input type="text" id="campaign-name" class="form-input" value="${state.config.nome}" placeholder="Ex: Promoção de Natal (V3.3)" style="width:100%; padding:8px; border:1px solid #ddd; border-radius:6px;" />
+                        <label style="font-size:0.85rem; color:#666; display:block; margin-bottom:4px;">Nome da Campanha (V3.4) *</label>
+                        <input type="text" id="campaign-name" class="form-input" value="${state.config.nome}" placeholder="Ex: Promoção de Natal (V3.4)" style="width:100%; padding:8px; border:1px solid #ddd; border-radius:6px;" />
                     </div>
                     <div class="form-group" style="width: 140px;">
                         <label style="font-size:0.85rem; color:#666; display:block; margin-bottom:4px;">Início</label>
@@ -170,7 +170,7 @@ export const CampanhaWizard = {
                 `;
 
                 const listContent = document.createElement('div');
-                Object.assign(listContent.style, { flex: '1', overflowY: 'auto' });
+                Object.assign(listContent.style, { flex: '1', overflowY: 'hidden', display: 'flex', flexDirection: 'column' }); // Changed to hidden/flex to let SharedTable handle scroll
                 listContent.id = 'wizard-leads-table';
                 listCol.appendChild(listContent);
 
@@ -421,13 +421,14 @@ export const CampanhaWizard = {
                     { key: 'telefone', label: 'Telefone' }
                 ];
 
-                new SharedTable({
+                const table = new SharedTable({
                     container: tableContainer,
                     columns: columns,
-                    data: leads,
-                    compact: true, // Logic handled by CSS var above
-                    enableSelection: false // User requested no selection for this view
+                    // data: leads, // Removed, computed in render
+                    compact: true,
+                    enableSelection: false
                 });
+                table.render(leads); // Explicit render call
             };
 
             // STEP 2: MESSAGE
