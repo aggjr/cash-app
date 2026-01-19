@@ -635,15 +635,19 @@ export const LeadModal = {
                     console.log(`[LeadModal] Processing values for charId ${charId}:`, values);
                     console.log(`[LeadModal] Current selectedCharValues[${charId}]:`, selectedCharValues[charId]);
 
-                    // Strict Enforcement: If characteristic is checked AND no value selected (or autoSelectFirst is true), select first.
-                    // We check if value is 'null' or 'undefined' specifically.
+                    // Strict Enforcement & Zombie Check
                     if (values && values.length > 0) {
-                        const currentSel = selectedCharValues[charId];
+                        let currentSel = selectedCharValues[charId];
 
-                        // If no valid value is selected OR we forced auto-select
-                        if (autoSelectFirst || currentSel === null || currentSel === undefined) {
-                            selectedCharValues[charId] = values[0].id;
-                            console.log(`[LeadModal] Auto-selected FIRST value (Enforcement): ${values[0].valor} (id: ${values[0].id}) for ${charName}`);
+                        // Check if current selection is valid (exists in the new list)
+                        // This handles "Zombie Values" where an ID exists in DB but not in the current list of values
+                        const isValidSelection = currentSel && values.some(v => v.id == currentSel);
+
+                        // If NOT valid (null, undefined, or zombie ID) OR if we want to force select first
+                        if (autoSelectFirst || !isValidSelection) {
+                            const firstVal = values[0];
+                            selectedCharValues[charId] = firstVal.id;
+                            console.log(`[LeadModal] Auto-Selection Triggered: ${autoSelectFirst ? 'Forced' : 'Invalid/Missing Selection'} -> Selected ${firstVal.valor} (id: ${firstVal.id})`);
                         }
                     }
                     renderValues(charId, values, charName);
