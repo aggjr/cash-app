@@ -121,8 +121,8 @@ export const CampanhaWizard = {
 
                 formDiv.innerHTML = `
                     <div class="form-group" style="flex: 1 1 40%; min-width:220px; max-width:600px;">
-                        <label style="font-size:0.85rem; color:#666; display:block; margin-bottom:4px;">Nome da Campanha (V3.5) <span style="color:red; margin-left:2px;">*</span></label>
-                        <input type="text" id="campaign-name" class="form-input" value="${state.config.nome}" placeholder="Ex: Promoção de Natal (V3.5)" style="width:100%; padding:8px; border:1px solid #ddd; border-radius:6px;" />
+                        <label style="font-size:0.85rem; color:#666; display:block; margin-bottom:4px;">Nome da Campanha (V3.6) <span style="color:red; margin-left:2px;">*</span></label>
+                        <input type="text" id="campaign-name" class="form-input" value="${state.config.nome}" placeholder="Ex: Promoção de Natal (V3.6)" style="width:100%; padding:8px; border:1px solid #ddd; border-radius:6px;" />
                     </div>
                     <div class="form-group" style="width: 140px;">
                         <label style="font-size:0.85rem; color:#666; display:block; margin-bottom:4px;">Início <span style="color:red; margin-left:2px;">*</span></label>
@@ -486,8 +486,8 @@ export const CampanhaWizard = {
                     </div>
                     <div class="form-group">
                         <label>Corpo do E-mail</label>
-                        <textarea id="msg-email-body" class="form-input" rows="15" placeholder="Olá {{nome}}, ...">${state.message.emailBody}</textarea>
-                        <div style="font-size:0.8rem; color:#666; margin-top:0.5rem;">Variáveis disponíveis: {{nome}}, {{empresa}}</div>
+                        <div id="msg-email-body" class="form-input" contenteditable="true" style="min-height:300px; overflow-y:auto; border:1px solid #ddd; border-radius:6px; padding:8px; background:white;">${state.message.emailBody}</div>
+                        <div style="font-size:0.8rem; color:#666; margin-top:0.5rem;">Variáveis disponíveis: {{nome}}, {{empresa}}. Cole imagens aqui (Ctrl+V).</div>
                     </div>
                 `;
 
@@ -497,8 +497,8 @@ export const CampanhaWizard = {
                 whatsappEditor.innerHTML = `
                     <div class="form-group">
                         <label>Mensagem WhatsApp</label>
-                        <textarea id="msg-whatsapp-text" class="form-input" rows="15" placeholder="Olá {{nome}}, ...">${state.message.whatsappText}</textarea>
-                        <div style="font-size:0.8rem; color:#666; margin-top:0.5rem;">Variáveis disponíveis: {{nome}}, {{empresa}}</div>
+                         <div id="msg-whatsapp-text" class="form-input" contenteditable="true" style="min-height:300px; overflow-y:auto; border:1px solid #ddd; border-radius:6px; padding:8px; background:white;">${state.message.whatsappText}</div>
+                        <div style="font-size:0.8rem; color:#666; margin-top:0.5rem;">Variáveis disponíveis: {{nome}}, {{empresa}}. Cole imagens aqui (Ctrl+V).</div>
                     </div>
                 `;
 
@@ -539,11 +539,13 @@ export const CampanhaWizard = {
 
                     previewHeader.textContent = header;
                     previewHeader.style.background = type === 'email' ? '#4a5568' : '#075e54';
-                    previewBody.textContent = body || '(Digite para visualizar...)';
 
-                    // Simple variable replacement preview
+                    // Render HTML for body preview
+                    previewBody.innerHTML = body || '<span style="color:#aaa; font-style:italic;">(Digite para visualizar... Cole imagens com Ctrl+V)</span>';
+
+                    // Simple variable replacement preview (on HTML string)
                     const demoName = state.leads[0]?.nome || 'João Silva';
-                    previewBody.textContent = previewBody.textContent.replace(/{{nome}}/g, demoName);
+                    previewBody.innerHTML = previewBody.innerHTML.replace(/{{nome}}/g, demoName);
                 };
 
                 // Tab Switching
@@ -584,12 +586,35 @@ export const CampanhaWizard = {
                     stepContainer.dataset.activeTab = initialTab;
                     if (initialTab) activateTab(initialTab);
 
-                    const inputs = stepContainer.querySelectorAll('input, textarea');
+                    const inputs = stepContainer.querySelectorAll('input, textarea, [contenteditable="true"]');
                     inputs.forEach(input => {
+                        // Paste Hander for Images
+                        if (input.getAttribute('contenteditable') === 'true') {
+                            input.addEventListener('paste', (e) => {
+                                const items = (e.clipboardData || e.originalEvent.clipboardData).items;
+                                for (const item of items) {
+                                    if (item.kind === 'file' && item.type.startsWith('image/')) {
+                                        e.preventDefault();
+                                        const blob = item.getAsFile();
+                                        const reader = new FileReader();
+                                        reader.onload = (event) => {
+                                            const imgHtml = `<img src="${event.target.result}" style="max-width:100%; border-radius:4px; margin: 4px 0;">`;
+                                            document.execCommand('insertHTML', false, imgHtml);
+                                            // Trigger input to sync state
+                                            input.dispatchEvent(new Event('input'));
+                                        };
+                                        reader.readAsDataURL(blob);
+                                    }
+                                }
+                            });
+                        }
+
                         input.oninput = (e) => {
                             if (e.target.id === 'msg-email-subject') state.message.emailSubject = e.target.value;
-                            if (e.target.id === 'msg-email-body') state.message.emailBody = e.target.value;
-                            if (e.target.id === 'msg-whatsapp-text') state.message.whatsappText = e.target.value;
+
+                            // Use innerHTML for contenteditable divs
+                            if (e.target.id === 'msg-email-body') state.message.emailBody = e.target.innerHTML;
+                            if (e.target.id === 'msg-whatsapp-text') state.message.whatsappText = e.target.innerHTML;
 
                             updatePreview(stepContainer.dataset.activeTab);
                         };
