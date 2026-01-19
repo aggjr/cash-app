@@ -1,8 +1,6 @@
 import { SharedTable } from './SharedTable.js';
-import { getApiBaseUrl } from '../utils/apiConfig.js'; // Ensure correct path if needed, or keep original
-import { showToast } from '../utils.js'; // This path seemed wrong in previous view, let's stick to what's there or just append
 import Quill from 'quill';
-import 'quill/dist/quill.snow.css'; // Standard theme
+import 'quill/dist/quill.snow.css';
 import { showToast } from '../utils/toast.js';
 import { getApiBaseUrl } from '../utils/apiConfig.js';
 
