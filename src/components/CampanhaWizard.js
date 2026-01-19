@@ -121,15 +121,15 @@ export const CampanhaWizard = {
 
                 formDiv.innerHTML = `
                     <div class="form-group" style="flex: 1 1 40%; min-width:220px; max-width:600px;">
-                        <label style="font-size:0.85rem; color:#666; display:block; margin-bottom:4px;">Nome da Campanha (V3.4) *</label>
-                        <input type="text" id="campaign-name" class="form-input" value="${state.config.nome}" placeholder="Ex: Promoção de Natal (V3.4)" style="width:100%; padding:8px; border:1px solid #ddd; border-radius:6px;" />
+                        <label style="font-size:0.85rem; color:#666; display:block; margin-bottom:4px;">Nome da Campanha (V3.5) <span style="color:red; margin-left:2px;">*</span></label>
+                        <input type="text" id="campaign-name" class="form-input" value="${state.config.nome}" placeholder="Ex: Promoção de Natal (V3.5)" style="width:100%; padding:8px; border:1px solid #ddd; border-radius:6px;" />
                     </div>
                     <div class="form-group" style="width: 140px;">
-                        <label style="font-size:0.85rem; color:#666; display:block; margin-bottom:4px;">Início</label>
+                        <label style="font-size:0.85rem; color:#666; display:block; margin-bottom:4px;">Início <span style="color:red; margin-left:2px;">*</span></label>
                         <input type="date" id="campaign-start" class="form-input" value="${state.config.dataInicio}" style="width:100%; padding:8px; border:1px solid #ddd; border-radius:6px;" />
                     </div>
                     <div class="form-group" style="width: 140px;">
-                        <label style="font-size:0.85rem; color:#666; display:block; margin-bottom:4px;">Fim</label>
+                        <label style="font-size:0.85rem; color:#666; display:block; margin-bottom:4px;">Fim <span style="color:red; margin-left:2px;">*</span></label>
                         <input type="date" id="campaign-end" class="form-input" value="${state.config.dataFim}" style="width:100%; padding:8px; border:1px solid #ddd; border-radius:6px;" />
                     </div>
                     <div class="form-group" style="display:flex; gap:1rem; align-items:center; white-space:nowrap; flex-direction:row !important; flex-wrap:nowrap !important; flex-shrink:0; min-width: 200px;">
@@ -193,13 +193,29 @@ export const CampanhaWizard = {
 
             const bindFormEvents = (div) => {
                 div.querySelectorAll('input').forEach(input => {
-                    input.onchange = (e) => { // Use onchange for checkboxes
+                    // Validation Logic
+                    const validate = () => {
+                        if (['campaign-name', 'campaign-start', 'campaign-end'].includes(input.id)) {
+                            if (!input.value.trim()) {
+                                input.style.borderColor = '#ef4444';
+                                input.style.backgroundColor = '#fef2f2';
+                            } else {
+                                input.style.borderColor = '#ddd';
+                                input.style.backgroundColor = 'white';
+                            }
+                        }
+                    };
+
+                    input.onblur = validate;
+                    input.oninput = (e) => {
+                        validate();
+                        // Sync State
                         if (e.target.id === 'campaign-name') state.config.nome = e.target.value;
-                        // Description if present? I removed it in my replacement above relative to original.
-                        // Let's restore description logic if I want to keep it, but the layout above didn't include it.
-                        // I'll re-add description field to the HTML to be safe.
                         if (e.target.id === 'campaign-start') state.config.dataInicio = e.target.value;
                         if (e.target.id === 'campaign-end') state.config.dataFim = e.target.value;
+                    };
+
+                    input.onchange = (e) => { // Use onchange for checkboxes
                         if (e.target.id === 'check-use-email') state.config.useEmail = e.target.checked;
                         if (e.target.id === 'check-use-whatsapp') state.config.useWhatsapp = e.target.checked;
                     };
