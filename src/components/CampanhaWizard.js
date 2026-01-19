@@ -118,8 +118,8 @@ export const CampanhaWizard = {
 
                 formDiv.innerHTML = `
                     <div class="form-group" style="flex: 1; min-width: 250px;">
-                        <label style="font-size:0.85rem; color:#666; display:block; margin-bottom:4px;">Nome da Campanha *</label>
-                        <input type="text" id="campaign-name" class="form-input" value="${state.config.nome}" placeholder="Ex: Promoção de Natal" style="width:100%; padding:8px; border:1px solid #ddd; border-radius:6px;" />
+                        <label style="font-size:0.85rem; color:#666; display:block; margin-bottom:4px;">Nome da Campanha (V2) *</label>
+                        <input type="text" id="campaign-name" class="form-input" value="${state.config.nome}" placeholder="Ex: Promoção de Natal (V2)" style="width:100%; padding:8px; border:1px solid #ddd; border-radius:6px;" />
                     </div>
                     <div class="form-group" style="width: 140px;">
                         <label style="font-size:0.85rem; color:#666; display:block; margin-bottom:4px;">Início</label>
@@ -129,7 +129,7 @@ export const CampanhaWizard = {
                         <label style="font-size:0.85rem; color:#666; display:block; margin-bottom:4px;">Fim</label>
                         <input type="date" id="campaign-end" class="form-input" value="${state.config.dataFim}" style="width:100%; padding:8px; border:1px solid #ddd; border-radius:6px;" />
                     </div>
-                    <div class="form-group" style="display: flex; gap: 1rem; padding-bottom: 10px; align-items: center;">
+                    <div class="form-group" style="display: flex; gap: 1rem; padding-bottom: 10px; align-items: center; white-space: nowrap;">
                          <label style="display:flex; align-items:center; cursor:pointer; font-size:0.9rem; user-select:none;">
                             <input type="checkbox" id="check-use-email" ${state.config.useEmail ? 'checked' : ''} style="margin-right:6px; width:16px; height:16px;">
                             <span>📧 E-mail</span>
