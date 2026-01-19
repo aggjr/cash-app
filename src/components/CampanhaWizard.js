@@ -48,6 +48,9 @@ export const CampanhaWizard = {
                 }
             };
 
+            let treeRoot = null;
+            let treeContainerRef = null;
+
             // Header (Stepper)
             const header = document.createElement('div');
             Object.assign(header.style, {
@@ -118,23 +121,19 @@ export const CampanhaWizard = {
 
                 formDiv.innerHTML = `
                     <div class="form-group" style="flex: 1; min-width: 250px;">
-                        <label style="font-size:0.85rem; color:#666; display:block; margin-bottom:4px;">Nome da Campanha (V2) *</label>
-                        <input type="text" id="campaign-name" class="form-input" value="${state.config.nome}" placeholder="Ex: Promoção de Natal (V2)" style="width:100%; padding:8px; border:1px solid #ddd; border-radius:6px;" />
+                        <label style="font-size:0.85rem; color:#666; display:block; margin-bottom:4px;">Nome da Campanha (V3) *</label>
+                        <input type="text" id="campaign-name" class="form-input" value="${state.config.nome}" placeholder="Ex: Promoção de Natal (V3)" style="width:100%; padding:8px; border:1px solid #ddd; border-radius:6px;" />
                     </div>
                     <div class="form-group" style="width: 140px;">
                         <label style="font-size:0.85rem; color:#666; display:block; margin-bottom:4px;">Início</label>
                         <input type="date" id="campaign-start" class="form-input" value="${state.config.dataInicio}" style="width:100%; padding:8px; border:1px solid #ddd; border-radius:6px;" />
                     </div>
-                    <div class="form-group" style="width: 140px;">
-                        <label style="font-size:0.85rem; color:#666; display:block; margin-bottom:4px;">Fim</label>
-                        <input type="date" id="campaign-end" class="form-input" value="${state.config.dataFim}" style="width:100%; padding:8px; border:1px solid #ddd; border-radius:6px;" />
-                    </div>
-                    <div class="form-group" style="display: flex; gap: 1rem; padding-bottom: 10px; align-items: center; white-space: nowrap;">
-                         <label style="display:flex; align-items:center; cursor:pointer; font-size:0.9rem; user-select:none;">
+                    <div class="form-group" style="display: flex; gap: 1rem; padding-bottom: 10px; align-items: center; white-space: nowrap; flex-direction: row !important; flex-wrap: nowrap !important; width: auto;">
+                         <label style="display:flex; align-items:center; cursor:pointer; font-size:0.9rem; user-select:none; white-space: nowrap;">
                             <input type="checkbox" id="check-use-email" ${state.config.useEmail ? 'checked' : ''} style="margin-right:6px; width:16px; height:16px;">
                             <span>📧 E-mail</span>
                          </label>
-                         <label style="display:flex; align-items:center; cursor:pointer; font-size:0.9rem; user-select:none;">
+                         <label style="display:flex; align-items:center; cursor:pointer; font-size:0.9rem; user-select:none; white-space: nowrap;">
                             <input type="checkbox" id="check-use-whatsapp" ${state.config.useWhatsapp ? 'checked' : ''} style="margin-right:6px; width:16px; height:16px;">
                             <span>💬 WhatsApp</span>
                          </label>
@@ -154,6 +153,7 @@ export const CampanhaWizard = {
                 Object.assign(treeContent.style, { flex: '1', overflowY: 'auto', padding: '0.5rem' });
                 treeContent.id = 'wizard-tree-content';
                 treeCol.appendChild(treeContent);
+                treeContainerRef = treeContent; // Save Ref
 
                 // List Column (Preview)
                 const listCol = document.createElement('div');
@@ -209,15 +209,26 @@ export const CampanhaWizard = {
                     if (!res.ok) throw new Error('Falha ao carregar grupos');
                     const groups = await res.json();
 
-                    const tree = buildTree(groups);
-                    container.innerHTML = '';
-                    // Render Root (All)
-                    // We can choose to check ALL or just sub selections. 
-                    // Let's render the tree.
-                    tree.forEach(node => container.appendChild(renderGroupNode(node)));
+                    const realRoots = buildTree(groups);
+                    // Virtual Root
+                    treeRoot = {
+                        id: 'ALL',
+                        nome: 'Todos os Leads',
+                        children: realRoots,
+                        expanded: true, // Auto expand root
+                        total_leads: groups.find(g => g.id === 'ALL')?.total_leads || groups.reduce((acc, g) => acc + (g.total_leads || 0), 0) // Approx
+                    };
+
+                    refreshTree();
                 } catch (e) {
                     container.innerHTML = `<div style="color:red; padding:1rem;">Erro: ${e.message}</div>`;
                 }
+            };
+
+            const refreshTree = () => {
+                if (!treeContainerRef || !treeRoot) return;
+                treeContainerRef.innerHTML = '';
+                treeContainerRef.appendChild(renderGroupNode(treeRoot));
             };
 
             const buildTree = (items) => {
@@ -237,16 +248,19 @@ export const CampanhaWizard = {
 
                 const row = document.createElement('div');
                 row.className = 'group-row';
-                // Mimic inline styles from GruposLeadsManager
+
+                // V3: Check selection simple (Toggle handles recursion)
+                const isSelected = state.groups.has(node.id);
+
                 Object.assign(row.style, {
                     display: 'flex', alignItems: 'center', padding: '8px 12px',
                     cursor: 'pointer', borderBottom: '1px solid #f0f0f0',
                     userSelect: 'none', transition: 'background 0.2s',
-                    backgroundColor: state.groups.has(node.id) ? '#e0f2fe' : 'transparent'
+                    backgroundColor: isSelected ? '#e0f2fe' : 'transparent'
                 });
 
-                row.onmouseover = () => { if (!state.groups.has(node.id)) row.style.backgroundColor = '#f9fafb'; };
-                row.onmouseout = () => { if (!state.groups.has(node.id)) row.style.backgroundColor = 'transparent'; };
+                row.onmouseover = () => { if (!isSelected) row.style.backgroundColor = '#f9fafb'; };
+                row.onmouseout = () => { if (!isSelected) row.style.backgroundColor = 'transparent'; };
 
                 // Indent
                 const indent = document.createElement('div');
@@ -263,23 +277,13 @@ export const CampanhaWizard = {
                 });
 
                 if (hasChildren) {
-                    toggleIcon.textContent = node.expanded ? '▼' : '▶'; // Initialize collapsed usually
-                    // Use expanded state if node has it, default to collapsed
-                    if (node.expanded === undefined) node.expanded = false;
+                    if (node.expanded === undefined) node.expanded = true;
                     toggleIcon.textContent = node.expanded ? '▼' : '▶';
-
                     toggleIcon.style.cursor = 'pointer';
                     toggleIcon.onclick = (e) => {
                         e.stopPropagation();
                         node.expanded = !node.expanded;
-                        // Toggle visibility logic
-                        const childrenContainer = div.querySelector('.group-children');
-                        if (childrenContainer) {
-                            childrenContainer.style.display = node.expanded ? 'block' : 'none';
-                            toggleIcon.textContent = node.expanded ? '▼' : '▶';
-                            const fIcon = row.querySelector('.folder-icon');
-                            if (fIcon) fIcon.textContent = node.expanded ? '📂' : '📁';
-                        }
+                        refreshTree();
                     };
                 } else {
                     toggleIcon.innerHTML = '&nbsp;';
@@ -289,26 +293,19 @@ export const CampanhaWizard = {
                 // Checkbox
                 const checkbox = document.createElement('input');
                 checkbox.type = 'checkbox';
-                checkbox.checked = state.groups.has(node.id);
+                checkbox.checked = isSelected;
                 checkbox.style.marginRight = '8px';
                 checkbox.style.cursor = 'pointer';
                 checkbox.onclick = (e) => {
                     e.stopPropagation();
                     toggleGroup(node, checkbox.checked);
-                    // Update visuals
-                    row.style.backgroundColor = checkbox.checked ? '#e0f2fe' : 'transparent';
-                    const lbl = row.querySelector('.group-name-span');
-                    if (lbl) {
-                        lbl.style.fontWeight = checkbox.checked ? '600' : '400';
-                        lbl.style.color = checkbox.checked ? 'var(--color-primary)' : 'inherit';
-                    }
                 };
                 row.appendChild(checkbox);
 
-                // Folder Icon
+                // Folder Icon (ALWAYS)
                 const folderIcon = document.createElement('span');
                 folderIcon.className = 'folder-icon';
-                folderIcon.textContent = hasChildren ? (node.expanded ? '📂' : '📁') : '👥';
+                folderIcon.textContent = node.expanded ? '📂' : '📁';
                 folderIcon.style.marginRight = '8px';
                 row.appendChild(folderIcon);
 
@@ -317,25 +314,21 @@ export const CampanhaWizard = {
                 label.className = 'group-name-span';
                 label.textContent = `${node.nome} (${node.total_leads || 0})`;
                 label.style.flex = '1';
-                label.style.fontWeight = state.groups.has(node.id) ? '600' : '400';
-                label.style.color = state.groups.has(node.id) ? 'var(--color-primary)' : 'inherit';
+                label.style.fontWeight = isSelected ? '600' : '400';
+                label.style.color = isSelected ? 'var(--color-primary)' : 'inherit';
                 row.appendChild(label);
 
                 // Allow row click to select
                 row.onclick = () => {
-                    checkbox.checked = !checkbox.checked;
-                    toggleGroup(node, checkbox.checked);
-                    row.style.backgroundColor = checkbox.checked ? '#e0f2fe' : 'transparent';
-                    label.style.fontWeight = checkbox.checked ? '600' : '400';
-                    label.style.color = checkbox.checked ? 'var(--color-primary)' : 'inherit';
+                    const newState = !isSelected;
+                    toggleGroup(node, newState);
                 };
 
                 div.appendChild(row);
 
-                if (hasChildren) {
+                if (hasChildren && node.expanded) {
                     const childrenDiv = document.createElement('div');
                     childrenDiv.className = 'group-children';
-                    childrenDiv.style.display = node.expanded ? 'block' : 'none';
                     node.children.forEach(child => childrenDiv.appendChild(renderGroupNode(child, level + 1)));
                     div.appendChild(childrenDiv);
                 }
@@ -343,16 +336,18 @@ export const CampanhaWizard = {
                 return div;
             };
 
-            const toggleGroup = (node, checked) => {
-                if (checked) {
-                    state.groups.add(node.id);
-                    // Select all children? - User might expect recursive selection.
-                    // Let's implement simple atomic selection first to match typical specific targeting.
-                    // Or recursive? Recursive is better UX for "Foldering".
-                    // Let's stick to simple single selection for now to be safe, or just check IDs.
-                } else {
-                    state.groups.delete(node.id);
+            const toggleGroupRecursive = (node, checked) => {
+                if (checked) state.groups.add(node.id);
+                else state.groups.delete(node.id);
+
+                if (node.children) {
+                    node.children.forEach(child => toggleGroupRecursive(child, checked));
                 }
+            };
+
+            const toggleGroup = (node, checked) => {
+                toggleGroupRecursive(node, checked);
+                refreshTree();
                 updateLeadsPreview();
             };
 
