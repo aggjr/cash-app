@@ -1,6 +1,9 @@
 import { SharedTable } from './SharedTable.js';
 import Quill from 'quill';
+import BlotFormatter from 'quill-blot-formatter';
 import 'quill/dist/quill.snow.css';
+
+Quill.register('modules/blotFormatter', BlotFormatter);
 import { showToast } from '../utils/toast.js';
 import { getApiBaseUrl } from '../utils/apiConfig.js';
 
@@ -609,7 +612,10 @@ export const CampanhaWizard = {
                     const quillEmail = new Quill('#editor-email-container', {
                         theme: 'snow',
                         placeholder: 'Escreva o conteúdo do e-mail aqui',
-                        modules: { toolbar: emailToolbar }
+                        modules: {
+                            toolbar: emailToolbar,
+                            blotFormatter: {}
+                        }
                     });
 
                     if (state.message.emailBody) quillEmail.root.innerHTML = state.message.emailBody;
@@ -623,7 +629,10 @@ export const CampanhaWizard = {
                     const quillWhatsapp = new Quill('#editor-whatsapp-container', {
                         theme: 'snow',
                         placeholder: 'Escreva sua mensagem aqui. Use *negrito* para destaque.',
-                        modules: { toolbar: whatsappToolbar }
+                        modules: {
+                            toolbar: whatsappToolbar,
+                            blotFormatter: {}
+                        }
                     });
 
                     if (state.message.whatsappText) quillWhatsapp.root.innerHTML = state.message.whatsappText;
