@@ -72,6 +72,11 @@ export const GruposLeadsManager = (project) => {
         header.innerHTML = `
             <h3 style="margin:0; font-size:1.1rem; color:var(--color-primary);">👥 Grupos de Leads</h3>
             <div style="display:flex; gap:0.5rem;">
+                <button id="btn-edit-group-members" title="Editar Membros do Grupo" disabled style="
+                    background: none; border: 1px solid var(--color-border-light); border-radius: 4px; 
+                    cursor: pointer; padding: 4px 8px; color: var(--color-text-secondary); opacity: 0.5;">
+                    <svg viewBox="0 0 24 24" fill="currentColor" width="16" height="16"><path d="M16 11c1.66 0 2.99-1.34 2.99-3S17.66 5 16 5c-1.66 0-3 1.34-3 3s1.34 3 3 3zm-8 0c1.66 0 2.99-1.34 2.99-3S9.66 5 8 5C6.34 5 5 6.34 5 8s1.34 3 3 3zm0 2c-2.33 0-7 1.17-7 3.5V19h14v-2.5c0-2.33-4.67-3.5-7-3.5zm8 0c-.29 0-.62.02-.97.05 1.16.84 1.97 1.97 1.97 3.45V19h6v-2.5c0-2.33-4.67-3.5-7-3.5z"/></svg>
+                </button>
                 <!-- Botão 'Atualizar' -->
                 <button id="btn-refresh-groups" title="Atualizar Lista" style="
                     background: none; border: 1px solid var(--color-border-light); border-radius: 4px; 
@@ -84,6 +89,7 @@ export const GruposLeadsManager = (project) => {
             </div>
         `;
 
+        header.querySelector('#btn-edit-group-members').onclick = enterEditMode;
         header.querySelector('#btn-refresh-groups').onclick = loadData;
         header.querySelector('#btn-new-root-group').onclick = () => createGrupo(null);
 
@@ -110,6 +116,20 @@ export const GruposLeadsManager = (project) => {
     const selectGroup = (groupId) => {
         selectedGroupId = groupId;
         isEditingGroup = false; // Reset edit state on switch
+
+        // Toggle Edit Button
+        const editBtn = leftPanel.querySelector('#btn-edit-group-members');
+        if (editBtn) {
+            if (groupId && groupId !== 'ALL') {
+                editBtn.disabled = false;
+                editBtn.style.opacity = '1';
+                editBtn.style.color = 'var(--color-primary)';
+            } else {
+                editBtn.disabled = true;
+                editBtn.style.opacity = '0.5';
+                editBtn.style.color = 'var(--color-text-secondary)';
+            }
+        }
 
         if (leadsTable) {
             // Default to Read-Only effectively
@@ -313,14 +333,6 @@ export const GruposLeadsManager = (project) => {
 
         // Actions only for real groups (not 'ALL')
         if (group.id !== 'ALL') {
-            // Edit Members
-            const usersIcon = `<svg viewBox="0 0 24 24" fill="currentColor" width="16" height="16"><path d="M16 11c1.66 0 2.99-1.34 2.99-3S17.66 5 16 5c-1.66 0-3 1.34-3 3s1.34 3 3 3zm-8 0c1.66 0 2.99-1.34 2.99-3S9.66 5 8 5C6.34 5 5 6.34 5 8s1.34 3 3 3zm0 2c-2.33 0-7 1.17-7 3.5V19h14v-2.5c0-2.33-4.67-3.5-7-3.5zm8 0c-.29 0-.62.02-.97.05 1.16.84 1.97 1.97 1.97 3.45V19h6v-2.5c0-2.33-4.67-3.5-7-3.5z"/></svg>`;
-            actionsDiv.appendChild(createActionBtn(usersIcon, 'Editar Membros', '#3b82f6', () => {
-                if (selectedGroupId !== group.id) selectGroup(group.id);
-                // Allow table selection update to propagate
-                setTimeout(() => enterEditMode(), 100);
-            }));
-
             // Edit Group (Name/Desc)
             actionsDiv.appendChild(createActionBtn('✏️', 'Editar Grupo', '#f59e0b', () => updateGrupo(group)));
 
@@ -512,15 +524,11 @@ export const GruposLeadsManager = (project) => {
                 header.querySelector('#btn-cancel-edit').onclick = cancelEditMode;
                 header.querySelector('#btn-save-edit').onclick = saveGroupChanges;
             } else {
-                // View Mode - Show Edit Button
-                const usersIcon = `<svg viewBox="0 0 24 24" fill="currentColor" width="20" height="20" style="display:block;"><path d="M16 11c1.66 0 2.99-1.34 2.99-3S17.66 5 16 5c-1.66 0-3 1.34-3 3s1.34 3 3 3zm-8 0c1.66 0 2.99-1.34 2.99-3S9.66 5 8 5C6.34 5 5 6.34 5 8s1.34 3 3 3zm0 2c-2.33 0-7 1.17-7 3.5V19h14v-2.5c0-2.33-4.67-3.5-7-3.5zm8 0c-.29 0-.62.02-.97.05 1.16.84 1.97 1.97 1.97 3.45V19h6v-2.5c0-2.33-4.67-3.5-7-3.5z"/></svg>`;
-
+                // View Mode - Show Edit Button (REMOVED - MOVED TO LEFT PANEL)
+                // Just Show Title and + Lead
                 header.innerHTML = `
                     <div style="display:flex; align-items:center; gap:8px;">
                         <h3 id="right-panel-title" style="margin:0; font-size:1.1rem; color:var(--color-primary);">${title}</h3>
-                        <button id="btn-edit-group-members" title="Editar Membros do Grupo" style="background:none; border:none; cursor:pointer; color: var(--color-primary);">
-                           ${usersIcon}
-                        </button>
                     </div>
                     <div style="display:flex; gap:0.5rem;">
                         <button id="btn-new-lead" class="btn-primary" title="Novo Lead Completo" style="padding: 4px 12px; font-size: 0.9rem;">
@@ -528,7 +536,6 @@ export const GruposLeadsManager = (project) => {
                         </button>
                     </div>
                  `;
-                header.querySelector('#btn-edit-group-members').onclick = enterEditMode;
                 header.querySelector('#btn-new-lead').onclick = createLead;
             }
         } else {
@@ -747,7 +754,7 @@ export const GruposLeadsManager = (project) => {
         if (toAdd.length === 0 && toRemove.length === 0) {
             isEditingGroup = false;
             leadsTable.updateOptions({ enabled: false });
-            updateRightHeaderTitle();
+            refreshRightHeader();
             return;
         }
 
@@ -787,6 +794,7 @@ export const GruposLeadsManager = (project) => {
 
             // Reload to reflect changes definitively from server
             await loadData();
+            refreshRightHeader(); // Update UI back to View Mode
 
         } catch (error) {
             console.error('Erro ao salvar grupo:', error);
