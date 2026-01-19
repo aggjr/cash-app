@@ -52,6 +52,10 @@ router.put('/leads/:id', leadsController.update);
 router.delete('/leads/:id', leadsController.delete);
 router.post('/leads/bulk-characteristic', leadsController.bulkCharacteristic);
 
+// Grupos do Lead
+router.post('/leads/:id/groups', leadsController.associarGrupo);
+router.delete('/leads/:id/groups/:grupoId', leadsController.desassociarGrupo);
+
 // Associações com campanhas
 router.post('/leads/:id/campanhas', leadsController.associarCampanha);
 router.delete('/leads/:id/campanhas/:campanhaId', leadsController.desassociarCampanha);

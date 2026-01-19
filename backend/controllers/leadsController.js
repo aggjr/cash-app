@@ -294,6 +294,52 @@ exports.delete = async (req, res) => {
     }
 };
 
+// Associar lead a grupo
+exports.associarGrupo = async (req, res) => {
+    try {
+        const { id } = req.params;
+        const { group_id } = req.body;
+
+        if (!group_id) {
+            return res.status(400).json({ error: 'group_id é obrigatório' });
+        }
+
+        // Use IGNORE to handle duplicates silently if needed, or simple INSERT
+        await db.query(
+            'INSERT IGNORE INTO leads_grupos (lead_id, grupo_id) VALUES (?, ?)',
+            [id, group_id]
+        );
+
+        res.status(201).json({ message: 'Lead associado ao grupo com sucesso' });
+    } catch (error) {
+        console.error('Erro ao associar lead a grupo:', error);
+        res.status(500).json({ error: 'Erro ao associar lead a grupo' });
+    }
+};
+
+// Desassociar lead de grupo
+exports.desassociarGrupo = async (req, res) => {
+    try {
+        const { id, grupoId } = req.params;
+
+        const [result] = await db.query(
+            'DELETE FROM leads_grupos WHERE lead_id = ? AND grupo_id = ?',
+            [id, grupoId]
+        );
+
+        if (result.affectedRows === 0) {
+            // Not found is fine for idempotent removal, but consistent API usually returns 404.
+            // However, for bulk ops, 200 is often safer. Let's return 200.
+            return res.json({ message: 'Lead não estava no grupo ou já removido' });
+        }
+
+        res.json({ message: 'Lead desassociado do grupo com sucesso' });
+    } catch (error) {
+        console.error('Erro ao desassociar lead de grupo:', error);
+        res.status(500).json({ error: 'Erro ao desassociar lead de grupo' });
+    }
+};
+
 // Associar lead a campanha
 exports.associarCampanha = async (req, res) => {
     try {
