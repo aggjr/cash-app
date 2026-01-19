@@ -103,42 +103,43 @@ export const CampanhaWizard = {
                 const stepContainer = document.createElement('div');
                 Object.assign(stepContainer.style, { display: 'flex', flexDirection: 'column', height: '100%', padding: '1rem' });
 
-                // Top: Config Form
+                // Top: Config Form (Compact Layout)
                 const formDiv = document.createElement('div');
-                formDiv.style.display = 'grid';
-                formDiv.style.gridTemplateColumns = '1fr 1fr 200px 200px';
-                formDiv.style.gap = '1rem';
-                formDiv.style.marginBottom = '1rem';
-                formDiv.style.padding = '1rem';
-                formDiv.style.backgroundColor = '#f0f9ff';
-                formDiv.style.borderRadius = '8px';
+                Object.assign(formDiv.style, {
+                    display: 'flex',
+                    flexWrap: 'wrap',
+                    alignItems: 'flex-end',
+                    gap: '1rem',
+                    marginBottom: '1rem',
+                    padding: '1rem',
+                    backgroundColor: '#fff',
+                    borderBottom: '1px solid #eee'
+                });
+
                 formDiv.innerHTML = `
-                    <div class="form-group" style="grid-column: 1 / span 2;">
-                        <label>Nome da Campanha *</label>
-                        <input type="text" id="campaign-name" class="form-input" value="${state.config.nome}" placeholder="Ex: Promoção de Natal" />
+                    <div class="form-group" style="flex: 2; min-width: 300px;">
+                        <label style="font-size:0.85rem; color:#666; display:block; margin-bottom:4px;">Nome da Campanha *</label>
+                        <input type="text" id="campaign-name" class="form-input" value="${state.config.nome}" placeholder="Ex: Promoção de Natal" style="width:100%; padding:8px; border:1px solid #ddd; border-radius:6px;" />
                     </div>
-                    <div class="form-group">
-                        <label>Início</label>
-                        <input type="date" id="campaign-start" class="form-input" value="${state.config.dataInicio}" />
+                    <div class="form-group" style="width: 140px;">
+                        <label style="font-size:0.85rem; color:#666; display:block; margin-bottom:4px;">Início</label>
+                        <input type="date" id="campaign-start" class="form-input" value="${state.config.dataInicio}" style="width:100%; padding:8px; border:1px solid #ddd; border-radius:6px;" />
                     </div>
-                    <div class="form-group">
-                        <label>Fim</label>
-                        <input type="date" id="campaign-end" class="form-input" value="${state.config.dataFim}" />
+                    <div class="form-group" style="width: 140px;">
+                        <label style="font-size:0.85rem; color:#666; display:block; margin-bottom:4px;">Fim</label>
+                        <input type="date" id="campaign-end" class="form-input" value="${state.config.dataFim}" style="width:100%; padding:8px; border:1px solid #ddd; border-radius:6px;" />
                     </div>
-                    <div class="form-group" style="grid-column: 1 / span 4; display: flex; gap: 2rem; margin-top: 0.5rem;">
-                         <label style="display:flex; align-items:center; cursor:pointer;">
-                            <input type="checkbox" id="check-use-email" ${state.config.useEmail ? 'checked' : ''} style="margin-right:8px;">
-                            <span>📧 Enviar E-mail</span>
+                    <div class="form-group" style="display: flex; gap: 1.5rem; padding-bottom: 0.5rem; margin-left: auto;">
+                         <label style="display:flex; align-items:center; cursor:pointer; font-size:0.9rem;">
+                            <input type="checkbox" id="check-use-email" ${state.config.useEmail ? 'checked' : ''} style="margin-right:8px; width:16px; height:16px;">
+                            <span>📧 E-mail</span>
                          </label>
-                         <label style="display:flex; align-items:center; cursor:pointer;">
-                            <input type="checkbox" id="check-use-whatsapp" ${state.config.useWhatsapp ? 'checked' : ''} style="margin-right:8px;">
-                            <span>💬 Enviar WhatsApp</span>
+                         <label style="display:flex; align-items:center; cursor:pointer; font-size:0.9rem;">
+                            <input type="checkbox" id="check-use-whatsapp" ${state.config.useWhatsapp ? 'checked' : ''} style="margin-right:8px; width:16px; height:16px;">
+                            <span>💬 WhatsApp</span>
                          </label>
                     </div>
                 `;
-                // Description field removed from top row to save space? Or move it? 
-                // User didn't ask to remove description but asked to add checkboxes.
-                // Let's keep description or adjust layout. I'll put checkboxes in a new row.
 
                 // Split View: Tree + List
                 const splitDiv = document.createElement('div');
@@ -146,8 +147,8 @@ export const CampanhaWizard = {
 
                 // Tree Column
                 const treeCol = document.createElement('div');
-                Object.assign(treeCol.style, { flex: '1', border: '1px solid #ddd', borderRadius: '8px', overflow: 'hidden', display: 'flex', flexDirection: 'column' });
-                treeCol.innerHTML = `<div style="padding:0.5rem; background:#f8f9fa; border-bottom:1px solid #ddd; font-weight:bold;">Grupos (Origem)</div>`;
+                Object.assign(treeCol.style, { width: '350px', border: '1px solid #eee', borderRadius: '8px', overflow: 'hidden', display: 'flex', flexDirection: 'column', backgroundColor: '#fafafa' });
+                treeCol.innerHTML = `<div style="padding:0.75rem; background:#f8f9fa; border-bottom:1px solid #eee; font-weight:600; font-size:0.9rem; color:#444;">Grupos (Origem)</div>`;
 
                 const treeContent = document.createElement('div');
                 Object.assign(treeContent.style, { flex: '1', overflowY: 'auto', padding: '0.5rem' });
@@ -156,11 +157,11 @@ export const CampanhaWizard = {
 
                 // List Column (Preview)
                 const listCol = document.createElement('div');
-                Object.assign(listCol.style, { flex: '1', border: '1px solid #ddd', borderRadius: '8px', overflow: 'hidden', display: 'flex', flexDirection: 'column' });
+                Object.assign(listCol.style, { flex: '1', border: '1px solid #eee', borderRadius: '8px', overflow: 'hidden', display: 'flex', flexDirection: 'column', backgroundColor: 'white' });
                 listCol.innerHTML = `
-                    <div style="padding:0.5rem; background:#f8f9fa; border-bottom:1px solid #ddd; font-weight:bold; display:flex; justify-content:space-between;">
+                    <div style="padding:0.75rem; background:#f8f9fa; border-bottom:1px solid #eee; font-weight:600; font-size:0.9rem; color:#444; display:flex; justify-content:space-between; align-items:center;">
                         <span>Leads Selecionados (Preview)</span>
-                        <span id="wizard-lead-count" style="background:#ddd; padding:2px 8px; borderRadius:12px; font-size:0.8rem;">0 leads</span>
+                        <span id="wizard-lead-count" style="background:#e0e7ff; color:#4338ca; padding:2px 10px; border-radius:12px; font-size:0.75rem; font-weight:bold;">0 leads</span>
                     </div>
                 `;
 
@@ -184,9 +185,7 @@ export const CampanhaWizard = {
                 return stepContainer;
             };
 
-            // ... (loadGroups, buildTree etc remain same)
 
-            // ...
 
             const bindFormEvents = (div) => {
                 div.querySelectorAll('input').forEach(input => {
@@ -312,6 +311,8 @@ export const CampanhaWizard = {
             const renderLeadsTable = (leads) => {
                 const tableContainer = document.getElementById('wizard-leads-table');
                 tableContainer.innerHTML = '';
+                // Enforce compact mode for SharedTable via CSS variable
+                tableContainer.style.setProperty('--row-padding', '4px 8px');
 
                 const columns = [
                     { key: 'nome', label: 'Nome' },
@@ -323,7 +324,7 @@ export const CampanhaWizard = {
                     container: tableContainer,
                     columns: columns,
                     data: leads,
-                    compact: true // Assuming SharedTable supports a compact mode via CSS or logic
+                    compact: true // Logic handled by CSS var above
                 });
             };
 
