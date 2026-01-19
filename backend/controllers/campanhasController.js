@@ -110,10 +110,12 @@ exports.create = async (req, res) => {
 
         res.status(201).json(novaCampanha[0]);
     } catch (error) {
-        await connection.rollback();
-        connection.release();
+        if (connection) {
+            try { await connection.rollback(); } catch (e) { }
+            try { connection.release(); } catch (e) { }
+        }
         console.error('Erro ao criar campanha:', error);
-        res.status(500).json({ error: 'Erro ao criar campanha' });
+        res.status(500).json({ error: 'Erro ao criar campanha: ' + error.message });
     }
 };
 
@@ -153,7 +155,7 @@ exports.update = async (req, res) => {
         res.json(campanhaAtualizada[0]);
     } catch (error) {
         console.error('Erro ao atualizar campanha:', error);
-        res.status(500).json({ error: 'Erro ao atualizar campanha' });
+        res.status(500).json({ error: 'Erro ao atualizar campanha: ' + error.message });
     }
 };
 
