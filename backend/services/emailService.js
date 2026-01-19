@@ -154,7 +154,29 @@ const sendPasswordResetEmail = async (toEmail, toName, resetToken) => {
     }
 };
 
+// Send generic email (for campaigns)
+const sendGenericEmail = async (toEmail, subject, htmlContent) => {
+    const transporter = createTransporter();
+
+    const mailOptions = {
+        from: process.env.EMAIL_FROM || '"CASH App" <noreply@cash.com>',
+        to: toEmail,
+        subject: subject,
+        html: htmlContent
+    };
+
+    try {
+        const info = await transporter.sendMail(mailOptions);
+        console.log('Generic email sent:', info.messageId);
+        return { success: true, messageId: info.messageId };
+    } catch (error) {
+        console.error('Error sending generic email:', error);
+        throw new Error('Failed to send email: ' + error.message);
+    }
+};
+
 module.exports = {
     sendInvitationEmail,
-    sendPasswordResetEmail
+    sendPasswordResetEmail,
+    sendGenericEmail
 };

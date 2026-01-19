@@ -1,5 +1,8 @@
 const db = require('../config/database');
+const emailService = require('../services/emailService');
+const evolutionService = require('../services/evolutionService');
 
+// Listar todas as campanhas
 // Listar todas as campanhas
 exports.getAll = async (req, res) => {
     try {
@@ -61,8 +64,11 @@ exports.getById = async (req, res) => {
 
 // Criar nova campanha
 exports.create = async (req, res) => {
+    const connection = await db.getConnection();
+    await connection.beginTransaction();
+
     try {
-        const { nome, descricao, dataInicio, dataFim, status } = req.body;
+        const { nome, descricao, dataInicio, dataFim, status, leadsIds, message } = req.body;
 
         if (!nome) {
             return res.status(400).json({ error: 'Nome é obrigatório' });
@@ -73,18 +79,39 @@ exports.create = async (req, res) => {
             return res.status(400).json({ error: 'Status inválido' });
         }
 
-        const [result] = await db.query(
-            'INSERT INTO campanhas (nome, descricao, data_inicio, data_fim, status) VALUES (?, ?, ?, ?, ?)',
-            [nome, descricao || null, dataInicio || null, dataFim || null, status || 'planejamento']
+        const emailSubject = message?.emailSubject || null;
+        const emailBody = message?.emailBody || null;
+        const whatsappText = message?.whatsappText || null;
+
+        const [result] = await connection.query(
+            'INSERT INTO campanhas (nome, descricao, data_inicio, data_fim, status, email_subject, email_body, whatsapp_text) VALUES (?, ?, ?, ?, ?, ?, ?, ?)',
+            [nome, descricao || null, dataInicio || null, dataFim || null, status || 'planejamento', emailSubject, emailBody, whatsappText]
         );
 
+        const campanhaId = result.insertId;
+
+        // Associate Leads if provided
+        if (Array.isArray(leadsIds) && leadsIds.length > 0) {
+            const values = leadsIds.map(leadId => [leadId, campanhaId, 'pendente', null]);
+            await connection.query(
+                'INSERT INTO leads_campanhas (lead_id, campanha_id, status, observacoes) VALUES ?',
+                [values]
+            );
+        }
+
+        await connection.commit();
+        connection.release();
+
+        // Fetch created campaign
         const [novaCampanha] = await db.query(
             'SELECT * FROM campanhas WHERE id = ?',
-            [result.insertId]
+            [campanhaId]
         );
 
         res.status(201).json(novaCampanha[0]);
     } catch (error) {
+        await connection.rollback();
+        connection.release();
         console.error('Erro ao criar campanha:', error);
         res.status(500).json({ error: 'Erro ao criar campanha' });
     }
@@ -94,7 +121,7 @@ exports.create = async (req, res) => {
 exports.update = async (req, res) => {
     try {
         const { id } = req.params;
-        const { nome, descricao, dataInicio, dataFim, status } = req.body;
+        const { nome, descricao, dataInicio, dataFim, status, message } = req.body;
 
         if (!nome) {
             return res.status(400).json({ error: 'Nome é obrigatório' });
@@ -105,9 +132,13 @@ exports.update = async (req, res) => {
             return res.status(400).json({ error: 'Status inválido' });
         }
 
+        const emailSubject = message?.emailSubject || null;
+        const emailBody = message?.emailBody || null;
+        const whatsappText = message?.whatsappText || null;
+
         const [result] = await db.query(
-            'UPDATE campanhas SET nome = ?, descricao = ?, data_inicio = ?, data_fim = ?, status = ? WHERE id = ?',
-            [nome, descricao || null, dataInicio || null, dataFim || null, status || 'planejamento', id]
+            'UPDATE campanhas SET nome = ?, descricao = ?, data_inicio = ?, data_fim = ?, status = ?, email_subject = ?, email_body = ?, whatsapp_text = ? WHERE id = ?',
+            [nome, descricao || null, dataInicio || null, dataFim || null, status || 'planejamento', emailSubject, emailBody, whatsappText, id]
         );
 
         if (result.affectedRows === 0) {
@@ -275,5 +306,85 @@ exports.getEstatisticas = async (req, res) => {
     } catch (error) {
         console.error('Erro ao buscar estatísticas:', error);
         res.status(500).json({ error: 'Erro ao buscar estatísticas' });
+    }
+};
+
+// Enviar campanha para um único lead
+exports.sendSingle = async (req, res) => {
+    try {
+        const { id } = req.params; // Campaign IDs
+        const { leadId, channel } = req.body;
+
+        // 1. Fetch Campaign and Message
+        const [campanhas] = await db.query('SELECT * FROM campanhas WHERE id = ?', [id]);
+        if (campanhas.length === 0) return res.status(404).json({ error: 'Campanha não encontrada' });
+        const campanha = campanhas[0];
+
+        // 2. Fetch Lead
+        const [leads] = await db.query('SELECT * FROM leads WHERE id = ?', [leadId]);
+        if (leads.length === 0) return res.status(404).json({ error: 'Lead não encontrado' });
+        const lead = leads[0];
+
+        // 3. Process Dispatch
+        const replaceVariables = (text) => {
+            if (!text) return '';
+            return text
+                .replace(/{{nome}}/g, lead.nome)
+                .replace(/{{empresa}}/g, lead.empresa || '')
+                .replace(/{{email}}/g, lead.email || '')
+                .replace(/{{telefone}}/g, lead.telefone || '');
+        };
+
+        let success = false;
+        let responseData = null;
+
+        if (channel === 'email') {
+            if (!campanha.email_subject || !campanha.email_body) {
+                return res.status(400).json({ error: 'Conteúdo de e-mail não configurado' });
+            }
+            if (!lead.email) {
+                return res.status(400).json({ error: 'Lead sem e-mail cadastrado' });
+            }
+
+            const subject = replaceVariables(campanha.email_subject);
+            const html = replaceVariables(campanha.email_body); // Assuming body is HTML or text
+
+            // Simple text-to-html conversion if needed, or assume text/html
+            // For now assuming the editor saves HTML or raw text displayed in HTML
+            // Replacing newlines with <br> if it looks like plain text
+            const finalHtml = html.includes('<') ? html : html.replace(/\n/g, '<br>');
+
+            await emailService.sendGenericEmail(lead.email, subject, finalHtml);
+            success = true;
+        } else if (channel === 'whatsapp') {
+            if (!campanha.whatsapp_text) {
+                return res.status(400).json({ error: 'Mensagem de WhatsApp não configurada' });
+            }
+            if (!lead.telefone) {
+                return res.status(400).json({ error: 'Lead sem telefone cadastrado' });
+            }
+
+            const text = replaceVariables(campanha.whatsapp_text);
+            await evolutionService.sendMessage(lead.telefone, text);
+            success = true;
+        } else {
+            return res.status(400).json({ error: 'Canal inválido' });
+        }
+
+        // 4. Update Status in leads_campanhas
+        // Only if success, otherwise client likely handles error or we can log it here
+        if (success) {
+            await db.query(
+                `INSERT INTO leads_campanhas (lead_id, campanha_id, status, data_contato) 
+                 VALUES (?, ?, 'contatado', NOW()) 
+                 ON DUPLICATE KEY UPDATE status = 'contatado', data_contato = NOW()`,
+                [leadId, id]
+            );
+        }
+
+        res.json({ success: true, channel });
+    } catch (error) {
+        console.error('Erro no disparo:', error);
+        res.status(500).json({ error: 'Erro no disparo: ' + error.message });
     }
 };

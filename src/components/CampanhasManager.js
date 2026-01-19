@@ -3,6 +3,8 @@ import { showToast } from '../utils/toast.js';
 import { getApiBaseUrl } from '../utils/apiConfig.js';
 import { CampanhaModal } from './CampanhaModal.js';
 
+import { CampanhaWizard } from './CampanhaWizard.js';
+
 export const CampanhasManager = (project) => {
     const container = document.createElement('div');
     container.className = 'glass-panel';
@@ -187,9 +189,13 @@ export const CampanhasManager = (project) => {
     };
 
     const createCampanha = async () => {
-        await CampanhaModal.show({
-            campanha: null,
+        // Use Wizard for creation
+        await CampanhaWizard.show({
             onSave: async (data) => {
+                // Determine API endpoint and payload
+                // Wizard sends { ...config, leadsIds, message }
+                // Controller expects this flat structure (leadsIds inside body) which Wizard provides
+
                 const response = await fetch(`${API_BASE_URL}/marketing/campanhas`, {
                     method: 'POST',
                     headers: getHeaders(),
@@ -199,6 +205,7 @@ export const CampanhasManager = (project) => {
                 if (response.ok) {
                     showToast('Campanha criada com sucesso!', 'success');
                     loadCampanhas();
+                    return await response.json(); // Return created campaign data
                 } else {
                     const error = await response.json();
                     throw new Error(error.error || 'Erro ao criar campanha');

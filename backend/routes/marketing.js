@@ -79,6 +79,10 @@ router.delete('/campanhas/:id/grupos/:grupoId', campanhasController.desassociarG
 router.get('/campanhas/:id/leads', campanhasController.getLeads);
 
 // Estatísticas
+// Estatísticas
 router.get('/campanhas/:id/estatisticas', campanhasController.getEstatisticas);
+
+// Disparar (Envio individual)
+router.post('/campanhas/:id/disparar', campanhasController.sendSingle);
 
 module.exports = router;
