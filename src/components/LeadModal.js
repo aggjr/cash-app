@@ -694,22 +694,22 @@ export const LeadModal = {
                     const isChecked = selectedCharacteristics.has(c.id);
                     const isActive = activeCharId === c.id;
 
-                    const label = document.createElement('label');
-                    label.className = 'zebra-row';
-                    label.dataset.itemName = c.nome.toLowerCase();
-                    label.style.cssText = `display: flex; align-items: center; gap: 0.75rem; padding: 0.25rem 0.5rem; cursor: pointer; background-color: ${bgColor}; border-bottom: 1px solid #E5E7EB; transition: background-color 0.15s; margin: 0;`;
+                    const rowDiv = document.createElement('div');
+                    rowDiv.className = 'zebra-row';
+                    rowDiv.dataset.itemName = c.nome.toLowerCase();
+                    rowDiv.style.cssText = `display: flex; align-items: center; gap: 0.75rem; padding: 0.25rem 0.5rem; cursor: pointer; background-color: ${bgColor}; border-bottom: 1px solid #E5E7EB; transition: background-color 0.15s; margin: 0;`;
 
                     if (isActive) {
-                        label.style.backgroundColor = '#DBEAFE';
-                        label.style.fontWeight = '500';
+                        rowDiv.style.backgroundColor = '#DBEAFE';
+                        rowDiv.style.fontWeight = '500';
                     }
 
-                    label.onmouseenter = () => label.style.backgroundColor = '#EDD8BB';
-                    label.onmouseleave = () => {
+                    rowDiv.onmouseenter = () => rowDiv.style.backgroundColor = '#EDD8BB';
+                    rowDiv.onmouseleave = () => {
                         if (isActive) {
-                            label.style.backgroundColor = '#DBEAFE';
+                            rowDiv.style.backgroundColor = '#DBEAFE';
                         } else {
-                            label.style.backgroundColor = bgColor;
+                            rowDiv.style.backgroundColor = bgColor;
                         }
                     };
 
@@ -741,7 +741,7 @@ export const LeadModal = {
                     span.textContent = c.nome;
                     span.style.cssText = 'font-size: 0.95rem; color: var(--color-text-primary); flex: 1;';
 
-                    label.onclick = (e) => {
+                    rowDiv.onclick = (e) => {
                         if (e.target === checkbox) return; // Let checkbox handle its own click
 
                         const isAlreadyActive = activeCharId === c.id;
@@ -776,9 +776,9 @@ export const LeadModal = {
                         renderCharacteristics(filter);
                     };
 
-                    label.appendChild(checkbox);
-                    label.appendChild(span);
-                    caracListEl.appendChild(label);
+                    rowDiv.appendChild(checkbox);
+                    rowDiv.appendChild(span);
+                    caracListEl.appendChild(rowDiv);
                 });
             };
 
