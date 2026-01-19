@@ -863,7 +863,24 @@ export const CampanhaWizard = {
             btnNext.textContent = 'Próximo';
             btnNext.onclick = () => {
                 if (currentStep === 1) {
-                    if (!state.config.nome) { showToast('Nome da campanha obrigatório', 'warning'); return; }
+                    let hasError = false;
+                    const requiredIds = ['campaign-name', 'campaign-start', 'campaign-end'];
+
+                    requiredIds.forEach(id => {
+                        const el = document.getElementById(id);
+                        if (el && !el.value.trim()) {
+                            el.style.borderColor = '#ef4444';
+                            el.style.backgroundColor = '#fef2f2';
+                            hasError = true;
+                        }
+                    });
+
+                    if (hasError) {
+                        showToast('Preencha os campos obrigatórios em vermelho.', 'warning');
+                        return;
+                    }
+
+                    if (!state.config.nome) { showToast('Nome da campanha obrigatório', 'warning'); return; } // Backup check
                     if (state.groups.size === 0) { showToast('Selecione ao menos um grupo', 'warning'); return; }
                     if (!state.config.useEmail && !state.config.useWhatsapp) { showToast('Selecione ao menos um canal de envio', 'warning'); return; }
                 }
