@@ -488,7 +488,7 @@ export const CampanhaWizard = {
                     </div>
                     <div class="form-group">
                         <label>Corpo do E-mail</label>
-                        <div id="editor-email-container" style="height:320px; background:white;"></div>
+                        <div id="editor-email-container" style="min-height:320px; background:white;"></div>
                         <div style="font-size:0.8rem; color:#666; margin-top:0.5rem;">Variáveis disponíveis: {{nome}}, {{empresa}}.</div>
                     </div>
                 `;
@@ -499,7 +499,7 @@ export const CampanhaWizard = {
                 whatsappEditor.innerHTML = `
                     <div class="form-group">
                         <label>Mensagem WhatsApp</label>
-                         <div id="editor-whatsapp-container" style="height:320px; background:white;"></div>
+                         <div id="editor-whatsapp-container" style="min-height:320px; background:white;"></div>
                         <div style="font-size:0.8rem; color:#666; margin-top:0.5rem;">Variáveis disponíveis: {{nome}}, {{empresa}}. Use *negrito* para texto.</div>
                     </div>
                 `;
@@ -608,7 +608,7 @@ export const CampanhaWizard = {
                     // Init Email
                     const quillEmail = new Quill('#editor-email-container', {
                         theme: 'snow',
-                        placeholder: 'Digite o conteúdo do e-mail...',
+                        placeholder: 'Escreva o conteúdo do e-mail aqui',
                         modules: { toolbar: emailToolbar }
                     });
 
@@ -622,7 +622,7 @@ export const CampanhaWizard = {
                     // Init WhatsApp
                     const quillWhatsapp = new Quill('#editor-whatsapp-container', {
                         theme: 'snow',
-                        placeholder: 'Digite a mensagem... Use *negrito* para destaque.',
+                        placeholder: 'Escreva sua mensagem aqui. Use *negrito* para destaque.',
                         modules: { toolbar: whatsappToolbar }
                     });
 
