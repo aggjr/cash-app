@@ -571,21 +571,10 @@ export const LeadModal = {
                         const isCurrentlySelected = selectedCharValues[charId] == val.id;
 
                         if (isCurrentlySelected) {
-                            // Deselect
-                            selectedCharValues[charId] = null;
-                            console.log(`[LeadModal] Unchecked Value: Char ${charId} -> Val ${val.id}`);
-
-                            // If no value selected, uncheck characteristic
-                            const charObj = caracteristicas.find(c => c.id == charId);
-                            if (charObj && selectedCharacteristics.has(charObj.id)) {
-                                console.log('[LeadModal] Auto-unchecking characteristic:', charObj.nome);
-                                selectedCharacteristics.delete(charObj.id);
-                                if (caracSearchEl) {
-                                    renderCharacteristics(caracSearchEl.value || '');
-                                } else {
-                                    renderCharacteristics();
-                                }
-                            }
+                            // Radio behavior: Clicking selected does NOT deselect.
+                            // To deselect, user must uncheck the Characteristic.
+                            console.log(`[LeadModal] Re-clicked selected value (Radio): Char ${charId} -> Val ${val.id} - No Change`);
+                            return;
                         } else {
                             // Select (Exclusive)
                             activeValueId = val.id;
@@ -610,16 +599,17 @@ export const LeadModal = {
                         renderValues(charId, values, charName);
                     };
 
-                    const checkbox = document.createElement('input');
-                    checkbox.type = 'checkbox';
-                    // radio.name removed for checkbox
-                    checkbox.value = val.id;
-                    checkbox.checked = isChecked;
-                    checkbox.style.cssText = 'accent-color: var(--color-primary); width: 16px; height: 16px; cursor: pointer; margin: 0;';
+                    const radio = document.createElement('input');
+                    radio.type = 'radio';
+                    radio.name = `char_${charId}_values`; // Group by characteristic
+                    radio.value = val.id;
+                    radio.checked = isChecked;
+                    radio.style.cssText = 'accent-color: var(--color-primary); width: 16px; height: 16px; cursor: pointer; margin: 0;';
 
-                    checkbox.onclick = (e) => {
+                    radio.onclick = (e) => {
                         e.stopPropagation();
-                        label.click();
+                        // Clicking radio directly should trigger same logic as row
+                        if (!isChecked) label.click();
                     };
 
 
@@ -645,10 +635,16 @@ export const LeadModal = {
                     console.log(`[LeadModal] Processing values for charId ${charId}:`, values);
                     console.log(`[LeadModal] Current selectedCharValues[${charId}]:`, selectedCharValues[charId]);
 
-                    if (autoSelectFirst && values && values.length > 0) {
-                        // User requested: "Se marcar caract, auto-marcar PRIMEIRO valor"
-                        selectedCharValues[charId] = values[0].id;
-                        console.log(`[LeadModal] Auto-selected first value: ${values[0].valor} (id: ${values[0].id}) for ${charName}`);
+                    // Strict Enforcement: If characteristic is checked AND no value selected (or autoSelectFirst is true), select first.
+                    // We check if value is 'null' or 'undefined' specifically.
+                    if (values && values.length > 0) {
+                        const currentSel = selectedCharValues[charId];
+
+                        // If no valid value is selected OR we forced auto-select
+                        if (autoSelectFirst || currentSel === null || currentSel === undefined) {
+                            selectedCharValues[charId] = values[0].id;
+                            console.log(`[LeadModal] Auto-selected FIRST value (Enforcement): ${values[0].valor} (id: ${values[0].id}) for ${charName}`);
+                        }
                     }
                     renderValues(charId, values, charName);
                 };
