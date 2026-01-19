@@ -581,6 +581,13 @@ export const CampanhaWizard = {
                     btn.onclick = () => activateTab(btn.dataset.tab);
                 });
 
+                // Auto-select tab
+                if (state.config.useEmail) {
+                    activateTab('email');
+                } else if (state.config.useWhatsapp) {
+                    activateTab('whatsapp');
+                }
+
                 // Input Events
                 const inputs = stepContainer.querySelectorAll('input, textarea');
                 inputs.forEach(input => {

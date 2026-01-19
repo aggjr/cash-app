@@ -5,9 +5,6 @@ async function migrate() {
         console.log('Adding message fields to campanhas table...');
         const connection = await db.getConnection();
 
-        // Add columns if they don't exist
-        // Using "IF NOT EXISTS" via SHOW COLUMNS check is safer or just try/catch
-
         const queries = [
             "ALTER TABLE campanhas ADD COLUMN email_subject VARCHAR(255) NULL",
             "ALTER TABLE campanhas ADD COLUMN email_body TEXT NULL",
@@ -20,20 +17,23 @@ async function migrate() {
                 console.log('Executed:', query);
             } catch (err) {
                 if (err.code === 'ER_DUP_FIELDNAME') {
-                    console.log('Column already exists, skipping.');
+                    // console.log('Column already exists, skipping.');
                 } else {
-                    throw err;
+                    console.error('Error executing query:', query, err.message);
                 }
             }
         }
 
         connection.release();
         console.log('Migration completed.');
-        process.exit(0);
     } catch (error) {
         console.error('Migration failed:', error);
-        process.exit(1);
+        // Do not exit process, just log error
     }
 }
 
-migrate();
+module.exports = migrate;
+
+if (require.main === module) {
+    migrate().then(() => process.exit(0)).catch(() => process.exit(1));
+}

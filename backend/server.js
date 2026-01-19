@@ -185,6 +185,7 @@ loadErrorCatalog()
     .then(() => require('./migrations/update_leads_multirelations')()) // NEW: Multi-groups and characteristics support
     .then(() => require('./migrations/create_caracteristica_values')()) // NEW: Characteristic values support
     .then(() => require('./migrations/update_leads_chars_values')()) // NEW: Lead characteristic selected values
+    .then(() => require('./migrate_add_campaign_messages')()) // NEW: Campaign Message columns
     .then(() => startServer())
 
     .catch(err => {
