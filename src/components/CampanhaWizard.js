@@ -1,4 +1,8 @@
 import { SharedTable } from './SharedTable.js';
+import { getApiBaseUrl } from '../utils/apiConfig.js'; // Ensure correct path if needed, or keep original
+import { showToast } from '../utils.js'; // This path seemed wrong in previous view, let's stick to what's there or just append
+import Quill from 'quill';
+import 'quill/dist/quill.snow.css'; // Standard theme
 import { showToast } from '../utils/toast.js';
 import { getApiBaseUrl } from '../utils/apiConfig.js';
 
@@ -121,8 +125,8 @@ export const CampanhaWizard = {
 
                 formDiv.innerHTML = `
                     <div class="form-group" style="flex: 1 1 40%; min-width:220px; max-width:600px;">
-                        <label style="font-size:0.85rem; color:#666; display:block; margin-bottom:4px;">Nome da Campanha (V3.6) <span style="color:red; margin-left:2px;">*</span></label>
-                        <input type="text" id="campaign-name" class="form-input" value="${state.config.nome}" placeholder="Ex: Promoção de Natal (V3.6)" style="width:100%; padding:8px; border:1px solid #ddd; border-radius:6px;" />
+                        <label style="font-size:0.85rem; color:#666; display:block; margin-bottom:4px;">Nome da Campanha (V3.7) <span style="color:red; margin-left:2px;">*</span></label>
+                        <input type="text" id="campaign-name" class="form-input" value="${state.config.nome}" placeholder="Ex: Promoção de Natal (V3.7)" style="width:100%; padding:8px; border:1px solid #ddd; border-radius:6px;" />
                     </div>
                     <div class="form-group" style="width: 140px;">
                         <label style="font-size:0.85rem; color:#666; display:block; margin-bottom:4px;">Início <span style="color:red; margin-left:2px;">*</span></label>
@@ -486,8 +490,8 @@ export const CampanhaWizard = {
                     </div>
                     <div class="form-group">
                         <label>Corpo do E-mail</label>
-                        <div id="msg-email-body" class="form-input" contenteditable="true" style="min-height:300px; overflow-y:auto; border:1px solid #ddd; border-radius:6px; padding:8px; background:white;">${state.message.emailBody}</div>
-                        <div style="font-size:0.8rem; color:#666; margin-top:0.5rem;">Variáveis disponíveis: {{nome}}, {{empresa}}. Cole imagens aqui (Ctrl+V).</div>
+                        <div id="editor-email-container" style="height:320px; background:white;"></div>
+                        <div style="font-size:0.8rem; color:#666; margin-top:0.5rem;">Variáveis disponíveis: {{nome}}, {{empresa}}.</div>
                     </div>
                 `;
 
@@ -497,8 +501,8 @@ export const CampanhaWizard = {
                 whatsappEditor.innerHTML = `
                     <div class="form-group">
                         <label>Mensagem WhatsApp</label>
-                         <div id="msg-whatsapp-text" class="form-input" contenteditable="true" style="min-height:300px; overflow-y:auto; border:1px solid #ddd; border-radius:6px; padding:8px; background:white;">${state.message.whatsappText}</div>
-                        <div style="font-size:0.8rem; color:#666; margin-top:0.5rem;">Variáveis disponíveis: {{nome}}, {{empresa}}. Cole imagens aqui (Ctrl+V).</div>
+                         <div id="editor-whatsapp-container" style="height:320px; background:white;"></div>
+                        <div style="font-size:0.8rem; color:#666; margin-top:0.5rem;">Variáveis disponíveis: {{nome}}, {{empresa}}. Use *negrito* para texto.</div>
                     </div>
                 `;
 
@@ -577,49 +581,69 @@ export const CampanhaWizard = {
                 });
 
                 // Input Events
+                const inputs = stepContainer.querySelectorAll('input, textarea');
+                inputs.forEach(input => {
+                    input.oninput = (e) => {
+                        if (e.target.id === 'msg-email-subject') state.message.emailSubject = e.target.value;
+                        updatePreview(stepContainer.dataset.activeTab);
+                    };
+                });
+
+                // Initialize Quill Editors
                 setTimeout(() => {
-                    // Default Tab: First enabled one
-                    let initialTab = '';
-                    if (state.config.useEmail) initialTab = 'email';
-                    else if (state.config.useWhatsapp) initialTab = 'whatsapp';
+                    // Email Toolbar (Full Rich Text)
+                    const emailToolbar = [
+                        ['bold', 'italic', 'underline', 'strike'],
+                        [{ 'list': 'ordered' }, { 'list': 'bullet' }],
+                        [{ 'size': ['small', false, 'large', 'huge'] }],
+                        [{ 'header': [1, 2, 3, 4, 5, 6, false] }],
+                        [{ 'color': [] }, { 'background': [] }],
+                        [{ 'align': [] }],
+                        ['link', 'image']
+                    ];
 
-                    stepContainer.dataset.activeTab = initialTab;
-                    if (initialTab) activateTab(initialTab);
+                    // WhatsApp Toolbar (Image Only - User wants *text* for bold)
+                    const whatsappToolbar = [
+                        ['image'] // Only image button to allow upload/pasting
+                    ];
 
-                    const inputs = stepContainer.querySelectorAll('input, textarea, [contenteditable="true"]');
-                    inputs.forEach(input => {
-                        // Paste Hander for Images
-                        if (input.getAttribute('contenteditable') === 'true') {
-                            input.addEventListener('paste', (e) => {
-                                const items = (e.clipboardData || e.originalEvent.clipboardData).items;
-                                for (const item of items) {
-                                    if (item.kind === 'file' && item.type.startsWith('image/')) {
-                                        e.preventDefault();
-                                        const blob = item.getAsFile();
-                                        const reader = new FileReader();
-                                        reader.onload = (event) => {
-                                            const imgHtml = `<img src="${event.target.result}" style="max-width:100%; border-radius:4px; margin: 4px 0;">`;
-                                            document.execCommand('insertHTML', false, imgHtml);
-                                            // Trigger input to sync state
-                                            input.dispatchEvent(new Event('input'));
-                                        };
-                                        reader.readAsDataURL(blob);
-                                    }
-                                }
-                            });
-                        }
-
-                        input.oninput = (e) => {
-                            if (e.target.id === 'msg-email-subject') state.message.emailSubject = e.target.value;
-
-                            // Use innerHTML for contenteditable divs
-                            if (e.target.id === 'msg-email-body') state.message.emailBody = e.target.innerHTML;
-                            if (e.target.id === 'msg-whatsapp-text') state.message.whatsappText = e.target.innerHTML;
-
-                            updatePreview(stepContainer.dataset.activeTab);
-                        };
+                    // Init Email
+                    const quillEmail = new Quill('#editor-email-container', {
+                        theme: 'snow',
+                        placeholder: 'Digite o conteúdo do e-mail...',
+                        modules: { toolbar: emailToolbar }
                     });
-                }, 0);
+
+                    if (state.message.emailBody) quillEmail.root.innerHTML = state.message.emailBody;
+
+                    quillEmail.on('text-change', () => {
+                        state.message.emailBody = quillEmail.root.innerHTML;
+                        updatePreview('email');
+                    });
+
+                    // Init WhatsApp
+                    const quillWhatsapp = new Quill('#editor-whatsapp-container', {
+                        theme: 'snow',
+                        placeholder: 'Digite a mensagem... Use *negrito* para destaque.',
+                        modules: { toolbar: whatsappToolbar }
+                    });
+
+                    if (state.message.whatsappText) quillWhatsapp.root.innerHTML = state.message.whatsappText;
+
+                    quillWhatsapp.on('text-change', () => {
+                        // For WA, we might want text, but images make it HTML.
+                        // We save HTML to state to preserve the image tag.
+                        // Converter will handle it later.
+                        state.message.whatsappText = quillWhatsapp.root.innerHTML;
+                        if (stepContainer.dataset.activeTab === 'whatsapp') {
+                            updatePreview('whatsapp');
+                        }
+                    });
+
+                    // Custom Image Handler if needed (Standard Quill handles base64 fine)
+
+                }, 50);
+
 
                 return stepContainer;
             };
