@@ -384,6 +384,14 @@ export const ParametrosGeraisManager = (project) => {
                     >
                         ⚙️ Sistema
                     </button>
+                    <button 
+                        id="tab-manutencao" 
+                        class="modern-tab"
+                        role="tab"
+                        aria-selected="false"
+                    >
+                        🔧 Manutenção
+                    </button>
                 </div>
             </div>
 
@@ -515,6 +523,45 @@ export const ParametrosGeraisManager = (project) => {
                 </div>
             </div>
 
+            <!-- Tab Content: Manutenção -->
+            <div id="content-manutencao" class="modern-tab-panel" role="tabpanel" style="display: none;">
+                <h2 style="margin-bottom: 1.5rem;">🔧 Manutenção do Sistema</h2>
+                
+                <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); gap: 1.5rem;">
+                    
+                    <!-- Card: Database Fix -->
+                    <div style="background: var(--color-surface); padding: 1.5rem; border-radius: 12px; border: 1px solid var(--color-border-light);">
+                        <h3 style="margin-bottom: 1rem; color: var(--color-text);">🗄️ Banco de Dados</h3>
+                        <p style="color: var(--color-text-muted); margin-bottom: 1.5rem; line-height: 1.5;">
+                            Se estiver enfrentando erro 500 ou problemas com Campanhas/Marketing, execute esta correção para garantir que todas as tabelas e colunas existam.
+                        </p>
+                        <button 
+                            id="btn-fix-db-marketing"
+                            style="
+                                width: 100%;
+                                padding: 0.75rem;
+                                background: #4F46E5;
+                                color: white;
+                                border: none;
+                                border-radius: 8px;
+                                font-weight: 600;
+                                cursor: pointer;
+                                display: flex;
+                                align-items: center;
+                                justify-content: center;
+                                gap: 0.5rem;
+                                transition: background 0.2s;
+                            "
+                            onmouseover="this.style.background='#4338CA'"
+                            onmouseout="this.style.background='#4F46E5'"
+                        >
+                            <span>🛠️ Corrigir Banco de Dados (Campanhas)</span>
+                        </button>
+                    </div>
+
+                </div>
+            </div>
+
             <!-- Tab Content: IVA -->
 
 
@@ -611,7 +658,46 @@ export const ParametrosGeraisManager = (project) => {
 
         // Event listener para botão de liberação
         const unlockBtn = container.querySelector('#btn-activate-unlock');
-        unlockBtn.addEventListener('click', activateUnlock);
+        if (unlockBtn) unlockBtn.addEventListener('click', activateUnlock);
+
+        // Event listener para botão de fix DB
+        const fixDbBtn = container.querySelector('#btn-fix-db-marketing');
+        if (fixDbBtn) {
+            fixDbBtn.addEventListener('click', async () => {
+                const btn = fixDbBtn;
+                const originalText = btn.innerHTML;
+
+                try {
+                    btn.disabled = true;
+                    btn.innerHTML = '<span>⏳ Executando correção... aguarde.</span>';
+                    btn.style.opacity = '0.7';
+
+                    showToast('Iniciando correção do banco de dados...', 'info');
+
+                    const response = await fetch(`${API_BASE_URL}/migration/run-marketing-migration`, {
+                        headers: getHeaders()
+                    });
+
+                    const result = await response.json();
+
+                    if (response.ok) {
+                        showToast('✅ Banco de dados corrigido com sucesso!', 'success');
+                        Dialogs.alert('Banco de dados corrigido!\n\nTente enviar a campanha novamente.', 'Sucesso');
+                    } else {
+                        throw new Error(result.error || result.details || 'Erro desconhecido');
+                    }
+
+                } catch (error) {
+                    console.error('Fix DB Error:', error);
+                    showToast(`Erro: ${error.message}`, 'error');
+                    Dialogs.alert(`Falha na correção: ${error.message}`, 'Erro');
+                } finally {
+                    btn.disabled = false;
+                    btn.innerHTML = originalText;
+                    btn.style.opacity = '1';
+                }
+            });
+        }
     };
 
     loadSettings();
