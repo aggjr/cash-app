@@ -227,15 +227,21 @@ export const SaidaManager = (project) => {
                     }
                     // Numeric IN list (quick filter - exact match)
                     else if (filter.numIn && filter.numIn.length > 0) {
-                        if (filter.numIn.length === 1) {
-                            // Single value - exact match using min/max
-                            params.append('minValue', filter.numIn[0]);
-                            params.append('maxValue', filter.numIn[0]);
-                        } else {
-                            // Multiple values - use range (min to max)
-                            const values = filter.numIn.map(v => parseFloat(v));
-                            params.append('minValue', Math.min(...values));
-                            params.append('maxValue', Math.max(...values));
+                        const hasEmpty = filter.numIn.includes('__EMPTY__');
+                        const validValues = filter.numIn.filter(v => v !== '__EMPTY__').map(v => parseFloat(v));
+
+                        if (hasEmpty) params.append('includeEmptyValor', 'true');
+
+                        if (validValues.length > 0) {
+                            if (validValues.length === 1) {
+                                // Single value - exact match using min/max
+                                params.append('minValue', validValues[0]);
+                                params.append('maxValue', validValues[0]);
+                            } else {
+                                // Multiple values - use range (min to max)
+                                params.append('minValue', Math.min(...validValues));
+                                params.append('maxValue', Math.max(...validValues));
+                            }
                         }
                     }
                     // Legacy min/max format

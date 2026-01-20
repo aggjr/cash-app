@@ -49,10 +49,23 @@ exports.listSaidas = async (req, res, next) => {
 
         const addDateListFilter = (field, listParam) => {
             if (req.query[listParam]) {
-                const dates = Array.isArray(req.query[listParam]) ? req.query[listParam] : [req.query[listParam]];
+                let dates = Array.isArray(req.query[listParam]) ? req.query[listParam] : [req.query[listParam]];
+                const hasEmpty = dates.includes('__EMPTY__');
+
+                if (hasEmpty) {
+                    dates = dates.filter(d => d !== '__EMPTY__');
+                }
+
                 if (dates.length > 0) {
-                    whereClauses.push(`DATE(s.${field}) IN (?)`);
-                    params.push(dates);
+                    if (hasEmpty) {
+                        whereClauses.push(`(DATE(s.${field}) IN (?) OR s.${field} IS NULL OR s.${field} = '0000-00-00' OR s.${field} = '' OR DATE(s.${field}) IS NULL)`);
+                        params.push(dates);
+                    } else {
+                        whereClauses.push(`DATE(s.${field}) IN (?)`);
+                        params.push(dates);
+                    }
+                } else if (hasEmpty) {
+                    whereClauses.push(`(s.${field} IS NULL OR s.${field} = '0000-00-00' OR s.${field} = '' OR DATE(s.${field}) IS NULL)`);
                 }
             }
         };
@@ -69,13 +82,33 @@ exports.listSaidas = async (req, res, next) => {
         addDateFilter('data_prevista_atraso', 'data_prevista_atrasoStart', 'data_prevista_atrasoEnd');
         addDateListFilter('data_prevista_atraso', 'data_prevista_atrasoList');
 
+        const includeEmptyValor = req.query.includeEmptyValor === 'true';
+        let valorConditions = [];
+        let valorParams = [];
+
         if (minValue) {
-            whereClauses.push('s.valor >= ?');
-            params.push(minValue);
+            valorConditions.push('s.valor >= ?');
+            valorParams.push(minValue);
         }
         if (maxValue) {
-            whereClauses.push('s.valor <= ?');
-            params.push(maxValue);
+            valorConditions.push('s.valor <= ?');
+            valorParams.push(maxValue);
+        }
+
+        if (valorConditions.length > 0) {
+            const rangeCondition = `(${valorConditions.join(' AND ')})`;
+            if (includeEmptyValor) {
+                // Range OR Empty
+                whereClauses.push(`(${rangeCondition} OR s.valor IS NULL)`);
+                params.push(...valorParams);
+            } else {
+                // Range Only
+                whereClauses.push(rangeCondition);
+                params.push(...valorParams);
+            }
+        } else if (includeEmptyValor) {
+            // Only Empty
+            whereClauses.push('s.valor IS NULL');
         }
         if (search) {
             whereClauses.push('(s.descricao LIKE ? OR emp.name LIKE ? OR c.name LIKE ?)');

@@ -68,14 +68,15 @@ exports.listIncomes = async (req, res, next) => {
 
                 if (dates.length > 0) {
                     if (hasEmpty) {
-                        whereClauses.push(`(DATE(e.${field}) IN (?) OR e.${field} IS NULL)`);
+                        // Include NULL, 0000-00-00, empty string, and invalid dates (DATE() returns NULL)
+                        whereClauses.push(`(DATE(e.${field}) IN (?) OR e.${field} IS NULL OR e.${field} = '0000-00-00' OR e.${field} = '' OR DATE(e.${field}) IS NULL)`);
                         params.push(dates);
                     } else {
                         whereClauses.push(`DATE(e.${field}) IN (?)`);
                         params.push(dates);
                     }
                 } else if (hasEmpty) {
-                    whereClauses.push(`e.${field} IS NULL`);
+                    whereClauses.push(`(e.${field} IS NULL OR e.${field} = '0000-00-00' OR e.${field} = '' OR DATE(e.${field}) IS NULL)`);
                 }
             }
         };
@@ -92,13 +93,33 @@ exports.listIncomes = async (req, res, next) => {
         addDateFilter('data_atraso', 'data_atrasoStart', 'data_atrasoEnd');
         addDateListFilter('data_atraso', 'data_atrasoList');
 
+        const includeEmptyValor = req.query.includeEmptyValor === 'true';
+        let valorConditions = [];
+        let valorParams = [];
+
         if (minValue) {
-            whereClauses.push('e.valor >= ?');
-            params.push(minValue);
+            valorConditions.push('e.valor >= ?');
+            valorParams.push(minValue);
         }
         if (maxValue) {
-            whereClauses.push('e.valor <= ?');
-            params.push(maxValue);
+            valorConditions.push('e.valor <= ?');
+            valorParams.push(maxValue);
+        }
+
+        if (valorConditions.length > 0) {
+            const rangeCondition = `(${valorConditions.join(' AND ')})`;
+            if (includeEmptyValor) {
+                // Range OR Empty
+                whereClauses.push(`(${rangeCondition} OR e.valor IS NULL)`);
+                params.push(...valorParams);
+            } else {
+                // Range Only
+                whereClauses.push(rangeCondition);
+                params.push(...valorParams);
+            }
+        } else if (includeEmptyValor) {
+            // Only Empty
+            whereClauses.push('e.valor IS NULL');
         }
         if (search) {
             whereClauses.push('(e.descricao LIKE ? OR emp.name LIKE ? OR c.name LIKE ?)');
