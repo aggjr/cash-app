@@ -36,8 +36,8 @@ exports.listIncomes = async (req, res, next) => {
 
     try {
         // DEBUG: Check what is actually in the DB for this column
-        const [debugCols] = await db.execute("SHOW COLUMNS FROM entradas LIKE 'data_real_recebimento'");
-        const [debugVals] = await db.execute("SELECT DISTINCT data_real_recebimento, CAST(data_real_recebimento AS CHAR) as as_char FROM entradas ORDER BY data_real_recebimento LIMIT 20");
+        const [debugCols] = await db.query("SHOW COLUMNS FROM entradas LIKE 'data_real_recebimento'");
+        const [debugVals] = await db.query("SELECT DISTINCT data_real_recebimento, CAST(data_real_recebimento AS CHAR) as as_char FROM entradas ORDER BY data_real_recebimento LIMIT 20");
         console.log('DEBUG DISTINCT DATES (data_real_recebimento):', {
             type: debugCols[0]?.Type,
             values: debugVals
