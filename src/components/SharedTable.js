@@ -1617,7 +1617,13 @@ export class SharedTable {
                             delete extraDraft.dateIn;
                             delete extraDraft.start; delete extraDraft.end; delete extraDraft.operator; delete extraDraft.val1; delete extraDraft.val2;
                         } else {
-                            extraDraft.dateIn = ['__NONE__'];
+                            // Check if the "Vazias" checkbox is checked
+                            const emptyCb = listContainer.querySelector('.val-cb-empty');
+                            if (emptyCb && emptyCb.checked) {
+                                extraDraft.dateIn = ['__EMPTY__'];
+                            } else {
+                                extraDraft.dateIn = ['__NONE__'];
+                            }
                             delete extraDraft.start; delete extraDraft.end; delete extraDraft.operator; delete extraDraft.val1; delete extraDraft.val2;
                         }
                     };
