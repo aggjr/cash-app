@@ -59,6 +59,7 @@ exports.listIncomes = async (req, res, next) => {
 
         const addDateListFilter = (field, listParam) => {
             if (req.query[listParam]) {
+                console.log(`DEBUG FILTER [${field}]: param=${listParam}, value=${req.query[listParam]}`);
                 let dates = Array.isArray(req.query[listParam]) ? req.query[listParam] : [req.query[listParam]];
                 const hasEmpty = dates.includes('__EMPTY__');
 
@@ -76,6 +77,7 @@ exports.listIncomes = async (req, res, next) => {
                         params.push(dates);
                     }
                 } else if (hasEmpty) {
+                    console.log(`DEBUG FILTER [${field}]: Only Empty selected. Adding clause: (e.${field} IS NULL...)`);
                     whereClauses.push(`(e.${field} IS NULL OR e.${field} = '0000-00-00' OR e.${field} = '' OR DATE(e.${field}) IS NULL)`);
                 }
             }
@@ -230,6 +232,9 @@ exports.listIncomes = async (req, res, next) => {
              ORDER BY 
              ${getOrderByClause(req.query.sortBy, req.query.order)}
              LIMIT ? OFFSET ?`;
+
+        console.log('DEBUG SQL:', dataQuery);
+        console.log('DEBUG PARAMS:', [...params, parseInt(limit), parseInt(offset)]);
 
         const [incomes] = await db.query(dataQuery, [...params, parseInt(limit), parseInt(offset)]);
 

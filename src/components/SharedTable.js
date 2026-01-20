@@ -501,13 +501,11 @@ export class SharedTable {
                         else td.innerHTML = content;
                     } else if (col.type === 'date') {
                         const dateValue = item[col.key];
-                        const rawDebug = `<span style="display:block; font-size:10px; color:red; font-family:monospace;">DEBUG: '${dateValue}' (${typeof dateValue})</span>`;
-
                         if (!dateValue || dateValue === '0000-00-00') {
-                            td.innerHTML = `<span class="text-muted">-</span>${rawDebug}`;
+                            td.innerHTML = '<span class="text-muted">-</span>';
                         } else {
                             const [year, month, day] = dateValue.split('-');
-                            td.innerHTML = `${day}/${month}/${year}${rawDebug}`;
+                            td.innerHTML = `${day}/${month}/${year}`;
                         }
                     } else if (col.type === 'currency') {
                         const val = item[col.key];

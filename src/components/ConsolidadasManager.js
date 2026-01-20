@@ -173,6 +173,15 @@ export const ConsolidadasManager = (project, fixedViewType = null) => {
         setTimeout(adjustStickyColumns, 0);
     };
 
+    // --- Text Measurement Helper ---
+    const getTextWidth = (text, font) => {
+        const canvas = getTextWidth.canvas || (getTextWidth.canvas = document.createElement("canvas"));
+        const context = canvas.getContext("2d");
+        context.font = font;
+        const metrics = context.measureText(text);
+        return metrics.width;
+    };
+
     const adjustStickyColumns = () => {
         const tablesWrapper = container.querySelector('#consolidadas-tables-wrapper');
         const tables = Array.from(tablesWrapper.querySelectorAll('table'));
@@ -190,14 +199,18 @@ export const ConsolidadasManager = (project, fixedViewType = null) => {
             let maxContentWidth = 0;
 
             // Measure phase: Check ALL elements (th and td) across ALL tables for this key
-            // We select directly from container to catch everything at once
             const elements = Array.from(container.querySelectorAll(`[data-key="${key}"]`));
 
             elements.forEach(el => {
-                maxContentWidth = Math.max(maxContentWidth, el.scrollWidth);
+                const text = el.innerText.trim();
+                const style = window.getComputedStyle(el);
+                const font = `${style.fontWeight} ${style.fontSize} ${style.fontFamily}`;
+                // Add some padding buffer (approx 1rem total horizontal padding)
+                const width = getTextWidth(text, font) + 16;
+                maxContentWidth = Math.max(maxContentWidth, width);
             });
 
-            // Apply 20% buffer as requested
+            // Apply 1.2 multiplier as requested
             const idealWidth = Math.ceil(maxContentWidth * 1.2);
 
             // Capture specific widths for sticky offsets
@@ -212,6 +225,13 @@ export const ConsolidadasManager = (project, fixedViewType = null) => {
                     th.style.minWidth = `${idealWidth}px`;
                     th.style.maxWidth = `${idealWidth}px`;
                 }
+
+                // Also force it on TDs to strictly obey
+                table.querySelectorAll(`td[data-key="${key}"]`).forEach(td => {
+                    td.style.width = `${idealWidth}px`;
+                    td.style.minWidth = `${idealWidth}px`;
+                    td.style.maxWidth = `${idealWidth}px`;
+                });
             });
         });
 
@@ -361,9 +381,9 @@ export const ConsolidadasManager = (project, fixedViewType = null) => {
                     </th>
                 </tr>
                 <tr>
-                    <th class="js-col-name" data-key="label" style="padding: 0.4rem 0.5rem; text-align: left; border-bottom: 2px solid #e5e7eb; min-width: 227px; width: 227px; position: sticky; left: 0; z-index: 11; background-color: #00425F; white-space: nowrap;"></th>
-                    <th data-key="average" style="padding: 0.4rem 0.5rem; text-align: center; border-bottom: 2px solid #e5e7eb; width: 120px; position: sticky; left: var(--c2-left, 320px); z-index: 11; background-color: #4B5563; color: white; white-space: nowrap; font-size: var(--text-table-title);">Média</th>
-                    <th data-key="total" style="padding: 0.4rem 0.5rem; text-align: center; border-bottom: 2px solid #e5e7eb; width: 120px; position: sticky; left: var(--c3-left, 460px); z-index: 11; background-color: #374151; color: white; white-space: nowrap; font-size: var(--text-table-title);">Total</th>
+                    <th class="js-col-name" data-key="label" style="padding: 0.4rem 0.5rem; text-align: left; border-bottom: 2px solid #e5e7eb; position: sticky; left: 0; z-index: 11; background-color: #00425F; white-space: nowrap;"></th>
+                    <th data-key="average" style="padding: 0.4rem 0.5rem; text-align: center; border-bottom: 2px solid #e5e7eb; position: sticky; left: var(--c2-left, 320px); z-index: 11; background-color: #4B5563; color: white; white-space: nowrap; font-size: var(--text-table-title);">Média</th>
+                    <th data-key="total" style="padding: 0.4rem 0.5rem; text-align: center; border-bottom: 2px solid #e5e7eb; position: sticky; left: var(--c3-left, 460px); z-index: 11; background-color: #374151; color: white; white-space: nowrap; font-size: var(--text-table-title);">Total</th>
                     ${months.map(m => {
             const [y, mo] = m.split('-');
             // User Request: Smallest possible width (fit content). Removed min-width: 120px.
