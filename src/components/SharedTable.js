@@ -1617,9 +1617,8 @@ export class SharedTable {
                             delete extraDraft.dateIn;
                             delete extraDraft.start; delete extraDraft.end; delete extraDraft.operator; delete extraDraft.val1; delete extraDraft.val2;
                         } else {
-                            // Check if the "Vazias" checkbox is checked
-                            const emptyCb = listContainer.querySelector('.val-cb-empty');
-                            if (emptyCb && emptyCb.checked) {
+                            // Preserve __EMPTY__ if it was already in the filter
+                            if (extraDraft.dateIn && extraDraft.dateIn.includes('__EMPTY__')) {
                                 extraDraft.dateIn = ['__EMPTY__'];
                             } else {
                                 extraDraft.dateIn = ['__NONE__'];
