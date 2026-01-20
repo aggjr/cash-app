@@ -236,6 +236,8 @@ export const IncomeManager = (project) => {
                 const filter = activeFilters[key];
                 if (!filter) return;
 
+                console.log(`DEBUG [IncomeManager] Filter Key: ${key}`, filter);
+
                 if (key === 'valor') {
                     // Operator-based format (advanced filter)
                     if (filter.operator && filter.val1) {
