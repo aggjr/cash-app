@@ -1761,6 +1761,12 @@ export class SharedTable {
                                 // Clear Operators
                                 delete extraDraft.start; delete extraDraft.end; delete extraDraft.operator; delete extraDraft.val1; delete extraDraft.val2;
 
+                                // CRITICAL FIX: Sync empty checkbox state
+                                const emptyCb = listContainer.querySelector('.val-cb-empty');
+                                if (emptyCb && emptyCb.checked && !extraDraft.dateIn.includes('__EMPTY__')) {
+                                    extraDraft.dateIn.push('__EMPTY__');
+                                }
+
                                 if (allDatesSelected()) delete extraDraft.dateIn;
                                 else if (extraDraft.dateIn.filter(x => x !== '__EMPTY__').length === 0) {
                                     // Only set __NONE__ if there are no dates AND no __EMPTY__
@@ -1806,6 +1812,12 @@ export class SharedTable {
 
                                     // Clear Operators
                                     delete extraDraft.start; delete extraDraft.end; delete extraDraft.operator; delete extraDraft.val1; delete extraDraft.val2;
+
+                                    // CRITICAL FIX: Sync empty checkbox state
+                                    const emptyCb = listContainer.querySelector('.val-cb-empty');
+                                    if (emptyCb && emptyCb.checked && !extraDraft.dateIn.includes('__EMPTY__')) {
+                                        extraDraft.dateIn.push('__EMPTY__');
+                                    }
 
                                     if (allDatesSelected()) delete extraDraft.dateIn;
                                     else if (extraDraft.dateIn.filter(x => x !== '__EMPTY__').length === 0) {
