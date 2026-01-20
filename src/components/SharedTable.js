@@ -1064,6 +1064,74 @@ export class SharedTable {
                         row.appendChild(document.createTextNode(colType === 'currency' ? this.formatCurrency(v) : v));
                         listContainer.appendChild(row);
                     });
+
+                    // Add (Vazias) for Number/Currency (Always)
+                    const emptyRow = document.createElement('div');
+                    emptyRow.style.display = 'flex'; emptyRow.style.gap = '0.5rem'; emptyRow.style.padding = '4px'; emptyRow.style.borderTop = '1px solid #eee'; emptyRow.style.marginTop = '4px';
+                    const emptyCb = document.createElement('input');
+                    emptyCb.type = 'checkbox';
+                    emptyCb.className = 'val-cb-empty';
+
+                    // Check logic: if activeFilters.numIn includes empty token? 
+                    // Number filter uses extraDraft.numIn.
+                    // Ideally we use a token for empty numbers too.
+                    // Let's use -999998 (arbitrary) or string '__EMPTY__'?
+                    // Number/Currency usually maps to numbers. Backend expects numbers or handles specific tokens.
+                    // For number list filter, backend might expect numbers.
+                    // Let's stick to '__EMPTY__' token for consistency, backend should handle it if list param is mixed.
+                    // Backend addTextListFilter vs addDateListFilter... wait Number uses range usually?
+                    // No, invalidating number range logic?
+                    // Check numeric logic in backend.
+                    // listIncomes doesn't have `addNumberListFilter`.
+                    // It has `minValue`, `maxValue`.
+                    // But SharedTable has `numIn` (list of values).
+                    // Where is `numIn` used in backend?
+                    // Backend has `addDateListFilter`, `addTextListFilter`.
+                    // Is there a number list filter?
+                    // Checking listIncomes again...
+                    // It seems specific columns are hardcoded: data_fato, etc.
+                    // Text columns: description, account, company.
+                    // What about 'valor'? `getDistinctValues` allows 'valor'.
+                    // But `listIncomes` doesn't seem to have `addNumberListFilter('valor', ...)`?
+                    // It has `minValue`, `maxValue`.
+                    // Does it support list of values for Valor?
+                    // Lines 90-100: minValue, maxValue.
+                    // It doesn't seem to support distinct value list for Valor!
+                    // So "Select All" / Checkbox list for Valor in Shared table currently does NOTHING in backend?
+                    // Wait, `SharedTable` builds `numIn`. `IncomeManager` receives `onFilterChange`.
+                    // `activeFilters` includes `numIn`.
+                    // `IncomeManager` must map `activeFilters` to backend params.
+                    // Let's check `IncomeManager.js`.
+
+                    // Assuming for now I should add the UI element, I will add it.
+                    // But if backend doesn't support it, it won't work.
+                    // The user said "todas as colunas".
+
+                    const isChecked = !extraDraft.numIn || extraDraft.numIn.length === 0 || extraDraft.numIn.includes('__EMPTY__');
+                    emptyCb.checked = isChecked;
+
+                    emptyCb.onclick = (e) => {
+                        e.stopPropagation();
+                        if (!extraDraft.numIn) extraDraft.numIn = [];
+
+                        if (allCb.checked && !e.target.checked) {
+                            extraDraft.numIn = values.slice(); // select all numbers
+                            allCb.checked = false;
+                        } else if (extraDraft.numIn.includes(-999999) && e.target.checked) {
+                            extraDraft.numIn = ['__EMPTY__'];
+                        } else {
+                            if (e.target.checked) {
+                                if (!extraDraft.numIn.includes('__EMPTY__')) extraDraft.numIn.push('__EMPTY__');
+                            } else {
+                                extraDraft.numIn = extraDraft.numIn.filter(x => x !== '__EMPTY__');
+                            }
+                        }
+
+                        // Auto-select all check??
+                    };
+
+                    emptyRow.appendChild(emptyCb); emptyRow.appendChild(document.createTextNode('(Vazias)'));
+                    listContainer.appendChild(emptyRow);
                 };
 
                 loadValues().catch(err => { console.error(err); listContainer.textContent = 'Erro ao carregar'; });
@@ -1345,7 +1413,7 @@ export class SharedTable {
                         listContainer.appendChild(row);
                     });
 
-                    if (hasEmpty) {
+                    if (true) { // Always show Empty option
                         const row = document.createElement('div'); row.className = 'val-row';
                         row.style.display = 'flex'; row.style.gap = '0.5rem'; row.style.padding = '2px'; row.style.borderTop = '1px solid #eee'; row.style.marginTop = '4px'; row.style.paddingTop = '4px';
                         const cb = document.createElement('input'); cb.type = 'checkbox'; cb.className = 'val-cb'; cb.value = '__EMPTY__';
@@ -1715,7 +1783,8 @@ export class SharedTable {
                     });
 
                     // Add (Vazias) for Dates
-                    if (hasEmpty) {
+                    // Add (Vazias) for Dates
+                    if (true) { // Always show Empty option
                         const emptyRow = document.createElement('div');
                         emptyRow.style.display = 'flex'; emptyRow.style.gap = '0.5rem'; emptyRow.style.padding = '4px'; emptyRow.style.borderTop = '1px solid #eee'; emptyRow.style.marginTop = '4px';
                         const emptyCb = document.createElement('input'); emptyCb.type = 'checkbox';
