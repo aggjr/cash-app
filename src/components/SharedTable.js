@@ -1720,7 +1720,9 @@ export class SharedTable {
                                 extraDraft.dateIn.push('__EMPTY__');
                             }
 
-                            if (allDatesSelected()) delete extraDraft.dateIn;
+                            // CRITICAL FIX: Do NOT delete draft if __EMPTY__ is selected, even if all dates are technically "selected" (or empty tree)
+                            const hasEmpty = extraDraft.dateIn && extraDraft.dateIn.includes('__EMPTY__');
+                            if (!hasEmpty && allDatesSelected()) delete extraDraft.dateIn;
                             else if (extraDraft.dateIn.filter(x => x !== '__EMPTY__').length === 0) {
                                 // Only set __NONE__ if there are no dates AND no __EMPTY__
                                 if (!extraDraft.dateIn.includes('__EMPTY__')) {
