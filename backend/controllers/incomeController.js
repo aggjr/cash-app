@@ -31,6 +31,9 @@ const getOrderByClause = (sortBy, order = 'asc') => {
 };
 
 exports.listIncomes = async (req, res, next) => {
+    console.log('🚀 listIncomes CALLED');
+    console.log('🚀 Query params:', JSON.stringify(req.query, null, 2));
+
     try {
         const { projectId, page = 1, limit = 50, search, startDate, endDate, minValue, maxValue } = req.query;
 
