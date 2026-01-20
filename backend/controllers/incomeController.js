@@ -747,6 +747,8 @@ exports.getDistinctValues = async (req, res, next) => {
                 'descricao': 'descricao',
                 'data_prevista_recebimento': 'data_prevista_recebimento',
                 'data_fato': 'data_fato',
+                'data_atraso': 'data_atraso',
+                'data_real_recebimento': 'data_real_recebimento',
                 'valor': 'valor'
             };
             const dbCol = map[field];

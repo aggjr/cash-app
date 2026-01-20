@@ -938,7 +938,7 @@ export const IncomeManager = (project) => {
         container: tableContainer,
         columns: columns,
         projectId: project.id,
-        endpointPrefix: null, // Client-side distinct values for now
+        endpointPrefix: '/incomes', // Server-side distinct values enabled
         onFilterChange: (filters) => {
             activeFilters = filters;
             loadIncomes(1);

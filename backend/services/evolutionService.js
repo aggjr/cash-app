@@ -2,9 +2,13 @@ const fileLogger = require('../utils/fileLogger');
 
 class EvolutionApiService {
     constructor() {
-        this.baseUrl = process.env.EVOLUTION_API_URL;
-        this.apiKey = process.env.EVOLUTION_API_KEY;
-        this.instanceName = 'Cash'; // Based on the screenshot
+        this.baseUrl = process.env.EVOLUTION_API_URL || 'http://localhost:8080'; // Fallback to avoid undefined in URL
+        this.apiKey = process.env.EVOLUTION_API_KEY || '';
+        this.instanceName = 'Cash';
+
+        if (!process.env.EVOLUTION_API_URL) {
+            console.warn('⚠️ WARNING: EVOLUTION_API_URL not set. Using default:', this.baseUrl);
+        }
     }
 
     getHeaders() {
