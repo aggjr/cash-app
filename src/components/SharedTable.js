@@ -1901,7 +1901,7 @@ export class SharedTable {
                             const hasAllDates = allKnownDates.length === currentDates.length && allKnownDates.every(d => currentDates.includes(d));
                             const hasEmptyChecked = extraDraft.dateIn.includes('__EMPTY__');
 
-                            if (hasAllDates && hasEmptyChecked) {
+                            if (hasAllDates && hasEmptyChecked && allKnownDates.length > 0) {
                                 extraDraft.dateIn = [];
                                 allCb.checked = true;
                             }
