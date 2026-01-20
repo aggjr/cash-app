@@ -76,10 +76,8 @@ exports.listIncomes = async (req, res, next) => {
 
                 if (dates.length > 0) {
                     if (hasEmpty) {
-                        // Include NULL and invalid dates (DATE() returns NULL)
-                        // Note: In strict SQL mode, we can't compare DATE fields with invalid values like '0000-00-00' or ''
-                        // Instead, we check if the field IS NULL or if DATE() conversion returns NULL
-                        const clause = `(DATE(e.${field}) IN (?) OR e.${field} IS NULL OR DATE(e.${field}) IS NULL)`;
+                        // Include NULL, invalid dates, zero dates, and empty strings safely
+                        const clause = `(DATE(e.${field}) IN (?) OR e.${field} IS NULL OR DATE(e.${field}) IS NULL OR CAST(e.${field} AS CHAR) = '0000-00-00' OR CAST(e.${field} AS CHAR) = '')`;
                         console.log(`DEBUG FILTER [${field}]: Adding clause (with dates + empty):`, clause);
                         whereClauses.push(clause);
                         params.push(dates);
@@ -90,10 +88,8 @@ exports.listIncomes = async (req, res, next) => {
                         params.push(dates);
                     }
                 } else if (hasEmpty) {
-                    // Only empty: check for NULL or invalid dates
-                    // Note: In strict SQL mode, we can't compare DATE fields with invalid values
-                    // We check if the field IS NULL or if DATE() conversion returns NULL (for invalid dates)
-                    const clause = `(e.${field} IS NULL OR DATE(e.${field}) IS NULL)`;
+                    // Only empty: check for NULL, invalid dates, zero dates, and empty strings
+                    const clause = `(e.${field} IS NULL OR DATE(e.${field}) IS NULL OR CAST(e.${field} AS CHAR) = '0000-00-00' OR CAST(e.${field} AS CHAR) = '')`;
                     console.log(`DEBUG FILTER [${field}]: Only Empty selected. Adding clause:`, clause);
                     whereClauses.push(clause);
                 }
