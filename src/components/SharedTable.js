@@ -840,6 +840,14 @@ export class SharedTable {
             console.log('Column:', colKey);
             console.log('Draft State:', JSON.stringify(extraDraft, null, 2));
             console.log('Is Empty:', isEmpty);
+            if (extraDraft.dateIn) {
+                console.log('🔴 DateIn Details:', {
+                    dateIn: extraDraft.dateIn,
+                    length: extraDraft.dateIn.length,
+                    hasEmpty: extraDraft.dateIn.includes('__EMPTY__'),
+                    hasNone: extraDraft.dateIn.includes('__NONE__')
+                });
+            }
             console.log('Active Filters (Final):', JSON.stringify(this.activeFilters, null, 2));
             console.groupEnd();
 
