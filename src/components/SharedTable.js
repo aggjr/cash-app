@@ -1687,6 +1687,17 @@ export class SharedTable {
                             if (!extraDraft.dateIn) extraDraft.dateIn = [];
                             if (extraDraft.dateIn.includes('__NONE__')) extraDraft.dateIn = [];
 
+                            // CRITICAL FIX: If unchecking from "Select All" status (empty dateIn), populate with all dates first
+                            if (!chk && extraDraft.dateIn.length === 0) {
+                                const allKnownDates = [];
+                                Object.values(tree).forEach(y => Object.values(y.months).forEach(m => m.days.forEach(d => allKnownDates.push(d.val))));
+                                extraDraft.dateIn = allKnownDates;
+
+                                // Also ensure __EMPTY__ is preserved if visual checkbox is checked
+                                const emptyCb = listContainer.querySelector('.val-cb-empty');
+                                if (emptyCb && emptyCb.checked) extraDraft.dateIn.push('__EMPTY__');
+                            }
+
                             yearDates.forEach(d => {
                                 if (chk) {
                                     if (!extraDraft.dateIn.includes(d)) extraDraft.dateIn.push(d);
