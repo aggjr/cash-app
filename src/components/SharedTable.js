@@ -816,7 +816,7 @@ export class SharedTable {
         // The Link column was strictly marked noFilter previously. We need to remove that in IncomeManager.
         // But assuming we enabled it, let's handle 'link' type.
 
-        let extraDraft = { ...this.activeFilters[colKey] } || {};
+        let extraDraft = this.activeFilters[colKey] ? { ...this.activeFilters[colKey] } : {};
 
         // Helper: Execute Filter
         const executeFilter = () => {

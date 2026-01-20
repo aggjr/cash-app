@@ -301,7 +301,8 @@ export const IncomeManager = (project) => {
                     }
 
                     // Only use checkbox list if no advanced filter
-                    if (!useAdvanced && filter.dateIn && filter.dateIn.length > 0 && !filter.dateIn.includes('__NONE__')) {
+                    if (!useAdvanced && filter.dateIn && filter.dateIn.length > 0) {
+                        // Send all selected dates, including __EMPTY__ if present
                         filter.dateIn.forEach(d => params.append(`${key}List`, d));
                     }
                 } else if (key === 'link') {
