@@ -1845,6 +1845,7 @@ export class SharedTable {
 
                         emptyCb.onclick = (e) => {
                             e.stopPropagation();
+                            console.log('🟣 Empty checkbox clicked:', { checked: e.target.checked, currentDateIn: extraDraft.dateIn });
                             if (!extraDraft.dateIn) extraDraft.dateIn = [];
 
                             if (allCb.checked && !e.target.checked) {
@@ -1853,15 +1854,20 @@ export class SharedTable {
                                 Object.values(tree).forEach(y => Object.values(y.months).forEach(m => m.days.forEach(d => allDates.push(d.val))));
                                 extraDraft.dateIn = allDates;
                                 allCb.checked = false;
+                                console.log('🟣 Unchecked empty from All, dateIn:', extraDraft.dateIn);
                             } else if (extraDraft.dateIn.includes('__NONE__') && e.target.checked) {
+                                console.log('🟣 Replacing __NONE__ with __EMPTY__');
                                 extraDraft.dateIn = ['__EMPTY__'];
                             } else {
                                 if (e.target.checked) {
+                                    console.log('🟣 Adding __EMPTY__ to dateIn');
                                     if (!extraDraft.dateIn.includes('__EMPTY__')) extraDraft.dateIn.push('__EMPTY__');
                                 } else {
+                                    console.log('🟣 Removing __EMPTY__ from dateIn');
                                     extraDraft.dateIn = extraDraft.dateIn.filter(x => x !== '__EMPTY__');
                                 }
                             }
+                            console.log('🟣 After empty checkbox click, dateIn:', extraDraft.dateIn);
 
                             // Check if everything is checked now?
                             const allKnownDates = [];
