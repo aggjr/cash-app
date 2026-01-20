@@ -1834,6 +1834,13 @@ export class SharedTable {
                                 extraDraft.dateIn = [];
                                 allCb.checked = true;
                             }
+
+                            // FIX: Clear Operators so IncomeManager treats this as a List Filter, not Advanced
+                            delete extraDraft.operator;
+                            delete extraDraft.val1;
+                            delete extraDraft.val2;
+                            delete extraDraft.start;
+                            delete extraDraft.end;
                         };
 
                         emptyRow.appendChild(emptyCb); emptyRow.appendChild(document.createTextNode('(Vazias)'));
