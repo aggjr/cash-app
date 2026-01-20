@@ -573,7 +573,7 @@ export const IncomeManager = (project) => {
 
             totalContainer.innerHTML = `
                 <div style="display: flex; gap: 2rem; align-items: center;">
-                    <span style="font-size: 0.75rem; color: #6b7280; font-weight: 500;">v0.9.5</span>
+                    <span style="font-size: 0.75rem; color: #6b7280; font-weight: 500;">v0.9.6</span>
                     <div>
                         <span style="font-size: 1.1rem; margin-right: 0.5rem;">Total (Página):</span>
                         <span style="font-weight: 700; font-size: 1.1rem; color: ${pageTotal >= 0 ? '#10B981' : '#EF4444'};">
