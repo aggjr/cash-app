@@ -1871,6 +1871,7 @@ export class SharedTable {
                         // Otherwise, "extraDraft" remains empty/undefined, effectively meaning "Select All" (No Filter),
                         // which might define "All" differently than "Only Empty" if there are hidden non-null dates.
                         const treeHasDates = Object.keys(tree).length > 0;
+                        console.log('🔍 Auto-init check:', { treeHasDates, treeKeys: Object.keys(tree), isChecked, dateIn: extraDraft.dateIn });
                         if (!treeHasDates && isChecked && (!extraDraft.dateIn || extraDraft.dateIn.length === 0)) {
                             if (!extraDraft.dateIn) extraDraft.dateIn = [];
                             extraDraft.dateIn.push('__EMPTY__');
