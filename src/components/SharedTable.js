@@ -499,6 +499,16 @@ export class SharedTable {
                         const content = col.render(item);
                         if (content instanceof Node) td.appendChild(content);
                         else td.innerHTML = content;
+                    } else if (col.type === 'date') {
+                        const dateValue = item[col.key];
+                        const rawDebug = `<span style="display:block; font-size:10px; color:red; font-family:monospace;">DEBUG: '${dateValue}' (${typeof dateValue})</span>`;
+
+                        if (!dateValue || dateValue === '0000-00-00') {
+                            td.innerHTML = `<span class="text-muted">-</span>${rawDebug}`;
+                        } else {
+                            const [year, month, day] = dateValue.split('-');
+                            td.innerHTML = `${day}/${month}/${year}${rawDebug}`;
+                        }
                     } else if (col.type === 'currency') {
                         const val = item[col.key];
                         td.textContent = this.formatCurrency(val);
