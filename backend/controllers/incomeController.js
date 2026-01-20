@@ -76,8 +76,9 @@ exports.listIncomes = async (req, res, next) => {
 
                 if (dates.length > 0) {
                     if (hasEmpty) {
-                        // Include NULL, 0000-00-00, empty string, and invalid dates (DATE() returns NULL)
-                        const clause = `(DATE(e.${field}) IN (?) OR e.${field} IS NULL OR e.${field} = '0000-00-00' OR e.${field} = '' OR DATE(e.${field}) IS NULL)`;
+                        // Include NULL, empty string, and invalid dates (DATE() returns NULL)
+                        // Note: Removed '0000-00-00' check as it causes "Incorrect DATE value" error in strict SQL mode
+                        const clause = `(DATE(e.${field}) IN (?) OR e.${field} IS NULL OR e.${field} = '' OR DATE(e.${field}) IS NULL)`;
                         console.log(`DEBUG FILTER [${field}]: Adding clause (with dates + empty):`, clause);
                         whereClauses.push(clause);
                         params.push(dates);
@@ -88,7 +89,9 @@ exports.listIncomes = async (req, res, next) => {
                         params.push(dates);
                     }
                 } else if (hasEmpty) {
-                    const clause = `(e.${field} IS NULL OR e.${field} = '0000-00-00' OR e.${field} = '' OR DATE(e.${field}) IS NULL)`;
+                    // Only empty: check for NULL, empty string, or invalid dates
+                    // Note: Removed '0000-00-00' check as it causes "Incorrect DATE value" error in strict SQL mode
+                    const clause = `(e.${field} IS NULL OR e.${field} = '' OR DATE(e.${field}) IS NULL)`;
                     console.log(`DEBUG FILTER [${field}]: Only Empty selected. Adding clause:`, clause);
                     whereClauses.push(clause);
                 }
