@@ -1614,6 +1614,7 @@ export class SharedTable {
                     allCb.checked = !isFiltered;
 
                     const updateAll = (chk) => {
+                        console.log('🔵 updateAll called:', { chk, currentDateIn: extraDraft.dateIn });
                         listContainer.querySelectorAll('input[type="checkbox"]').forEach(c => c.checked = chk);
                         if (chk) {
                             delete extraDraft.dateIn;
@@ -1621,12 +1622,15 @@ export class SharedTable {
                         } else {
                             // Preserve __EMPTY__ if it was already in the filter
                             if (extraDraft.dateIn && extraDraft.dateIn.includes('__EMPTY__')) {
+                                console.log('🔵 updateAll: Preserving __EMPTY__');
                                 extraDraft.dateIn = ['__EMPTY__'];
                             } else {
+                                console.log('🔵 updateAll: Setting __NONE__ (no __EMPTY__ found)');
                                 extraDraft.dateIn = ['__NONE__'];
                             }
                             delete extraDraft.start; delete extraDraft.end; delete extraDraft.operator; delete extraDraft.val1; delete extraDraft.val2;
                         }
+                        console.log('🔵 updateAll result:', extraDraft.dateIn);
                     };
                     allCb.onclick = (e) => { e.stopPropagation(); updateAll(e.target.checked); };
 
