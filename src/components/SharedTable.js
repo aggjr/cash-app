@@ -1302,7 +1302,10 @@ export class SharedTable {
                     allRow.appendChild(allCb); allRow.appendChild(document.createTextNode('(Selecionar Tudo)'));
                     listContainer.appendChild(allRow);
 
-                    values.forEach(v => {
+                    const hasEmpty = values.some(v => v === null || v === '');
+                    const validValues = values.filter(v => v !== null && v !== '');
+
+                    validValues.forEach(v => {
                         const row = document.createElement('div'); row.className = 'val-row';
                         row.style.display = 'flex'; row.style.gap = '0.5rem'; row.style.padding = '2px';
                         const cb = document.createElement('input'); cb.type = 'checkbox'; cb.className = 'val-cb'; cb.value = v;
@@ -1311,7 +1314,15 @@ export class SharedTable {
                         cb.onclick = (e) => {
                             e.stopPropagation();
                             if (allCb.checked && !e.target.checked) {
-                                extraDraft.textIn = values.filter(x => x !== v);
+                                extraDraft.textIn = validValues.filter(x => x !== v);
+                                if (hasEmpty && (!extraDraft.textIn.includes('__EMPTY__'))) {
+                                    // if we uncheck one, but all was checked, we need to add back EMPTY if it was implicitly checked?
+                                    // simpler: allCb means ALL. If we uncheck one, allCb becomes false.
+                                    // If empty was present, should we add it to textIn?
+                                    // If we are strictly unchecking V, then textIn should receive everything EXCEPT V.
+                                    // Everything includes EMPTY if it exists.
+                                    extraDraft.textIn.push('__EMPTY__');
+                                }
                                 allCb.checked = false;
                             } else if (extraDraft.textIn?.includes('__NONE__') && e.target.checked) {
                                 extraDraft.textIn = [v];
@@ -1333,6 +1344,38 @@ export class SharedTable {
                         row.appendChild(cb); row.appendChild(document.createTextNode(v));
                         listContainer.appendChild(row);
                     });
+
+                    if (hasEmpty) {
+                        const row = document.createElement('div'); row.className = 'val-row';
+                        row.style.display = 'flex'; row.style.gap = '0.5rem'; row.style.padding = '2px'; row.style.borderTop = '1px solid #eee'; row.style.marginTop = '4px'; row.style.paddingTop = '4px';
+                        const cb = document.createElement('input'); cb.type = 'checkbox'; cb.className = 'val-cb'; cb.value = '__EMPTY__';
+                        cb.checked = isFiltered ? this.activeFilters[colKey]?.textIn?.includes('__EMPTY__') : true;
+
+                        cb.onclick = (e) => {
+                            e.stopPropagation();
+                            const v = '__EMPTY__';
+                            if (allCb.checked && !e.target.checked) {
+                                extraDraft.textIn = validValues; // All valid ones
+                                allCb.checked = false;
+                            } else if (extraDraft.textIn?.includes('__NONE__') && e.target.checked) {
+                                extraDraft.textIn = [v];
+                            } else {
+                                if (!extraDraft.textIn) extraDraft.textIn = [];
+                                if (e.target.checked) {
+                                    if (!extraDraft.textIn.includes(v)) extraDraft.textIn.push(v);
+                                } else {
+                                    extraDraft.textIn = extraDraft.textIn.filter(x => x !== v);
+                                }
+                            }
+                            const allChecked = Array.from(listContainer.querySelectorAll('.val-cb')).every(c => c.checked);
+                            allCb.checked = allChecked;
+                            if (allChecked) extraDraft.textIn = [];
+
+                            delete extraDraft.operator; delete extraDraft.val1;
+                        };
+                        row.appendChild(cb); row.appendChild(document.createTextNode('(Vazias)'));
+                        listContainer.appendChild(row);
+                    }
                 };
                 loadValues().catch(err => { console.error(err); listContainer.textContent = 'Erro'; });
                 wrapper.appendChild(listView);
@@ -1416,12 +1459,18 @@ export class SharedTable {
                         }
 
                         // Normalize all values to YYYY-MM-DD immediately
-                        values = values.map(v => {
+                        const hasEmpty = values.some(v => v === null || v === '');
+                        values = values.filter(v => v !== null && v !== '').map(v => {
                             if (typeof v === 'string' && v.includes('T')) return v.split('T')[0];
                             return v;
                         });
                         // Remove duplicates after normalization
                         values = [...new Set(values)];
+
+                        // Add __EMPTY__ back if needed for internal logic (will handle separately in UI)
+                        if (hasEmpty) {
+                            // actually, tree builder skips empty. We need to handle empty separately.
+                        }
                     } catch (e) {
                         console.error(e);
                         listContainer.textContent = 'Erro ao carregar datas';
@@ -1431,7 +1480,7 @@ export class SharedTable {
                     // Parse Dates into Tree: Year -> Month -> Day
                     const tree = {};
                     values.forEach(dateStr => {
-                        if (!dateStr) return;
+                        if (!dateStr || dateStr === '__EMPTY__') return;
 
                         let d;
                         // Check for DD/MM/YYYY format explicitly
@@ -1664,6 +1713,55 @@ export class SharedTable {
                         yDiv.appendChild(mContainer);
                         listContainer.appendChild(yDiv);
                     });
+
+                    // Add (Vazias) for Dates
+                    if (hasEmpty) {
+                        const emptyRow = document.createElement('div');
+                        emptyRow.style.display = 'flex'; emptyRow.style.gap = '0.5rem'; emptyRow.style.padding = '4px'; emptyRow.style.borderTop = '1px solid #eee'; emptyRow.style.marginTop = '4px';
+                        const emptyCb = document.createElement('input'); emptyCb.type = 'checkbox';
+                        emptyCb.className = 'val-cb-empty';
+
+                        const isChecked = !extraDraft.dateIn || extraDraft.dateIn.length === 0 || extraDraft.dateIn.includes('__EMPTY__');
+                        emptyCb.checked = isChecked;
+
+                        emptyCb.onclick = (e) => {
+                            e.stopPropagation();
+                            if (!extraDraft.dateIn) extraDraft.dateIn = [];
+
+                            if (allCb.checked && !e.target.checked) {
+                                // Unchecking Empty from "All Selected"
+                                const allDates = [];
+                                Object.values(tree).forEach(y => Object.values(y.months).forEach(m => m.days.forEach(d => allDates.push(d.val))));
+                                extraDraft.dateIn = allDates;
+                                allCb.checked = false;
+                            } else if (extraDraft.dateIn.includes('__NONE__') && e.target.checked) {
+                                extraDraft.dateIn = ['__EMPTY__'];
+                            } else {
+                                if (e.target.checked) {
+                                    if (!extraDraft.dateIn.includes('__EMPTY__')) extraDraft.dateIn.push('__EMPTY__');
+                                } else {
+                                    extraDraft.dateIn = extraDraft.dateIn.filter(x => x !== '__EMPTY__');
+                                }
+                            }
+
+                            // Check if everything is checked now?
+                            const allKnownDates = [];
+                            Object.values(tree).forEach(y => Object.values(y.months).forEach(m => m.days.forEach(d => allKnownDates.push(d.val))));
+
+                            // If dateIn contains all known dates AND empty, we clear it (reset to All)
+                            const currentDates = extraDraft.dateIn.filter(x => x !== '__EMPTY__');
+                            const hasAllDates = allKnownDates.length === currentDates.length && allKnownDates.every(d => currentDates.includes(d));
+                            const hasEmptyChecked = extraDraft.dateIn.includes('__EMPTY__');
+
+                            if (hasAllDates && hasEmptyChecked) {
+                                extraDraft.dateIn = [];
+                                allCb.checked = true;
+                            }
+                        };
+
+                        emptyRow.appendChild(emptyCb); emptyRow.appendChild(document.createTextNode('(Vazias)'));
+                        listContainer.appendChild(emptyRow);
+                    }
 
                     const allDatesSelected = () => {
                         if (extraDraft.dateIn && extraDraft.dateIn.length === values.length) return true;

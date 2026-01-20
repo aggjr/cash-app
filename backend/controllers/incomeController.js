@@ -59,11 +59,23 @@ exports.listIncomes = async (req, res, next) => {
 
         const addDateListFilter = (field, listParam) => {
             if (req.query[listParam]) {
-                const dates = Array.isArray(req.query[listParam]) ? req.query[listParam] : [req.query[listParam]];
+                let dates = Array.isArray(req.query[listParam]) ? req.query[listParam] : [req.query[listParam]];
+                const hasEmpty = dates.includes('__EMPTY__');
+
+                if (hasEmpty) {
+                    dates = dates.filter(d => d !== '__EMPTY__');
+                }
+
                 if (dates.length > 0) {
-                    // Use DATE() function to match regardless of time component
-                    whereClauses.push(`DATE(e.${field}) IN (?)`);
-                    params.push(dates);
+                    if (hasEmpty) {
+                        whereClauses.push(`(DATE(e.${field}) IN (?) OR e.${field} IS NULL)`);
+                        params.push(dates);
+                    } else {
+                        whereClauses.push(`DATE(e.${field}) IN (?)`);
+                        params.push(dates);
+                    }
+                } else if (hasEmpty) {
+                    whereClauses.push(`e.${field} IS NULL`);
                 }
             }
         };
@@ -116,10 +128,23 @@ exports.listIncomes = async (req, res, next) => {
         // List Filters for Text Columns
         const addTextListFilter = (field, listParam) => {
             if (req.query[listParam]) {
-                const values = Array.isArray(req.query[listParam]) ? req.query[listParam] : [req.query[listParam]];
+                let values = Array.isArray(req.query[listParam]) ? req.query[listParam] : [req.query[listParam]];
+                const hasEmpty = values.includes('__EMPTY__');
+
+                if (hasEmpty) {
+                    values = values.filter(v => v !== '__EMPTY__');
+                }
+
                 if (values.length > 0) {
-                    whereClauses.push(`${field} IN (?)`);
-                    params.push(values);
+                    if (hasEmpty) {
+                        whereClauses.push(`(${field} IN (?) OR ${field} IS NULL OR ${field} = "")`);
+                        params.push(values);
+                    } else {
+                        whereClauses.push(`${field} IN (?)`);
+                        params.push(values);
+                    }
+                } else if (hasEmpty) {
+                    whereClauses.push(`(${field} IS NULL OR ${field} = "")`);
                 }
             }
         };
@@ -761,7 +786,8 @@ exports.getDistinctValues = async (req, res, next) => {
         }
 
         const [rows] = await db.query(query, params);
-        res.json(rows.map(r => r.val).filter(v => v !== null && v !== ''));
+        // Allow distinct values to include null/empty (for "(Vazias)" filter)
+        res.json(rows.map(r => r.val));
 
     } catch (error) {
         next(error);
