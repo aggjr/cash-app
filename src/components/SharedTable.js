@@ -1814,6 +1814,7 @@ export class SharedTable {
                         emptyCb.className = 'val-cb-empty';
 
                         const isChecked = !extraDraft.dateIn || extraDraft.dateIn.length === 0 || extraDraft.dateIn.includes('__EMPTY__');
+                        console.log('🔍 Empty Checkbox Init:', { colKey, dateIn: extraDraft.dateIn, isChecked });
                         emptyCb.checked = isChecked;
 
                         emptyCb.onclick = (e) => {
