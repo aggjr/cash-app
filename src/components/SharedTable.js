@@ -1679,7 +1679,12 @@ export class SharedTable {
                             delete extraDraft.start; delete extraDraft.end; delete extraDraft.operator; delete extraDraft.val1; delete extraDraft.val2;
 
                             if (allDatesSelected()) delete extraDraft.dateIn;
-                            else if (extraDraft.dateIn.length === 0) extraDraft.dateIn = ['__NONE__'];
+                            else if (extraDraft.dateIn.filter(x => x !== '__EMPTY__').length === 0) {
+                                // Only set __NONE__ if there are no dates AND no __EMPTY__
+                                if (!extraDraft.dateIn.includes('__EMPTY__')) {
+                                    extraDraft.dateIn = ['__NONE__'];
+                                }
+                            }
                         };
 
                         // Render Months
@@ -1731,7 +1736,12 @@ export class SharedTable {
                                 delete extraDraft.start; delete extraDraft.end; delete extraDraft.operator; delete extraDraft.val1; delete extraDraft.val2;
 
                                 if (allDatesSelected()) delete extraDraft.dateIn;
-                                else if (extraDraft.dateIn.length === 0) extraDraft.dateIn = ['__NONE__'];
+                                else if (extraDraft.dateIn.filter(x => x !== '__EMPTY__').length === 0) {
+                                    // Only set __NONE__ if there are no dates AND no __EMPTY__
+                                    if (!extraDraft.dateIn.includes('__EMPTY__')) {
+                                        extraDraft.dateIn = ['__NONE__'];
+                                    }
+                                }
 
                                 yCb.checked = checkYearState();
                             };
@@ -1772,7 +1782,12 @@ export class SharedTable {
                                     delete extraDraft.start; delete extraDraft.end; delete extraDraft.operator; delete extraDraft.val1; delete extraDraft.val2;
 
                                     if (allDatesSelected()) delete extraDraft.dateIn;
-                                    else if (extraDraft.dateIn.length === 0) extraDraft.dateIn = ['__NONE__'];
+                                    else if (extraDraft.dateIn.filter(x => x !== '__EMPTY__').length === 0) {
+                                        // Only set __NONE__ if there are no dates AND no __EMPTY__
+                                        if (!extraDraft.dateIn.includes('__EMPTY__')) {
+                                            extraDraft.dateIn = ['__NONE__'];
+                                        }
+                                    }
 
                                     mCb.checked = checkMonthState();
                                     yCb.checked = checkYearState();
