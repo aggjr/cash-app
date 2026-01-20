@@ -1641,6 +1641,7 @@ export class SharedTable {
 
                     // Render Tree
                     Object.keys(tree).sort().reverse().forEach(year => { // Newest years first
+                        console.log('🔍 Processing Year Loop Item:', year);
                         const yObj = tree[year];
                         const yDiv = document.createElement('div');
                         yDiv.style.marginLeft = '0.5rem';
