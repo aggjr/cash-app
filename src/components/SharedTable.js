@@ -1832,13 +1832,17 @@ export class SharedTable {
                         const emptyCb = document.createElement('input'); emptyCb.type = 'checkbox';
                         emptyCb.className = 'val-cb-empty';
 
-                        const isChecked = !extraDraft.dateIn || extraDraft.dateIn.length === 0 || extraDraft.dateIn.includes('__EMPTY__');
+                        // CRITICAL FIX: Check dateIn state, not just if it's empty
+                        // If dateIn contains __NONE__, it means user unchecked "Select All" before this checkbox was created
+                        const isChecked = (!extraDraft.dateIn || extraDraft.dateIn.length === 0 || extraDraft.dateIn.includes('__EMPTY__'))
+                            && !extraDraft.dateIn?.includes('__NONE__');
                         console.log('🔍 Empty Checkbox Init:', {
                             colKey,
                             dateIn: extraDraft.dateIn,
                             dateInType: typeof extraDraft.dateIn,
                             dateInArray: Array.isArray(extraDraft.dateIn),
                             hasEmpty: extraDraft.dateIn ? extraDraft.dateIn.includes('__EMPTY__') : 'N/A',
+                            hasNone: extraDraft.dateIn ? extraDraft.dateIn.includes('__NONE__') : 'N/A',
                             isChecked
                         });
                         emptyCb.checked = isChecked;
