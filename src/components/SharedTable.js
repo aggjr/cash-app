@@ -1866,6 +1866,17 @@ export class SharedTable {
                         });
                         emptyCb.checked = isChecked;
 
+                        // CRITICAL FIX: If there are no dates in the tree (only Empty option available)
+                        // and it is checked, we MUST ensure __EMPTY__ is explicitly in extraDraft.
+                        // Otherwise, "extraDraft" remains empty/undefined, effectively meaning "Select All" (No Filter),
+                        // which might define "All" differently than "Only Empty" if there are hidden non-null dates.
+                        const treeHasDates = Object.keys(tree).length > 0;
+                        if (!treeHasDates && isChecked && (!extraDraft.dateIn || extraDraft.dateIn.length === 0)) {
+                            if (!extraDraft.dateIn) extraDraft.dateIn = [];
+                            extraDraft.dateIn.push('__EMPTY__');
+                            console.log('🟣 Auto-initializing empty-only filter:', extraDraft.dateIn);
+                        }
+
                         emptyCb.onclick = (e) => {
                             e.stopPropagation();
                             console.log('🟣 Empty checkbox clicked:', { checked: e.target.checked, currentDateIn: extraDraft.dateIn });
