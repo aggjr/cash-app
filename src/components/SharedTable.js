@@ -833,7 +833,9 @@ export class SharedTable {
             if (isEmpty) {
                 delete this.activeFilters[colKey];
             } else {
+                console.log('🟢 BEFORE SAVE - extraDraft.dateIn:', extraDraft.dateIn);
                 this.activeFilters[colKey] = extraDraft;
+                console.log('🟢 AFTER SAVE - activeFilters[' + colKey + '].dateIn:', this.activeFilters[colKey].dateIn);
             }
 
             console.group('🔍 SharedTable Filter Debug');
