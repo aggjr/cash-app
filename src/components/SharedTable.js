@@ -1697,6 +1697,13 @@ export class SharedTable {
                             // Clear Operators
                             delete extraDraft.start; delete extraDraft.end; delete extraDraft.operator; delete extraDraft.val1; delete extraDraft.val2;
 
+                            // CRITICAL FIX: Check if empty checkbox is checked (it might be created later)
+                            // If it's checked, ensure __EMPTY__ is in dateIn before checking for __NONE__
+                            const emptyCb = listContainer.querySelector('.val-cb-empty');
+                            if (emptyCb && emptyCb.checked && !extraDraft.dateIn.includes('__EMPTY__')) {
+                                extraDraft.dateIn.push('__EMPTY__');
+                            }
+
                             if (allDatesSelected()) delete extraDraft.dateIn;
                             else if (extraDraft.dateIn.filter(x => x !== '__EMPTY__').length === 0) {
                                 // Only set __NONE__ if there are no dates AND no __EMPTY__
