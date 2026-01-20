@@ -63,22 +63,31 @@ exports.listIncomes = async (req, res, next) => {
                 let dates = Array.isArray(req.query[listParam]) ? req.query[listParam] : [req.query[listParam]];
                 const hasEmpty = dates.includes('__EMPTY__');
 
+                console.log(`DEBUG FILTER [${field}]: hasEmpty=${hasEmpty}, dates before filter:`, dates);
+
                 if (hasEmpty) {
                     dates = dates.filter(d => d !== '__EMPTY__');
                 }
 
+                console.log(`DEBUG FILTER [${field}]: dates after filter:`, dates, `length=${dates.length}`);
+
                 if (dates.length > 0) {
                     if (hasEmpty) {
                         // Include NULL, 0000-00-00, empty string, and invalid dates (DATE() returns NULL)
-                        whereClauses.push(`(DATE(e.${field}) IN (?) OR e.${field} IS NULL OR e.${field} = '0000-00-00' OR e.${field} = '' OR DATE(e.${field}) IS NULL)`);
+                        const clause = `(DATE(e.${field}) IN (?) OR e.${field} IS NULL OR e.${field} = '0000-00-00' OR e.${field} = '' OR DATE(e.${field}) IS NULL)`;
+                        console.log(`DEBUG FILTER [${field}]: Adding clause (with dates + empty):`, clause);
+                        whereClauses.push(clause);
                         params.push(dates);
                     } else {
-                        whereClauses.push(`DATE(e.${field}) IN (?)`);
+                        const clause = `DATE(e.${field}) IN (?)`;
+                        console.log(`DEBUG FILTER [${field}]: Adding clause (dates only):`, clause);
+                        whereClauses.push(clause);
                         params.push(dates);
                     }
                 } else if (hasEmpty) {
-                    console.log(`DEBUG FILTER [${field}]: Only Empty selected. Adding clause: (e.${field} IS NULL...)`);
-                    whereClauses.push(`(e.${field} IS NULL OR e.${field} = '0000-00-00' OR e.${field} = '' OR DATE(e.${field}) IS NULL)`);
+                    const clause = `(e.${field} IS NULL OR e.${field} = '0000-00-00' OR e.${field} = '' OR DATE(e.${field}) IS NULL)`;
+                    console.log(`DEBUG FILTER [${field}]: Only Empty selected. Adding clause:`, clause);
+                    whereClauses.push(clause);
                 }
             }
         };
