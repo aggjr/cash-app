@@ -507,6 +507,13 @@ export const LeadModal = {
             const nomeInputRef = modal.querySelector('#lead-nome');
             const emailInputRef = modal.querySelector('#lead-email');
             const telefoneInputRef = modal.querySelector('#lead-telefone');
+            telefoneInputRef.onblur = () => {
+                let val = telefoneInputRef.value.replace(/\D/g, '');
+                if (val.length === 10 || val.length === 11) {
+                    val = '55' + val;
+                }
+                telefoneInputRef.value = val;
+            };
             const observacoesInputRef = modal.querySelector('#lead-observacoes');
             const saveBtn = modal.querySelector('#modal-save');
             const cancelBtn = modal.querySelector('#modal-cancel');

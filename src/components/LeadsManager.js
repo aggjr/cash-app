@@ -81,7 +81,23 @@ export const LeadsManager = (project) => {
             },
             { key: 'nome', label: 'Nome', width: '300px', align: 'left', type: 'text', sticky: true }, // Fixed
             { key: 'email', label: 'E-mail', width: '200px', align: 'left', type: 'text' },
-            { key: 'telefone', label: 'Telefone', width: '150px', align: 'left', type: 'text' },
+            {
+                key: 'telefone',
+                label: 'Telefone',
+                width: '150px',
+                align: 'left',
+                type: 'text',
+                render: (item) => {
+                    const phone = item.telefone;
+                    if (!phone) return '-';
+                    // Visually prepend 55 if missing (simple check for length/digits)
+                    const clean = phone.replace(/\D/g, '');
+                    if ((clean.length === 10 || clean.length === 11) && !clean.startsWith('55')) {
+                        return `55${clean}`;
+                    }
+                    return phone;
+                }
+            },
             {
                 key: 'grupos_nomes',
                 label: 'Grupos',
