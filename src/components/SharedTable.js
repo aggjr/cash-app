@@ -264,8 +264,19 @@ export class SharedTable {
 
                     // --- Date ---
                     if (type === 'date') {
+                        // CRITICAL FIX: Handle Empty Dates in Client-Side Filter
+                        const isEmpty = !cellVal || cellVal === '0000-00-00' || cellVal === '';
+                        if (isEmpty) {
+                            // If filtering explicitly includes __EMPTY__, keep this row
+                            if (filter.dateIn && filter.dateIn.includes('__EMPTY__')) return true;
+                            // If filtering by dates but __EMPTY__ is NOT included -> Exclude
+                            if (filter.dateIn && filter.dateIn.length > 0) return false;
+                            // If using operators (eq, before, after) -> Exclude empty dates
+                            if (filter.operator) return false;
+                            return false; // Default exclude if filter is active but doesn't match empty
+                        }
+
                         let dateStr = '';
-                        if (!cellVal) return false;
                         // Normalize to YYYY-MM-DD
                         if (typeof cellVal === 'string' && cellVal.includes('T')) dateStr = cellVal.split('T')[0];
                         else if (cellVal instanceof Date) dateStr = cellVal.toISOString().split('T')[0];
