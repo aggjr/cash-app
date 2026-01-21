@@ -6,6 +6,8 @@ class EvolutionApiService {
         this.apiKey = process.env.EVOLUTION_API_KEY || '';
         this.instanceName = 'Cash';
 
+        console.log('EvolutionApiService Initialized with URL:', this.baseUrl);
+
         if (!process.env.EVOLUTION_API_URL) {
             console.warn('⚠️ WARNING: EVOLUTION_API_URL not set. Using default:', this.baseUrl);
         }
