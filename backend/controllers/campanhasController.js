@@ -366,7 +366,36 @@ exports.sendSingle = async (req, res) => {
                 return res.status(400).json({ error: 'Lead sem telefone cadastrado' });
             }
 
-            const text = replaceVariables(campanha.whatsapp_text);
+            const convertHtmlToWhatsapp = (html) => {
+                if (!html) return '';
+                let text = html;
+
+                // Replace breaks/paragraphs with newlines
+                text = text.replace(/<br\s*\/?>/gi, '\n');
+                text = text.replace(/<\/p>/gi, '\n\n');
+                text = text.replace(/<\/div>/gi, '\n');
+
+                // Bold
+                text = text.replace(/<(b|strong)>(.*?)<\/\1>/gi, '*$2*');
+
+                // Italic
+                text = text.replace(/<(i|em)>(.*?)<\/\1>/gi, '_$2_');
+
+                // Strip all other tags
+                text = text.replace(/<[^>]+>/g, '');
+
+                // Decode entities (basic)
+                text = text.replace(/&nbsp;/g, ' ');
+                text = text.replace(/&amp;/g, '&');
+                text = text.replace(/&lt;/g, '<');
+                text = text.replace(/&gt;/g, '>');
+
+                return text.trim();
+            };
+
+            const rawText = replaceVariables(campanha.whatsapp_text);
+            const text = convertHtmlToWhatsapp(rawText);
+
             await evolutionService.sendMessage(lead.telefone, text);
             success = true;
         } else {
