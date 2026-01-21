@@ -210,11 +210,22 @@ export class SharedTable {
 
                     // --- Number/Currency ---
                     if (type === 'number' || type === 'currency') {
-                        const num = parseFloat(cellVal);
-                        if (isNaN(num)) return false;
+                        const cellNum = parseFloat(cellVal);
+                        const isEmpty = isNaN(cellNum) || cellVal === null || cellVal === '';
+
+                        if (isEmpty) {
+                            // If filtering explicitly includes Empty (-999999), keep it
+                            if (filter.numIn && filter.numIn.includes(-999999)) return true;
+                            // If filtering active but Empty not selected -> Exclude
+                            if ((filter.numIn && filter.numIn.length > 0) || filter.operator) return false;
+                            return false;
+                        }
+
+                        const num = cellNum;
 
                         // List Checkbox Filter
-                        if (filter.numIn?.length > 0 && !filter.numIn.includes(-999999)) {
+                        if (filter.numIn?.length > 0) {
+                            // Must match one of the selected numbers (excluding the empty token)
                             if (!filter.numIn.includes(num)) return false;
                         }
 
@@ -241,10 +252,18 @@ export class SharedTable {
 
                     // --- Text ---
                     if (type === 'text') {
+                        const isEmpty = !cellVal || cellVal === '';
+
+                        if (isEmpty) {
+                            if (filter.textIn && filter.textIn.includes('__NONE__')) return true;
+                            if ((filter.textIn && filter.textIn.length > 0) || filter.operator) return false;
+                            return false;
+                        }
+
                         const txt = String(cellVal || '').toLowerCase();
 
                         // List Checkbox Filter
-                        if (filter.textIn?.length > 0 && !filter.textIn.includes('__NONE__')) {
+                        if (filter.textIn?.length > 0) {
                             // Check against raw value provided in list
                             if (!filter.textIn.includes(cellVal)) return false;
                         }
