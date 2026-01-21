@@ -37,15 +37,7 @@ exports.listIncomes = async (req, res, next) => {
     try {
         const { projectId, page = 1, limit = 50, search, startDate, endDate, minValue, maxValue } = req.query;
 
-        if (projectId) {
-            // DEBUG: Check what is actually in the DB for this column AND Project
-            const [debugCols] = await db.query("SHOW COLUMNS FROM entradas LIKE 'data_real_recebimento'");
-            const [debugVals] = await db.query("SELECT DISTINCT data_real_recebimento, CAST(data_real_recebimento AS CHAR) as as_char FROM entradas WHERE project_id = ? AND active = 1 ORDER BY data_real_recebimento LIMIT 20", [projectId]);
-            console.log('DEBUG DISTINCT DATES (data_real_recebimento) for Project ' + projectId + ':', {
-                type: debugCols[0]?.Type,
-                values: debugVals
-            });
-        }
+
 
         if (!projectId) {
             throw new AppError('VAL-002', 'Project ID is required');
