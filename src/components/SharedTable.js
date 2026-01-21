@@ -1,4 +1,5 @@
 import { getApiBaseUrl } from '../utils/apiConfig.js';
+import { attachCurrencyMask } from '../utils/currencyMask.js';
 
 export class SharedTable {
     constructor({ container, columns, projectId, endpointPrefix, onFilterChange, onSortChange, enableSelection, onSelectionChange, headerRow, footerRow, summaryLabels, enabled = true }) {
@@ -999,30 +1000,50 @@ export class SharedTable {
                         }
                     }
                 };
-                listSearch.oninput = (e) => {
-                    if (listView.style.display === 'none') return; // Ignore if hidden
+                if (colType === 'currency') {
+                    attachCurrencyMask(listSearch, () => {
+                        // Smart Update
+                        const term = listSearch.value;
+                        // parse from formatted
+                        const clean = term.replace(/\./g, '').replace(',', '.');
+                        const val = parseFloat(clean);
 
-                    const term = e.target.value.toLowerCase();
-
-                    // Smart Behavior: Update draft state if it looks like a number
-                    const val = parseFloat(term.replace(',', '.'));
-                    if (!isNaN(val) && term.trim() !== '') {
-                        extraDraft.operator = 'eq';
-                        extraDraft.val1 = val;
-                        // We don't delete numIn here yet, to allow checkbox interactions still
-                    } else {
-                        // If cleared, remove operator if it was 'eq'
-                        if (extraDraft.operator === 'eq') {
-                            delete extraDraft.operator;
-                            delete extraDraft.val1;
+                        if (!isNaN(val)) {
+                            extraDraft.operator = 'eq';
+                            extraDraft.val1 = val;
+                        } else {
+                            if (extraDraft.operator === 'eq') {
+                                delete extraDraft.operator;
+                                delete extraDraft.val1;
+                            }
                         }
-                    }
-
-                    listContainer.querySelectorAll('.val-row').forEach(row => {
-                        const txt = row.textContent.toLowerCase();
-                        row.style.display = txt.includes(term) ? 'flex' : 'none';
                     });
-                };
+                } else {
+                    listSearch.oninput = (e) => {
+                        if (listView.style.display === 'none') return; // Ignore if hidden
+
+                        const term = e.target.value.toLowerCase();
+
+                        // Smart Behavior: Update draft state if it looks like a number
+                        const val = parseFloat(term.replace(',', '.'));
+                        if (!isNaN(val) && term.trim() !== '') {
+                            extraDraft.operator = 'eq';
+                            extraDraft.val1 = val;
+                            // We don't delete numIn here yet, to allow checkbox interactions still
+                        } else {
+                            // If cleared, remove operator if it was 'eq'
+                            if (extraDraft.operator === 'eq') {
+                                delete extraDraft.operator;
+                                delete extraDraft.val1;
+                            }
+                        }
+
+                        listContainer.querySelectorAll('.val-row').forEach(row => {
+                            const txt = row.textContent.toLowerCase();
+                            row.style.display = txt.includes(term) ? 'flex' : 'none';
+                        });
+                    };
+                }
                 listView.appendChild(listSearch);
 
                 // List Filter
@@ -1258,20 +1279,23 @@ export class SharedTable {
                     const v = parseFloat(raw);
                     if (!isNaN(v)) {
                         extraDraft.val1 = v;
-                        // Optional: reformat input to verify
-                        // input1.value = v.toLocaleString('pt-BR', { minimumFractionDigits: 2 });
                     } else {
                         extraDraft.val1 = raw;
                     }
                     // Clear List
                     delete extraDraft.numIn;
                 };
-                input1.oninput = updateVal1;
-                input1.onblur = () => {
-                    if (extraDraft.val1 && !isNaN(extraDraft.val1)) {
-                        input1.value = parseFloat(extraDraft.val1).toLocaleString('pt-BR', { minimumFractionDigits: 2 });
-                    }
-                };
+
+                if (colType === 'currency') {
+                    attachCurrencyMask(input1, updateVal1);
+                } else {
+                    input1.oninput = updateVal1;
+                    input1.onblur = () => {
+                        if (extraDraft.val1 && !isNaN(extraDraft.val1)) {
+                            input1.value = parseFloat(extraDraft.val1).toLocaleString('pt-BR', { minimumFractionDigits: 2 });
+                        }
+                    };
+                }
 
                 // Input 2
                 const input2 = document.createElement('input');
@@ -1300,12 +1324,17 @@ export class SharedTable {
                     // Clear List
                     delete extraDraft.numIn;
                 };
-                input2.oninput = updateVal2;
-                input2.onblur = () => {
-                    if (extraDraft.val2 && !isNaN(extraDraft.val2)) {
-                        input2.value = parseFloat(extraDraft.val2).toLocaleString('pt-BR', { minimumFractionDigits: 2 });
-                    }
-                };
+
+                if (colType === 'currency') {
+                    attachCurrencyMask(input2, updateVal2);
+                } else {
+                    input2.oninput = updateVal2;
+                    input2.onblur = () => {
+                        if (extraDraft.val2 && !isNaN(extraDraft.val2)) {
+                            input2.value = parseFloat(extraDraft.val2).toLocaleString('pt-BR', { minimumFractionDigits: 2 });
+                        }
+                    };
+                }
 
                 opSelect.addEventListener('change', (e) => {
                     input2.style.display = (e.target.value === 'between') ? 'block' : 'none';

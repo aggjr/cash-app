@@ -1,6 +1,7 @@
 ﻿import { TreeSelector } from './TreeSelector.js';
 import { getApiBaseUrl } from '../utils/apiConfig.js';
 import { createTreeManager } from './GenericTreeManager.js';
+import { attachCurrencyMask, formatFloatToCurrency, parseCurrency } from '../utils/currencyMask.js';
 
 export const ProducaoRevendaModal = {
     show({ producaoRevenda = null, projectId, onSave, onCancel }) {
@@ -266,11 +267,14 @@ export const ProducaoRevendaModal = {
                         </div>
                     </div>
                     <!-- Footer with Z-Index ensure -->
-                    <div class="account-modal-footer" style="padding: 1rem; position: relative; z-index: 100;">
-                        <button class="btn-secondary" id="modal-cancel" type="button">Cancelar</button>
-                        <button class="btn-primary" id="modal-save" type="button">
-                            ${isEdit ? 'Salvar Alterações' : 'Criar Entrada'}
-                        </button>
+                    <div class="account-modal-footer" style="padding: 1rem; position: relative; z-index: 100; display: flex; justify-content: space-between; align-items: center;">
+                        <span style="font-size: 0.75rem; color: #9CA3AF;">v0.9.11</span>
+                        <div style="display: flex; gap: 0.5rem;">
+                            <button class="btn-secondary" id="modal-cancel" type="button">Cancelar</button>
+                            <button class="btn-primary" id="modal-save" type="button">
+                                ${isEdit ? 'Salvar Alterações' : 'Criar Entrada'}
+                            </button>
+                        </div>
                     </div>
                 `;
 
@@ -426,51 +430,14 @@ export const ProducaoRevendaModal = {
                 renderTree();
 
                 // Currency formatting strategies
-                const formatFloat = (num) => {
-                    let str = Number(num).toFixed(2).replace('.', ',');
-                    str = str.replace(/(\d)(?=(\d{3})+(?!\d))/g, '$1.');
-                    return 'R$ ' + str;
-                };
 
-                const parseCurrency = (str) => {
-                    if (!str) return 0;
-                    // Works for both "R$ 1.000,00" and "1000,00"
-                    let clean = str.replace(/[^0-9,-]+/g, "");
-                    clean = clean.replace(',', '.');
-                    return parseFloat(clean) || 0;
-                };
 
                 if (producaoRevenda?.valor !== undefined && producaoRevenda?.valor !== null) {
-                    valorInput.value = formatFloat(Number(producaoRevenda.valor));
+                    valorInput.value = formatFloatToCurrency(producaoRevenda.valor);
                 }
 
-                // On Focus: Show raw value for easy editing
-                valorInput.addEventListener('focus', (e) => {
-                    let val = e.target.value;
-                    val = val.replace('R$', '').trim();
-                    val = val.replace(/\./g, '');
-                    e.target.value = val;
-                });
-
-                // On Blur: Format back to Currency
-                valorInput.addEventListener('blur', (e) => {
-                    let val = e.target.value;
-                    if (val === '' || val === '-') {
-                        e.target.value = '';
-                    } else {
-                        let num = parseCurrency(val);
-                        e.target.value = formatFloat(num);
-                    }
-                    validate();
-                });
-
-                // On Input: Allow valid characters only
-                valorInput.addEventListener('input', (e) => {
-                    let val = e.target.value;
-                    let clean = val.replace(/[^0-9,-]/g, '');
-                    if (clean !== val) e.target.value = clean;
-                    validate();
-                });
+                // Apply Currency Mask
+                attachCurrencyMask(valorInput, validate);
 
                 // Installment Fields Toggle Logic
                 const toggleInstallmentFields = () => {

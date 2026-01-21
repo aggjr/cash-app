@@ -1,6 +1,7 @@
 import { TreeSelector } from './TreeSelector.js';
 import { getApiBaseUrl } from '../utils/apiConfig.js';
 import { createTreeManager } from './GenericTreeManager.js';
+import { attachCurrencyMask, formatFloatToCurrency, parseCurrency } from '../utils/currencyMask.js';
 
 export const IncomeModal = {
     show({ income = null, projectId, onSave, onCancel }) {
@@ -329,11 +330,14 @@ export const IncomeModal = {
                         </div>
                     </div>
                     <!-- Footer with Z-Index ensure -->
-                    <div class="account-modal-footer" style="padding: 1rem; position: relative; z-index: 100;">
-                        <button class="btn-secondary" id="modal-cancel" type="button">Cancelar</button>
-                        <button class="btn-primary" id="modal-save" type="button">
-                            ${isEdit ? 'Salvar Alterações' : 'Criar Entrada'}
-                        </button>
+                    <div class="account-modal-footer" style="padding: 1rem; position: relative; z-index: 100; display: flex; justify-content: space-between; align-items: center;">
+                        <span style="font-size: 0.75rem; color: #9CA3AF;">v0.9.11</span>
+                        <div style="display: flex; gap: 0.5rem;">
+                            <button class="btn-secondary" id="modal-cancel" type="button">Cancelar</button>
+                            <button class="btn-primary" id="modal-save" type="button">
+                                ${isEdit ? 'Salvar Alterações' : 'Criar Entrada'}
+                            </button>
+                        </div>
                     </div>
                 `;
 
@@ -501,19 +505,9 @@ export const IncomeModal = {
                 renderTree();
 
                 // Currency formatting strategies
-                const formatFloat = (num) => {
-                    let str = Number(num).toFixed(2).replace('.', ',');
-                    str = str.replace(/(\d)(?=(\d{3})+(?!\d))/g, '$1.');
-                    return 'R$ ' + str;
-                };
 
-                const parseCurrency = (str) => {
-                    if (!str) return 0;
-                    // Works for both "R$ 1.000,00" and "1000,00"
-                    let clean = str.replace(/[^0-9,-]+/g, "");
-                    clean = clean.replace(',', '.');
-                    return parseFloat(clean) || 0;
-                };
+
+
 
                 // Helper: Adjust input width to fit content
                 const adjustInputWidth = () => {
@@ -553,7 +547,7 @@ export const IncomeModal = {
 
                 // Set valor - always show individual record value
                 if (income?.valor !== undefined && income?.valor !== null) {
-                    valorInput.value = formatFloat(Number(income.valor));
+                    valorInput.value = formatFloatToCurrency(income.valor);
                 }
 
                 // Wrapper Click to Focus
@@ -564,101 +558,34 @@ export const IncomeModal = {
                 }
 
                 // On Focus: Show raw value for easy editing
+                // On Focus: Highlight wrapper
                 valorInput.addEventListener('focus', (e) => {
                     if (valorWrapper) {
                         valorWrapper.style.borderColor = 'var(--color-primary)';
                         valorWrapper.style.boxShadow = '0 0 0 3px rgba(59, 130, 246, 0.1)';
                     }
-
-                    let val = e.target.value;
-                    val = val.replace('R$', '').trim();
-                    val = val.replace(/\./g, ''); // Remove thousands separator
-                    e.target.value = val;
-
-                    adjustInputWidth();
-                    updateSuffix();
+                    // Move cursor to end
+                    setTimeout(() => {
+                        e.target.selectionStart = e.target.selectionEnd = e.target.value.length;
+                    }, 0);
                 });
 
-                // On Blur: Format back to Currency
+                // On Blur: Validate
                 valorInput.addEventListener('blur', (e) => {
                     if (valorWrapper) {
-                        valorWrapper.style.borderColor = ''; // Clear inline to let class (error/default) rule
+                        valorWrapper.style.borderColor = '';
                         valorWrapper.style.boxShadow = '';
                     }
-
-                    let val = e.target.value;
-                    if (val === '' || val === '-') {
-                        e.target.value = '';
-                    } else {
-                        let num = parseCurrency(val);
-                        e.target.value = formatFloat(num);
-                    }
-
-                    // Reset to full width for placeholder or formatted view
                     valorInput.style.width = '100%';
-                    updateSuffix(); // Will hide suffix because of R$ or comma
                     validate();
                 });
 
-                // On Input: Allow valid characters only
-                // On Input: Allow valid characters only
-                valorInput.addEventListener('keydown', (e) => {
-                    // Intercept dot (.) or NumpadDecimal to insert comma
-                    if (e.key === '.' || e.key === 'Decimal') {
-                        e.preventDefault();
-                        const start = e.target.selectionStart;
-                        const end = e.target.selectionEnd;
-                        const val = e.target.value;
-
-                        // Insert comma at cursor
-                        e.target.value = val.substring(0, start) + ',' + val.substring(end);
-                        e.target.selectionStart = e.target.selectionEnd = start + 1;
-
-                        // Dispatch input event to trigger formatting logic
-                        e.target.dispatchEvent(new Event('input'));
-                    }
-                });
-
-                valorInput.addEventListener('input', (e) => {
-                    let val = e.target.value;
-
-                    // Remove all non-numeric and non-comma characters (including existing periods)
-                    // We rebuild periods dynamically
-                    let clean = val.replace(/[^0-9,]/g, '');
-
-                    // Prevent multiple commas: keep only the first one found
-                    const parts = clean.split(',');
-                    if (parts.length > 2) {
-                        clean = parts[0] + ',' + parts.slice(1).join('');
-                    }
-
-                    // Format Integer Part with Thousands Separator
-                    const commaIndex = clean.indexOf(',');
-                    if (commaIndex !== -1) {
-                        const integerPart = clean.substring(0, commaIndex);
-                        const decimalPart = clean.substring(commaIndex);
-                        // Format integer part
-                        const formattedInt = integerPart.replace(/\B(?=(\d{3})+(?!\d))/g, ".");
-                        clean = formattedInt + decimalPart;
-                    } else {
-                        // No comma yet, just format integers
-                        clean = clean.replace(/\B(?=(\d{3})+(?!\d))/g, ".");
-                    }
-
-                    if (clean !== val) {
-                        // Restore cursor position strategy (simple: end if appending, smart if editing)
-                        // For simplicity in this iteration:
-                        e.target.value = clean;
-                    }
-
+                // Apply Currency Mask
+                attachCurrencyMask(valorInput, () => {
                     adjustInputWidth();
                     updateSuffix();
                     validate();
                 });
-
-
-
-                // Installment Fields Toggle Logic
                 const toggleInstallmentFields = () => {
                     const type = installmentTypeSelect.value;
                     const showFields = (type === 'dividir' || type === 'replicar');

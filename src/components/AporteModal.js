@@ -1,5 +1,6 @@
 import { Dialogs } from './Dialogs.js';
 import { getApiBaseUrl } from '../utils/apiConfig.js';
+import { attachCurrencyMask, formatFloatToCurrency, parseCurrency } from '../utils/currencyMask.js';
 // Refresh Sync
 
 export const AporteModal = {
@@ -148,9 +149,12 @@ export const AporteModal = {
 
                         </div>
                     </div>
-                    <div class="dialog-footer">
-                        <button class="btn-secondary" id="btn-cancel">Cancelar</button>
-                        <button class="btn-primary" id="btn-save">${isEdit ? 'Salvar Alterações' : 'Criar Aporte'}</button>
+                    <div class="dialog-footer" style="display: flex; justify-content: space-between; align-items: center;">
+                        <span style="font-size: 0.75rem; color: #9CA3AF;">v0.9.11</span>
+                        <div>
+                           <button class="btn-secondary" id="btn-cancel">Cancelar</button>
+                           <button class="btn-primary" id="btn-save">${isEdit ? 'Salvar Alterações' : 'Criar Aporte'}</button>
+                        </div>
                     </div>
                 `;
 
@@ -179,47 +183,16 @@ export const AporteModal = {
                 const placeholderText = modal.querySelector('#placeholder-text');
 
                 // Currency Helpers
-                const formatFloat = (num) => {
-                    let str = Number(num).toFixed(2).replace('.', ',');
-                    str = str.replace(/(\d)(?=(\d{3})+(?!\d))/g, '$1.');
-                    return 'R$ ' + str;
-                };
 
-                const parseCurrency = (str) => {
-                    if (!str) return 0;
-                    let clean = str.replace(/[^0-9,-]+/g, "");
-                    clean = clean.replace(',', '.');
-                    return parseFloat(clean) || 0;
-                };
 
                 // Initialize Valor if present
                 if (aporte?.valor !== undefined && aporte?.valor !== null) {
-                    valorInput.value = formatFloat(Number(aporte.valor));
+                    valorInput.value = formatFloatToCurrency(aporte.valor);
                 }
 
                 // Currency Event Listeners
-                valorInput.addEventListener('focus', (e) => {
-                    let val = e.target.value;
-                    val = val.replace('R$', '').trim();
-                    val = val.replace(/\./g, '');
-                    e.target.value = val;
-                });
-
-                valorInput.addEventListener('blur', (e) => {
-                    let val = e.target.value;
-                    if (val === '' || val === '-') {
-                        e.target.value = '';
-                    } else {
-                        let num = parseCurrency(val);
-                        e.target.value = formatFloat(num);
-                    }
-                });
-
-                valorInput.addEventListener('input', (e) => {
-                    let val = e.target.value;
-                    let clean = val.replace(/[^0-9,-]/g, '');
-                    if (clean !== val) e.target.value = clean;
-                });
+                // Apply Currency Mask
+                attachCurrencyMask(valorInput);
 
                 // Toggle Account Logic
                 const toggleAccountState = () => {
