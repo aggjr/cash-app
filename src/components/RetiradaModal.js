@@ -309,10 +309,10 @@ export const RetiradaModal = {
                     const active = isEdit ? (modal.querySelector('#retirada-active').checked ? 1 : 0) : 1;
 
                     let isValid = true;
-                    if (!dataFato) { modal.querySelector('#retirada-fato').classList.add('input-error'); isValid = false; }
-                    if (!dataPrevista) { modal.querySelector('#retirada-prevista').classList.add('input-error'); isValid = false; }
-                    if (!valor) { valorInput.classList.add('input-error'); isValid = false; }
-                    if (!companyId) { modal.querySelector('#retirada-company').classList.add('input-error'); isValid = false; }
+                    if (!dataFato) { modal.querySelector('#retirada-fato').classList.add('input-error'); isValid = false; } else modal.querySelector('#retirada-fato').classList.remove('input-error');
+                    if (!dataPrevista) { modal.querySelector('#retirada-prevista').classList.add('input-error'); isValid = false; } else modal.querySelector('#retirada-prevista').classList.remove('input-error');
+                    if (!valor) { valorInput.classList.add('input-error'); isValid = false; } else valorInput.classList.remove('input-error');
+                    if (!companyId) { modal.querySelector('#retirada-company').classList.add('input-error'); isValid = false; } else modal.querySelector('#retirada-company').classList.remove('input-error');
 
                     if (dataReal && !accountId) {
                         accountSelect.classList.add('input-error'); isValid = false;

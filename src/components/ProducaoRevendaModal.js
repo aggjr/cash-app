@@ -312,7 +312,7 @@ export const ProducaoRevendaModal = {
                     let isValid = true;
                     if (!dataFatoInput.value) { dataFatoInput.classList.add('input-error'); isValid = false; } else dataFatoInput.classList.remove('input-error');
                     if (!dataPrevistaInput.value) { dataPrevistaInput.classList.add('input-error'); isValid = false; } else dataPrevistaInput.classList.remove('input-error');
-                    if (!valorInput.value) { valorInput.classList.add('input-error'); isValid = false; } else valorInput.classList.remove('input-error');
+                    if (!parseCurrency(valorInput.value)) { valorInput.classList.add('input-error'); isValid = false; } else valorInput.classList.remove('input-error');
                     if (!descricaoInput.value || !descricaoInput.value.trim()) {
                         descricaoInput.classList.add('input-error');
                         isValid = false;

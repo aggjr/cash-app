@@ -380,9 +380,10 @@ export const IncomeModal = {
                     let isValid = true;
                     if (!dataFatoInput.value) { dataFatoInput.classList.add('input-error'); isValid = false; } else dataFatoInput.classList.remove('input-error');
                     if (!dataPrevistaInput.value) { dataPrevistaInput.classList.add('input-error'); isValid = false; } else dataPrevistaInput.classList.remove('input-error');
-                    if (!valorInput.value) {
+                    const valorParsed = parseCurrency(valorInput.value);
+                    if (!valorParsed || valorParsed <= 0) {
                         if (valorWrapper) valorWrapper.classList.add('input-error');
-                        valorInput.classList.remove('input-error');
+                        valorInput.classList.remove('input-error'); // wrapper has the border
                         isValid = false;
                     } else {
                         if (valorWrapper) valorWrapper.classList.remove('input-error');
