@@ -601,29 +601,62 @@ export const IncomeModal = {
                 });
 
                 // On Input: Allow valid characters only
+                // On Input: Allow valid characters only
+                valorInput.addEventListener('keydown', (e) => {
+                    // Intercept dot (.) or NumpadDecimal to insert comma
+                    if (e.key === '.' || e.key === 'Decimal') {
+                        e.preventDefault();
+                        const start = e.target.selectionStart;
+                        const end = e.target.selectionEnd;
+                        const val = e.target.value;
+
+                        // Insert comma at cursor
+                        e.target.value = val.substring(0, start) + ',' + val.substring(end);
+                        e.target.selectionStart = e.target.selectionEnd = start + 1;
+
+                        // Dispatch input event to trigger formatting logic
+                        e.target.dispatchEvent(new Event('input'));
+                    }
+                });
+
                 valorInput.addEventListener('input', (e) => {
                     let val = e.target.value;
 
-                    // Replace dot with comma (Smart Type)
-                    if (val.includes('.')) {
-                        val = val.replace(/\./g, ',');
-                    }
-
-                    // Allow numbers and comma only
+                    // Remove all non-numeric and non-comma characters (including existing periods)
+                    // We rebuild periods dynamically
                     let clean = val.replace(/[^0-9,]/g, '');
 
-                    // Prevent multiple commas
+                    // Prevent multiple commas: keep only the first one found
                     const parts = clean.split(',');
                     if (parts.length > 2) {
                         clean = parts[0] + ',' + parts.slice(1).join('');
                     }
 
-                    if (clean !== val) e.target.value = clean;
+                    // Format Integer Part with Thousands Separator
+                    const commaIndex = clean.indexOf(',');
+                    if (commaIndex !== -1) {
+                        const integerPart = clean.substring(0, commaIndex);
+                        const decimalPart = clean.substring(commaIndex);
+                        // Format integer part
+                        const formattedInt = integerPart.replace(/\B(?=(\d{3})+(?!\d))/g, ".");
+                        clean = formattedInt + decimalPart;
+                    } else {
+                        // No comma yet, just format integers
+                        clean = clean.replace(/\B(?=(\d{3})+(?!\d))/g, ".");
+                    }
+
+                    if (clean !== val) {
+                        // Restore cursor position strategy (simple: end if appending, smart if editing)
+                        // For simplicity in this iteration:
+                        e.target.value = clean;
+                    }
 
                     adjustInputWidth();
                     updateSuffix();
                     validate();
                 });
+
+
 
                 // Installment Fields Toggle Logic
                 const toggleInstallmentFields = () => {
