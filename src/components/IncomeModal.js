@@ -175,8 +175,12 @@ export const IncomeModal = {
 
                             <div class="form-group" style="grid-column: span 2;">
                                 <label for="income-valor">Valor (R$) ${isBulkEdit ? '' : '<span class="required">*</span>'} ${isInstallment ? '<span style="font-size: 0.75rem; color: #6B7280; font-weight: normal;">(Desta Parcela)</span>' : ''}</label>
-                                <input type="text" id="income-valor" class="form-input" 
-                                    placeholder="${isBulkEdit ? 'Deixe em branco para manter' : 'R$ 0,00'}" ${isBulkEdit ? '' : 'required'} />
+                                <div id="income-valor-wrapper" class="form-input" style="display: flex; align-items: center; background: white; cursor: text; padding: 0.5rem 0.75rem; transition: all 0.2s; border: 1px solid #D1D5DB; border-radius: 6px;">
+                                    <input type="text" id="income-valor" 
+                                        style="border: none; outline: none; padding: 0; margin: 0; flex: 0 1 auto; min-width: 10px; font-family: inherit; font-size: inherit; color: inherit; background: transparent; width: 100%;"
+                                        placeholder="${isBulkEdit ? 'Deixe em branco para manter' : 'R$ 0,00'}" ${isBulkEdit ? '' : 'required'} />
+                                    <span id="income-valor-suffix" style="color: #9CA3AF; pointer-events: none; margin-left: 0; user-select: none; display: none;">,00</span>
+                                </div>
                             </div>
 
                             <div class="form-group" style="grid-column: span 2;">
@@ -342,6 +346,8 @@ export const IncomeModal = {
                 const dataRealInput = modal.querySelector('#income-data-real');
                 const dataAtrasoInput = modal.querySelector('#income-data-atraso');
                 const valorInput = modal.querySelector('#income-valor');
+                const valorWrapper = modal.querySelector('#income-valor-wrapper');
+                const valorSuffix = modal.querySelector('#income-valor-suffix');
                 const installmentTypeSelect = modal.querySelector('#income-installment-type');
                 const installmentCountInput = modal.querySelector('#income-installment-count');
                 const installmentIntervalSelect = modal.querySelector('#income-installment-interval');
@@ -502,21 +508,77 @@ export const IncomeModal = {
                     return parseFloat(clean) || 0;
                 };
 
+                // Helper: Adjust input width to fit content
+                const adjustInputWidth = () => {
+                    if (!valorInput) return;
+                    const canvas = adjustInputWidth.canvas || (adjustInputWidth.canvas = document.createElement("canvas"));
+                    const context = canvas.getContext("2d");
+                    const style = window.getComputedStyle(valorInput);
+                    context.font = `${style.fontWeight} ${style.fontSize} ${style.fontFamily}`;
+
+                    // If empty, reset to 100% to show placeholder properly (or min width)
+                    if (!valorInput.value) {
+                        valorInput.style.width = '100%';
+                        return;
+                    }
+
+                    // Measure text
+                    const width = context.measureText(valorInput.value).width;
+                    valorInput.style.width = (width + 2) + "px"; // +2px buffer
+                };
+
+                // Helper: Update suffix visibility
+                const updateSuffix = () => {
+                    const val = valorInput.value;
+                    if (!val) {
+                        valorSuffix.style.display = 'none';
+                        return;
+                    }
+
+                    // If value already has comma (decimal part), hide suffix
+                    // Also hide if it starts with R$ (formatted view) - suffix is for typing mode
+                    if (val.includes(',') || val.includes('R$')) {
+                        valorSuffix.style.display = 'none';
+                    } else {
+                        valorSuffix.style.display = 'inline';
+                    }
+                };
+
                 // Set valor - always show individual record value
                 if (income?.valor !== undefined && income?.valor !== null) {
                     valorInput.value = formatFloat(Number(income.valor));
                 }
 
+                // Wrapper Click to Focus
+                if (valorWrapper) {
+                    valorWrapper.addEventListener('click', () => {
+                        valorInput.focus();
+                    });
+                }
+
                 // On Focus: Show raw value for easy editing
                 valorInput.addEventListener('focus', (e) => {
+                    if (valorWrapper) {
+                        valorWrapper.style.borderColor = 'var(--color-primary)';
+                        valorWrapper.style.boxShadow = '0 0 0 3px rgba(59, 130, 246, 0.1)';
+                    }
+
                     let val = e.target.value;
                     val = val.replace('R$', '').trim();
-                    val = val.replace(/\./g, '');
+                    val = val.replace(/\./g, ''); // Remove thousands separator
                     e.target.value = val;
+
+                    adjustInputWidth();
+                    updateSuffix();
                 });
 
                 // On Blur: Format back to Currency
                 valorInput.addEventListener('blur', (e) => {
+                    if (valorWrapper) {
+                        valorWrapper.style.borderColor = '#D1D5DB';
+                        valorWrapper.style.boxShadow = 'none';
+                    }
+
                     let val = e.target.value;
                     if (val === '' || val === '-') {
                         e.target.value = '';
@@ -524,14 +586,29 @@ export const IncomeModal = {
                         let num = parseCurrency(val);
                         e.target.value = formatFloat(num);
                     }
+
+                    // Reset to full width for placeholder or formatted view
+                    valorInput.style.width = '100%';
+                    updateSuffix(); // Will hide suffix because of R$ or comma
                     validate();
                 });
 
                 // On Input: Allow valid characters only
                 valorInput.addEventListener('input', (e) => {
                     let val = e.target.value;
-                    let clean = val.replace(/[^0-9,-]/g, '');
+                    // Allow numbers and comma only
+                    let clean = val.replace(/[^0-9,]/g, '');
+
+                    // Prevent multiple commas
+                    const parts = clean.split(',');
+                    if (parts.length > 2) {
+                        clean = parts[0] + ',' + parts.slice(1).join('');
+                    }
+
                     if (clean !== val) e.target.value = clean;
+
+                    adjustInputWidth();
+                    updateSuffix();
                     validate();
                 });
 

@@ -28,7 +28,7 @@ export const IncomeManager = (project) => {
     let pagination = { page: 1, limit: 50, total: 0, pages: 1 };
     let activeFilters = {};
 
-    let sortConfig = { key: 'data_fato', direction: 'desc' }; // Default server sort
+    let sortConfig = { key: 'data_prevista_recebimento', direction: 'asc' }; // Default server sort
     let selectedItems = new Set(); // Store IDs
     let selectedItemsData = []; // Store Objects for Sum
 

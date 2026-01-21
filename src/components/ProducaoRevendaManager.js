@@ -21,7 +21,7 @@ export const ProducaoRevendaManager = (project) => {
     let items = [];
     let pagination = { page: 1, limit: 50, total: 0, pages: 1 };
     let activeFilters = {};
-    let sortConfig = { key: 'data_fato', direction: 'desc' };
+    let sortConfig = { key: 'data_prevista_pagamento', direction: 'asc' };
     let selectedItems = new Set();
     let selectedItemsData = [];
 

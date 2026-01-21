@@ -21,7 +21,7 @@ export const RetiradaManager = (project) => {
     let retiradas = [];
     let pagination = { page: 1, limit: 50, total: 0, pages: 1 };
     let activeFilters = {};
-    let sortConfig = { key: 'data_fato', direction: 'desc' };
+    let sortConfig = { key: 'data_prevista', direction: 'asc' };
 
     // Columns
     const columns = [

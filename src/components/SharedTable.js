@@ -581,15 +581,7 @@ export class SharedTable {
         this.restoreScrollPosition();
 
         // Add hover effect to rows
-        const rows = tbody.querySelectorAll('.hoverable-row');
-        rows.forEach(row => {
-            row.addEventListener('mouseenter', () => {
-                row.style.backgroundColor = '#EDD8BB'; // Solid gold
-            });
-            row.addEventListener('mouseleave', () => {
-                row.style.backgroundColor = '';
-            });
-        });
+
 
         this.attachHeaderEvents(trHead);
         this.restoreScrollPosition();

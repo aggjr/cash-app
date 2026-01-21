@@ -36,7 +36,12 @@ const errorHandler = (err, req, res, next) => {
         } else {
             console.warn(`Error code ${err.code} not found in catalog.`);
             errorCode = err.code;
-            message = 'Erro não catalogado.';
+            // Use specific details as message if available, otherwise generic
+            if (err.details && typeof err.details === 'string') {
+                message = err.details;
+            } else {
+                message = 'Erro não catalogado.';
+            }
             statusCode = 400; // Default for operational but unknown errors
         }
         details = err.details;

@@ -32,6 +32,7 @@ async function migrate() {
             ['VAL-003', 400, 'Formato de e-mail inválido.', 'Invalid email'],
             ['VAL-004', 400, 'A senha deve ter no mínimo 8 caracteres.', 'Password too short'],
             ['VAL-005', 400, 'CNPJ inválido.', 'Invalid CNPJ'],
+            ['VAL-DATE', 400, 'Erro de validação de data.', 'Date validation error'],
 
             // Resource Errors
             ['RES-001', 404, 'Recurso não encontrado.', 'Not found'],
