@@ -177,8 +177,8 @@ export const IncomeModal = {
                                 <label for="income-valor">Valor (R$) ${isBulkEdit ? '' : '<span class="required">*</span>'} ${isInstallment ? '<span style="font-size: 0.75rem; color: #6B7280; font-weight: normal;">(Desta Parcela)</span>' : ''}</label>
                                 <div id="income-valor-wrapper" class="form-input" style="display: flex; align-items: center; background: white; cursor: text; padding: 0.5rem 0.75rem; transition: all 0.2s; border: 1px solid #D1D5DB; border-radius: 6px;">
                                     <input type="text" id="income-valor" 
-                                        style="border: none; outline: none; padding: 0; margin: 0; flex: 0 1 auto; min-width: 10px; font-family: inherit; font-size: inherit; color: inherit; background: transparent; width: 100%;"
-                                        placeholder="${isBulkEdit ? 'Deixe em branco para manter' : 'R$ 0,00'}" ${isBulkEdit ? '' : 'required'} />
+                                        style="border: none !important; outline: none !important; padding: 0 !important; margin: 0 !important; flex: 0 1 auto; min-width: 10px; font-family: inherit; font-size: inherit; color: inherit; background: transparent !important; width: 100%; box-shadow: none !important; appearance: none !important; -webkit-appearance: none !important;"
+                                        placeholder="${isBulkEdit ? 'Deixe em branco para manter' : 'R$ 0,00'}" />
                                     <span id="income-valor-suffix" style="color: #9CA3AF; pointer-events: none; margin-left: 0; user-select: none; display: none;">,00</span>
                                 </div>
                             </div>
@@ -376,7 +376,14 @@ export const IncomeModal = {
                     let isValid = true;
                     if (!dataFatoInput.value) { dataFatoInput.classList.add('input-error'); isValid = false; } else dataFatoInput.classList.remove('input-error');
                     if (!dataPrevistaInput.value) { dataPrevistaInput.classList.add('input-error'); isValid = false; } else dataPrevistaInput.classList.remove('input-error');
-                    if (!valorInput.value) { valorInput.classList.add('input-error'); isValid = false; } else valorInput.classList.remove('input-error');
+                    if (!valorInput.value) {
+                        if (valorWrapper) valorWrapper.classList.add('input-error');
+                        valorInput.classList.remove('input-error');
+                        isValid = false;
+                    } else {
+                        if (valorWrapper) valorWrapper.classList.remove('input-error');
+                        valorInput.classList.remove('input-error');
+                    }
                     if (!descricaoInput.value || !descricaoInput.value.trim()) {
                         descricaoInput.classList.add('input-error');
                         isValid = false;
@@ -575,8 +582,8 @@ export const IncomeModal = {
                 // On Blur: Format back to Currency
                 valorInput.addEventListener('blur', (e) => {
                     if (valorWrapper) {
-                        valorWrapper.style.borderColor = '#D1D5DB';
-                        valorWrapper.style.boxShadow = 'none';
+                        valorWrapper.style.borderColor = ''; // Clear inline to let class (error/default) rule
+                        valorWrapper.style.boxShadow = '';
                     }
 
                     let val = e.target.value;
@@ -596,6 +603,12 @@ export const IncomeModal = {
                 // On Input: Allow valid characters only
                 valorInput.addEventListener('input', (e) => {
                     let val = e.target.value;
+
+                    // Replace dot with comma (Smart Type)
+                    if (val.includes('.')) {
+                        val = val.replace(/\./g, ',');
+                    }
+
                     // Allow numbers and comma only
                     let clean = val.replace(/[^0-9,]/g, '');
 
