@@ -1016,21 +1016,27 @@ export const LeadModal = {
                     return;
                 }
 
-                const selectedGrupos = Array.from(currentLeadGroups).map(id => parseInt(id));
+                const telefoneVal = telefoneInputRef.value;
+                // Sanitize phone: keep only digits
+                let cleanPhone = telefoneVal.replace(/\D/g, '');
 
-                // Build characteristics array with values
-                const finalCaracteristicas = Array.from(selectedCharacteristics).map(charId => ({
-                    id: charId,
-                    valor_id: selectedCharValues[charId] || null
-                }));
+                // Auto-prepend 55 for Brazil numbers (10 or 11 digits)
+                if (cleanPhone.length === 10 || cleanPhone.length === 11) {
+                    cleanPhone = '55' + cleanPhone;
+                    console.log('Auto-prepended 55 to phone:', cleanPhone);
+                }
 
                 const data = {
                     nome: nomeInputRef.value.trim(),
                     email: emailInputRef.value.trim() || null,
-                    telefone: telefoneInputRef.value.trim() || null,
+                    telefone: cleanPhone.trim() || null, // Use sanitized/formatted phone
                     observacoes: observacoesInputRef.value.trim() || null,
-                    grupos: selectedGrupos,
-                    caracteristicas: finalCaracteristicas
+                    grupos: Array.from(currentLeadGroups).map(Number),
+                    // If using dual column, we send 'caracteristicas' as array of {id, valor_id}
+                    caracteristicas_detalhadas: Array.from(selectedCharacteristics).map(id => ({
+                        id: parseInt(id),
+                        valor_id: selectedCharValues[id] ? parseInt(selectedCharValues[id]) : null
+                    }))
                 };
 
                 console.log('LeadModal: Saving Data Payload:', data);
