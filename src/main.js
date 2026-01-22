@@ -364,3 +364,31 @@ function initAppLogic() {
   });
 }
 
+
+// Global Version Display Overlay
+(function () {
+  const versionId = 'cash-system-version-overlay';
+  if (document.getElementById(versionId)) return;
+
+  const versionEl = document.createElement('div');
+  versionEl.id = versionId;
+  versionEl.textContent = 'v0.9.12';
+  versionEl.style.cssText = `
+    position: fixed;
+    bottom: 5px;
+    left: 8px; /* Slightly indented */
+    font-size: 0.75rem;
+    color: var(--color-text-muted);
+    opacity: 0.6;
+    z-index: 99999; /* Ensure it is above everything, including modals */
+    pointer-events: none;
+    user-select: none;
+    font-family: var(--font-main);
+    text-shadow: 0 1px 2px rgba(255,255,255,0.8); /* Better visibility on dark/light */
+  `;
+
+  // Adjust specifically for dark mode visibility if needed via class observer, 
+  // but CSS var should handle it if --color-text-muted is adaptive.
+
+  document.body.appendChild(versionEl);
+})();
