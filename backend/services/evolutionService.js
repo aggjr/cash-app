@@ -71,6 +71,53 @@ class EvolutionApiService {
     }
 
     /**
+     * Send a media message (image/video)
+     * @param {string} phone 
+     * @param {string} mediaUrl - Full public URL of the media
+     * @param {string} mediatype - "image" or "video"
+     * @param {string} caption 
+     */
+    async sendMedia(phone, mediaUrl, mediatype, caption) {
+        try {
+            const cleanPhone = phone.replace(/\D/g, '');
+            const number = cleanPhone; // Evolution v2 prefers digits
+
+            const url = `${this.baseUrl}/message/sendMedia/${this.instanceName}`;
+
+            const payload = {
+                number: number,
+                media: mediaUrl,
+                mediatype: mediatype,
+                caption: caption,
+                options: {
+                    delay: 1200,
+                    presence: "composing"
+                }
+            };
+
+            fileLogger.log(`Sending WhatsApp MEDIA (${mediatype}) to ${number}...`);
+
+            const response = await fetch(url, {
+                method: 'POST',
+                headers: this.getHeaders(),
+                body: JSON.stringify(payload)
+            });
+
+            if (!response.ok) {
+                const errorText = await response.text();
+                throw new Error(`Evolution API Error ${response.status}: ${errorText}`);
+            }
+
+            const data = await response.json();
+            fileLogger.log(`WhatsApp media sent successfully: ${JSON.stringify(data)}`);
+            return data;
+        } catch (error) {
+            fileLogger.log(`Error sending WhatsApp media: ${error.message}`);
+            throw error;
+        }
+    }
+
+    /**
      * Check connection status of the instance
      */
     async getConnectionStatus() {

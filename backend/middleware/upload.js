@@ -20,18 +20,18 @@ const storage = multer.diskStorage({
 });
 
 const fileFilter = (req, file, cb) => {
-    // Accept images and PDFs
-    if (file.mimetype.startsWith('image/') || file.mimetype === 'application/pdf') {
+    // Accept images, PDFs, and Videos
+    if (file.mimetype.startsWith('image/') || file.mimetype === 'application/pdf' || file.mimetype.startsWith('video/')) {
         cb(null, true);
     } else {
-        cb(new Error('Formato de arquivo inválido. Apenas imagens e PDFs são permitidos.'), false);
+        cb(new Error('Formato de arquivo inválido. Apenas imagens, vídeos e PDFs são permitidos.'), false);
     }
 };
 
 const upload = multer({
     storage: storage,
     fileFilter: fileFilter,
-    limits: { fileSize: 5 * 1024 * 1024 } // 5MB limit
+    limits: { fileSize: 50 * 1024 * 1024 } // 50MB limit
 });
 
 module.exports = upload;

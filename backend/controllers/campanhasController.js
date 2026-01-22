@@ -82,11 +82,13 @@ exports.create = async (req, res) => {
         const emailSubject = message?.emailSubject || null;
         const emailBody = message?.emailBody || null;
         const whatsappText = message?.whatsappText || null;
+        const mediaUrl = message?.mediaUrl || null;
 
         const [result] = await connection.query(
-            'INSERT INTO campanhas (nome, descricao, data_inicio, data_fim, status, email_subject, email_body, whatsapp_text) VALUES (?, ?, ?, ?, ?, ?, ?, ?)',
-            [nome, descricao || null, dataInicio || null, dataFim || null, status || 'planejamento', emailSubject, emailBody, whatsappText]
+            'INSERT INTO campanhas (nome, descricao, data_inicio, data_fim, status, email_subject, email_body, whatsapp_text, media_url) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)',
+            [nome, descricao || null, dataInicio || null, dataFim || null, status || 'planejamento', emailSubject, emailBody, whatsappText, mediaUrl]
         );
+
 
         const campanhaId = result.insertId;
 
@@ -137,10 +139,11 @@ exports.update = async (req, res) => {
         const emailSubject = message?.emailSubject || null;
         const emailBody = message?.emailBody || null;
         const whatsappText = message?.whatsappText || null;
+        const mediaUrl = message?.mediaUrl || null;
 
         const [result] = await db.query(
-            'UPDATE campanhas SET nome = ?, descricao = ?, data_inicio = ?, data_fim = ?, status = ?, email_subject = ?, email_body = ?, whatsapp_text = ? WHERE id = ?',
-            [nome, descricao || null, dataInicio || null, dataFim || null, status || 'planejamento', emailSubject, emailBody, whatsappText, id]
+            'UPDATE campanhas SET nome = ?, descricao = ?, data_inicio = ?, data_fim = ?, status = ?, email_subject = ?, email_body = ?, whatsapp_text = ?, media_url = ? WHERE id = ?',
+            [nome, descricao || null, dataInicio || null, dataFim || null, status || 'planejamento', emailSubject, emailBody, whatsappText, mediaUrl, id]
         );
 
         if (result.affectedRows === 0) {
@@ -354,7 +357,23 @@ exports.sendSingle = async (req, res) => {
             // Simple text-to-html conversion if needed, or assume text/html
             // For now assuming the editor saves HTML or raw text displayed in HTML
             // Replacing newlines with <br> if it looks like plain text
-            const finalHtml = html.includes('<') ? html : html.replace(/\n/g, '<br>');
+            let finalHtml = html.includes('<') ? html : html.replace(/\n/g, '<br>');
+
+            // Embed Media if exists
+            if (campanha.media_url) {
+                const baseUrl = process.env.API_BASE_URL || 'https://cash.gutoapps.site';
+                const fullMediaUrl = campanha.media_url.startsWith('http') ? campanha.media_url : `${baseUrl}${campanha.media_url}`;
+
+                const isVideo = campanha.media_url.match(/\.(mp4|mov|avi|wmv)$/i);
+
+                if (isVideo) {
+                    finalHtml = `<div style="margin-bottom: 20px;">
+                        <p>🎥 <strong>Assista ao vídeo:</strong> <a href="${fullMediaUrl}" target="_blank">Clique aqui para assistir</a></p>
+                     </div>` + finalHtml;
+                } else {
+                    finalHtml = `<div style="margin-bottom: 20px;"><img src="${fullMediaUrl}" style="max-width: 100%; border-radius: 8px;" alt="Banner"></div>` + finalHtml;
+                }
+            }
 
             await emailService.sendGenericEmail(lead.email, subject, finalHtml);
             success = true;
@@ -365,6 +384,7 @@ exports.sendSingle = async (req, res) => {
             if (!lead.telefone) {
                 return res.status(400).json({ error: 'Lead sem telefone cadastrado' });
             }
+
 
             const convertHtmlToWhatsapp = (html) => {
                 if (!html) return '';
@@ -396,7 +416,25 @@ exports.sendSingle = async (req, res) => {
             const rawText = replaceVariables(campanha.whatsapp_text);
             const text = convertHtmlToWhatsapp(rawText);
 
-            await evolutionService.sendMessage(lead.telefone, text);
+            // Handle Media
+            if (campanha.media_url) {
+                // Determine media type
+                const isVideo = campanha.media_url.match(/\.(mp4|mov|avi|wmv)$/i);
+                const mediatype = isVideo ? 'video' : 'image';
+
+                // Construct Public URL
+                // Assuming env variable for API URL or constructing from host. 
+                // However, backend might verify if it's local. 
+                // Evolution API needs PUBLIC URL.
+                // If CASH is hosted at cash.gutoapps.site, we use that.
+                const baseUrl = process.env.API_BASE_URL || 'https://cash.gutoapps.site'; // Make this configurable!
+                const fullMediaUrl = campanha.media_url.startsWith('http') ? campanha.media_url : `${baseUrl}${campanha.media_url}`;
+
+                await evolutionService.sendMedia(lead.telefone, fullMediaUrl, mediatype, text);
+            } else {
+                await evolutionService.sendMessage(lead.telefone, text);
+            }
+
             success = true;
         } else {
             return res.status(400).json({ error: 'Canal inválido' });
