@@ -30,8 +30,10 @@ class EvolutionApiService {
             // Remove non-numeric characters from phone
             const cleanPhone = phone.replace(/\D/g, '');
 
-            // Allow user to pass full JID or just number
-            const number = cleanPhone.includes('@s.whatsapp.net') ? cleanPhone : `${cleanPhone}@s.whatsapp.net`;
+            // For Evolution API v2, typically just the number (DDI+DDD+NUM) is preferred in the payload.
+            // Appending @s.whatsapp.net can sometimes cause issues if the API expects to resolve it.
+            // If the user definitely needs JID, we can revert, but standardizing on digits is safer.
+            const number = cleanPhone;
 
             const url = `${this.baseUrl}/message/sendText/${this.instanceName}`;
 
