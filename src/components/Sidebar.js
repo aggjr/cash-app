@@ -154,7 +154,7 @@ export const Sidebar = () => {
         </a>
       </div>
       <div style="text-align: center; font-size: 0.7rem; color: #64748b; padding: 0.5rem 0; pointer-events: none; user-select: none;">
-        v0.9.11
+        v0.9.12
       </div>
     </aside>
   `;
