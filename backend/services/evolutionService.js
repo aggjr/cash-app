@@ -43,7 +43,7 @@ class EvolutionApiService {
                 options: {
                     delay: 1200,
                     presence: "composing",
-                    linkPreview: false
+                    linkPreview: true
                 }
             };
 
