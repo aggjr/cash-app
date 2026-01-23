@@ -268,7 +268,7 @@ export const ProducaoRevendaModal = {
                     </div>
                     <!-- Footer with Z-Index ensure -->
                     <div class="account-modal-footer" style="padding: 1rem; position: relative; z-index: 100; display: flex; justify-content: space-between; align-items: center;">
-                        <span style="font-size: 0.75rem; color: #9CA3AF;">v0.9.11</span>
+                        <span></span>
                         <div style="display: flex; gap: 0.5rem;">
                             <button class="btn-secondary" id="modal-cancel" type="button">Cancelar</button>
                             <button class="btn-primary" id="modal-save" type="button">

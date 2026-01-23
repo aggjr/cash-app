@@ -57,7 +57,22 @@ export const CampanhaWizard = {
             let treeRoot = null;
             let treeContainerRef = null;
 
-            // ... (Header parts - unchanged, skipping to save tool tokens)
+            const header = document.createElement('div');
+            Object.assign(header.style, {
+                display: 'flex', justifyContent: 'center', alignItems: 'center', gap: '3rem',
+                padding: '1.5rem', borderBottom: '1px solid #eee', backgroundColor: '#fff',
+                position: 'relative'
+            });
+
+            const btnClose = document.createElement('button');
+            btnClose.id = 'btn-close-wizard';
+            btnClose.innerHTML = '×';
+            Object.assign(btnClose.style, {
+                position: 'absolute', top: '1rem', right: '1rem',
+                background: 'none', border: 'none', fontSize: '1.5rem',
+                color: '#999', cursor: 'pointer', lineHeight: 1
+            });
+            header.appendChild(btnClose);
 
             const renderStepBadge = (step, label) => {
                 // ... unchanged
@@ -115,8 +130,8 @@ export const CampanhaWizard = {
 
                 formDiv.innerHTML = `
                      <div class="form-group" style="flex: 1 1 40%; min-width:220px; max-width:600px;">
-                         <label style="font-size:0.85rem; color:#666; display:block; margin-bottom:4px;">Nome da Campanha (V3.7) <span style="color:red; margin-left:2px;">*</span></label>
-                         <input type="text" id="campaign-name" class="form-input" value="${state.config.nome}" placeholder="Ex: Promoção de Natal (V3.7)" style="width:100%; padding:8px; border:1px solid #ddd; border-radius:6px;" />
+                         <label style="font-size:0.85rem; color:#666; display:block; margin-bottom:4px;">Nome da Campanha (v0.9.13) <span style="color:red; margin-left:2px;">*</span></label>
+                         <input type="text" id="campaign-name" class="form-input" value="${state.config.nome}" placeholder="Ex: Promoção de Natal (v0.9.13)" style="width:100%; padding:8px; border:1px solid #ddd; border-radius:6px;" />
                      </div>
                      <div class="form-group" style="width: 140px;">
                          <label style="font-size:0.85rem; color:#666; display:block; margin-bottom:4px;">Início <span style="color:red; margin-left:2px;">*</span></label>
@@ -183,7 +198,141 @@ export const CampanhaWizard = {
                 return stepContainer;
             };
 
-            // ... (Helpers for Step 1 Unchanged)
+            // Helpers for Step 1
+            const loadGroups = async (container) => {
+                container.innerHTML = '<div style="padding:1rem; text-align:center; color:#666;">Carregando grupos...</div>';
+                try {
+                    const res = await fetch(`${API_BASE_URL}/marketing/grupos-leads`, { headers: getHeaders() });
+                    if (!res.ok) throw new Error('Falha ao carregar grupos');
+                    const groups = await res.json();
+
+                    container.innerHTML = '';
+                    if (groups.length === 0) {
+                        container.innerHTML = '<div style="padding:1rem; text-align:center; color:#666;">Nenhum grupo encontrado.</div>';
+                        return;
+                    }
+
+                    const list = document.createElement('div');
+                    list.style.display = 'flex';
+                    list.style.flexDirection = 'column';
+                    list.style.gap = '0.5rem';
+
+                    groups.forEach(g => {
+                        const item = document.createElement('label');
+                        Object.assign(item.style, {
+                            display: 'flex', alignItems: 'center', gap: '0.5rem', padding: '0.5rem',
+                            border: '1px solid #eee', borderRadius: '4px', cursor: 'pointer',
+                            backgroundColor: state.groups.has(g.id) ? '#e0e7ff' : 'white'
+                        });
+
+                        const checkbox = document.createElement('input');
+                        checkbox.type = 'checkbox';
+                        checkbox.value = g.id;
+                        checkbox.checked = state.groups.has(g.id);
+                        checkbox.style.width = '16px';
+                        checkbox.style.height = '16px';
+
+                        checkbox.onchange = async () => {
+                            if (checkbox.checked) {
+                                state.groups.add(g.id);
+                                item.style.backgroundColor = '#e0e7ff';
+                            } else {
+                                state.groups.delete(g.id);
+                                item.style.backgroundColor = 'white';
+                            }
+                            await updateLeadsPreview();
+                        };
+
+                        const name = document.createElement('span');
+                        name.textContent = g.nome;
+                        name.style.fontWeight = '500';
+
+                        const count = document.createElement('span');
+                        count.textContent = `(${g.total_leads || 0})`;
+                        count.style.fontSize = '0.8rem';
+                        count.style.color = '#666';
+
+                        item.appendChild(checkbox);
+                        item.appendChild(name);
+                        item.appendChild(count);
+                        list.appendChild(item);
+                    });
+
+                    container.appendChild(list);
+                } catch (e) {
+                    console.error(e);
+                    container.innerHTML = '<div style="padding:1rem; text-align:center; color:red;">Erro ao carregar grupos.</div>';
+                }
+            };
+
+            const bindFormEvents = (form) => {
+                const getInput = (id) => form.querySelector(id);
+
+                const inputs = {
+                    nome: getInput('#campaign-name'),
+                    dataInicio: getInput('#campaign-start'),
+                    dataFim: getInput('#campaign-end'),
+                    useEmail: getInput('#check-use-email'),
+                    useWhatsapp: getInput('#check-use-whatsapp')
+                };
+
+                if (inputs.nome) inputs.nome.oninput = (e) => state.config.nome = e.target.value;
+                if (inputs.dataInicio) inputs.dataInicio.onchange = (e) => state.config.dataInicio = e.target.value;
+                if (inputs.dataFim) inputs.dataFim.onchange = (e) => state.config.dataFim = e.target.value;
+
+                if (inputs.useEmail) inputs.useEmail.onchange = (e) => {
+                    state.config.useEmail = e.target.checked;
+                };
+                if (inputs.useWhatsapp) inputs.useWhatsapp.onchange = (e) => {
+                    state.config.useWhatsapp = e.target.checked;
+                };
+            };
+
+            let sharedTableInstance = null;
+
+            const updateLeadsPreview = async () => {
+                const countBadge = document.getElementById('wizard-lead-count');
+                if (countBadge) countBadge.textContent = 'Carregando...';
+
+                try {
+                    const groupIds = Array.from(state.groups).join(',');
+                    if (!groupIds) {
+                        state.leads = [];
+                    } else {
+                        const res = await fetch(`${API_BASE_URL}/marketing/leads?grupos=${groupIds}`, { headers: getHeaders() });
+                        if (res.ok) {
+                            state.leads = await res.json();
+                        }
+                    }
+
+                    if (countBadge) countBadge.textContent = `${state.leads.length} leads`;
+                    renderLeadsList();
+                } catch (e) {
+                    console.error('Error fetching leads:', e);
+                }
+            };
+
+            const renderLeadsList = () => {
+                const container = document.getElementById('wizard-leads-table');
+                if (!container) return;
+
+                const columns = [
+                    { key: 'nome', label: 'Nome', align: 'left' },
+                    { key: 'email', label: 'E-mail', align: 'left' },
+                    { key: 'telefone', label: 'Telefone', align: 'left' }
+                ];
+
+                if (!sharedTableInstance) {
+                    sharedTableInstance = new SharedTable({
+                        container: container,
+                        columns: columns,
+                        data: state.leads,
+                        itemsPerPage: 50
+                    });
+                } else {
+                    sharedTableInstance.render(state.leads);
+                }
+            };
 
             // STEP 2: MESSAGE
             const renderStep2 = () => {

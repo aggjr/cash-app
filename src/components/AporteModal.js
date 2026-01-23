@@ -150,7 +150,7 @@ export const AporteModal = {
                         </div>
                     </div>
                     <div class="dialog-footer" style="display: flex; justify-content: space-between; align-items: center;">
-                        <span style="font-size: 0.75rem; color: #9CA3AF;">v0.9.11</span>
+                        <span></span>
                         <div>
                            <button class="btn-secondary" id="btn-cancel">Cancelar</button>
                            <button class="btn-primary" id="btn-save">${isEdit ? 'Salvar Alterações' : 'Criar Aporte'}</button>
