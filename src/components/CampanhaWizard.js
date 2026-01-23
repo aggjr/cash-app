@@ -329,6 +329,8 @@ export const CampanhaWizard = {
                         data: state.leads,
                         itemsPerPage: 50
                     });
+                    // Force render to ensure visibility on first load
+                    sharedTableInstance.render(state.leads);
                 } else {
                     sharedTableInstance.render(state.leads);
                 }
@@ -895,8 +897,16 @@ export const CampanhaWizard = {
             // --- NAVIGATION ---
             const footer = document.createElement('div');
             Object.assign(footer.style, {
-                padding: '1rem', borderTop: '1px solid #ddd', display: 'flex', justifyContent: 'flex-end', gap: '1rem', backgroundColor: '#f8f9fa'
+                padding: '1rem', borderTop: '1px solid #ddd', display: 'flex', justifyContent: 'flex-end', alignItems: 'center', gap: '1rem', backgroundColor: '#f8f9fa'
             });
+
+            const versionSpan = document.createElement('span');
+            versionSpan.textContent = 'v0.9.13';
+            versionSpan.style.marginRight = 'auto';
+            versionSpan.style.color = '#ccc';
+            versionSpan.style.fontSize = '0.8rem';
+            versionSpan.style.fontWeight = '500';
+            footer.appendChild(versionSpan);
 
             const btnBack = document.createElement('button');
             btnBack.className = 'btn-secondary';
@@ -952,6 +962,7 @@ export const CampanhaWizard = {
                     const label = b.querySelector('span');
                     if (s === step) {
                         circle.style.background = 'var(--color-primary)';
+                        circle.textContent = s; // Ensure number is visible
                         label.style.color = 'var(--color-primary)';
                         label.style.fontWeight = '600';
                     } else if (s < step) {
