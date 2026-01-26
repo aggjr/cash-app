@@ -1,4 +1,5 @@
-const db = require('./config/database');
+const path = require('path');
+const db = require(path.join(__dirname, 'config', 'database'));
 
 async function debugAccountsByProject() {
     try {
