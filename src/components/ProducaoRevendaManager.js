@@ -34,6 +34,7 @@ export const ProducaoRevendaManager = (project) => {
             width: 'var(--col-actions)',
             align: 'center',
             noFilter: true,
+            sticky: true,
             render: (item) => {
                 const div = document.createElement('div');
                 div.style.display = 'flex';

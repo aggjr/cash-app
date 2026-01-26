@@ -48,6 +48,7 @@ export const CampanhasManager = (project) => {
             width: '80px',
             align: 'center',
             noFilter: true,
+            sticky: true,
             render: (item) => {
                 const div = document.createElement('div');
                 div.style.display = 'flex';
