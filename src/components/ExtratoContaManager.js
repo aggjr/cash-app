@@ -8,6 +8,8 @@ export const ExtratoContaManager = (project) => {
     const container = document.createElement('div');
     container.className = 'glass-panel';
     const API_BASE_URL = getApiBaseUrl();
+
+    console.log('[ExtratoContaManager] Initialized for project:', project.id, project.name);
     container.style.padding = '1rem';
     container.style.margin = '0.5rem';
     container.style.height = 'calc(100vh - 40px)'; // Maximized height
@@ -451,6 +453,26 @@ export const ExtratoContaManager = (project) => {
             const resp = await fetch(`${API_BASE_URL}/accounts?projectId=${project.id}`, { headers: getHeaders() });
             if (resp.ok) {
                 allAccounts = await resp.json();
+                console.log('[ExtratoContaManager] Loaded companies:', companies.map(c => ({ id: c.id, name: c.name })));
+                console.log('[ExtratoContaManager] Loaded accounts:', allAccounts.map(a => ({
+                    id: a.id,
+                    name: a.name,
+                    company_id: a.company_id,
+                    company_name: a.company_name // if available
+                })));
+                console.log('[ExtratoContaManager] Selected Company ID:', selectedCompanyId);
+
+                // --- DEBUG: Check for ID mismatch ---
+                if (selectedCompanyId) {
+                    const matching = allAccounts.filter(a => a.company_id == selectedCompanyId);
+                    console.log(`[ExtratoContaManager] Accounts matching company ${selectedCompanyId}: ${matching.length}`);
+                    if (matching.length === 0) {
+                        console.warn('[ExtratoContaManager] ⚠️ NO ACCOUNTS MATCH SELECTED COMPANY ID', selectedCompanyId);
+                        // Log some accounts to see what their IDs are
+                        allAccounts.slice(0, 3).forEach(a => console.log(`  Account ${a.name}: company_id=${a.company_id} (${typeof a.company_id})`));
+                    }
+                }
+                // ------------------------------------
                 console.log('[ExtratoContaManager] ========== LOAD ACCOUNTS START ==========');
                 console.log('[ExtratoContaManager] Total accounts fetched from API:', allAccounts.length);
                 console.log('[ExtratoContaManager] All accounts data:', JSON.stringify(allAccounts, null, 2));

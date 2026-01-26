@@ -22,6 +22,8 @@ export const CompanyManager = (project) => {
     let companies = [];
     let sharedTable = null;
 
+    console.log('[CompanyManager] Initialized for project:', project.id, project.name);
+
     const getHeaders = () => {
         const token = localStorage.getItem('token');
         return {
@@ -128,6 +130,8 @@ export const CompanyManager = (project) => {
                 headers: getHeaders()
             });
             companies = await response.json();
+            console.log('[CompanyManager] Loaded companies:', companies);
+            companies.forEach(c => console.log(`  Company: ${c.name} (ID: ${c.id})`));
 
             if (sharedTable) {
                 sharedTable.render(companies);

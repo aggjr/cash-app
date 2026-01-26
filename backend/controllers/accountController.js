@@ -17,6 +17,15 @@ exports.listAccounts = async (req, res, next) => {
              ORDER BY c.name`,
             [projectId]
         );
+        console.log(`[Backend] listAccounts for project ${projectId}: Found ${accounts.length} accounts`);
+        if (accounts.length > 0) {
+            console.log('[Backend] First 3 accounts:', JSON.stringify(accounts.slice(0, 3).map(a => ({
+                id: a.id,
+                name: a.name,
+                company_id: a.company_id,
+                company_name: a.company_name
+            }))));
+        }
         res.json(accounts);
     } catch (error) {
         next(error);
