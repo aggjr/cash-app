@@ -387,21 +387,6 @@ export const ExtratoContaManager = (project) => {
             enableSelection: false, // Extrato typically readonly
             onFilterChange: () => { }, // Optional
             onSortChange: () => { },   // Optional
-            headerRow: {
-                data: {
-                    data: '-',
-                    tipo_formatado: 'SALDO ANTERIOR',
-                    descricao: '-',
-                    fluxo: '-',
-                    valor: extratoData.initialBalance
-                },
-                style: {
-                    backgroundColor: '#e0f2fe',
-                    fontWeight: 'bold',
-                    borderBottom: '2px solid #00425F'
-                },
-                className: 'extrato-header-row'
-            },
             footerRow: {
                 data: {
                     data: '-',
@@ -419,7 +404,21 @@ export const ExtratoContaManager = (project) => {
             }
         });
 
-        sharedTable.render(extratoData.transactions);
+        // Prepend SALDO INICIAL as first row
+        const selectedAccount = allAccounts.find(acc => acc.id === parseInt(selectedAccountId));
+        const accountName = selectedAccount ? selectedAccount.name : '';
+
+        const initialBalanceRow = {
+            data: startDate,
+            tipo_formatado: 'SALDO INICIAL',
+            descricao: accountName ? `Saldo inicial da conta ${accountName}` : 'Saldo inicial',
+            direction: 'IN', // To show as green
+            valor: extratoData.initialBalance,
+            _isInitialBalance: true // Flag to identify this row
+        };
+
+        const dataWithInitialBalance = [initialBalanceRow, ...extratoData.transactions];
+        sharedTable.render(dataWithInitialBalance);
     };
 
     // --- Loading ---
