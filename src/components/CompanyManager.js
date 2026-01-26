@@ -130,8 +130,6 @@ export const CompanyManager = (project) => {
                 headers: getHeaders()
             });
             companies = await response.json();
-            console.log('[CompanyManager] Loaded companies:', companies);
-            companies.forEach(c => console.log(`  Company: ${c.name} (ID: ${c.id})`));
 
             if (sharedTable) {
                 sharedTable.render(companies);

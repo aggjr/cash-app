@@ -152,14 +152,6 @@ export const AccountManager = (project) => {
             accounts = await accountsResponse.json();
             companies = await companiesResponse.json();
 
-            console.log('[AccountManager] Loaded companies:', companies.map(c => ({ id: c.id, name: c.name })));
-            console.log('[AccountManager] Loaded accounts:', accounts.map(a => ({
-                id: a.id,
-                name: a.name,
-                company_id: a.company_id,
-                company_name: a.company_name
-            })));
-
             if (sharedTable) {
                 sharedTable.render(accounts);
             }

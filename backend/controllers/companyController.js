@@ -13,10 +13,6 @@ exports.listCompanies = async (req, res, next) => {
             'SELECT * FROM empresas WHERE project_id = ? ORDER BY name',
             [projectId]
         );
-        console.log(`[Backend] listCompanies for project ${projectId}: Found ${companies.length} companies`);
-        if (companies.length > 0) {
-            console.log('[Backend] Companies:', JSON.stringify(companies.map(c => ({ id: c.id, name: c.name }))));
-        }
         res.json(companies);
     } catch (error) {
         next(error);

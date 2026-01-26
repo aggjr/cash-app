@@ -8,8 +8,6 @@ export const ExtratoContaManager = (project) => {
     const container = document.createElement('div');
     container.className = 'glass-panel';
     const API_BASE_URL = getApiBaseUrl();
-
-    console.log('[ExtratoContaManager] Initialized for project:', project.id, project.name);
     container.style.padding = '1rem';
     container.style.margin = '0.5rem';
     container.style.height = 'calc(100vh - 40px)'; // Maximized height
@@ -110,9 +108,14 @@ export const ExtratoContaManager = (project) => {
         placeholder.textContent = 'Selecione uma conta';
         accSelect.appendChild(placeholder);
 
-        // Show ALL accounts (ignoring company filter due to data inconsistency)
-        const accountsToShow = allAccounts.length > 0 ? allAccounts : accounts;
-        accountsToShow.forEach(acc => {
+        // Show filtered accounts
+        if (accounts.length === 0 && selectedCompanyId) {
+            const placeholder = document.createElement('option');
+            placeholder.textContent = 'Nenhuma conta nesta empresa';
+            accSelect.appendChild(placeholder);
+        }
+
+        accounts.forEach(acc => {
             const opt = document.createElement('option');
             opt.value = acc.id;
             opt.textContent = acc.name;
@@ -163,12 +166,32 @@ export const ExtratoContaManager = (project) => {
         endDiv.appendChild(endLabel);
         endDiv.appendChild(endInput);
 
-        // Company selection (for display only, not filtering)
-        const handleCompanyChange = () => {
+        // Company Filter Logic
+        const filterAccountsByCompany = () => {
             selectedCompanyId = parseInt(companySelect.value);
+
+            accounts = allAccounts.filter(acc => parseInt(acc.company_id) === selectedCompanyId);
+
+            // Persist company selection
             localStorage.setItem('extrato_companyId', selectedCompanyId);
-            // Note: Not filtering accounts due to data inconsistency
-            // All accounts are shown regardless of company selection
+
+            // Auto-select first account if available after filtering
+            if (accounts.length > 0) {
+                selectedAccountId = accounts[0].id;
+                localStorage.setItem('extrato_accountId', selectedAccountId);
+            } else {
+                selectedAccountId = null;
+                localStorage.removeItem('extrato_accountId');
+            }
+
+            // Re-render controls to update account dropdown
+            const oldControls = container.querySelector('.extrato-controls');
+            if (oldControls) {
+                oldControls.replaceWith(renderControls());
+            }
+
+            // Reload extrato with new account selection
+            loadExtrato();
         };
 
         // Auto-Trigger Search Logic
@@ -186,7 +209,7 @@ export const ExtratoContaManager = (project) => {
         };
 
         // Attach listeners
-        companySelect.addEventListener('change', handleCompanyChange);
+        companySelect.addEventListener('change', filterAccountsByCompany);
         accSelect.addEventListener('change', triggerSearch);
         startInput.addEventListener('change', triggerSearch);
         endInput.addEventListener('change', triggerSearch);
@@ -453,57 +476,36 @@ export const ExtratoContaManager = (project) => {
             const resp = await fetch(`${API_BASE_URL}/accounts?projectId=${project.id}`, { headers: getHeaders() });
             if (resp.ok) {
                 allAccounts = await resp.json();
-                console.log('[ExtratoContaManager] Loaded companies:', companies.map(c => ({ id: c.id, name: c.name })));
-                console.log('[ExtratoContaManager] Loaded accounts:', allAccounts.map(a => ({
-                    id: a.id,
-                    name: a.name,
-                    company_id: a.company_id,
-                    company_name: a.company_name // if available
-                })));
-                console.log('[ExtratoContaManager] Selected Company ID:', selectedCompanyId);
 
-                // --- DEBUG: Check for ID mismatch ---
-                if (selectedCompanyId) {
-                    const matching = allAccounts.filter(a => a.company_id == selectedCompanyId);
-                    console.log(`[ExtratoContaManager] Accounts matching company ${selectedCompanyId}: ${matching.length}`);
-                    if (matching.length === 0) {
-                        console.warn('[ExtratoContaManager] ⚠️ NO ACCOUNTS MATCH SELECTED COMPANY ID', selectedCompanyId);
-                        // Log some accounts to see what their IDs are
-                        allAccounts.slice(0, 3).forEach(a => console.log(`  Account ${a.name}: company_id=${a.company_id} (${typeof a.company_id})`));
+                // Validate selectedCompanyId from storage
+                // If stored company doesn't exist in the list, default to first available
+                if (companies.length > 0) {
+                    const companyExists = companies.some(c => c.id === selectedCompanyId);
+                    if (!companyExists) {
+                        selectedCompanyId = companies[0].id;
+                        localStorage.setItem('extrato_companyId', selectedCompanyId);
                     }
-                }
-                // ------------------------------------
-                console.log('[ExtratoContaManager] ========== LOAD ACCOUNTS START ==========');
-                console.log('[ExtratoContaManager] Total accounts fetched from API:', allAccounts.length);
-                console.log('[ExtratoContaManager] All accounts data:', JSON.stringify(allAccounts, null, 2));
-                console.log('[ExtratoContaManager] selectedCompanyId (before filtering):', selectedCompanyId, 'type:', typeof selectedCompanyId);
-
-                // Auto-select first company if no company selected
-                if (!selectedCompanyId && companies.length > 0) {
-                    selectedCompanyId = companies[0].id;
-                    localStorage.setItem('extrato_companyId', selectedCompanyId);
-                    console.log('[ExtratoContaManager] Auto-selected first company:', selectedCompanyId);
                 } else {
-                    console.log('[ExtratoContaManager] Using stored/selected company:', selectedCompanyId);
+                    selectedCompanyId = null;
                 }
 
                 // Filter accounts by selected company
                 if (selectedCompanyId) {
-                    console.log('[ExtratoContaManager] Filtering accounts...');
-                    allAccounts.forEach(acc => {
-                        console.log(`  Account: ${acc.name}, company_id: ${acc.company_id} (type: ${typeof acc.company_id}), matches: ${parseInt(acc.company_id) === selectedCompanyId}`);
-                    });
                     accounts = allAccounts.filter(acc => parseInt(acc.company_id) === selectedCompanyId);
-                    console.log('[ExtratoContaManager] Filtered accounts for company', selectedCompanyId, ':', accounts.length, accounts);
-                    console.log('[ExtratoContaManager] ========== LOAD ACCOUNTS END ==========');
                 } else {
-                    accounts = [...allAccounts];
-                    console.log('[ExtratoContaManager] No company filter, using all accounts:', accounts.length);
+                    accounts = [];
                 }
 
-                // Auto-select first account if available and none selected
-                if (accounts.length > 0 && !selectedAccountId) {
-                    selectedAccountId = accounts[0].id;
+                // Auto-select first account if available and none selected or invalid
+                if (accounts.length > 0) {
+                    const accountExists = accounts.some(a => a.id === parseInt(selectedAccountId));
+                    if (!selectedAccountId || !accountExists) {
+                        selectedAccountId = accounts[0].id;
+                        localStorage.setItem('extrato_accountId', selectedAccountId);
+                    }
+                } else {
+                    selectedAccountId = null;
+                    localStorage.removeItem('extrato_accountId');
                 }
 
                 // Re-render controls to populate options
