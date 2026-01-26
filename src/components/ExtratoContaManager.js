@@ -429,11 +429,11 @@ export const ExtratoContaManager = (project) => {
             onSortChange: () => { },   // Optional
             headerRow: {
                 data: {
-                    data: startDate,
+                    data: formatDate(startDate),
                     tipo_formatado: 'SALDO INICIAL',
                     descricao: 'Saldo inicial do período',
                     fluxo: '-',
-                    valor: extratoData.initialBalance
+                    valor: formatCurrency(extratoData.initialBalance)
                 },
                 style: {
                     backgroundColor: '#e0f2fe',
@@ -448,7 +448,7 @@ export const ExtratoContaManager = (project) => {
                     tipo_formatado: 'SALDO FINAL',
                     descricao: '-',
                     fluxo: '-',
-                    valor: finalBalance
+                    valor: formatCurrency(finalBalance)
                 },
                 style: {
                     backgroundColor: '#e0f2fe',

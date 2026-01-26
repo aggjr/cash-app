@@ -449,7 +449,11 @@ export class SharedTable {
         // Body
         const tbody = document.createElement('tbody');
 
-        // ... Header Row logic ...
+        // Render Header Row (e.g., SALDO INICIAL)
+        if (this.headerRow) {
+            const trHeader = this.renderSpecialRow(this.headerRow, this.headerRow.className || 'header-row');
+            tbody.appendChild(trHeader);
+        }
 
         if (this.currentData.length === 0) {
             // ... empty state ...
@@ -2192,5 +2196,41 @@ export class SharedTable {
             const close = () => { menu.remove(); document.removeEventListener('click', close); };
             setTimeout(() => document.addEventListener('click', close), 0);
         }
+    }
+    renderSpecialRow(rowData, className) {
+        const tr = document.createElement('tr');
+        if (className) tr.className = className;
+        if (rowData.style) {
+            Object.assign(tr.style, rowData.style);
+        }
+
+        // Checkbox spacer if selection enabled
+        if (this.enableSelection) {
+            const td = document.createElement('td');
+            tr.appendChild(td);
+        }
+
+        this.columns.forEach(col => {
+            const td = document.createElement('td');
+            td.style.padding = 'var(--row-padding)';
+            td.style.textAlign = col.align || 'left';
+            if (col.width) td.style.width = col.width;
+
+            // Sticky logic for special rows too?
+            if (col.sticky) {
+                td.style.position = 'sticky';
+                const checkboxOffset = this.enableSelection ? 40 : 0;
+                td.style.left = (col._left + checkboxOffset) + 'px';
+                td.style.zIndex = '5';
+                td.style.backgroundColor = rowData.style?.backgroundColor || '#fff';
+            }
+
+            let content = rowData.data[col.key];
+            if (content === undefined) content = '';
+
+            td.innerHTML = content;
+            tr.appendChild(td);
+        });
+        return tr;
     }
 }
