@@ -75,7 +75,7 @@ export const AccountModal = {
                             </div>
 
                             <div class="form-group">
-                                <label for="account-initial-balance">Saldo Inicial</label>
+                                <label for="account-initial-balance">Saldo Inicial <span class="required">*</span></label>
                                 <input 
                                     type="text" 
                                     id="account-initial-balance" 
@@ -83,6 +83,7 @@ export const AccountModal = {
                                     placeholder="R$ 0,00"
                                     style="text-align: right;"
                                     value="${account?.initial_balance ? formatCurrency(account.initial_balance) : '0,00'}"
+                                    required
                                 />
                             </div>
                         </div>
@@ -167,13 +168,20 @@ export const AccountModal = {
                     companySelect.classList.remove('input-error');
                 }
 
-
+                const initialBalance = initialBalanceInput.value.trim();
+                if (!initialBalance) {
+                    initialBalanceInput.classList.add('input-error');
+                    isValid = false;
+                } else {
+                    initialBalanceInput.classList.remove('input-error');
+                }
 
                 return isValid;
             };
 
             nameInput.addEventListener('input', validate);
             companySelect.addEventListener('change', validate);
+            initialBalanceInput.addEventListener('input', validate);
 
             // Close modal
             const close = (result) => {
