@@ -72,19 +72,22 @@ export const GruposLeadsManager = (project) => {
         header.innerHTML = `
             <h3 style="margin:0; font-size:1.1rem; color:var(--color-primary);">👥 Grupos de Leads</h3>
             <div style="display:flex; gap:0.5rem;">
-                <button id="btn-edit-group-members" title="Editar Membros do Grupo" disabled style="
-                    background: none; border: 1px solid var(--color-border-light); border-radius: 4px; 
-                    cursor: pointer; padding: 4px 8px; color: var(--color-text-secondary); opacity: 0.5;">
-                    <svg viewBox="0 0 24 24" fill="currentColor" width="16" height="16"><path d="M16 11c1.66 0 2.99-1.34 2.99-3S17.66 5 16 5c-1.66 0-3 1.34-3 3s1.34 3 3 3zm-8 0c1.66 0 2.99-1.34 2.99-3S9.66 5 8 5C6.34 5 5 6.34 5 8s1.34 3 3 3zm0 2c-2.33 0-7 1.17-7 3.5V19h14v-2.5c0-2.33-4.67-3.5-7-3.5zm8 0c-.29 0-.62.02-.97.05 1.16.84 1.97 1.97 1.97 3.45V19h6v-2.5c0-2.33-4.67-3.5-7-3.5z"/></svg>
-                </button>
                 <!-- Botão 'Atualizar' -->
                 <button id="btn-refresh-groups" title="Atualizar Lista" style="
                     background: none; border: 1px solid var(--color-border-light); border-radius: 4px; 
                     cursor: pointer; padding: 4px 8px; color: var(--color-text-secondary);">
                     🔄
                 </button>
-                <button id="btn-new-root-group" class="btn-primary" style="padding: 4px 12px; font-size: 0.9rem;">
-                    + Novo
+                <button id="btn-edit-group-members" title="Editar Membros do Grupo" disabled style="
+                    background: none; border: 1px solid var(--color-border-light); border-radius: 4px; 
+                    cursor: pointer; padding: 4px 8px; color: var(--color-text-secondary); opacity: 0.5;">
+                    <div style="display:flex; align-items:center; gap:1px;">
+                        <span style="font-size:0.8rem;">✏️</span>
+                        <svg viewBox="0 0 24 24" fill="currentColor" width="14" height="14"><path d="M16 11c1.66 0 2.99-1.34 2.99-3S17.66 5 16 5c-1.66 0-3 1.34-3 3s1.34 3 3 3zm-8 0c1.66 0 2.99-1.34 2.99-3S9.66 5 8 5C6.34 5 5 6.34 5 8s1.34 3 3 3zm0 2c-2.33 0-7 1.17-7 3.5V19h14v-2.5c0-2.33-4.67-3.5-7-3.5zm8 0c-.29 0-.62.02-.97.05 1.16.84 1.97 1.97 1.97 3.45V19h6v-2.5c0-2.33-4.67-3.5-7-3.5z"/></svg>
+                    </div>
+                </button>
+                <button id="btn-new-root-group" class="btn-primary" style="padding: 4px 10px; font-size: 1.1rem; line-height: 1;">
+                    +
                 </button>
             </div>
         `;
@@ -316,7 +319,8 @@ export const GruposLeadsManager = (project) => {
         // Botões Pequenos
         const createActionBtn = (icon, title, color, handler) => {
             const btn = document.createElement('button');
-            btn.innerHTML = icon;
+            if (icon.startsWith('<')) btn.innerHTML = icon;
+            else btn.textContent = icon;
             btn.title = title;
             btn.style.border = 'none';
             btn.style.background = 'none';
@@ -333,8 +337,16 @@ export const GruposLeadsManager = (project) => {
 
         // Actions only for real groups (not 'ALL')
         if (group.id !== 'ALL') {
+            // Edit Group Members (New)
+            const editMembersIcon = `<div style="display:flex; align-items:center; justify-content:center;"><span style="font-size:0.75rem; margin-right: -2px;">✏️</span><svg viewBox="0 0 24 24" fill="currentColor" width="12" height="12"><path d="M16 11c1.66 0 2.99-1.34 2.99-3S17.66 5 16 5c-1.66 0-3 1.34-3 3s1.34 3 3 3zm-8 0c1.66 0 2.99-1.34 2.99-3S9.66 5 8 5C6.34 5 5 6.34 5 8s1.34 3 3 3zm0 2c-2.33 0-7 1.17-7 3.5V19h14v-2.5c0-2.33-4.67-3.5-7-3.5zm8 0c-.29 0-.62.02-.97.05 1.16.84 1.97 1.97 1.97 3.45V19h6v-2.5c0-2.33-4.67-3.5-7-3.5z"/></svg></div>`;
+            actionsDiv.appendChild(createActionBtn(editMembersIcon, 'Editar Membros do Grupo', '#3B82F6', () => {
+                selectedGroupId = group.id; // Correctly set selection first
+                selectGroup(group.id);
+                setTimeout(enterEditMode, 100);
+            }));
+
             // Edit Group (Name/Desc)
-            actionsDiv.appendChild(createActionBtn('✏️', 'Editar Grupo', '#f59e0b', () => updateGrupo(group)));
+            actionsDiv.appendChild(createActionBtn('✏️', 'Editar Nome/Descrição', '#f59e0b', () => updateGrupo(group)));
 
             // Delete
             actionsDiv.appendChild(createActionBtn('🗑️', 'Excluir Grupo', '#ef4444', () => deleteGrupo(group)));
