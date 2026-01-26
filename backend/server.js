@@ -77,6 +77,7 @@ apiRouter.use('/user-preferences', require('./routes/userPreferences'));
 apiRouter.use('/marketing', marketingRoutes); // Marketing module
 apiRouter.use('/integration', require('./routes/integration')); // External integrations (WhatsApp)
 apiRouter.use('/migration', require('./routes/migration')); // TEMPORARY: Auto-migration endpoint
+apiRouter.use('/manual-migration', require('./routes/manualMigration')); // TEMPORARY: Button-triggered migration
 
 // Static Uploads Serving
 // Static Uploads Serving
