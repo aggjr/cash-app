@@ -48,11 +48,8 @@ exports.getAll = async (req, res) => {
             // Support for multiple groups (comma separated)
             const grupoIds = req.query.grupos.split(',').map(id => parseInt(id.trim())).filter(id => !isNaN(id));
             if (grupoIds.length > 0) {
-                // Use IN clause directly or subquery
-                // Need to handle potential SQL injection manually if not using ? expansion, 
-                // but mysql2 handles arrays in IN (?) 
-                // However, the subquery syntax usually is: WHERE grupo_id IN (?)
-                conditions.push('l.id IN (SELECT lead_id FROM leads_grupos WHERE grupo_id IN (?))');
+                // Use DISTINCT to ensure each lead appears only once, even if it belongs to multiple selected groups
+                conditions.push('l.id IN (SELECT DISTINCT lead_id FROM leads_grupos WHERE grupo_id IN (?))');
                 params.push(grupoIds);
             }
         }

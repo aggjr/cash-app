@@ -301,7 +301,16 @@ export const CampanhaWizard = {
                     } else {
                         const res = await fetch(`${API_BASE_URL}/marketing/leads?grupos=${groupIds}`, { headers: getHeaders() });
                         if (res.ok) {
-                            state.leads = await res.json();
+                            const leads = await res.json();
+
+                            // Deduplicate leads by ID (in case a lead belongs to multiple selected groups)
+                            const uniqueLeadsMap = new Map();
+                            leads.forEach(lead => {
+                                if (!uniqueLeadsMap.has(lead.id)) {
+                                    uniqueLeadsMap.set(lead.id, lead);
+                                }
+                            });
+                            state.leads = Array.from(uniqueLeadsMap.values());
                         }
                     }
 
@@ -327,7 +336,8 @@ export const CampanhaWizard = {
                         container: container,
                         columns: columns,
                         data: state.leads,
-                        itemsPerPage: 50
+                        itemsPerPage: 50,
+                        enableSelection: false // Read-only: leads are auto-populated from selected groups
                     });
                     // Force render to ensure visibility on first load
                     sharedTableInstance.render(state.leads);
