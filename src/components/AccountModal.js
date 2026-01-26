@@ -43,50 +43,56 @@ export const AccountModal = {
                 <div class="account-modal-body" style="padding: 1.5rem; max-height: 85vh;">
                     <h3 style="margin: 0 0 1rem 0; color: var(--color-primary); font-size: 1.3rem;">${isEdit ? 'Editar Conta' : 'Nova Conta'}</h3>
                     <div class="form-grid" style="gap: 0.5rem;">
-                        <div class="form-group" style="margin-top: 5px;">
-                            <label for="account-name">Nome da Conta <span class="required">*</span></label>
-                            <input 
-                                type="text" 
-                                id="account-name" 
-                                class="form-input" 
-                                placeholder="Ex: Caixa Principal"
-                                value="${account?.name || ''}"
-                                required
-                            />
+                        
+                        <!-- Row 1: Name, Company, Balance -->
+                        <div style="display: grid; grid-template-columns: 1.5fr 1.5fr 1fr; gap: 1rem; align-items: start;">
+                            <div class="form-group">
+                                <label for="account-name">Nome da Conta <span class="required">*</span></label>
+                                <input 
+                                    type="text" 
+                                    id="account-name" 
+                                    class="form-input" 
+                                    placeholder="Ex: Caixa Principal"
+                                    value="${account?.name || ''}"
+                                    required
+                                />
+                            </div>
+
+                            <div class="form-group">
+                                <label for="account-company">Empresa <span class="required">*</span></label>
+                                <select 
+                                    id="account-company" 
+                                    class="form-input"
+                                    required
+                                >
+                                    <option value="">Selecione uma empresa</option>
+                                    ${companies.map(company => `
+                                        <option value="${company.id}" ${account?.company_id == company.id ? 'selected' : ''}>
+                                            ${company.name} - ${company.cnpj}
+                                        </option>
+                                    `).join('')}
+                                </select>
+                            </div>
+
+                            <div class="form-group">
+                                <label for="account-initial-balance">Saldo Inicial</label>
+                                <input 
+                                    type="text" 
+                                    id="account-initial-balance" 
+                                    class="form-input" 
+                                    placeholder="R$ 0,00"
+                                    style="text-align: right;"
+                                    value="${account?.initial_balance ? formatCurrency(account.initial_balance) : '0,00'}"
+                                />
+                            </div>
                         </div>
 
-                        <div class="form-group" style="margin-top: 5px;">
-                            <label for="account-company">Empresa <span class="required">*</span></label>
-                            <select 
-                                id="account-company" 
-                                class="form-input"
-                                required
-                            >
-                                <option value="">Selecione uma empresa</option>
-                                ${companies.map(company => `
-                                    <option value="${company.id}" ${account?.company_id == company.id ? 'selected' : ''}>
-                                        ${company.name} - ${company.cnpj}
-                                    </option>
-                                `).join('')}
-                            </select>
-                        </div>
-
-                        <div class="form-group" style="margin-top: 5px;">
-                            <label for="account-initial-balance">Saldo Inicial da Conta</label>
-                            <input 
-                                type="text" 
-                                id="account-initial-balance" 
-                                class="form-input" 
-                                placeholder="R$ 0,00"
-                                value="${account?.initial_balance ? formatCurrency(account.initial_balance) : ''}"
-                            />
-                            <small class="text-muted">Saldo de abertura (banco) antes de qualquer movimentação no sistema.</small>
-                        </div>
+                        ${companies.length === 0 ? '<div class="form-group full-width"><small style="color: #EF4444;">⚠️ Nenhuma empresa cadastrada. Cadastre uma empresa primeiro na tela "Empresa".</small></div>' : ''}
 
                         <div class="form-group full-width" style="margin-top: 5px;">
-                            ${companies.length === 0 ? '<small style="color: #EF4444;">⚠️ Nenhuma empresa cadastrada. Cadastre uma empresa primeiro na tela "Empresa".</small>' : ''}
+                            <small class="text-muted" style="display: block; margin-top: -5px; margin-bottom: 5px;">Saldo de abertura (banco) antes de qualquer movimentação no sistema.</small>
                         </div>
-
+                        
                         <div class="form-group full-width">
                             <label for="account-description">Descrição</label>
                             <textarea 
