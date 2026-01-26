@@ -14,14 +14,14 @@ async function addColumnsToTable(connection, tableName) {
     try {
         await connection.query(`
             ALTER TABLE ${tableName} 
-            ADD COLUMN installment_group_id VARCHAR(50) DEFAULT NULL AFTER forma_pagamento
+            ADD COLUMN installment_group_id VARCHAR(50) DEFAULT NULL
         `);
         console.log(`Added installment_group_id column to ${tableName}`);
     } catch (e) {
         if (e.code === 'ER_DUP_FIELDNAME') {
             console.log(`Column installment_group_id already exists in ${tableName}`);
         } else {
-            throw e;
+            console.error(`Error adding installment_group_id: ${e.message}`);
         }
     }
 
@@ -36,7 +36,7 @@ async function addColumnsToTable(connection, tableName) {
         if (e.code === 'ER_DUP_FIELDNAME') {
             console.log(`Column installment_number already exists in ${tableName}`);
         } else {
-            throw e;
+            console.error(`Error adding installment_number: ${e.message}`);
         }
     }
 
@@ -51,7 +51,7 @@ async function addColumnsToTable(connection, tableName) {
         if (e.code === 'ER_DUP_FIELDNAME') {
             console.log(`Column installment_total already exists in ${tableName}`);
         } else {
-            throw e;
+            console.error(`Error adding installment_total: ${e.message}`);
         }
     }
 
@@ -66,7 +66,7 @@ async function addColumnsToTable(connection, tableName) {
         if (e.code === 'ER_DUP_FIELDNAME') {
             console.log(`Column installment_interval already exists in ${tableName}`);
         } else {
-            throw e;
+            console.error(`Error adding installment_interval: ${e.message}`);
         }
     }
 
@@ -81,7 +81,7 @@ async function addColumnsToTable(connection, tableName) {
         if (e.code === 'ER_DUP_FIELDNAME') {
             console.log(`Column installment_custom_days already exists in ${tableName}`);
         } else {
-            throw e;
+            console.error(`Error adding installment_custom_days: ${e.message}`);
         }
     }
 }
@@ -89,20 +89,19 @@ async function addColumnsToTable(connection, tableName) {
 async function runMigration() {
     let connection;
     try {
-        console.log('Starting migration: add installment columns...');
+        console.log('Starting migration: add installment columns to producao_revenda...');
         connection = await db.getConnection();
 
-        await addColumnsToTable(connection, 'entradas');
-        await addColumnsToTable(connection, 'saidas');
         await addColumnsToTable(connection, 'producao_revenda');
 
         console.log('Migration completed successfully');
+        process.exit(0);
     } catch (error) {
         console.error('Migration failed:', error);
-        throw error;
+        process.exit(1);
     } finally {
         if (connection) connection.release();
     }
 }
 
-module.exports = runMigration;
+runMigration();
