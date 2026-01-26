@@ -882,12 +882,12 @@ export const ProducaoRevendaModal = {
 
                         const data = {
                             dataFato: dataFatoInput.value,
-                            dataPrevistaRecebimento: dataPrevistaInput.value,
-                            dataRealRecebimento: dataRealInput.value || null,
-                            dataAtraso: dataAtrasoInput.value || null,
+                            dataPrevistaPagamento: dataPrevistaInput.value,
+                            dataRealPagamento: dataRealInput.value || null,
+                            dataPrevistaAtraso: dataAtrasoInput.value || null,
                             valor: parseCurrency(valorInput.value),
                             descricao: descricaoInput.value.trim(),
-                            tipoProducaoRevendaId: parseInt(tipoProducaoRevendaIdInput.value),
+                            tipoId: parseInt(tipoProducaoRevendaIdInput.value),
                             companyId: parseInt(companySelect.value),
                             accountId: parseInt(accountSelect.value),
                             comprovanteUrl: comprovanteUrlInput.value || null,
