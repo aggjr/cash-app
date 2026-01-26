@@ -1,19 +1,29 @@
-const path = require('path');
-const db = require(path.join(__dirname, 'config', 'database'));
+require('dotenv').config();
+const mysql = require('mysql2/promise');
 
 async function debugAccountsByProject() {
+    let connection;
     try {
+        // Create connection directly
+        connection = await mysql.createConnection({
+            host: process.env.DB_HOST || 'localhost',
+            user: process.env.DB_USER,
+            password: process.env.DB_PASSWORD,
+            database: process.env.DB_NAME,
+            port: process.env.DB_PORT || 3306
+        });
+
         console.log('\n========== ACCOUNTS BY PROJECT ==========\n');
 
         // Get all projects
-        const [projects] = await db.query('SELECT id, name FROM projects ORDER BY id');
+        const [projects] = await connection.execute('SELECT id, name FROM projects ORDER BY id');
 
         for (const project of projects) {
             console.log(`\n📁 PROJECT: ${project.name} (ID: ${project.id})`);
             console.log('─'.repeat(60));
 
             // Get companies for this project
-            const [companies] = await db.query(
+            const [companies] = await connection.execute(
                 'SELECT id, name FROM companies WHERE project_id = ? ORDER BY id',
                 [project.id]
             );
@@ -24,7 +34,7 @@ async function debugAccountsByProject() {
             });
 
             // Get accounts for this project
-            const [accounts] = await db.query(
+            const [accounts] = await connection.execute(
                 `SELECT a.id, a.name, a.company_id, c.name as company_name 
                  FROM accounts a 
                  LEFT JOIN companies c ON a.company_id = c.id 
@@ -61,10 +71,14 @@ async function debugAccountsByProject() {
             console.log('\n' + '='.repeat(60));
         }
 
-        process.exit(0);
     } catch (error) {
-        console.error('Error:', error);
+        console.error('Error:', error.message);
         process.exit(1);
+    } finally {
+        if (connection) {
+            await connection.end();
+        }
+        process.exit(0);
     }
 }
 
