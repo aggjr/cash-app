@@ -1,5 +1,6 @@
 import { showToast } from '../utils/toast.js';
 import { getApiBaseUrl } from '../utils/apiConfig.js';
+import { attachCurrencyMask, parseCurrency, formatCurrency } from '../utils/currencyMask.js';
 
 export const AccountModal = {
     show({ account = null, onSave, onCancel }) {
@@ -70,6 +71,18 @@ export const AccountModal = {
                             </select>
                         </div>
 
+                        <div class="form-group" style="margin-top: 5px;">
+                            <label for="account-initial-balance">Saldo Inicial da Conta</label>
+                            <input 
+                                type="text" 
+                                id="account-initial-balance" 
+                                class="form-input" 
+                                placeholder="R$ 0,00"
+                                value="${account?.initial_balance ? formatCurrency(account.initial_balance) : ''}"
+                            />
+                            <small class="text-muted">Saldo de abertura (banco) antes de qualquer movimentação no sistema.</small>
+                        </div>
+
                         <div class="form-group full-width" style="margin-top: 5px;">
                             ${companies.length === 0 ? '<small style="color: #EF4444;">⚠️ Nenhuma empresa cadastrada. Cadastre uma empresa primeiro na tela "Empresa".</small>' : ''}
                         </div>
@@ -113,9 +126,13 @@ export const AccountModal = {
             const nameInput = modal.querySelector('#account-name');
             const companySelect = modal.querySelector('#account-company');
             const descriptionInput = modal.querySelector('#account-description');
+            const initialBalanceInput = modal.querySelector('#account-initial-balance');
             const activeCheckbox = modal.querySelector('#account-active');
             const saveBtn = modal.querySelector('#modal-save');
             const cancelBtn = modal.querySelector('#modal-cancel');
+
+            // Attach Currency Mask
+            attachCurrencyMask(initialBalanceInput);
 
 
             // Focus on name input
@@ -191,7 +208,7 @@ export const AccountModal = {
                 const data = {
                     name: nameInput.value.trim(),
                     description: descriptionInput.value.trim(),
-                    initialBalance: 0,
+                    initialBalance: parseCurrency(initialBalanceInput.value),
                     companyId: parseInt(companySelect.value)
                 };
 
