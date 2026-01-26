@@ -59,6 +59,60 @@ export const UserManager = (project) => {
 
     const columns = [
         {
+            key: 'actions', label: 'Ações', width: '100px', align: 'center', noFilter: true, render: (user) => {
+                const currentUser = JSON.parse(localStorage.getItem('user'));
+                const isMaster = usersList.find(u => u.id === currentUser.id)?.role === 'master';
+                const isCurrentUser = user.id === currentUser.id;
+
+                const container = document.createElement('div');
+                container.style.display = 'flex';
+                container.style.gap = '0.5rem';
+                container.style.justifyContent = 'center';
+
+                // MASTER: can edit anyone, can delete anyone except self and other masters
+                // REGULAR USER: can only edit themselves
+
+                // Edit button logic
+                if (isMaster || isCurrentUser) {
+                    const editBtn = document.createElement('button');
+                    editBtn.innerHTML = '✏️';
+                    editBtn.style.background = 'none';
+                    editBtn.style.border = 'none';
+                    editBtn.style.cursor = 'pointer';
+                    editBtn.style.fontSize = '1.2rem';
+                    editBtn.title = 'Editar Perfil';
+                    editBtn.onclick = (e) => {
+                        e.stopPropagation();
+                        UserModal.show({
+                            user,
+                            onSave: (data) => updateUser(data)
+                        });
+                    };
+                    container.appendChild(editBtn);
+                }
+
+                // Delete button logic (MASTER only, not on self or other masters)
+                if (isMaster && !isCurrentUser && user.role !== 'master') {
+                    const deleteBtn = document.createElement('button');
+                    deleteBtn.innerHTML = '🗑️';
+                    deleteBtn.style.background = 'none';
+                    deleteBtn.style.border = 'none';
+                    deleteBtn.style.cursor = 'pointer';
+                    deleteBtn.style.fontSize = '1.2rem';
+                    deleteBtn.style.color = '#EF4444';
+                    deleteBtn.title = 'Deletar Usuário';
+                    deleteBtn.onclick = (e) => {
+                        e.stopPropagation();
+                        deleteUser(user.id, user.name);
+                    };
+                    container.appendChild(deleteBtn);
+                }
+
+                // If no buttons were added (regular user looking at other users), show dash
+                return container.childNodes.length > 0 ? container : document.createTextNode('-');
+            }
+        },
+        {
             key: 'name', label: 'Nome', width: '250px', align: 'left', type: 'text', render: (user) => {
                 const currentUser = JSON.parse(localStorage.getItem('user'));
                 const isCurrentUser = user.id === currentUser.id;
@@ -116,61 +170,7 @@ export const UserManager = (project) => {
             }
         },
         { key: 'invited_at', label: 'Convidado em', width: '120px', align: 'center', type: 'date', render: (user) => formatDate(user.invited_at) },
-        { key: 'invited_by_name', label: 'Convidado por', width: '150px', align: 'center', type: 'text', render: (user) => user.invited_by_name || '-' },
-        {
-            key: 'actions', label: 'Ações', width: '100px', align: 'center', noFilter: true, render: (user) => {
-                const currentUser = JSON.parse(localStorage.getItem('user'));
-                const isMaster = usersList.find(u => u.id === currentUser.id)?.role === 'master';
-                const isCurrentUser = user.id === currentUser.id;
-
-                const container = document.createElement('div');
-                container.style.display = 'flex';
-                container.style.gap = '0.5rem';
-                container.style.justifyContent = 'center';
-
-                // MASTER: can edit anyone, can delete anyone except self and other masters
-                // REGULAR USER: can only edit themselves
-
-                // Edit button logic
-                if (isMaster || isCurrentUser) {
-                    const editBtn = document.createElement('button');
-                    editBtn.innerHTML = '✏️';
-                    editBtn.style.background = 'none';
-                    editBtn.style.border = 'none';
-                    editBtn.style.cursor = 'pointer';
-                    editBtn.style.fontSize = '1.2rem';
-                    editBtn.title = 'Editar Perfil';
-                    editBtn.onclick = (e) => {
-                        e.stopPropagation();
-                        UserModal.show({
-                            user,
-                            onSave: (data) => updateUser(data)
-                        });
-                    };
-                    container.appendChild(editBtn);
-                }
-
-                // Delete button logic (MASTER only, not on self or other masters)
-                if (isMaster && !isCurrentUser && user.role !== 'master') {
-                    const deleteBtn = document.createElement('button');
-                    deleteBtn.innerHTML = '🗑️';
-                    deleteBtn.style.background = 'none';
-                    deleteBtn.style.border = 'none';
-                    deleteBtn.style.cursor = 'pointer';
-                    deleteBtn.style.fontSize = '1.2rem';
-                    deleteBtn.style.color = '#EF4444';
-                    deleteBtn.title = 'Deletar Usuário';
-                    deleteBtn.onclick = (e) => {
-                        e.stopPropagation();
-                        deleteUser(user.id, user.name);
-                    };
-                    container.appendChild(deleteBtn);
-                }
-
-                // If no buttons were added (regular user looking at other users), show dash
-                return container.childNodes.length > 0 ? container : document.createTextNode('-');
-            }
-        }
+        { key: 'invited_by_name', label: 'Convidado por', width: '150px', align: 'center', type: 'text', render: (user) => user.invited_by_name || '-' }
     ];
 
     // Store users list for action logic since SharedTable render doesn't pass full context easily without it

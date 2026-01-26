@@ -23,6 +23,73 @@ export const LogAlteracoesManager = (project) => {
     // Columns
     const columns = [
         {
+            key: 'undo',
+            label: 'Ações',
+            width: '120px',
+            align: 'center',
+            noFilter: true,
+            render: (row) => {
+                // Check if already undone
+                if (row.undone_at) {
+                    const span = document.createElement('span');
+                    span.textContent = '✅ Desfeito';
+                    span.style.color = '#10B981';
+                    span.style.fontSize = '0.9rem';
+                    return span;
+                }
+
+                // Check if has old_data (can be undone) - INSERT/CREATE doesn't need old_data
+                if (!['DELETE', 'UPDATE', 'INSERT', 'CREATE'].includes(row.action)) {
+                    console.log(`[UNDO] Blocking: action "${row.action}" not supported`, row);
+                    return document.createTextNode('-');
+                }
+
+                // INSERT/CREATE doesn't need old_data, DELETE and UPDATE do
+                if ((row.action === 'DELETE' || row.action === 'UPDATE') && !row.old_data) {
+                    console.log(`[UNDO] Blocking: ${row.action} has no old_data`, row);
+                    return document.createTextNode('-');
+                }
+
+                // For INSERT/CREATE, we need entity_id (primary key) to delete
+                // Fallback: try to find ID in new_data if entity_id is missing
+                let entityId = row.entity_id;
+                if ((row.action === 'INSERT' || row.action === 'CREATE') && !entityId && row.new_data) {
+                    try {
+                        const newData = typeof row.new_data === 'string' ? JSON.parse(row.new_data) : row.new_data;
+                        entityId = newData.id || newData.ID;
+                    } catch (e) {
+                        console.error('Error parsing new_data for ID', e);
+                    }
+                }
+
+                if ((row.action === 'INSERT' || row.action === 'CREATE') && !entityId) {
+                    console.log(`[UNDO] Blocking INSERT/CREATE: missing entity_id`, row);
+                    return document.createTextNode('-');
+                }
+
+                console.log(`[UNDO] Showing button for ${row.action}`, row);
+                // Create undo button
+                const btn = document.createElement('button');
+                btn.innerHTML = '↩️ Desfazer';
+                btn.className = 'btn-sm';
+                btn.style.background = '#F59E0B';
+                btn.style.color = 'white';
+                btn.style.border = 'none';
+                btn.style.padding = '4px 8px';
+                btn.style.borderRadius = '4px';
+                btn.style.cursor = 'pointer';
+                btn.style.fontSize = '0.85rem';
+                btn.onclick = async (e) => {
+                    e.stopPropagation();
+                    // For CREATE/INSERT, we might need to tell backend the ID if it's missing in DB column
+                    // But currently API only accepts logId. 
+                    // I will fix backend to parse new_data if entity_id is null.
+                    await undoAction(row.id, row.action, row.entity);
+                };
+                return btn;
+            }
+        },
+        {
             key: 'created_at',
             label: 'Data/Hora',
             width: '180px',
@@ -149,73 +216,6 @@ export const LogAlteracoesManager = (project) => {
                 }
 
                 return container;
-            }
-        },
-        {
-            key: 'undo',
-            label: 'Ações',
-            width: '120px',
-            align: 'center',
-            noFilter: true,
-            render: (row) => {
-                // Check if already undone
-                if (row.undone_at) {
-                    const span = document.createElement('span');
-                    span.textContent = '✅ Desfeito';
-                    span.style.color = '#10B981';
-                    span.style.fontSize = '0.9rem';
-                    return span;
-                }
-
-                // Check if has old_data (can be undone) - INSERT/CREATE doesn't need old_data
-                if (!['DELETE', 'UPDATE', 'INSERT', 'CREATE'].includes(row.action)) {
-                    console.log(`[UNDO] Blocking: action "${row.action}" not supported`, row);
-                    return document.createTextNode('-');
-                }
-
-                // INSERT/CREATE doesn't need old_data, DELETE and UPDATE do
-                if ((row.action === 'DELETE' || row.action === 'UPDATE') && !row.old_data) {
-                    console.log(`[UNDO] Blocking: ${row.action} has no old_data`, row);
-                    return document.createTextNode('-');
-                }
-
-                // For INSERT/CREATE, we need entity_id (primary key) to delete
-                // Fallback: try to find ID in new_data if entity_id is missing
-                let entityId = row.entity_id;
-                if ((row.action === 'INSERT' || row.action === 'CREATE') && !entityId && row.new_data) {
-                    try {
-                        const newData = typeof row.new_data === 'string' ? JSON.parse(row.new_data) : row.new_data;
-                        entityId = newData.id || newData.ID;
-                    } catch (e) {
-                        console.error('Error parsing new_data for ID', e);
-                    }
-                }
-
-                if ((row.action === 'INSERT' || row.action === 'CREATE') && !entityId) {
-                    console.log(`[UNDO] Blocking INSERT/CREATE: missing entity_id`, row);
-                    return document.createTextNode('-');
-                }
-
-                console.log(`[UNDO] Showing button for ${row.action}`, row);
-                // Create undo button
-                const btn = document.createElement('button');
-                btn.innerHTML = '↩️ Desfazer';
-                btn.className = 'btn-sm';
-                btn.style.background = '#F59E0B';
-                btn.style.color = 'white';
-                btn.style.border = 'none';
-                btn.style.padding = '4px 8px';
-                btn.style.borderRadius = '4px';
-                btn.style.cursor = 'pointer';
-                btn.style.fontSize = '0.85rem';
-                btn.onclick = async (e) => {
-                    e.stopPropagation();
-                    // For CREATE/INSERT, we might need to tell backend the ID if it's missing in DB column
-                    // But currently API only accepts logId. 
-                    // I will fix backend to parse new_data if entity_id is null.
-                    await undoAction(row.id, row.action, row.entity);
-                };
-                return btn;
             }
         }
     ];

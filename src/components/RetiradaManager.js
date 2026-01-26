@@ -25,6 +25,33 @@ export const RetiradaManager = (project) => {
 
     // Columns
     const columns = [
+        {
+            key: 'actions',
+            label: 'Ações',
+            width: '100px',
+            align: 'center',
+            noFilter: true,
+            render: (item) => {
+                const div = document.createElement('div');
+                div.style.display = 'flex';
+                div.style.gap = '0.5rem';
+                div.style.justifyContent = 'center';
+
+                const btnEdit = document.createElement('button');
+                btnEdit.innerHTML = '✏️';
+                btnEdit.style.background = 'none'; btnEdit.style.border = 'none'; btnEdit.style.cursor = 'pointer';
+                btnEdit.onclick = (e) => { e.stopPropagation(); updateRetirada(item); };
+
+                const btnDelete = document.createElement('button');
+                btnDelete.innerHTML = '🗑️';
+                btnDelete.style.background = 'none'; btnDelete.style.border = 'none'; btnDelete.style.cursor = 'pointer';
+                btnDelete.onclick = (e) => { e.stopPropagation(); deleteRetirada(item.id, item.descricao); };
+
+                div.appendChild(btnEdit);
+                div.appendChild(btnDelete);
+                return div;
+            }
+        },
         { key: 'data_fato', label: 'Data Fato', width: '100px', align: 'center', type: 'date' },
         { key: 'data_prevista', label: 'Data Prevista', width: '100px', align: 'center', type: 'date' },
         { key: 'data_real', label: 'Data Real', width: '100px', align: 'center', type: 'date' },
@@ -68,33 +95,6 @@ export const RetiradaManager = (project) => {
                     btn.title = 'Sem anexo';
                 }
                 return btn;
-            }
-        },
-        {
-            key: 'actions',
-            label: 'Ações',
-            width: '100px',
-            align: 'center',
-            noFilter: true,
-            render: (item) => {
-                const div = document.createElement('div');
-                div.style.display = 'flex';
-                div.style.gap = '0.5rem';
-                div.style.justifyContent = 'center';
-
-                const btnEdit = document.createElement('button');
-                btnEdit.innerHTML = '✏️';
-                btnEdit.style.background = 'none'; btnEdit.style.border = 'none'; btnEdit.style.cursor = 'pointer';
-                btnEdit.onclick = (e) => { e.stopPropagation(); updateRetirada(item); };
-
-                const btnDelete = document.createElement('button');
-                btnDelete.innerHTML = '🗑️';
-                btnDelete.style.background = 'none'; btnDelete.style.border = 'none'; btnDelete.style.cursor = 'pointer';
-                btnDelete.onclick = (e) => { e.stopPropagation(); deleteRetirada(item.id, item.descricao); };
-
-                div.appendChild(btnEdit);
-                div.appendChild(btnDelete);
-                return div;
             }
         },
         {

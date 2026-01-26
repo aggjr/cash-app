@@ -42,6 +42,41 @@ export const CampanhasManager = (project) => {
     };
 
     const columns = [
+        {
+            key: 'actions',
+            label: 'Ações',
+            width: '80px',
+            align: 'center',
+            noFilter: true,
+            render: (item) => {
+                const div = document.createElement('div');
+                div.style.display = 'flex';
+                div.style.gap = '0.5rem';
+                div.style.justifyContent = 'center';
+
+                const btnEdit = document.createElement('button');
+                btnEdit.innerHTML = '✏️';
+                btnEdit.title = 'Editar';
+                btnEdit.style.background = 'none';
+                btnEdit.style.border = 'none';
+                btnEdit.style.cursor = 'pointer';
+                btnEdit.style.fontSize = '1.1rem';
+                btnEdit.onclick = (e) => { e.stopPropagation(); updateCampanha(item); };
+
+                const btnDelete = document.createElement('button');
+                btnDelete.innerHTML = '🗑️';
+                btnDelete.title = 'Excluir';
+                btnDelete.style.background = 'none';
+                btnDelete.style.border = 'none';
+                btnDelete.style.cursor = 'pointer';
+                btnDelete.style.fontSize = '1.1rem';
+                btnDelete.onclick = (e) => { e.stopPropagation(); deleteCampanha(item); };
+
+                div.appendChild(btnEdit);
+                div.appendChild(btnDelete);
+                return div;
+            }
+        },
         { key: 'nome', label: 'Nome', width: 'auto', align: 'left', type: 'text' },
         { key: 'descricao', label: 'Descrição', width: '25%', align: 'left', type: 'text' },
         {
@@ -113,41 +148,6 @@ export const CampanhasManager = (project) => {
                 badge.style.borderRadius = '12px';
                 badge.style.fontSize = '0.85rem';
                 return badge;
-            }
-        },
-        {
-            key: 'actions',
-            label: 'Ações',
-            width: '80px',
-            align: 'center',
-            noFilter: true,
-            render: (item) => {
-                const div = document.createElement('div');
-                div.style.display = 'flex';
-                div.style.gap = '0.5rem';
-                div.style.justifyContent = 'center';
-
-                const btnEdit = document.createElement('button');
-                btnEdit.innerHTML = '✏️';
-                btnEdit.title = 'Editar';
-                btnEdit.style.background = 'none';
-                btnEdit.style.border = 'none';
-                btnEdit.style.cursor = 'pointer';
-                btnEdit.style.fontSize = '1.1rem';
-                btnEdit.onclick = (e) => { e.stopPropagation(); updateCampanha(item); };
-
-                const btnDelete = document.createElement('button');
-                btnDelete.innerHTML = '🗑️';
-                btnDelete.title = 'Excluir';
-                btnDelete.style.background = 'none';
-                btnDelete.style.border = 'none';
-                btnDelete.style.cursor = 'pointer';
-                btnDelete.style.fontSize = '1.1rem';
-                btnDelete.onclick = (e) => { e.stopPropagation(); deleteCampanha(item); };
-
-                div.appendChild(btnEdit);
-                div.appendChild(btnDelete);
-                return div;
             }
         }
     ];

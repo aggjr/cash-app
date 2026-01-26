@@ -48,6 +48,41 @@ export const AccountManager = (project) => {
 
     // Column Definitions for SharedTable
     const columns = [
+        {
+            key: 'actions',
+            label: 'Ações',
+            width: '80px',
+            align: 'center',
+            noFilter: true,
+            render: (item) => {
+                const div = document.createElement('div');
+                div.style.display = 'flex';
+                div.style.gap = '0.5rem';
+                div.style.justifyContent = 'center';
+
+                const btnEdit = document.createElement('button');
+                btnEdit.innerHTML = '✏️';
+                btnEdit.title = 'Editar';
+                btnEdit.style.background = 'none';
+                btnEdit.style.border = 'none';
+                btnEdit.style.cursor = 'pointer';
+                btnEdit.style.fontSize = '1.1rem';
+                btnEdit.onclick = (e) => { e.stopPropagation(); updateAccount(item); };
+
+                const btnDelete = document.createElement('button');
+                btnDelete.innerHTML = '🗑️';
+                btnDelete.title = 'Excluir';
+                btnDelete.style.background = 'none';
+                btnDelete.style.border = 'none';
+                btnDelete.style.cursor = 'pointer';
+                btnDelete.style.fontSize = '1.1rem';
+                btnDelete.onclick = (e) => { e.stopPropagation(); deleteAccount(item.id, item.name); };
+
+                div.appendChild(btnEdit);
+                div.appendChild(btnDelete);
+                return div;
+            }
+        },
         { key: 'name', label: 'Nome', width: 'auto', align: 'left', type: 'text' },
         {
             key: 'company_name',
@@ -101,41 +136,6 @@ export const AccountManager = (project) => {
                 const span = document.createElement('span');
                 span.textContent = formatDate(item.created_at);
                 return span;
-            }
-        },
-        {
-            key: 'actions',
-            label: 'Ações',
-            width: '80px',
-            align: 'center',
-            noFilter: true,
-            render: (item) => {
-                const div = document.createElement('div');
-                div.style.display = 'flex';
-                div.style.gap = '0.5rem';
-                div.style.justifyContent = 'center';
-
-                const btnEdit = document.createElement('button');
-                btnEdit.innerHTML = '✏️';
-                btnEdit.title = 'Editar';
-                btnEdit.style.background = 'none';
-                btnEdit.style.border = 'none';
-                btnEdit.style.cursor = 'pointer';
-                btnEdit.style.fontSize = '1.1rem';
-                btnEdit.onclick = (e) => { e.stopPropagation(); updateAccount(item); };
-
-                const btnDelete = document.createElement('button');
-                btnDelete.innerHTML = '🗑️';
-                btnDelete.title = 'Excluir';
-                btnDelete.style.background = 'none';
-                btnDelete.style.border = 'none';
-                btnDelete.style.cursor = 'pointer';
-                btnDelete.style.fontSize = '1.1rem';
-                btnDelete.onclick = (e) => { e.stopPropagation(); deleteAccount(item.id, item.name); };
-
-                div.appendChild(btnEdit);
-                div.appendChild(btnDelete);
-                return div;
             }
         }
     ];
