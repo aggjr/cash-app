@@ -49,6 +49,8 @@ exports.getExtrato = async (req, res) => {
             projectId, accountId, startDate,
             projectId, accountId, startDate, // Transf IN
 
+            accountId, projectId, // Account Opening Balance
+
             projectId, accountId, startDate,
             projectId, accountId, startDate,
             projectId, accountId, startDate,
