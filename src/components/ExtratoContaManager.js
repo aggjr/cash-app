@@ -108,8 +108,12 @@ export const ExtratoContaManager = (project) => {
         placeholder.textContent = 'Selecione uma conta';
         accSelect.appendChild(placeholder);
 
+        console.log('[ExtratoContaManager] renderControls() called');
+        console.log('[ExtratoContaManager] selectedCompanyId:', selectedCompanyId);
+        console.log('[ExtratoContaManager] allAccounts:', allAccounts);
         console.log('[ExtratoContaManager] Populating account dropdown with', accounts.length, 'accounts:', accounts);
         accounts.forEach(acc => {
+            console.log('[ExtratoContaManager] Adding account option:', acc.id, acc.name, 'company_id:', acc.company_id);
             const opt = document.createElement('option');
             opt.value = acc.id;
             opt.textContent = acc.name;
@@ -473,7 +477,10 @@ export const ExtratoContaManager = (project) => {
             const resp = await fetch(`${API_BASE_URL}/accounts?projectId=${project.id}`, { headers: getHeaders() });
             if (resp.ok) {
                 allAccounts = await resp.json();
-                console.log('[ExtratoContaManager] Total accounts fetched from API:', allAccounts.length, allAccounts);
+                console.log('[ExtratoContaManager] ========== LOAD ACCOUNTS START ==========');
+                console.log('[ExtratoContaManager] Total accounts fetched from API:', allAccounts.length);
+                console.log('[ExtratoContaManager] All accounts data:', JSON.stringify(allAccounts, null, 2));
+                console.log('[ExtratoContaManager] selectedCompanyId (before filtering):', selectedCompanyId, 'type:', typeof selectedCompanyId);
 
                 // Auto-select first company if no company selected
                 if (!selectedCompanyId && companies.length > 0) {
@@ -486,8 +493,13 @@ export const ExtratoContaManager = (project) => {
 
                 // Filter accounts by selected company
                 if (selectedCompanyId) {
+                    console.log('[ExtratoContaManager] Filtering accounts...');
+                    allAccounts.forEach(acc => {
+                        console.log(`  Account: ${acc.name}, company_id: ${acc.company_id} (type: ${typeof acc.company_id}), matches: ${parseInt(acc.company_id) === selectedCompanyId}`);
+                    });
                     accounts = allAccounts.filter(acc => parseInt(acc.company_id) === selectedCompanyId);
                     console.log('[ExtratoContaManager] Filtered accounts for company', selectedCompanyId, ':', accounts.length, accounts);
+                    console.log('[ExtratoContaManager] ========== LOAD ACCOUNTS END ==========');
                 } else {
                     accounts = [...allAccounts];
                     console.log('[ExtratoContaManager] No company filter, using all accounts:', accounts.length);
