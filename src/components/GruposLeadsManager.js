@@ -1244,15 +1244,6 @@ export const GruposLeadsManager = (project) => {
         }
     };
 
-    // Attach listener to bulk char button
-    const btnBulk = bulkActionsContainer.querySelector('#btn-bulk-char');
-    if (btnBulk) {
-        btnBulk.addEventListener('click', () => {
-            if (leadsTable && leadsTable.selection.size > 0) {
-                showBulkCharModal(Array.from(leadsTable.selection));
-            }
-        });
-    }
 
     const showCustomConfirm = (message, confirmText = 'Sim') => {
         return new Promise((resolve) => {

@@ -164,7 +164,10 @@ export const ExtratoContaManager = (project) => {
         const filterAccountsByCompany = () => {
             selectedCompanyId = parseInt(companySelect.value);
 
-            accounts = allAccounts.filter(acc => acc.company_id === selectedCompanyId);
+            console.log('[ExtratoContaManager] Filtering accounts for company:', selectedCompanyId);
+            console.log('[ExtratoContaManager] All accounts before filter:', allAccounts);
+            accounts = allAccounts.filter(acc => parseInt(acc.company_id) === selectedCompanyId);
+            console.log('[ExtratoContaManager] Filtered accounts:', accounts);
 
             // Persist company selection
             localStorage.setItem('extrato_companyId', selectedCompanyId);
@@ -483,7 +486,7 @@ export const ExtratoContaManager = (project) => {
 
                 // Filter accounts by selected company
                 if (selectedCompanyId) {
-                    accounts = allAccounts.filter(acc => acc.company_id === selectedCompanyId);
+                    accounts = allAccounts.filter(acc => parseInt(acc.company_id) === selectedCompanyId);
                     console.log('[ExtratoContaManager] Filtered accounts for company', selectedCompanyId, ':', accounts.length, accounts);
                 } else {
                     accounts = [...allAccounts];
