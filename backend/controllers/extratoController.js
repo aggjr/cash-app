@@ -22,6 +22,11 @@ exports.getExtrato = async (req, res) => {
                 WHERE project_id = ? AND destination_account_id = ? AND data_real < ? AND active = 1 AND data_real IS NOT NULL
                 
                 UNION ALL
+                -- Account Opening Balance
+                SELECT initial_balance AS val FROM contas
+                WHERE id = ? AND project_id = ?
+
+                UNION ALL
                 
                 -- Outputs (-)
                 SELECT -valor AS val FROM saidas 
