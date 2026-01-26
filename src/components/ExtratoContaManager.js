@@ -56,9 +56,36 @@ export const ExtratoContaManager = (project) => {
         const controls = document.createElement('div');
         controls.className = 'extrato-controls animate-float-in';
         controls.style.display = 'flex';
-        controls.style.gap = '1.5rem';
-        controls.style.marginBottom = '0.5rem';
+        controls.style.gap = '1.5rem'; // Reduced gap
+        controls.style.marginBottom = '0.5rem'; // Reduced margin
         controls.style.alignItems = 'flex-end';
+
+        // Company Select
+        const companyDiv = document.createElement('div');
+        const companyLabel = document.createElement('label');
+        companyLabel.textContent = 'Empresa';
+        companyLabel.style.display = 'block';
+        companyLabel.style.marginBottom = '0.2rem';
+        companyLabel.style.fontWeight = '500';
+        companyLabel.style.color = '#374151';
+
+        const companySelect = document.createElement('select');
+        companySelect.id = 'extrato-company-select';
+        companySelect.className = 'form-input';
+        companySelect.style.width = '250px';
+        companySelect.style.height = '38px';
+        companySelect.style.padding = '0 0.5rem';
+
+        companies.forEach(comp => {
+            const opt = document.createElement('option');
+            opt.value = comp.id;
+            opt.textContent = comp.name;
+            if (comp.id === selectedCompanyId) opt.selected = true;
+            companySelect.appendChild(opt);
+        });
+
+        companyDiv.appendChild(companyLabel);
+        companyDiv.appendChild(companySelect);
 
         // Account Select
         const accDiv = document.createElement('div');
@@ -73,7 +100,7 @@ export const ExtratoContaManager = (project) => {
         accSelect.id = 'extrato-account-select';
         accSelect.className = 'form-input';
         accSelect.style.width = '250px';
-        accSelect.style.height = '38px';
+        accSelect.style.height = '38px'; // Reduced height
         accSelect.style.padding = '0 0.5rem';
 
         const placeholder = document.createElement('option');
@@ -81,35 +108,17 @@ export const ExtratoContaManager = (project) => {
         placeholder.textContent = 'Selecione uma conta';
         accSelect.appendChild(placeholder);
 
-        console.log('[ExtratoContaManager] Populating account dropdown with ALL accounts:', allAccounts.length);
-
-        // Group accounts by company
-        const companyGroups = {};
-        allAccounts.forEach(acc => {
-            if (!companyGroups[acc.company_id]) {
-                const company = companies.find(c => c.id === acc.company_id);
-                companyGroups[acc.company_id] = {
-                    company_name: company ? company.name : `Empresa ${acc.company_id}`,
-                    accounts: []
-                };
-            }
-            companyGroups[acc.company_id].accounts.push(acc);
-        });
-
-        // Add accounts grouped by company
-        Object.values(companyGroups).forEach(group => {
-            const optgroup = document.createElement('optgroup');
-            optgroup.label = group.company_name;
-
-            group.accounts.forEach(acc => {
-                const opt = document.createElement('option');
-                opt.value = acc.id;
-                opt.textContent = acc.name;
-                if (acc.id === parseInt(selectedAccountId)) opt.selected = true;
-                optgroup.appendChild(opt);
-            });
-
-            accSelect.appendChild(optgroup);
+        console.log('[ExtratoContaManager] renderControls() called');
+        console.log('[ExtratoContaManager] selectedCompanyId:', selectedCompanyId);
+        console.log('[ExtratoContaManager] allAccounts:', allAccounts);
+        console.log('[ExtratoContaManager] Populating account dropdown with', accounts.length, 'accounts:', accounts);
+        accounts.forEach(acc => {
+            console.log('[ExtratoContaManager] Adding account option:', acc.id, acc.name, 'company_id:', acc.company_id);
+            const opt = document.createElement('option');
+            opt.value = acc.id;
+            opt.textContent = acc.name;
+            if (acc.id === parseInt(selectedAccountId)) opt.selected = true;
+            accSelect.appendChild(opt);
         });
 
         accDiv.appendChild(accLabel);
@@ -155,7 +164,36 @@ export const ExtratoContaManager = (project) => {
         endDiv.appendChild(endLabel);
         endDiv.appendChild(endInput);
 
+        // Company Filter Logic
+        const filterAccountsByCompany = () => {
+            selectedCompanyId = parseInt(companySelect.value);
 
+            console.log('[ExtratoContaManager] Filtering accounts for company:', selectedCompanyId);
+            console.log('[ExtratoContaManager] All accounts before filter:', allAccounts);
+            accounts = allAccounts.filter(acc => parseInt(acc.company_id) === selectedCompanyId);
+            console.log('[ExtratoContaManager] Filtered accounts:', accounts);
+
+            // Persist company selection
+            localStorage.setItem('extrato_companyId', selectedCompanyId);
+
+            // Auto-select first account if available after filtering
+            if (accounts.length > 0) {
+                selectedAccountId = accounts[0].id;
+                localStorage.setItem('extrato_accountId', selectedAccountId);
+            } else {
+                selectedAccountId = null;
+                localStorage.removeItem('extrato_accountId');
+            }
+
+            // Re-render controls to update account dropdown
+            const oldControls = container.querySelector('.extrato-controls');
+            if (oldControls) {
+                oldControls.replaceWith(renderControls());
+            }
+
+            // Reload extrato with new account selection
+            loadExtrato();
+        };
 
         // Auto-Trigger Search Logic
         const triggerSearch = () => {
@@ -172,9 +210,12 @@ export const ExtratoContaManager = (project) => {
         };
 
         // Attach listeners
+        companySelect.addEventListener('change', filterAccountsByCompany);
         accSelect.addEventListener('change', triggerSearch);
         startInput.addEventListener('change', triggerSearch);
         endInput.addEventListener('change', triggerSearch);
+
+        controls.appendChild(companyDiv);
         controls.appendChild(accDiv);
         controls.appendChild(startDiv);
         controls.appendChild(endDiv);
@@ -387,6 +428,21 @@ export const ExtratoContaManager = (project) => {
             enableSelection: false, // Extrato typically readonly
             onFilterChange: () => { }, // Optional
             onSortChange: () => { },   // Optional
+            headerRow: {
+                data: {
+                    data: '-',
+                    tipo_formatado: 'SALDO ANTERIOR',
+                    descricao: '-',
+                    fluxo: '-',
+                    valor: extratoData.initialBalance
+                },
+                style: {
+                    backgroundColor: '#e0f2fe',
+                    fontWeight: 'bold',
+                    borderBottom: '2px solid #00425F'
+                },
+                className: 'extrato-header-row'
+            },
             footerRow: {
                 data: {
                     data: '-',
@@ -404,21 +460,7 @@ export const ExtratoContaManager = (project) => {
             }
         });
 
-        // Prepend SALDO INICIAL as first row
-        const selectedAccount = allAccounts.find(acc => acc.id === parseInt(selectedAccountId));
-        const accountName = selectedAccount ? selectedAccount.name : '';
-
-        const initialBalanceRow = {
-            data: startDate,
-            tipo_formatado: 'SALDO INICIAL',
-            descricao: accountName ? `Saldo inicial da conta ${accountName}` : 'Saldo inicial',
-            direction: 'IN', // To show as green
-            valor: extratoData.initialBalance,
-            _isInitialBalance: true // Flag to identify this row
-        };
-
-        const dataWithInitialBalance = [initialBalanceRow, ...extratoData.transactions];
-        sharedTable.render(dataWithInitialBalance);
+        sharedTable.render(extratoData.transactions);
     };
 
     // --- Loading ---
@@ -431,11 +473,42 @@ export const ExtratoContaManager = (project) => {
                 companies = await companiesResp.json();
             }
 
-            // Fetch accounts
+            // Fetch accounts with company info
             const resp = await fetch(`${API_BASE_URL}/accounts?projectId=${project.id}`, { headers: getHeaders() });
             if (resp.ok) {
                 allAccounts = await resp.json();
-                console.log('[ExtratoContaManager] Loaded', allAccounts.length, 'accounts');
+                console.log('[ExtratoContaManager] ========== LOAD ACCOUNTS START ==========');
+                console.log('[ExtratoContaManager] Total accounts fetched from API:', allAccounts.length);
+                console.log('[ExtratoContaManager] All accounts data:', JSON.stringify(allAccounts, null, 2));
+                console.log('[ExtratoContaManager] selectedCompanyId (before filtering):', selectedCompanyId, 'type:', typeof selectedCompanyId);
+
+                // Auto-select first company if no company selected
+                if (!selectedCompanyId && companies.length > 0) {
+                    selectedCompanyId = companies[0].id;
+                    localStorage.setItem('extrato_companyId', selectedCompanyId);
+                    console.log('[ExtratoContaManager] Auto-selected first company:', selectedCompanyId);
+                } else {
+                    console.log('[ExtratoContaManager] Using stored/selected company:', selectedCompanyId);
+                }
+
+                // Filter accounts by selected company
+                if (selectedCompanyId) {
+                    console.log('[ExtratoContaManager] Filtering accounts...');
+                    allAccounts.forEach(acc => {
+                        console.log(`  Account: ${acc.name}, company_id: ${acc.company_id} (type: ${typeof acc.company_id}), matches: ${parseInt(acc.company_id) === selectedCompanyId}`);
+                    });
+                    accounts = allAccounts.filter(acc => parseInt(acc.company_id) === selectedCompanyId);
+                    console.log('[ExtratoContaManager] Filtered accounts for company', selectedCompanyId, ':', accounts.length, accounts);
+                    console.log('[ExtratoContaManager] ========== LOAD ACCOUNTS END ==========');
+                } else {
+                    accounts = [...allAccounts];
+                    console.log('[ExtratoContaManager] No company filter, using all accounts:', accounts.length);
+                }
+
+                // Auto-select first account if available and none selected
+                if (accounts.length > 0 && !selectedAccountId) {
+                    selectedAccountId = accounts[0].id;
+                }
 
                 // Re-render controls to populate options
                 const oldControls = container.querySelector('.extrato-controls');
@@ -445,7 +518,7 @@ export const ExtratoContaManager = (project) => {
                     container.appendChild(renderControls());
                 }
 
-                // Trigger initial load if we have an account selected
+                // Helper: Trigger initial load if we have an account
                 if (selectedAccountId) {
                     loadExtrato();
                 }
