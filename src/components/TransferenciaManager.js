@@ -25,6 +25,41 @@ export const TransferenciaManager = (project) => {
 
     // Define Columns for SharedTable
     const columns = [
+        {
+            key: 'actions',
+            label: 'Ações',
+            width: '80px',
+            align: 'center',
+            noFilter: true,
+            render: (item) => {
+                const div = document.createElement('div');
+                div.style.display = 'flex';
+                div.style.gap = '0.5rem';
+                div.style.justifyContent = 'center';
+
+                const btnEdit = document.createElement('button');
+                btnEdit.innerHTML = '✏️';
+                btnEdit.title = 'Editar';
+                btnEdit.style.background = 'none';
+                btnEdit.style.border = 'none';
+                btnEdit.style.cursor = 'pointer';
+                btnEdit.style.fontSize = '1.1rem';
+                btnEdit.onclick = (e) => { e.stopPropagation(); updateTransferencia(item); };
+
+                const btnDelete = document.createElement('button');
+                btnDelete.innerHTML = '🗑️';
+                btnDelete.title = 'Excluir';
+                btnDelete.style.background = 'none';
+                btnDelete.style.border = 'none';
+                btnDelete.style.cursor = 'pointer';
+                btnDelete.style.fontSize = '1.1rem';
+                btnDelete.onclick = (e) => { e.stopPropagation(); deleteTransferencia(item.id); };
+
+                div.appendChild(btnEdit);
+                div.appendChild(btnDelete);
+                return div;
+            }
+        },
         { key: 'data_prevista', label: 'Prevista', width: '90px', align: 'center', type: 'date' },
         { key: 'data_real', label: 'Real', width: '90px', align: 'center', type: 'date' },
         { key: 'descricao', label: 'Descrição', width: 'auto', align: 'left', type: 'text' },
@@ -64,41 +99,6 @@ export const TransferenciaManager = (project) => {
                     btn.title = 'Sem anexo';
                 }
                 return btn;
-            }
-        },
-        {
-            key: 'actions',
-            label: 'Ações',
-            width: '80px',
-            align: 'center',
-            noFilter: true,
-            render: (item) => {
-                const div = document.createElement('div');
-                div.style.display = 'flex';
-                div.style.gap = '0.5rem';
-                div.style.justifyContent = 'center';
-
-                const btnEdit = document.createElement('button');
-                btnEdit.innerHTML = '✏️';
-                btnEdit.title = 'Editar';
-                btnEdit.style.background = 'none';
-                btnEdit.style.border = 'none';
-                btnEdit.style.cursor = 'pointer';
-                btnEdit.style.fontSize = '1.1rem';
-                btnEdit.onclick = (e) => { e.stopPropagation(); updateTransferencia(item); };
-
-                const btnDelete = document.createElement('button');
-                btnDelete.innerHTML = '🗑️';
-                btnDelete.title = 'Excluir';
-                btnDelete.style.background = 'none';
-                btnDelete.style.border = 'none';
-                btnDelete.style.cursor = 'pointer';
-                btnDelete.style.fontSize = '1.1rem';
-                btnDelete.onclick = (e) => { e.stopPropagation(); deleteTransferencia(item.id); };
-
-                div.appendChild(btnEdit);
-                div.appendChild(btnDelete);
-                return div;
             }
         }
     ];

@@ -7,7 +7,7 @@ export const Dialogs = {
         }
     },
 
-    show({ title, message, type = 'alert', onConfirm, onCancel, inputValue = '' }) {
+    show({ title, message, type = 'alert', onConfirm, onCancel, inputValue = '', confirmText = 'OK', cancelText = 'Cancelar' }) {
         return new Promise((resolve) => {
             const container = document.getElementById('custom-dialog-container');
 
@@ -26,8 +26,8 @@ export const Dialogs = {
           ${type === 'prompt' ? `<input type="text" class="dialog-input" value="${inputValue}" />` : ''}
         </div>
         <div class="dialog-footer">
-          ${type !== 'alert' ? `<button class="btn-secondary dialog-cancel-btn">Cancelar</button>` : ''}
-          <button class="btn-primary dialog-confirm-btn">OK</button>
+          ${type !== 'alert' ? `<button class="btn-secondary dialog-cancel-btn">${cancelText}</button>` : ''}
+          <button class="btn-primary dialog-confirm-btn">${confirmText}</button>
         </div>
       `;
 
@@ -111,8 +111,8 @@ export const Dialogs = {
         return this.show({ title, message, type: 'alert' });
     },
 
-    confirm(message, title = 'Confirmação') {
-        return this.show({ title, message, type: 'confirm' });
+    confirm(message, title = 'Confirmação', options = {}) {
+        return this.show({ title, message, type: 'confirm', ...options });
     },
 
     prompt(message, defaultValue = '', title = 'Entrada') {

@@ -25,27 +25,33 @@ export const DividasEmprestimosManager = (project) => {
 
     // Columns
     const columns = [
-        { key: 'data_prevista_pagamento', label: 'Vencimento', width: 'var(--col-date)', align: 'left', type: 'date' },
-        { key: 'data_real_pagamento', label: 'Pagamento', width: 'var(--col-date)', align: 'left', type: 'date' },
         {
-            key: 'descricao',
-            label: 'Descrição',
-            width: 'auto',
-            align: 'left',
-            type: 'text',
+            key: 'actions',
+            label: 'Ações',
+            width: '80px',
+            align: 'center',
+            noFilter: true,
             render: (item) => {
                 const div = document.createElement('div');
-                div.innerHTML = `
-                    <div style="font-weight: 500;">${item.descricao}</div>
-                    <div style="font-size: 0.8rem; color: var(--color-text-muted);">${item.loan_description || ''}</div>
-                `;
+                div.style.display = 'flex';
+                div.style.gap = '0.5rem';
+                div.style.justifyContent = 'center';
+
+                const btnEdit = document.createElement('button');
+                btnEdit.innerHTML = '✏️';
+                btnEdit.title = 'Editar/Pagar';
+                btnEdit.className = 'btn-icon';
+                btnEdit.onclick = (e) => { e.stopPropagation(); updateInstallment(item); };
+
+                // Delete only if not paid? Or full delete?
+                // Deleting a single installment of a loan is risky. Maybe disable?
+                // Or allow with warning.
+                // Let's allow editing primarily. 
+
+                div.appendChild(btnEdit);
                 return div;
             }
         },
-        { key: 'company_name', label: 'Credor', width: 'var(--col-medium)', align: 'left', type: 'text' },
-        { key: 'account_name', label: 'Conta', width: 'var(--col-small)', align: 'center', type: 'text' },
-        { key: 'valor', label: 'Valor', width: 'var(--col-value)', align: 'right', type: 'currency', colorLogic: 'outflow' },
-
         {
             key: 'status',
             label: 'Status',
@@ -80,34 +86,26 @@ export const DividasEmprestimosManager = (project) => {
                 return badge;
             }
         },
-
+        { key: 'data_prevista_pagamento', label: 'Vencimento', width: 'var(--col-date)', align: 'left', type: 'date' },
+        { key: 'data_real_pagamento', label: 'Pagamento', width: 'var(--col-date)', align: 'left', type: 'date' },
         {
-            key: 'actions',
-            label: 'Ações',
-            width: '80px',
-            align: 'center',
-            noFilter: true,
+            key: 'descricao',
+            label: 'Descrição',
+            width: 'auto',
+            align: 'left',
+            type: 'text',
             render: (item) => {
                 const div = document.createElement('div');
-                div.style.display = 'flex';
-                div.style.gap = '0.5rem';
-                div.style.justifyContent = 'center';
-
-                const btnEdit = document.createElement('button');
-                btnEdit.innerHTML = '✏️';
-                btnEdit.title = 'Editar/Pagar';
-                btnEdit.className = 'btn-icon';
-                btnEdit.onclick = (e) => { e.stopPropagation(); updateInstallment(item); };
-
-                // Delete only if not paid? Or full delete?
-                // Deleting a single installment of a loan is risky. Maybe disable?
-                // Or allow with warning.
-                // Let's allow editing primarily. 
-
-                div.appendChild(btnEdit);
+                div.innerHTML = `
+                    <div style="font-weight: 500;">${item.descricao}</div>
+                    <div style="font-size: 0.8rem; color: var(--color-text-muted);">${item.loan_description || ''}</div>
+                `;
                 return div;
             }
-        }
+        },
+        { key: 'company_name', label: 'Credor', width: 'var(--col-medium)', align: 'left', type: 'text' },
+        { key: 'account_name', label: 'Conta', width: 'var(--col-small)', align: 'center', type: 'text' },
+        { key: 'valor', label: 'Valor', width: 'var(--col-value)', align: 'right', type: 'currency', colorLogic: 'outflow' }
     ];
 
     const getHeaders = () => ({

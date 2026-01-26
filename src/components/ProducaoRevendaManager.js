@@ -4,6 +4,7 @@ import { PrintHelper } from '../utils/printHelper.js';
 import { showToast } from '../utils/toast.js';
 import { getApiBaseUrl } from '../utils/apiConfig.js';
 import { ProducaoRevendaModal } from './ProducaoRevendaModal.js';
+import { Dialogs } from './Dialogs.js';
 
 export const ProducaoRevendaManager = (project) => {
     const container = document.createElement('div');
@@ -27,6 +28,74 @@ export const ProducaoRevendaManager = (project) => {
 
     // Define Columns for SharedTable
     const columns = [
+        {
+            key: 'actions',
+            label: 'Ações',
+            width: 'var(--col-actions)',
+            align: 'center',
+            noFilter: true,
+            render: (item) => {
+                const div = document.createElement('div');
+                div.style.display = 'flex';
+                div.style.gap = '0.5rem';
+                div.style.justifyContent = 'center';
+
+                const btnEdit = document.createElement('button');
+                btnEdit.innerHTML = '✏️';
+                btnEdit.title = 'Editar';
+                btnEdit.style.background = 'none';
+                btnEdit.style.border = 'none';
+                btnEdit.style.cursor = 'pointer';
+                btnEdit.style.fontSize = '1.1rem';
+                btnEdit.onclick = (e) => { e.stopPropagation(); updateItem(item); };
+
+                const btnDelete = document.createElement('button');
+                btnDelete.innerHTML = '🗑️';
+                btnDelete.title = 'Excluir';
+                btnDelete.style.background = 'none';
+                btnDelete.style.border = 'none';
+                btnDelete.style.cursor = 'pointer';
+                btnDelete.style.fontSize = '1.1rem';
+                btnDelete.onclick = (e) => { e.stopPropagation(); deleteItem(item.id, item.descricao); };
+
+                div.appendChild(btnEdit);
+                div.appendChild(btnDelete);
+                return div;
+            }
+        },
+        {
+            key: 'status',
+            label: '',
+            width: 'var(--col-date-short)',
+            align: 'center',
+            noFilter: true,
+            render: (item) => {
+                let statusColor = '#F59E0B'; // Pending
+                let statusTitle = 'Aguardando Pagamento';
+
+                if (item.data_real_pagamento) {
+                    statusColor = '#10B981'; // Paid
+                    statusTitle = 'Pago';
+                } else {
+                    const today = new Date().toISOString().split('T')[0];
+                    const prev = item.data_prevista_pagamento ? item.data_prevista_pagamento.split('T')[0] : '';
+                    if (prev && prev < today) {
+                        statusColor = '#EF4444'; // Overdue
+                        statusTitle = 'Atrasado';
+                    }
+                }
+
+                const dot = document.createElement('div');
+                dot.style.backgroundColor = statusColor;
+                dot.style.width = '12px';
+                dot.style.height = '12px';
+                dot.style.borderRadius = '50%';
+                dot.style.margin = '0 auto';
+                dot.style.cursor = 'help';
+                dot.title = statusTitle;
+                return dot;
+            }
+        },
         { key: 'data_fato', label: 'Dt Fato', width: 'var(--col-date)', align: 'left', type: 'date' },
         {
             key: 'data_prevista_pagamento',
@@ -104,74 +173,6 @@ export const ProducaoRevendaManager = (project) => {
                     btn.title = 'Sem comprovante';
                 }
                 return btn;
-            }
-        },
-        {
-            key: 'actions',
-            label: 'Ações',
-            width: 'var(--col-actions)',
-            align: 'center',
-            noFilter: true,
-            render: (item) => {
-                const div = document.createElement('div');
-                div.style.display = 'flex';
-                div.style.gap = '0.5rem';
-                div.style.justifyContent = 'center';
-
-                const btnEdit = document.createElement('button');
-                btnEdit.innerHTML = '✏️';
-                btnEdit.title = 'Editar';
-                btnEdit.style.background = 'none';
-                btnEdit.style.border = 'none';
-                btnEdit.style.cursor = 'pointer';
-                btnEdit.style.fontSize = '1.1rem';
-                btnEdit.onclick = (e) => { e.stopPropagation(); updateItem(item); };
-
-                const btnDelete = document.createElement('button');
-                btnDelete.innerHTML = '🗑️';
-                btnDelete.title = 'Excluir';
-                btnDelete.style.background = 'none';
-                btnDelete.style.border = 'none';
-                btnDelete.style.cursor = 'pointer';
-                btnDelete.style.fontSize = '1.1rem';
-                btnDelete.onclick = (e) => { e.stopPropagation(); deleteItem(item.id, item.descricao); };
-
-                div.appendChild(btnEdit);
-                div.appendChild(btnDelete);
-                return div;
-            }
-        },
-        {
-            key: 'status',
-            label: '',
-            width: 'var(--col-date-short)',
-            align: 'center',
-            noFilter: true,
-            render: (item) => {
-                let statusColor = '#F59E0B'; // Pending
-                let statusTitle = 'Aguardando Pagamento';
-
-                if (item.data_real_pagamento) {
-                    statusColor = '#10B981'; // Paid
-                    statusTitle = 'Pago';
-                } else {
-                    const today = new Date().toISOString().split('T')[0];
-                    const prev = item.data_prevista_pagamento ? item.data_prevista_pagamento.split('T')[0] : '';
-                    if (prev && prev < today) {
-                        statusColor = '#EF4444'; // Overdue
-                        statusTitle = 'Atrasado';
-                    }
-                }
-
-                const dot = document.createElement('div');
-                dot.style.backgroundColor = statusColor;
-                dot.style.width = '12px';
-                dot.style.height = '12px';
-                dot.style.borderRadius = '50%';
-                dot.style.margin = '0 auto';
-                dot.style.cursor = 'help';
-                dot.title = statusTitle;
-                return dot;
             }
         }
     ];
@@ -440,7 +441,12 @@ export const ProducaoRevendaManager = (project) => {
     };
 
     const deleteItem = async (id, description) => {
-        if (!confirm(`Tem certeza que deseja excluir "${description || 'item'}"?`)) return;
+        const confirmed = await Dialogs.confirm(
+            `Tem certeza que deseja excluir "${description || 'item'}"?`,
+            'Confirmação',
+            { confirmText: 'Sim, Excluir', cancelText: 'Cancelar' }
+        );
+        if (!confirmed) return;
 
         try {
             const response = await fetch(`${API_BASE_URL}/producao-revenda/${id}`, {
