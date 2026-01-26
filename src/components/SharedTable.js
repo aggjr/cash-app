@@ -2,7 +2,7 @@ import { getApiBaseUrl } from '../utils/apiConfig.js';
 import { attachCurrencyMask } from '../utils/currencyMask.js';
 
 export class SharedTable {
-    constructor({ container, columns, projectId, endpointPrefix, onFilterChange, onSortChange, enableSelection, onSelectionChange, headerRow, footerRow, summaryLabels, enabled = true }) {
+    constructor({ container, columns, projectId, endpointPrefix, onFilterChange, onSortChange, enableSelection, onSelectionChange, headerRow, footerRow, summaryLabels, onBulkEdit, onBulkDelete, enabled = true }) {
         this.container = container;
         this.columns = columns;
         this.projectId = projectId;
@@ -14,6 +14,8 @@ export class SharedTable {
         this.headerRow = headerRow; // Optional: { data: {...}, style: {...}, className: '' }
         this.footerRow = footerRow; // Optional: { data: {...}, style: {...}, className: '' }
         this.summaryLabels = summaryLabels || { total: 'Total Visualizado', selected: 'Selecionados' };
+        this.onBulkEdit = onBulkEdit;
+        this.onBulkDelete = onBulkDelete;
         this.enabled = enabled;
         this.API_BASE_URL = getApiBaseUrl();
 
@@ -523,7 +525,6 @@ export class SharedTable {
                         td.style.left = (col._left + checkboxOffset) + 'px';
                         td.style.zIndex = '5'; // Sticky cols above normal cells
                         td.style.backgroundColor = 'var(--row-bg)'; // Sync with row hover
-                        td.style.borderRight = '1px solid #ddd'; // Separator
                     }
 
                     if (col.render) {
@@ -682,14 +683,71 @@ export class SharedTable {
             totalText += ` <span style="font-size: 0.8em; margin-left: 8px;">(Visualizado: ${totalVisualized})</span>`;
         }
 
+        // Calculate Selected Sum
+        let selectedSumHtml = '';
+        if (selected > 0) {
+            const valorCol = this.columns.find(c => c.key === 'valor');
+            if (valorCol) {
+                const selectedItems = this.currentData.filter(item => this.selection.has(item.id));
+                const sum = selectedItems.reduce((acc, item) => acc + (parseFloat(item.valor) || 0), 0);
+                selectedSumHtml = `
+                    <span style="font-size: 1.1rem; margin-left: 1rem; color: #4338ca;">
+                        <strong>Total Selecionados (${selected}):</strong> ${this.formatCurrency(sum)}
+                    </span>
+                `;
+            } else {
+                selectedSumHtml = `
+                    <span style="font-size: 1.1rem; margin-left: 1rem; color: #4338ca;">
+                        <strong>Selecionados:</strong> ${selected}
+                    </span>
+                `;
+            }
+        }
+
+        // Bulk Actions
+        let bulkActionsHtml = '';
+        if (selected > 0 && (this.onBulkEdit || this.onBulkDelete)) {
+            bulkActionsHtml = `<div style="display: flex; gap: 8px; margin-left: 16px;">`;
+
+            if (this.onBulkEdit) {
+                bulkActionsHtml += `
+                    <button id="btn-st-bulk-edit" style="background: #3B82F6; color: white; border: none; padding: 4px 8px; border-radius: 4px; cursor: pointer; font-size: 0.9rem; display: flex; align-items: center; gap: 4px;">
+                        ✏️ Editar
+                    </button>
+                 `;
+            }
+
+            if (this.onBulkDelete) {
+                bulkActionsHtml += `
+                    <button id="btn-st-bulk-delete" style="background: #EF4444; color: white; border: none; padding: 4px 8px; border-radius: 4px; cursor: pointer; font-size: 0.9rem; display: flex; align-items: center; gap: 4px;">
+                        🗑️ Excluir
+                    </button>
+                 `;
+            }
+            bulkActionsHtml += `</div>`;
+        }
+
         footer.innerHTML = `
-            <div>
+            <div style="display: flex; align-items: center;">
                 ${totalText}
             </div>
-            <div>
-                <strong>${this.summaryLabels.selected}:</strong> <span style="color: var(--color-primary); font-weight: bold;">${selected}</span>
+            <div style="display: flex; align-items: center;">
+                ${selectedSumHtml}
+                ${bulkActionsHtml}
             </div>
         `;
+
+        // Attach Handlers
+        if (selected > 0) {
+            const btnEdit = footer.querySelector('#btn-st-bulk-edit');
+            if (btnEdit && this.onBulkEdit) {
+                btnEdit.onclick = (e) => { e.stopPropagation(); this.onBulkEdit(); };
+            }
+            const btnDelete = footer.querySelector('#btn-st-bulk-delete');
+            if (btnDelete && this.onBulkDelete) {
+                btnDelete.onclick = (e) => { e.stopPropagation(); this.onBulkDelete(); };
+            }
+        }
     }
 
     attachHeaderEvents(headerRow) {

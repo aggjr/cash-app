@@ -344,7 +344,7 @@ export const ProducaoRevendaManager = (project) => {
         btnPrev.onclick = () => loadItems(pagination.page - 1);
 
         const label = document.createElement('span');
-        label.textContent = `Página ${pagination.page} de ${pagination.pages}`;
+        label.textContent = `Página ${pagination.page} de ${pagination.pages} (${pagination.total} registros)`;
         label.style.margin = '0 1rem';
 
         const btnNext = document.createElement('button');
@@ -356,34 +356,6 @@ export const ProducaoRevendaManager = (project) => {
         pagContainer.appendChild(btnPrev);
         pagContainer.appendChild(label);
         pagContainer.appendChild(btnNext);
-
-        // Update Total
-        const totalContainer = container.querySelector('#total-display');
-        if (totalContainer) {
-            const pageTotal = items.reduce((sum, inc) => sum + parseFloat(inc.valor || 0), 0);
-            const selectionTotal = selectedItemsData.reduce((sum, inc) => sum + parseFloat(inc.valor || 0), 0);
-
-            const hasSelection = selectedItems.size > 0;
-
-            totalContainer.innerHTML = `
-                <div style="display: flex; gap: 2rem; align-items: center;">
-                    <div>
-                        <span style="font-size: 1.1rem; margin-right: 0.5rem;">Total (Página):</span>
-                        <span style="font-weight: 700; font-size: 1.1rem; color: #EF4444;">
-                            ${new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(pageTotal)}
-                        </span>
-                    </div>
-                    ${hasSelection ? `
-                    <div class="animate-fade-in" style="display: flex; align-items: center; gap: 1rem; background: #eef2ff; padding: 4px 12px; border-radius: 6px; border: 1px solid #c7d2fe;">
-                        <span style="font-size: 1.1rem; margin-right: 0.5rem; color: #4338ca;">Total Selecionados (${selectedItems.size}):</span>
-                        <span style="font-weight: 700; font-size: 1.1rem; color: #4338ca;">
-                            ${new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(selectionTotal)}
-                        </span>
-                    </div>
-                    ` : ''}
-                </div>
-            `;
-        }
     };
 
     const createItem = async () => {
@@ -467,6 +439,37 @@ export const ProducaoRevendaManager = (project) => {
         }
     };
 
+    const handleBulkDelete = async () => {
+        if (selectedItems.size === 0) return;
+
+        const confirmed = await Dialogs.confirm(`Tem certeza que deseja excluir ${selectedItems.size} itens?`);
+        if (!confirmed) return;
+
+        try {
+            container.querySelector('#table-container').classList.add('loading');
+
+            const promises = Array.from(selectedItems).map(id =>
+                fetch(`${API_BASE_URL}/producao-revenda/${id}`, {
+                    method: 'DELETE',
+                    headers: getHeaders()
+                })
+            );
+
+            await Promise.all(promises);
+
+            showToast(`${selectedItems.size} itens excluídos com sucesso!`, 'success');
+            selectedItems.clear();
+            selectedItemsData = [];
+            sharedTable.clearSelection();
+            loadItems();
+        } catch (error) {
+            console.error(error);
+            showToast('Erro ao excluir itens', 'error');
+        } finally {
+            container.querySelector('#table-container').classList.remove('loading');
+        }
+    };
+
     // Initial Render of Container Structure
     container.innerHTML = `
         <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 2rem;">
@@ -489,8 +492,7 @@ export const ProducaoRevendaManager = (project) => {
             <!-- SharedTable will render here -->
         </div>
         
-        <div style="margin-top: 1rem; display: flex; justify-content: space-between; align-items: center; padding: 0.5rem; border-top: 1px solid var(--color-border-light);">
-            <div id="total-display"></div>
+        <div style="margin-top: 1rem; display: flex; justify-content: flex-end; align-items: center; padding: 0.5rem; border-top: 1px solid var(--color-border-light);">
             <div class="pagination-controls" style="display: flex; gap: 0.5rem; align-items: center;"></div>
         </div>
     `;
@@ -593,11 +595,12 @@ export const ProducaoRevendaManager = (project) => {
             loadItems(1);
         },
         enableSelection: true,
+        enableSelection: true,
         onSelectionChange: (items, ids) => {
             selectedItems = ids;
             selectedItemsData = items;
-            renderPagination();
-        }
+        },
+        onBulkDelete: handleBulkDelete
     });
 
     const renderItems = () => {

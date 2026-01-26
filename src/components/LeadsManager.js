@@ -194,11 +194,13 @@ export const LeadsManager = (project) => {
                         columns: cols,
                         data: leads,
                         enableSelection: true,
-                        footer: null, // No special footer row needed here?
                         summaryLabels: { total: 'Total Visualizado', selected: 'Selecionados' },
                         onSelectionChange: (items, set) => {
-                            updateBulkBar(set.size);
-                        }
+                            selectedItems = set;
+                            selectedItemsData = items;
+                        },
+                        onBulkDelete: handleBulkDelete,
+                        onBulkEdit: handleBulkEdit
                     });
                     sharedTable.render(leads); // Force initial render
                 } catch (renderErr) {
@@ -455,6 +457,52 @@ export const LeadsManager = (project) => {
         });
     };
 
+    // State for selection
+    let selectedItems = new Set();
+    let selectedItemsData = [];
+
+    const handleBulkDelete = async () => {
+        if (selectedItems.size === 0) return;
+
+        const confirmed = await showCustomConfirm(
+            `Tem certeza que deseja excluir ${selectedItems.size} leads?`,
+            'Sim, Excluir'
+        );
+
+        if (!confirmed) return;
+
+        try {
+            container.querySelector('#table-container').classList.add('loading');
+
+            // Loop delete
+            const promises = Array.from(selectedItems).map(id =>
+                fetch(`${API_BASE_URL}/marketing/leads/${id}`, {
+                    method: 'DELETE',
+                    headers: getHeaders()
+                })
+            );
+
+            await Promise.all(promises);
+
+            showToast(`${selectedItems.size} leads excluídos com sucesso!`, 'success');
+            selectedItems.clear();
+            selectedItemsData = [];
+            if (sharedTable) sharedTable.clearSelection();
+            loadLeads();
+        } catch (error) {
+            console.error(error);
+            showToast('Erro ao excluir leads', 'error');
+        } finally {
+            container.querySelector('#table-container').classList.remove('loading');
+        }
+    };
+
+    const handleBulkEdit = async () => {
+        if (selectedItems.size === 0) return;
+        // Use existing Bulk Characteristic Modal as the default "Edit" action for now
+        showBulkCharModal(Array.from(selectedItems));
+    };
+
     // Build UI
     container.innerHTML = `
         <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1rem;">
@@ -466,52 +514,13 @@ export const LeadsManager = (project) => {
         </div>
 
         <div id="table-container" style="flex: 1; display: flex; flex-direction: column; overflow: hidden; position: relative;"></div>
-        
-        <div id="footer-summary" style="margin-top: 1rem; font-size: 0.85rem; color: var(--color-text-muted);">
-            Total: <span id="total-count">0</span> lead(s)
-        </div>
     `;
 
     // Event Listeners
     container.querySelector('#btn-new-lead').addEventListener('click', createLead);
 
-    // Bulk Actions UI
-    const bulkActionsContainer = document.createElement('div');
-    bulkActionsContainer.id = 'bulk-actions-bar';
-    bulkActionsContainer.style.position = 'absolute';
-    bulkActionsContainer.style.bottom = '40px'; // Above footer
-    bulkActionsContainer.style.left = '50%';
-    bulkActionsContainer.style.transform = 'translateX(-50%) translateY(100px)'; // Hidden by default
-    bulkActionsContainer.style.backgroundColor = 'var(--color-bg-primary)';
-    bulkActionsContainer.style.border = '1px solid var(--color-border-light)';
-    bulkActionsContainer.style.borderRadius = '8px';
-    bulkActionsContainer.style.padding = '12px 24px';
-    bulkActionsContainer.style.boxShadow = '0 4px 12px rgba(0,0,0,0.15)';
-    bulkActionsContainer.style.display = 'flex';
-    bulkActionsContainer.style.alignItems = 'center';
-    bulkActionsContainer.style.gap = '16px';
-    bulkActionsContainer.style.zIndex = '100';
-    bulkActionsContainer.style.transition = 'transform 0.3s ease-out';
-
-    bulkActionsContainer.innerHTML = `
-        <span id="bulk-selected-count" style="font-weight: 600; color: var(--color-text-primary);">0 selecionados</span>
-        <div style="height: 24px; width: 1px; background: var(--color-border-light);"></div>
-        <button id="btn-bulk-char" class="btn-secondary" style="font-size: 0.9rem; padding: 6px 12px;">
-            ✏️ Alterar Característica
-        </button>
-    `;
-
-    // Attach listener to bulk char button
-    bulkActionsContainer.querySelector('#btn-bulk-char').addEventListener('click', () => {
-        if (sharedTable && sharedTable.selection.size > 0) {
-            showBulkCharModal(Array.from(sharedTable.selection));
-        }
-    });
-
-    container.appendChild(bulkActionsContainer);
-    container.style.position = 'relative'; // Ensure container is relative for absolute bar
-
-
+    // Initial SharedTable with empty data or headers
+    const tableContainer = container.querySelector('#table-container');
 
     // Bulk Characteristic Modal
     const showBulkCharModal = async (selectedIds) => {
@@ -570,21 +579,7 @@ export const LeadsManager = (project) => {
                     return;
                 }
 
-                // Fetch values for this characteristic to check if it has preset values
-                // Or use the 'tipo' if we had it. 
-                // Let's assume we need to fetch possible values if it's a list type?
-                // Actually, backend query `marketing/caracteristicas` might not return values.
-                // We should check `caracteristicasController`. `getAll` just returns chars.
-                // We need to fetch values for the selected char OR assume boolean/text.
-                // Let's safe fetch values.
-
                 try {
-                    // Try to fetch values. If 404 or empty, assume text input?
-                    // Or if backend `caracteristicas` object implies type?
-                    // Currently `caracteristicas` table has `tipo`. 
-                    // Let's stick to consistent UI. If it has predefined values, show select.
-                    // If not, show text.
-                    // We can check `caracteristicas/:id/valores`.
                     const valsRes = await fetch(`${API_BASE_URL}/marketing/caracteristicas/${charId}/valores`, { headers: getHeaders() });
                     if (valsRes.ok) {
                         selectedCharValues = await valsRes.json();
@@ -606,16 +601,6 @@ export const LeadsManager = (project) => {
                     sel.onchange = () => { confirmBtn.disabled = !sel.value; };
                     valueWrapper.appendChild(sel);
                 } else {
-                    // If no values, maybe it's a simple tag (Boolean) or Text?
-                    // Currently system seems to rely on `valor_id` (from `caracteristica_valores`). 
-                    // If there are no `caracteristica_valores`, we can't assign a `valor_id`.
-                    // Does the system support free text values? 
-                    // `leads_caracteristicas` has `valor_id` FK. It might NOT verify FK if nullable?
-                    // But `marketingController` uses `valor_id`.
-                    // So we MUST have a `valor_id`.
-                    // If a characteristic has no values, we cannot assign it? 
-                    // Or maybe "Sim" is a default value?
-                    // Let's warn user if no values found.
                     valueWrapper.innerHTML = '<span style="color: orange; font-size: 0.9rem;">Esta característica não possui valores pré-definidos. Cadastre valores em Marketing > Características antes de usar.</span>';
                 }
             });
@@ -644,8 +629,9 @@ export const LeadsManager = (project) => {
                     if (res.ok) {
                         showToast('Alteração em massa realizada!', 'success');
                         document.body.removeChild(overlay);
-                        sharedTable.section = new Set(); // Clear
-                        updateBulkBar(0);
+                        selectedItems.clear(); // Clear local
+                        selectedItemsData = [];
+                        if (sharedTable) sharedTable.clearSelection(); // Clear table
                         loadLeads();
                     } else {
                         throw new Error('Falha na atualização');
@@ -665,12 +651,6 @@ export const LeadsManager = (project) => {
             showToast('Erro ao abrir alteração em massa', 'error');
         }
     };
-
-    bulkActionsContainer.querySelector('#btn-bulk-char').addEventListener('click', () => {
-        if (sharedTable && sharedTable.selection.size > 0) {
-            showBulkCharModal(Array.from(sharedTable.selection));
-        }
-    });
 
     // Load data
     loadLeads();

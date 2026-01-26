@@ -222,7 +222,6 @@ export const CompanyManager = (project) => {
                     );
 
                     if (inactivate) {
-                        // Proceed to inactivate
                         try {
                             const updateResponse = await fetch(`${API_BASE_URL}/companies/${id}`, {
                                 method: 'PUT',
@@ -248,6 +247,54 @@ export const CompanyManager = (project) => {
         } catch (error) {
             showToast('Erro de conexão', 'error');
         }
+    };
+
+    // State for selection
+    let selectedItems = new Set();
+
+    const handleBulkDelete = async () => {
+        if (selectedItems.size === 0) return;
+
+        const confirmed = await Dialogs.confirm(`Tem certeza que deseja excluir ${selectedItems.size} empresas?`);
+        if (!confirmed) return;
+
+        container.querySelector('#table-container').classList.add('loading');
+        let successCount = 0;
+        let failCount = 0;
+        let dependencyCount = 0;
+
+        const promises = Array.from(selectedItems).map(async (id) => {
+            try {
+                const response = await fetch(`${API_BASE_URL}/companies/${id}`, {
+                    method: 'DELETE',
+                    headers: getHeaders()
+                });
+                if (response.ok) {
+                    successCount++;
+                } else {
+                    const data = await response.json();
+                    if (response.status === 409 && data.error?.code === 'DEPENDENCY_EXISTS') {
+                        dependencyCount++;
+                    } else {
+                        failCount++;
+                    }
+                }
+            } catch (e) {
+                failCount++;
+            }
+        });
+
+        await Promise.all(promises);
+
+        container.querySelector('#table-container').classList.remove('loading');
+
+        if (successCount > 0) showToast(`${successCount} empresas excluídas.`, 'success');
+        if (dependencyCount > 0) showToast(`${dependencyCount} empresas não excluídas por dependências. Exclua individualmente para inativar.`, 'warning');
+        if (failCount > 0) showToast(`${failCount} falhas ao excluir.`, 'error');
+
+        selectedItems.clear();
+        if (sharedTable) sharedTable.clearSelection();
+        loadCompanies();
     };
 
     const exportToExcel = async () => {
@@ -283,11 +330,7 @@ export const CompanyManager = (project) => {
             <button id="btn-new-company" class="btn-primary">+ Nova Empresa</button>
         </div>
 
-        <div id="table-container" style="flex: 1; overflow: hidden;"></div>
-        
-        <div id="footer-summary" style="margin-top: 1rem; display: flex; justify-content: space-between; align-items: center; font-size: 0.85rem; color: var(--color-text-muted);">
-            <div>Total: <span id="total-count">0</span> empresa(s)</div>
-        </div>
+        <div id="table-container" style="flex: 1; overflow: hidden; display: flex; flex-direction: column;"></div>
     `;
 
     // Event Listeners
@@ -304,12 +347,11 @@ export const CompanyManager = (project) => {
         container: tableContainer,
         columns: columns,
         data: [],
-        onFilterChange: (filters) => {
-            // Optional: Handle filter changes if needed
+        enableSelection: true,
+        onSelectionChange: (items, ids) => {
+            selectedItems = Array.isArray(ids) ? new Set(ids) : ids;
         },
-        onSortChange: (key, direction) => {
-            // Optional: Handle sort changes if needed
-        }
+        onBulkDelete: handleBulkDelete
     });
 
     // Initial Load

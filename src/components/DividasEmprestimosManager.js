@@ -187,7 +187,7 @@ export const DividasEmprestimosManager = (project) => {
         btnPrev.onclick = () => loadData(pagination.page - 1);
 
         const label = document.createElement('span');
-        label.textContent = `${pagination.page} / ${pagination.pages}`;
+        label.textContent = `${pagination.page} / ${pagination.pages} (${pagination.total || 0})`;
 
         const btnNext = document.createElement('button');
         btnNext.className = 'btn-sm';
@@ -196,11 +196,6 @@ export const DividasEmprestimosManager = (project) => {
         btnNext.onclick = () => loadData(pagination.page + 1);
 
         pagContainer.append(btnPrev, label, btnNext);
-
-        // Total
-        const totalVal = installments.reduce((sum, i) => sum + parseFloat(i.valor), 0);
-        const totalDiv = container.querySelector('#total-display');
-        if (totalDiv) totalDiv.innerHTML = `Total: <b>${formatMoney(totalVal)}</b>`;
     };
 
     const formatMoney = (val) => new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(val);
@@ -285,8 +280,7 @@ export const DividasEmprestimosManager = (project) => {
 
         <div id="table-container" style="flex: 1; display: flex; flex-direction: column; overflow: hidden;"></div>
         
-        <div style="margin-top: 1rem; display: flex; justify-content: space-between; align-items: center; padding: 0.5rem; border-top: 1px solid var(--color-border-light);">
-            <div id="total-display"></div>
+        <div style="margin-top: 1rem; display: flex; justify-content: flex-end; align-items: center; padding: 0.5rem; border-top: 1px solid var(--color-border-light);">
             <div class="pagination-controls" style="display: flex; gap: 0.5rem; align-items: center;"></div>
         </div>
     `;

@@ -263,6 +263,47 @@ export const AccountManager = (project) => {
         }
     };
 
+    // State for selection
+    let selectedItems = new Set();
+
+    const handleBulkDelete = async () => {
+        if (selectedItems.size === 0) return;
+
+        const confirmed = await confirm(`Tem certeza que deseja excluir ${selectedItems.size} contas?`);
+        if (!confirmed) return;
+
+        container.querySelector('#table-container').classList.add('loading');
+        let successCount = 0;
+        let failCount = 0;
+
+        const promises = Array.from(selectedItems).map(async (id) => {
+            try {
+                const response = await fetch(`${API_BASE_URL}/accounts/${id}`, {
+                    method: 'DELETE',
+                    headers: getHeaders()
+                });
+                if (response.ok) {
+                    successCount++;
+                } else {
+                    failCount++;
+                }
+            } catch (e) {
+                failCount++;
+            }
+        });
+
+        await Promise.all(promises);
+
+        container.querySelector('#table-container').classList.remove('loading');
+
+        if (successCount > 0) showToast(`${successCount} contas excluídas.`, 'success');
+        if (failCount > 0) showToast(`${failCount} falhas ao excluir (possíveis dependências).`, 'error');
+
+        selectedItems.clear();
+        if (sharedTable) sharedTable.clearSelection();
+        loadAccounts();
+    };
+
     const exportToExcel = async () => {
         const exportColumns = [
             { header: 'Nome', key: 'name', width: 30 },
@@ -307,11 +348,7 @@ export const AccountManager = (project) => {
             <span id="company-warning" style="color: var(--color-text-muted); font-size: 0.9rem; font-style: italic; display: none;">⚠️ É obrigatório cadastrar uma empresa antes de criar uma conta.</span>
         </div>
 
-        <div id="table-container" style="flex: 1; overflow: hidden;"></div>
-        
-        <div id="footer-summary" style="margin-top: 1rem; display: flex; justify-content: space-between; align-items: center; font-size: 0.85rem; color: var(--color-text-muted);">
-            <div>Total: <span id="total-count">0</span> conta(s)</div>
-        </div>
+        <div id="table-container" style="flex: 1; overflow: hidden; display: flex; flex-direction: column;"></div>
     `;
 
     // Event Listeners
@@ -324,18 +361,15 @@ export const AccountManager = (project) => {
 
     // Initialize SharedTable
     const tableContainer = container.querySelector('#table-container');
-    const footerElement = container.querySelector('#footer-summary');
     sharedTable = new SharedTable({
         container: tableContainer,
         columns: columns,
         data: [],
-        footer: footerElement,
-        onFilterChange: (filters) => {
-            // Optional: Handle filter changes if needed
+        enableSelection: true,
+        onSelectionChange: (items, ids) => {
+            selectedItems = Array.isArray(ids) ? new Set(ids) : ids;
         },
-        onSortChange: (key, direction) => {
-            // Optional: Handle sort changes if needed
-        }
+        onBulkDelete: handleBulkDelete
     });
 
     // Initial Load

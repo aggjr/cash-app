@@ -373,15 +373,7 @@ export const UserManager = (project) => {
         container.appendChild(tableContainer);
 
         // Footer
-        const footer = document.createElement('div');
-        footer.id = 'users-footer';
-        footer.style.marginTop = '1rem';
-        footer.style.display = 'flex';
-        footer.style.justifyContent = 'space-between';
-        footer.style.alignItems = 'center';
-        footer.style.fontSize = '0.85rem';
-        footer.style.color = 'var(--color-text-muted)';
-        container.appendChild(footer);
+
 
         // Initialize SharedTable
         sharedTable = new SharedTable({
@@ -419,14 +411,6 @@ export const UserManager = (project) => {
     };
 
     const updateFooter = (users) => {
-        const footer = container.querySelector('#users-footer');
-        if (footer) {
-            footer.innerHTML = `
-                <div>Total: ${users.length} usuário${users.length !== 1 ? 's' : ''}</div>
-                <div>Projeto: <span style="font-weight: 600; color: var(--color-primary);">${project.name}</span></div>
-            `;
-        }
-
         // Update Invite Button presence based on Master role
         const currentUser = JSON.parse(localStorage.getItem('user'));
         const isMaster = users.find(u => u.id === currentUser.id)?.role === 'master';

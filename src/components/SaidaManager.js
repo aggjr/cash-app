@@ -442,7 +442,7 @@ export const SaidaManager = (project) => {
         btnPrev.onclick = () => loadSaidas(pagination.page - 1);
 
         const label = document.createElement('span');
-        label.textContent = `Página ${pagination.page} de ${pagination.pages}`;
+        label.textContent = `Página ${pagination.page} de ${pagination.pages} (${pagination.total} registros)`;
         label.style.margin = '0 1rem';
 
         const btnNext = document.createElement('button');
@@ -454,52 +454,6 @@ export const SaidaManager = (project) => {
         pagContainer.appendChild(btnPrev);
         pagContainer.appendChild(label);
         pagContainer.appendChild(btnNext);
-
-        // Update Total
-        const totalContainer = container.querySelector('#total-display');
-        if (totalContainer) {
-            const pageTotal = saidas.reduce((sum, inc) => sum + parseFloat(inc.valor || 0), 0);
-            const selectionTotal = selectedItemsData.reduce((sum, inc) => sum + parseFloat(inc.valor || 0), 0);
-
-            const hasSelection = selectedItems.size > 0;
-
-            totalContainer.innerHTML = `
-                <div style="display: flex; gap: 2rem; align-items: center;">
-                    <div>
-                        <span style="font-size: 1.1rem; margin-right: 0.5rem;">Total (Página):</span>
-                        <span style="font-weight: 700; font-size: 1.1rem; color: #EF4444;">
-                            ${new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(pageTotal)}
-                        </span>
-                    </div>
-                    ${hasSelection ? `
-                    <div class="animate-fade-in" style="display: flex; align-items: center; gap: 1rem; background: #eef2ff; padding: 4px 12px; border-radius: 6px; border: 1px solid #c7d2fe;">
-                        <span style="font-size: 1.1rem; margin-right: 0.5rem; color: #4338ca;">Total Selecionados (${selectedItems.size}):</span>
-                        <span style="font-weight: 700; font-size: 1.1rem; color: #4338ca;">
-                            ${new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(selectionTotal)}
-                        </span>
-                        <button id="btn-bulk-edit" style="
-                            background: #3B82F6; color: white; border: none; padding: 4px 8px; 
-                            border-radius: 4px; cursor: pointer; font-size: 0.9rem; display: flex; align-items: center; gap: 4px; margin-left: 8px;">
-                            ✏️ Editar
-                        </button>
-                        <button id="btn-bulk-delete" style="
-                            background: #EF4444; color: white; border: none; padding: 4px 8px; 
-                            border-radius: 4px; cursor: pointer; font-size: 0.9rem; display: flex; align-items: center; gap: 4px; margin-left: 8px;">
-                            🗑️ Excluir
-                        </button>
-                    </div>
-                    ` : ''}
-                </div>
-            `;
-
-            if (hasSelection) {
-                const btnEdit = totalContainer.querySelector('#btn-bulk-edit');
-                if (btnEdit) btnEdit.onclick = handleBulkEdit;
-
-                const btnBulk = totalContainer.querySelector('#btn-bulk-delete');
-                if (btnBulk) btnBulk.onclick = handleBulkDelete;
-            }
-        }
     };
 
     const createSaida = async () => {
@@ -714,8 +668,7 @@ export const SaidaManager = (project) => {
             <!-- SharedTable will render here -->
         </div>
         
-        <div style="margin-top: 1rem; display: flex; justify-content: space-between; align-items: center; padding: 0.5rem; border-top: 1px solid var(--color-border-light);">
-            <div id="total-display"></div>
+        <div style="margin-top: 1rem; display: flex; justify-content: flex-end; align-items: center; padding: 0.5rem; border-top: 1px solid var(--color-border-light);">
             <div class="pagination-controls" style="display: flex; gap: 0.5rem; align-items: center;"></div>
         </div>
     `;
@@ -771,8 +724,10 @@ export const SaidaManager = (project) => {
         onSelectionChange: (items, ids) => {
             selectedItems = ids;
             selectedItemsData = items;
-            renderPagination();
-        }
+            // renderPagination no longer handles selection UI
+        },
+        onBulkDelete: handleBulkDelete,
+        onBulkEdit: handleBulkEdit
     });
 
     const renderSaidas = () => {

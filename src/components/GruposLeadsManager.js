@@ -146,7 +146,7 @@ export const GruposLeadsManager = (project) => {
             // For Checkboxes in ALL? They serve no purpose if we can't 'Remove from ALL'.
             // So ALL should be read-only always for checkboxes.
 
-            leadsTable.updateOptions({ enabled: false });
+            leadsTable.updateOptions({ enabled: true });
         }
 
         renderGroupsTree(); // Re-render para atualizar destaque
@@ -749,7 +749,7 @@ export const GruposLeadsManager = (project) => {
         // Revert selection
         leadsTable.selection = new Set(initialGroupSelection);
         leadsTable.render(leads); // Force re-render to visually revert
-        leadsTable.updateOptions({ enabled: false }); // Lock table
+        leadsTable.updateOptions({ enabled: true }); // Keep enabled for view mode
         leadsTable.updateFooterSummary();
         refreshRightHeader(); // Correctly update UI
     };
@@ -1025,61 +1025,65 @@ export const GruposLeadsManager = (project) => {
     footerSummary.id = 'footer-summary';
     rightPanel.appendChild(footerSummary);
 
-    // Bulk Actions UI
-    const bulkActionsContainer = document.createElement('div');
-    bulkActionsContainer.id = 'bulk-actions-bar-groups';
-    bulkActionsContainer.style.position = 'absolute';
-    bulkActionsContainer.style.bottom = '40px';
-    bulkActionsContainer.style.left = '50%';
-    bulkActionsContainer.style.transform = 'translateX(-50%) translateY(100px)'; // Hidden by default
-    bulkActionsContainer.style.backgroundColor = 'var(--color-bg-primary)';
-    bulkActionsContainer.style.border = '1px solid var(--color-border-light)';
-    bulkActionsContainer.style.borderRadius = '8px';
-    bulkActionsContainer.style.padding = '12px 24px';
-    bulkActionsContainer.style.boxShadow = '0 4px 12px rgba(0,0,0,0.15)';
-    bulkActionsContainer.style.display = 'flex';
-    bulkActionsContainer.style.alignItems = 'center';
-    bulkActionsContainer.style.gap = '16px';
-    bulkActionsContainer.style.zIndex = '100';
-    bulkActionsContainer.style.transition = 'transform 0.3s ease-out';
+    // Handlers
+    const handleBulkDelete = async () => {
+        const selected = leadsTable.selection;
+        if (selected.size === 0) return;
 
-    bulkActionsContainer.innerHTML = `
-        <span id="bulk-selected-count" style="font-weight: 600; color: var(--color-text-primary);">0 selecionados</span>
-        <div style="height: 24px; width: 1px; background: var(--color-border-light);"></div>
-        <button id="btn-bulk-char" class="btn-secondary" style="font-size: 0.9rem; padding: 6px 12px;">
-            ✏️ Alterar Característica
-        </button>
-    `;
-
-    rightPanel.style.position = 'relative'; // Ensure relative for absolute placement
-    rightPanel.appendChild(bulkActionsContainer); // Append to Right Panel (stable) instead of Table Container (wiped)
-
-    const updateBulkBar = (selectedCount) => {
-        const countSpan = bulkActionsContainer.querySelector('#bulk-selected-count');
-        if (countSpan) countSpan.textContent = `${selectedCount} selecionado${selectedCount !== 1 ? 's' : ''}`;
-
-        if (selectedCount > 0) {
-            bulkActionsContainer.style.transform = 'translateX(-50%) translateY(-20px)';
-        } else {
-            bulkActionsContainer.style.transform = 'translateX(-50%) translateY(100px)';
+        // If in Edit Mode, do not process bulk delete from DB (safety)
+        // Or maybe strictly forbid?
+        if (isEditingGroup) {
+            showToast('Finalize a edição do grupo antes de excluir leads.', 'warning');
+            return;
         }
+
+        const confirmed = await showCustomConfirm(
+            `Tem certeza que deseja excluir ${selected.size} leads?`,
+            'Sim, Excluir'
+        );
+        if (!confirmed) return;
+
+        try {
+            if (leadsTable) container.querySelector('#table-container')?.classList.add('loading');
+
+            const promises = Array.from(selected).map(id =>
+                fetch(`${API_BASE_URL}/marketing/leads/${id}`, {
+                    method: 'DELETE',
+                    headers: getHeaders()
+                })
+            );
+
+            await Promise.all(promises);
+            showToast(`${selected.size} leads excluídos!`, 'success');
+            leadsTable.clearSelection();
+            loadData();
+        } catch (error) {
+            console.error(error);
+            showToast('Erro ao excluir leads', 'error');
+        } finally {
+            if (leadsTable) container.querySelector('#table-container')?.classList.remove('loading');
+        }
+    };
+
+    const handleBulkEdit = async () => {
+        const selected = leadsTable.selection;
+        if (selected.size === 0) return;
+
+        // Use existing Bulk Char Modal
+        showBulkCharModal(Array.from(selected));
     };
 
     leadsTable = new SharedTable({
         container: tableContainer,
         columns: getColumns(),
         data: [],
-        enabled: false, // Start Inactive/Read-Only
+        enabled: true, // Always enabled
         enableSelection: true,
-        footer: footerSummary,
         summaryLabels: {
             total: 'Total Geral de Leads Cadastrados',
-            selected: 'Leads Selecionados (no Grupo)'
+            selected: 'Leads Selecionados'
         },
         onSelectionChange: (items, set) => {
-            // Manage Bulk Bar Visibility
-            updateBulkBar(set.size);
-
             // Dynamic Group Counter Update (Only in Edit Mode)
             if (isEditingGroup && selectedGroupId && selectedGroupId !== 'ALL') {
                 const count = set.size;
@@ -1101,7 +1105,6 @@ export const GruposLeadsManager = (project) => {
 
                     if (nameSpan && groupData) {
                         nameSpan.textContent = `${groupData.nome} (${count})`;
-                        // Highlight change?
                         nameSpan.style.color = '#eab308'; // Transition color
                         setTimeout(() => {
                             if (selectedGroupId === groupData.id) nameSpan.style.color = 'var(--color-primary)';
@@ -1110,7 +1113,8 @@ export const GruposLeadsManager = (project) => {
                 }
             }
         },
-        enabled: true // Always enabled for selection (Bulk Actions vs Edit Mode handled logic-side)
+        onBulkDelete: handleBulkDelete,
+        onBulkEdit: handleBulkEdit
     });
 
     // Bulk Modal Logic (Copy from LeadsManager)

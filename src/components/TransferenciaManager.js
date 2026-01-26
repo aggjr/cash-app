@@ -275,7 +275,7 @@ export const TransferenciaManager = (project) => {
         btnPrev.onclick = () => loadTransferencias(pagination.page - 1);
 
         const label = document.createElement('span');
-        label.textContent = `Página ${pagination.page} de ${pagination.pages}`;
+        label.textContent = `Página ${pagination.page} de ${pagination.pages} (${pagination.total} registros)`;
         label.style.margin = '0 1rem';
 
         const btnNext = document.createElement('button');
@@ -287,18 +287,6 @@ export const TransferenciaManager = (project) => {
         pagContainer.appendChild(btnPrev);
         pagContainer.appendChild(label);
         pagContainer.appendChild(btnNext);
-
-        // Update Total
-        const totalContainer = container.querySelector('#total-display');
-        if (totalContainer) {
-            const totalVal = transferencias.reduce((sum, t) => sum + parseFloat(t.valor || 0), 0);
-            totalContainer.innerHTML = `
-                <span style="font-size: 1.1rem; margin-right: 0.5rem;">Total Movimentado:</span>
-                <span style="font-weight: 700; font-size: 1.1rem; color: #3B82F6;">
-                    ${new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(totalVal)}
-                </span>
-            `;
-        }
     };
 
     const createTransferencia = async () => {
@@ -377,6 +365,39 @@ export const TransferenciaManager = (project) => {
         }
     };
 
+    // State for selection
+    let selectedItems = new Set();
+
+    const handleBulkDelete = async () => {
+        if (selectedItems.size === 0) return;
+
+        const confirmed = await confirm(`Tem certeza que deseja excluir ${selectedItems.size} transferências? Os saldos envolvidos serão revertidos.`);
+        if (!confirmed) return;
+
+        try {
+            container.querySelector('#table-container').classList.add('loading');
+
+            const promises = Array.from(selectedItems).map(id =>
+                fetch(`${API_BASE_URL}/transferencias/${id}`, {
+                    method: 'DELETE',
+                    headers: getHeaders()
+                })
+            );
+
+            await Promise.all(promises);
+            showToast(`${selectedItems.size} transferências excluídas e revertidas!`, 'success');
+
+            selectedItems.clear();
+            sharedTable.clearSelection();
+            loadTransferencias();
+        } catch (error) {
+            console.error(error);
+            showToast('Erro ao excluir transferências', 'error');
+        } finally {
+            container.querySelector('#table-container').classList.remove('loading');
+        }
+    };
+
     // Initial Render of Container Structure
     container.innerHTML = `
         <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 2rem;">
@@ -399,8 +420,7 @@ export const TransferenciaManager = (project) => {
             <!-- SharedTable will render here -->
         </div>
         
-        <div style="margin-top: 1rem; display: flex; justify-content: space-between; align-items: center; padding: 0.5rem; border-top: 1px solid var(--color-border-light);">
-            <div id="total-display"></div>
+        <div style="margin-top: 1rem; display: flex; justify-content: flex-end; align-items: center; padding: 0.5rem; border-top: 1px solid var(--color-border-light);">
             <div class="pagination-controls" style="display: flex; gap: 0.5rem; align-items: center;"></div>
         </div>
     `;
@@ -447,10 +467,11 @@ export const TransferenciaManager = (project) => {
             activeFilters = filters;
             loadTransferencias(1);
         },
-        onSortChange: (sort) => {
-            sortConfig = sort;
-            loadTransferencias(1);
-        }
+        enableSelection: true,
+        onSelectionChange: (items, ids) => {
+            selectedItems = ids;
+        },
+        onBulkDelete: handleBulkDelete
     });
 
     const renderTransferencias = () => {

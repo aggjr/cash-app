@@ -321,6 +321,52 @@ export const CampanhasManager = (project) => {
         });
     };
 
+    // State for selection
+    let selectedItems = new Set();
+    let selectedItemsData = [];
+
+    const handleBulkDelete = async () => {
+        if (selectedItems.size === 0) return;
+
+        const confirmed = await showCustomConfirm(
+            `Tem certeza que deseja excluir ${selectedItems.size} campanhas?`,
+            'Sim, Excluir'
+        );
+
+        if (!confirmed) return;
+
+        try {
+            // Sequential delete for now as API might not have bulk endpoint
+            // Or use Promise.all
+            container.querySelector('#table-container').classList.add('loading');
+
+            const promises = Array.from(selectedItems).map(id =>
+                fetch(`${API_BASE_URL}/marketing/campanhas/${id}`, {
+                    method: 'DELETE',
+                    headers: getHeaders()
+                })
+            );
+
+            await Promise.all(promises);
+
+            showToast(`${selectedItems.size} campanhas excluídas com sucesso!`, 'success');
+            selectedItems.clear();
+            selectedItemsData = [];
+            if (sharedTable) sharedTable.clearSelection();
+            loadCampanhas();
+        } catch (error) {
+            console.error(error);
+            showToast('Erro ao excluir campanhas', 'error');
+        } finally {
+            container.querySelector('#table-container').classList.remove('loading');
+        }
+    };
+
+    const handleBulkEdit = async () => {
+        if (selectedItems.size === 0) return;
+        showToast('Edição em massa de campanhas será implementada em breve.', 'info');
+    };
+
     container.innerHTML = `
         <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1rem;">
             <h2>📢 Campanhas</h2>
@@ -330,22 +376,23 @@ export const CampanhasManager = (project) => {
             <button id="btn-new" class="btn-primary">+ Nova Campanha</button>
         </div>
 
-        <div id="table-container" style="flex: 1; overflow: hidden;"></div>
-        
-        <div id="footer-summary" style="margin-top: 1rem; font-size: 0.85rem; color: var(--color-text-muted);">
-            Total: <span id="total-count">0</span> campanha(s)
-        </div>
+        <div id="table-container" style="flex: 1; overflow: hidden; display: flex; flex-direction: column;"></div>
     `;
 
     container.querySelector('#btn-new').addEventListener('click', createCampanha);
 
     const tableContainer = container.querySelector('#table-container');
-    const footerElement = container.querySelector('#footer-summary');
     sharedTable = new SharedTable({
         container: tableContainer,
         columns: columns,
-        data: [],
-        footer: footerElement
+        projectId: project.id, // Ensure projectId is passed if needed
+        enableSelection: true,
+        onSelectionChange: (items, ids) => {
+            selectedItems = Array.isArray(ids) ? new Set(ids) : ids;
+            selectedItemsData = items;
+        },
+        onBulkDelete: handleBulkDelete,
+        onBulkEdit: handleBulkEdit
     });
 
     loadCampanhas();

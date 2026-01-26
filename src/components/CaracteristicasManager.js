@@ -239,6 +239,46 @@ export const CaracteristicasManager = (project) => {
         });
     };
 
+    // State for selection
+    let selectedItems = new Set();
+
+    const handleBulkDelete = async () => {
+        if (selectedItems.size === 0) return;
+
+        const confirmed = await showCustomConfirm(
+            `Tem certeza que deseja excluir ${selectedItems.size} características?`,
+            'Sim, Excluir'
+        );
+
+        if (!confirmed) return;
+
+        try {
+            // Check usage before delete? Use API.
+            // Assuming strict delete or API handles integrity.
+
+            container.querySelector('#table-container').classList.add('loading');
+
+            const promises = Array.from(selectedItems).map(id =>
+                fetch(`${API_BASE_URL}/marketing/caracteristicas/${id}`, {
+                    method: 'DELETE',
+                    headers: getHeaders()
+                })
+            );
+
+            await Promise.all(promises);
+
+            showToast(`${selectedItems.size} características excluídas com sucesso!`, 'success');
+            selectedItems.clear();
+            if (sharedTable) sharedTable.clearSelection();
+            loadCaracteristicas();
+        } catch (error) {
+            console.error(error);
+            showToast('Erro ao excluir características', 'error');
+        } finally {
+            container.querySelector('#table-container').classList.remove('loading');
+        }
+    };
+
     container.innerHTML = `
         <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1rem;">
             <h2>🏷️ Características</h2>
@@ -248,22 +288,21 @@ export const CaracteristicasManager = (project) => {
             <button id="btn-new" class="btn-primary">+ Nova Característica</button>
         </div>
 
-        <div id="table-container" style="flex: 1; overflow: hidden;"></div>
-        
-        <div id="footer-summary" style="margin-top: 1rem; font-size: 0.85rem; color: var(--color-text-muted);">
-            Total: <span id="total-count">0</span> característica(s)
-        </div>
+        <div id="table-container" style="flex: 1; overflow: hidden; display: flex; flex-direction: column;"></div>
     `;
 
     container.querySelector('#btn-new').addEventListener('click', createCaracteristica);
 
     const tableContainer = container.querySelector('#table-container');
-    const footerElement = container.querySelector('#footer-summary');
     sharedTable = new SharedTable({
         container: tableContainer,
         columns: columns,
         data: [],
-        footer: footerElement
+        enableSelection: true,
+        onSelectionChange: (items, ids) => {
+            selectedItems = Array.isArray(ids) ? new Set(ids) : ids;
+        },
+        onBulkDelete: handleBulkDelete
     });
 
     loadCaracteristicas();

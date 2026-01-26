@@ -523,7 +523,7 @@ export const LogAlteracoesManager = (project) => {
         btnPrev.onclick = () => loadLogs(pagination.page - 1);
 
         const label = document.createElement('span');
-        label.textContent = `Página ${pagination.page} de ${pagination.pages}`;
+        label.textContent = `Página ${pagination.page} de ${pagination.pages} (${pagination.total} registros)`;
         label.style.margin = '0 1rem';
 
         const btnNext = document.createElement('button');
@@ -535,12 +535,6 @@ export const LogAlteracoesManager = (project) => {
         pagContainer.appendChild(btnPrev);
         pagContainer.appendChild(label);
         pagContainer.appendChild(btnNext);
-
-        // Total display
-        const totalDisplay = container.querySelector('#total-display');
-        if (totalDisplay) {
-            totalDisplay.innerHTML = `<strong>Total:</strong> ${pagination.total} registros`;
-        }
     };
 
     container.innerHTML = `
@@ -557,8 +551,7 @@ export const LogAlteracoesManager = (project) => {
             <!-- SharedTable renders here -->
         </div>
 
-        <div style="margin-top: 1rem; display: flex; justify-content: space-between; align-items: center; padding: 0.5rem; border-top: 1px solid var(--color-border-light);">
-            <div id="total-display"></div>
+        <div style="margin-top: 1rem; display: flex; justify-content: flex-end; align-items: center; padding: 0.5rem; border-top: 1px solid var(--color-border-light);">
             <div class="pagination-controls" style="display: flex; gap: 0.5rem; align-items: center;"></div>
         </div>
     `;

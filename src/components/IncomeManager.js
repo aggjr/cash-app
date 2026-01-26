@@ -570,10 +570,14 @@ export const IncomeManager = (project) => {
         // Update Total
         const totalContainer = container.querySelector('#total-display');
         if (totalContainer) {
-            const pageTotal = incomes.reduce((sum, inc) => sum + parseFloat(inc.valor || 0), 0);
-            const selectionTotal = selectedItemsData.reduce((sum, inc) => sum + parseFloat(inc.valor || 0), 0);
+            // Logic moved to SharedTable
+            // We can keep page total here if we want, but SharedTable shows total visualized.
+            // Let's keep specific page total? 
+            // SharedTable footer shows "Visualizado: 50".
+            // IncomeManager shows "Total (Página): R$ ...".
+            // Let's keep the page total calculation as it adds value (sum of current page).
 
-            const hasSelection = selectedItems.size > 0;
+            const pageTotal = incomes.reduce((sum, inc) => sum + parseFloat(inc.valor || 0), 0);
 
             totalContainer.innerHTML = `
                 <div style="display: flex; gap: 2rem; align-items: center;">
@@ -584,49 +588,8 @@ export const IncomeManager = (project) => {
                             ${new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(pageTotal)}
                         </span>
                     </div>
-                    ${hasSelection ? `
-                    <div class="animate-fade-in" style="display: flex; align-items: center; gap: 1rem; background: #eef2ff; padding: 4px 12px; border-radius: 6px; border: 1px solid #c7d2fe;">
-                        <span style="font-size: 1.1rem; margin-right: 0.5rem; color: #4338ca;">Total Selecionados (${selectedItems.size}):</span>
-                        <span style="font-weight: 700; font-size: 1.1rem; color: #4338ca;">
-                            ${new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(selectionTotal)}
-                        </span>
-                        <button id="btn-bulk-edit" style="
-                            background: #3B82F6; color: white; border: none; padding: 4px 8px; 
-                            border-radius: 4px; cursor: pointer; font-size: 0.9rem; display: flex; align-items: center; gap: 4px; margin-left: 8px;">
-                            ✏️ Editar
-                        </button>
-                        <button id="btn-bulk-delete" style="
-                            background: #EF4444; color: white; border: none; padding: 4px 8px; 
-                            border-radius: 4px; cursor: pointer; font-size: 0.9rem; display: flex; align-items: center; gap: 4px; margin-left: 8px;">
-                            🗑️ Excluir
-                        </button>
-                    </div>
-                    ` : ''}
                 </div>
             `;
-
-            if (hasSelection) {
-                console.log('[Bulk Edit] Attaching event handlers...');
-                const btnEdit = totalContainer.querySelector('#btn-bulk-edit');
-                console.log('[Bulk Edit] Button found:', btnEdit);
-                if (btnEdit) {
-                    btnEdit.onclick = async (e) => {
-                        console.log('[Bulk Edit] Button clicked!', e);
-                        try {
-                            console.log('[Bulk Edit] Calling handleBulkEdit...');
-                            await handleBulkEdit();
-                            console.log('[Bulk Edit] handleBulkEdit completed');
-                        } catch (error) {
-                            console.error('[Bulk Edit] Error in handleBulkEdit:', error);
-                            console.error('[Bulk Edit] Error stack:', error.stack);
-                        }
-                    };
-                    console.log('[Bulk Edit] Event attached successfully');
-                }
-
-                const btnBulk = totalContainer.querySelector('#btn-bulk-delete');
-                if (btnBulk) btnBulk.onclick = handleBulkDelete;
-            }
         }
     };
 
@@ -967,6 +930,8 @@ export const IncomeManager = (project) => {
             selectedItemsData = items;
             renderPagination();
         },
+        onBulkEdit: handleBulkEdit,
+        onBulkDelete: handleBulkDelete
     });
 
     const renderIncomes = () => {

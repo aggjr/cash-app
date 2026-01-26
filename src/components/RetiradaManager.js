@@ -257,7 +257,7 @@ export const RetiradaManager = (project) => {
         btnPrev.onclick = () => loadRetiradas(pagination.page - 1);
 
         const label = document.createElement('span');
-        label.textContent = `Página ${pagination.page} de ${pagination.pages}`;
+        label.textContent = `Página ${pagination.page} de ${pagination.pages} (${pagination.total} registros)`;
         label.style.margin = '0 1rem';
 
         const btnNext = document.createElement('button');
@@ -269,19 +269,6 @@ export const RetiradaManager = (project) => {
         pagContainer.appendChild(btnPrev);
         pagContainer.appendChild(label);
         pagContainer.appendChild(btnNext);
-
-        // Update Total
-        const totalContainer = container.querySelector('#total-display');
-        if (totalContainer) {
-            const totalVal = retiradas.reduce((sum, item) => sum + parseFloat(item.valor || 0), 0);
-            const color = '#EF4444'; // Always Red for Retiradas
-            totalContainer.innerHTML = `
-                <span style="font-size: 1.1rem; margin-right: 0.5rem;">Total (Página):</span>
-                <span style="font-weight: 700; font-size: 1.1rem; color: ${color};">
-                    ${new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(totalVal)}
-                </span>
-            `;
-        }
     };
 
     const createRetirada = async () => {
@@ -317,6 +304,39 @@ export const RetiradaManager = (project) => {
         const res = await fetch(`${API_BASE_URL}/retiradas/${id}`, { method: 'DELETE', headers: getHeaders() });
         if (res.ok) { showToast('Excluído!', 'success'); loadRetiradas(); }
         else showToast('Erro ao excluir', 'error');
+    };
+
+    // State for selection
+    let selectedItems = new Set();
+
+    const handleBulkDelete = async () => {
+        if (selectedItems.size === 0) return;
+
+        const confirmed = await confirm(`Tem certeza que deseja excluir ${selectedItems.size} retiradas?`);
+        if (!confirmed) return;
+
+        try {
+            container.querySelector('#table-container').classList.add('loading');
+
+            const promises = Array.from(selectedItems).map(id =>
+                fetch(`${API_BASE_URL}/retiradas/${id}`, {
+                    method: 'DELETE',
+                    headers: getHeaders()
+                })
+            );
+
+            await Promise.all(promises);
+            showToast(`${selectedItems.size} retiradas excluídas!`, 'success');
+
+            selectedItems.clear();
+            sharedTable.clearSelection();
+            loadRetiradas();
+        } catch (error) {
+            console.error(error);
+            showToast('Erro ao excluir retiradas', 'error');
+        } finally {
+            container.querySelector('#table-container').classList.remove('loading');
+        }
     };
 
     // Initialize UI
@@ -372,7 +392,7 @@ export const RetiradaManager = (project) => {
     footer.style.borderTop = '1px solid var(--color-border-light)';
 
     footer.innerHTML = `
-        <div id="total-display"></div>
+        <div style="margin-top: 1rem; display: flex; justify-content: flex-end; align-items: center; padding: 0.5rem; border-top: 1px solid var(--color-border-light);">
         <div class="pagination-controls" style="display: flex; gap: 0.5rem; align-items: center;"></div>
     `;
     container.appendChild(footer);
@@ -416,7 +436,11 @@ export const RetiradaManager = (project) => {
         projectId: project.id,
         endpointPrefix: null, // Client-side distinct or add backend support later
         onSortChange: (sort) => { sortConfig = sort; loadRetiradas(pagination.page); },
-        onFilterChange: (newFilters) => { activeFilters = newFilters; loadRetiradas(1); }
+        enableSelection: true,
+        onSelectionChange: (items, ids) => {
+            selectedItems = ids;
+        },
+        onBulkDelete: handleBulkDelete
     });
 
     loadRetiradas();
