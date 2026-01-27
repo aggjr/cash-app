@@ -372,7 +372,7 @@ function initAppLogic() {
 
   const versionEl = document.createElement('div');
   versionEl.id = versionId;
-  versionEl.textContent = 'v0.9.13';
+  versionEl.textContent = 'v0.9.14';
   versionEl.style.cssText = `
     position: fixed;
     bottom: 5px;
