@@ -662,20 +662,20 @@ export const CampanhaWizard = {
 
                 formDiv.innerHTML = `
                      <div class="form-group" style="flex: 1 1 40%; min-width:220px; max-width:600px;">
-                         <label style="font-size:0.85rem; color:#666; display:block; margin-bottom:4px;">Nome da Campanha (v0.9.14) <span style="color:red; margin-left:2px;">*</span></label>
-                         <input type="text" id="campaign-name" class="form-input" value="${state.config.nome}" placeholder="Ex: Promoção de Natal (v0.9.14)" style="width:100%; padding:8px; border:1px solid #ddd; border-radius:6px;" />
+                         <label style="font-size:0.85rem; color:#666; display:block; margin-bottom:4px;">Nome da Campanha (v0.9.14) <span style="color:#EF4444; margin-left:2px; font-weight:bold;">*</span></label>
+                         <input type="text" id="campaign-name" class="form-input required-field" value="${state.config.nome}" placeholder="Ex: Promoção de Natal (v0.9.14)" required style="width:100%; padding:8px; border:2px solid #ddd; border-radius:6px;" />
                      </div>
                      <div class="form-group" style="width: 140px;">
-                         <label style="font-size:0.85rem; color:#666; display:block; margin-bottom:4px;">Início <span style="color:red; margin-left:2px;">*</span></label>
-                         <input type="date" id="campaign-start" class="form-input" value="${state.config.dataInicio}" style="width:100%; padding:8px; border:1px solid #ddd; border-radius:6px;" />
+                         <label style="font-size:0.85rem; color:#666; display:block; margin-bottom:4px;">Início <span style="color:#EF4444; margin-left:2px; font-weight:bold;">*</span></label>
+                         <input type="date" id="campaign-start" class="form-input required-field" value="${state.config.dataInicio}" required style="width:100%; padding:8px; border:2px solid #ddd; border-radius:6px;" />
                      </div>
                      <div class="form-group" style="width: 140px;">
-                         <label style="font-size:0.85rem; color:#666; display:block; margin-bottom:4px;">Fim <span style="color:red; margin-left:2px;">*</span></label>
-                         <input type="date" id="campaign-end" class="form-input" value="${state.config.dataFim}" style="width:100%; padding:8px; border:1px solid #ddd; border-radius:6px;" />
+                         <label style="font-size:0.85rem; color:#666; display:block; margin-bottom:4px;">Fim <span style="color:#EF4444; margin-left:2px; font-weight:bold;">*</span></label>
+                         <input type="date" id="campaign-end" class="form-input required-field" value="${state.config.dataFim}" required style="width:100%; padding:8px; border:2px solid #ddd; border-radius:6px;" />
                      </div>
                      <div class="form-group" style="width: 180px;">
-                         <label style="font-size:0.85rem; color:#666; display:block; margin-bottom:4px;">Intervalo entre Mensagens (s) <span style="color:red; margin-left:2px;">*</span></label>
-                         <input type="number" id="campaign-interval" class="form-input" value="${state.config.dispatchIntervalSeconds}" min="1" max="3600" placeholder="120" style="width:100%; padding:8px; border:1px solid #ddd; border-radius:6px;" />
+                         <label style="font-size:0.85rem; color:#666; display:block; margin-bottom:4px;">Intervalo entre Mensagens (s) <span style="color:#EF4444; margin-left:2px; font-weight:bold;">*</span></label>
+                         <input type="number" id="campaign-interval" class="form-input required-field" value="${state.config.dispatchIntervalSeconds}" min="1" max="3600" placeholder="120" required style="width:100%; padding:8px; border:2px solid #ddd; border-radius:6px;" />
                      </div>
                  `;
 
@@ -699,7 +699,7 @@ export const CampanhaWizard = {
                 Object.assign(listCol.style, { flex: '1', border: '1px solid #eee', borderRadius: '8px', overflow: 'hidden', display: 'flex', flexDirection: 'column', backgroundColor: 'white' });
                 listCol.innerHTML = `
                      <div style="padding:0.75rem; background:#f8f9fa; border-bottom:1px solid #eee; font-weight:600; font-size:0.9rem; color:#444; display:flex; justify-content:space-between; align-items:center;">
-                         <span>Leads Selecionados (Preview)</span>
+                         <span>Leads Selecionados (Preview) <span style="color:#EF4444; margin-left:2px; font-weight:bold;">*</span></span>
                          <span id="wizard-lead-count" style="background:#e0e7ff; color:#4338ca; padding:2px 10px; border-radius:12px; font-size:0.75rem; font-weight:bold;">0 leads</span>
                      </div>
                  `;
@@ -1064,9 +1064,14 @@ export const CampanhaWizard = {
                     requiredIds.forEach(id => {
                         const el = document.getElementById(id);
                         if (el && !el.value.trim()) {
-                            el.style.borderColor = '#ef4444';
-                            el.style.backgroundColor = '#fef2f2';
+                            el.style.borderColor = '#EF4444';
+                            el.style.backgroundColor = '#FEF2F2';
+                            el.style.borderWidth = '2px';
                             hasError = true;
+                        } else if (el) {
+                            el.style.borderColor = '#ddd';
+                            el.style.backgroundColor = 'white';
+                            el.style.borderWidth = '2px';
                         }
                     });
 
@@ -1076,7 +1081,20 @@ export const CampanhaWizard = {
                     }
 
                     if (!state.config.nome) { showToast('Nome da campanha obrigatório', 'warning'); return; }
-                    if (state.groups.size === 0) { showToast('Selecione ao menos um grupo de leads', 'warning'); return; }
+                    if (state.groups.size === 0) {
+                        showToast('Selecione ao menos um grupo de leads', 'warning');
+                        // Highlight the groups section
+                        const treeContainer = document.getElementById('wizard-tree-content');
+                        if (treeContainer) {
+                            treeContainer.style.border = '2px solid #EF4444';
+                            treeContainer.style.backgroundColor = '#FEF2F2';
+                            setTimeout(() => {
+                                treeContainer.style.border = '';
+                                treeContainer.style.backgroundColor = '';
+                            }, 3000);
+                        }
+                        return;
+                    }
                 }
 
                 if (currentStep < 3) {
