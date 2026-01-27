@@ -501,3 +501,33 @@ exports.sendSingle = async (req, res) => {
         res.status(500).json({ error: 'Erro no disparo: ' + error.message });
     }
 };
+
+// Fix Database Columns (Temporary)
+exports.runDatabaseFix = async (req, res) => {
+    try {
+        console.log('Starting Manual Database Fix...');
+
+        const queries = [
+            `ALTER TABLE leads_campanhas ADD COLUMN status_email VARCHAR(50) DEFAULT 'pendente' AFTER status`,
+            `ALTER TABLE leads_campanhas ADD COLUMN status_whatsapp VARCHAR(50) DEFAULT 'pendente' AFTER status_email`
+        ];
+
+        for (const query of queries) {
+            try {
+                await db.query(query);
+                console.log('Executed:', query);
+            } catch (e) {
+                if (e.code === 'ER_DUP_FIELDNAME') {
+                    console.log('Column already exists, skipping.');
+                } else {
+                    console.warn('Error executing query:', query, e.message);
+                }
+            }
+        }
+
+        res.json({ success: true, message: 'Verificação e Correção do Banco Concluída.' });
+    } catch (error) {
+        console.error('Database Fix Failed:', error);
+        res.status(500).json({ error: 'Erro ao corrigir banco: ' + error.message });
+    }
+};

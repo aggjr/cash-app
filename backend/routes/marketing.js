@@ -85,4 +85,7 @@ router.get('/campanhas/:id/estatisticas', campanhasController.getEstatisticas);
 // Disparar (Envio individual)
 router.post('/campanhas/:id/disparar', campanhasController.sendSingle);
 
+// FIX DB (Temporary)
+router.post('/campanhas/db-fix', campanhasController.runDatabaseFix);
+
 module.exports = router;
