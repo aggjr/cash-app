@@ -854,23 +854,32 @@ export const CampanhaWizard = {
                     return;
                 }
 
-                btn.textContent = 'Enviando...';
-
-                // 2. Loop through leads and execute sending
-                for (const lead of state.leads) {
-                    // Send Email
-                    if (state.config.useEmail) {
-                        await executeSend(campaignId, lead.id, 'email');
+                // Trigger async dispatch in backend - don't wait for completion
+                fetch(`${API_BASE_URL}/marketing/campanhas/${campaignId}/disparar-async`, {
+                    method: 'POST',
+                    headers: getHeaders()
+                }).then(res => {
+                    if (res.ok) {
+                        console.log('Disparos iniciados em background');
+                    } else {
+                        console.error('Erro ao iniciar disparos');
                     }
+                }).catch(err => {
+                    console.error('Erro ao iniciar disparos:', err);
+                });
 
-                    // Send WhatsApp
-                    if (state.config.useWhatsapp) {
-                        await executeSend(campaignId, lead.id, 'whatsapp');
-                    }
+                // Change button to "Fechar" immediately - dispatch is happening in background
+                if (btn) {
+                    btn.textContent = 'Fechar';
+                    btn.disabled = false;
+                    btn.onclick = () => {
+                        close();
+                        window.location.reload(); // Refresh to show updated stats
+                    };
                 }
 
-                showToast('Disparos concluídos!', 'success');
-                if (btn) btn.textContent = 'Concluído';
+                // Show toast that sending has started in background
+                showToast('Disparos iniciados! Acompanhe o progresso na lista de campanhas.', 'success');
             };
 
             const executeSend = async (campaignId, leadId, channel) => {

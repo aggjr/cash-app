@@ -1,0 +1,67 @@
+// MODIFICAÇÕES NO CampanhasManager.js
+// Adicionar ícone de "olho" na coluna de ações
+
+// 1. ADICIONAR IMPORT no topo do arquivo (linha ~4):
+import { CampanhaDispatchModal } from './CampanhaDispatchModal.js';
+
+// 2. SUBSTITUIR a coluna 'actions' (linhas ~44-80) por esta versão:
+
+{
+    key: 'actions',
+    label: 'Ações',
+    width: '120px',  // Aumentado para acomodar 3 botões
+    align: 'center',
+    noFilter: true,
+    sticky: true,
+    render: (item) => {
+        const div = document.createElement('div');
+        div.style.display = 'flex';
+        div.style.gap = '0.5rem';
+        div.style.justifyContent = 'center';
+
+        // Botão de visualizar detalhes de disparo
+        const btnView = document.createElement('button');
+        btnView.innerHTML = '👁️';
+        btnView.title = 'Ver Detalhes de Disparo';
+        btnView.style.background = 'none';
+        btnView.style.border = 'none';
+        btnView.style.cursor = 'pointer';
+        btnView.style.fontSize = '1.1rem';
+        btnView.onclick = (e) => { 
+            e.stopPropagation(); 
+            viewDispatchDetails(item); 
+        };
+
+        const btnEdit = document.createElement('button');
+        btnEdit.innerHTML = '✏️';
+        btnEdit.title = 'Editar';
+        btnEdit.style.background = 'none';
+        btnEdit.style.border = 'none';
+        btnEdit.style.cursor = 'pointer';
+        btnEdit.style.fontSize = '1.1rem';
+        btnEdit.onclick = (e) => { e.stopPropagation(); updateCampanha(item); };
+
+        const btnDelete = document.createElement('button');
+        btnDelete.innerHTML = '🗑️';
+        btnDelete.title = 'Excluir';
+        btnDelete.style.background = 'none';
+        btnDelete.style.border = 'none';
+        btnDelete.style.cursor = 'pointer';
+        btnDelete.style.fontSize = '1.1rem';
+        btnDelete.onclick = (e) => { e.stopPropagation(); deleteCampanha(item); };
+
+        div.appendChild(btnView);
+        div.appendChild(btnEdit);
+        div.appendChild(btnDelete);
+        return div;
+    }
+}
+
+// 3. ADICIONAR esta nova função após a função deleteCampanha (linha ~311):
+
+const viewDispatchDetails = async (campanha) => {
+    await CampanhaDispatchModal.show({
+        campanhaId: campanha.id,
+        campanhaNome: campanha.nome
+    });
+};

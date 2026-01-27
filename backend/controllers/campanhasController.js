@@ -12,8 +12,11 @@ exports.getAll = async (req, res) => {
       SELECT 
         c.*,
         COUNT(DISTINCT lc.lead_id) as total_leads,
-        COUNT(CASE WHEN lc.status_email IS NOT NULL AND lc.status_email != 'pendente' THEN 1 END) + 
-        COUNT(CASE WHEN lc.status_whatsapp IS NOT NULL AND lc.status_whatsapp != 'pendente' THEN 1 END) as leads_processados,
+        COUNT(DISTINCT CASE 
+          WHEN (lc.status_email IS NOT NULL AND lc.status_email != 'pendente') 
+            OR (lc.status_whatsapp IS NOT NULL AND lc.status_whatsapp != 'pendente') 
+          THEN lc.lead_id 
+        END) as leads_processados,
         COUNT(CASE WHEN lc.status_email = 'sucesso' THEN 1 END) as email_sucesso,
         COUNT(CASE WHEN lc.status_whatsapp = 'sucesso' THEN 1 END) as whatsapp_sucesso,
         COUNT(DISTINCT gc.grupo_id) as total_grupos
@@ -72,7 +75,7 @@ exports.create = async (req, res) => {
     await connection.beginTransaction();
 
     try {
-        const { nome, descricao, dataInicio, dataFim, status, leadsIds, message } = req.body;
+        const { nome, descricao, dataInicio, dataFim, status, leadsIds, message, dispatchIntervalSeconds } = req.body;
 
         if (!nome) {
             return res.status(400).json({ error: 'Nome é obrigatório' });
@@ -87,10 +90,11 @@ exports.create = async (req, res) => {
         const emailBody = message?.emailBody || null;
         const whatsappText = message?.whatsappText || null;
         const mediaUrl = message?.mediaUrl || null;
+        const intervalSeconds = dispatchIntervalSeconds || 120;
 
         const [result] = await connection.query(
-            'INSERT INTO campanhas (nome, descricao, data_inicio, data_fim, status, email_subject, email_body, whatsapp_text, media_url) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)',
-            [nome, descricao || null, dataInicio || null, dataFim || null, status || 'planejamento', emailSubject, emailBody, whatsappText, mediaUrl]
+            'INSERT INTO campanhas (nome, descricao, data_inicio, data_fim, status, dispatch_interval_seconds, email_subject, email_body, whatsapp_text, media_url) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)',
+            [nome, descricao || null, dataInicio || null, dataFim || null, status || 'planejamento', intervalSeconds, emailSubject, emailBody, whatsappText, mediaUrl]
         );
 
 
@@ -129,7 +133,7 @@ exports.create = async (req, res) => {
 exports.update = async (req, res) => {
     try {
         const { id } = req.params;
-        const { nome, descricao, dataInicio, dataFim, status, message } = req.body;
+        const { nome, descricao, dataInicio, dataFim, status, message, dispatchIntervalSeconds } = req.body;
 
         if (!nome) {
             return res.status(400).json({ error: 'Nome é obrigatório' });
@@ -144,10 +148,11 @@ exports.update = async (req, res) => {
         const emailBody = message?.emailBody || null;
         const whatsappText = message?.whatsappText || null;
         const mediaUrl = message?.mediaUrl || null;
+        const intervalSeconds = dispatchIntervalSeconds !== undefined ? dispatchIntervalSeconds : null;
 
         const [result] = await db.query(
-            'UPDATE campanhas SET nome = ?, descricao = ?, data_inicio = ?, data_fim = ?, status = ?, email_subject = ?, email_body = ?, whatsapp_text = ?, media_url = ? WHERE id = ?',
-            [nome, descricao || null, dataInicio || null, dataFim || null, status || 'planejamento', emailSubject, emailBody, whatsappText, mediaUrl, id]
+            'UPDATE campanhas SET nome = ?, descricao = ?, data_inicio = ?, data_fim = ?, status = ?, dispatch_interval_seconds = COALESCE(?, dispatch_interval_seconds), email_subject = ?, email_body = ?, whatsapp_text = ?, media_url = ? WHERE id = ?',
+            [nome, descricao || null, dataInicio || null, dataFim || null, status || 'planejamento', intervalSeconds, emailSubject, emailBody, whatsappText, mediaUrl, id]
         );
 
         if (result.affectedRows === 0) {
@@ -370,9 +375,14 @@ exports.sendSingle = async (req, res) => {
             // Log image detection for debugging
             const hasImage = /<img[^>]+>/i.test(finalHtml);
             console.log(`📧 Email: Sending to ${lead.email}, Has image: ${hasImage}`);
+            console.log(`📧 Email: HTML content length: ${finalHtml.length} chars`);
+            console.log(`📧 Email: HTML preview: ${finalHtml.substring(0, 200)}...`);
             if (hasImage) {
                 const imgSrc = finalHtml.match(/<img[^>]+src=["']([^"']+)["'][^>]*>/i);
-                if (imgSrc) console.log(`📧 Email: Image URL: ${imgSrc[1]}`);
+                if (imgSrc) {
+                    console.log(`📧 Email: Image URL found: ${imgSrc[1]}`);
+                    console.log(`📧 Email: Full img tag: ${imgSrc[0]}`);
+                }
             }
 
             await emailService.sendGenericEmail(lead.email, subject, finalHtml);
@@ -415,6 +425,9 @@ exports.sendSingle = async (req, res) => {
 
             // 1. Check for Embedded Media in Raw Text first (from new Unified Input)
             // Improved regex to handle various img tag formats from Quill editor
+            console.log(`📸 WhatsApp: Raw text length: ${campanha.whatsapp_text.length} chars`);
+            console.log(`📸 WhatsApp: Raw text preview: ${campanha.whatsapp_text.substring(0, 200)}...`);
+
             const imgMatch = campanha.whatsapp_text.match(/<img[^>]+src=["']([^"']+)["'][^>]*>/i);
             let fullMediaUrl = null;
             let mediatype = 'image';
@@ -423,6 +436,7 @@ exports.sendSingle = async (req, res) => {
             if (imgMatch) {
                 fullMediaUrl = imgMatch[1];
                 console.log(`📸 WhatsApp: Image found in HTML - URL: ${fullMediaUrl}`);
+                console.log(`📸 WhatsApp: Full img tag: ${imgMatch[0]}`);
                 // Remove the image tag from the text to be converted
                 rawText = rawText.replace(/<img[^>]+>/gi, '').trim();
             } else if (campanha.media_url) {
@@ -432,6 +446,7 @@ exports.sendSingle = async (req, res) => {
                 console.log(`📸 WhatsApp: Using legacy media_url - URL: ${fullMediaUrl}`);
             } else {
                 console.log(`📸 WhatsApp: No image found in message`);
+                console.log(`📸 WhatsApp: Checking if HTML contains img tag: ${/<img/i.test(campanha.whatsapp_text)}`);
             }
 
             // 2. Convert Variables & HTML to WhatsApp Text
@@ -544,3 +559,193 @@ exports.runDatabaseFix = async (req, res) => {
         res.status(500).json({ error: 'Erro ao corrigir banco: ' + error.message });
     }
 };
+
+// Disparar campanha de forma assíncrona (não bloqueia a resposta)
+exports.dispararAsync = async (req, res) => {
+    try {
+        const { id } = req.params;
+
+        // Return immediately - processing will happen in background
+        res.json({ success: true, message: 'Disparos iniciados em background' });
+
+        // Process sends in background (don't await)
+        processarDisparosBackground(id).catch(err => {
+            console.error(`Erro ao processar disparos da campanha ${id}:`, err);
+        });
+    } catch (error) {
+        console.error('Erro ao iniciar disparos:', error);
+        res.status(500).json({ error: 'Erro ao iniciar disparos: ' + error.message });
+    }
+};
+
+// Função auxiliar para processar disparos em background
+async function processarDisparosBackground(campaignId) {
+    try {
+        console.log(`📤 Iniciando disparos em background para campanha ${campaignId}`);
+
+        // Update campaign status to "enviando"
+        await db.query(
+            `UPDATE campanhas SET status = 'enviando' WHERE id = ?`,
+            [campaignId]
+        );
+
+        // Get campaign details
+        const [campanhas] = await db.query(
+            `SELECT * FROM campanhas WHERE id = ?`,
+            [campaignId]
+        );
+
+        if (campanhas.length === 0) {
+            console.error(`Campanha ${campaignId} não encontrada`);
+            return;
+        }
+
+        const campanha = campanhas[0];
+
+        // Get all leads for this campaign
+        const [leads] = await db.query(
+            `SELECT l.* FROM leads l
+             INNER JOIN leads_campanhas lc ON l.id = lc.lead_id
+             WHERE lc.campanha_id = ?`,
+            [campaignId]
+        );
+
+        console.log(`📤 Processando ${leads.length} leads para campanha ${campaignId}`);
+
+        const intervalSeconds = campanha.dispatch_interval_seconds || 120;
+        console.log(`⏱️  Intervalo entre disparos: ${intervalSeconds} segundos`);
+
+        // Process each lead
+        for (let i = 0; i < leads.length; i++) {
+            const lead = leads[i];
+            console.log(`📨 Processando lead ${i + 1}/${leads.length}: ${lead.nome}`);
+            // Send Email if configured
+            if (campanha.email_subject && campanha.email_body && lead.email) {
+                try {
+                    await enviarEmailParaLead(campanha, lead);
+                    await db.query(
+                        `UPDATE leads_campanhas SET status_email = 'sucesso' WHERE campanha_id = ? AND lead_id = ?`,
+                        [campaignId, lead.id]
+                    );
+                } catch (error) {
+                    console.error(`Erro ao enviar email para lead ${lead.id}:`, error);
+                    await db.query(
+                        `UPDATE leads_campanhas SET status_email = 'falha' WHERE campanha_id = ? AND lead_id = ?`,
+                        [campaignId, lead.id]
+                    );
+                }
+            }
+
+            // Send WhatsApp if configured
+            if (campanha.whatsapp_text && lead.telefone) {
+                try {
+                    await enviarWhatsAppParaLead(campanha, lead);
+                    await db.query(
+                        `UPDATE leads_campanhas SET status_whatsapp = 'sucesso' WHERE campanha_id = ? AND lead_id = ?`,
+                        [campaignId, lead.id]
+                    );
+                } catch (error) {
+                    console.error(`Erro ao enviar WhatsApp para lead ${lead.id}:`, error);
+                    await db.query(
+                        `UPDATE leads_campanhas SET status_whatsapp = 'falha' WHERE campanha_id = ? AND lead_id = ?`,
+                        [campaignId, lead.id]
+                    );
+                }
+            }
+
+            // Wait before processing next lead (except for the last one)
+            if (i < leads.length - 1) {
+                console.log(`⏳ Aguardando ${intervalSeconds} segundos antes do próximo lead...`);
+                await new Promise(resolve => setTimeout(resolve, intervalSeconds * 1000));
+            }
+        }
+
+        // Update campaign status to "envio_finalizado"
+        await db.query(
+            `UPDATE campanhas SET status = 'envio_finalizado' WHERE id = ?`,
+            [campaignId]
+        );
+
+        console.log(`✅ Disparos concluídos para campanha ${campaignId}`);
+    } catch (error) {
+        console.error(`Erro ao processar disparos da campanha ${campaignId}:`, error);
+        // Update campaign status to error
+        await db.query(
+            `UPDATE campanhas SET status = 'erro' WHERE id = ?`,
+            [campaignId]
+        ).catch(err => console.error('Erro ao atualizar status:', err));
+    }
+}
+
+// Helper function to send email to a lead
+async function enviarEmailParaLead(campanha, lead) {
+    const replaceVariables = (text) => {
+        if (!text) return text;
+        return text
+            .replace(/\{\{nome\}\}/gi, lead.nome || '')
+            .replace(/\{\{email\}\}/gi, lead.email || '')
+            .replace(/\{\{telefone\}\}/gi, lead.telefone || '');
+    };
+
+    const emailBody = replaceVariables(campanha.email_body);
+    const emailSubject = replaceVariables(campanha.email_subject);
+    let finalHtml = emailBody.includes('<') ? emailBody : emailBody.replace(/\n/g, '<br>');
+
+    // Log image detection
+    const hasImage = /<img[^>]+>/i.test(finalHtml);
+    console.log(`📧 Email: Sending to ${lead.email}, Has image: ${hasImage}`);
+    if (hasImage) {
+        const imgSrc = finalHtml.match(/<img[^>]+src=["']([^"']+)["'][^>]*>/i);
+        if (imgSrc) console.log(`📧 Email: Image URL: ${imgSrc[1]}`);
+    }
+
+    await emailService.sendGenericEmail(lead.email, emailSubject, finalHtml);
+}
+
+// Helper function to send WhatsApp to a lead
+async function enviarWhatsAppParaLead(campanha, lead) {
+    const replaceVariables = (text) => {
+        if (!text) return text;
+        return text
+            .replace(/\{\{nome\}\}/gi, lead.nome || '')
+            .replace(/\{\{email\}\}/gi, lead.email || '')
+            .replace(/\{\{telefone\}\}/gi, lead.telefone || '');
+    };
+
+    const convertHtmlToWhatsapp = (html) => {
+        if (!html) return '';
+        return html
+            .replace(/<br\s*\/?>/gi, '\n')
+            .replace(/<\/p>/gi, '\n\n')
+            .replace(/<[^>]+>/g, '')
+            .replace(/&nbsp;/g, ' ')
+            .trim();
+    };
+
+    // Extract image from HTML
+    const imgMatch = campanha.whatsapp_text.match(/<img[^>]+src=["']([^"']+)["'][^>]*>/i);
+    let fullMediaUrl = null;
+    let rawText = campanha.whatsapp_text;
+
+    if (imgMatch) {
+        fullMediaUrl = imgMatch[1];
+        console.log(`📸 WhatsApp: Image found - URL: ${fullMediaUrl}`);
+        rawText = rawText.replace(/<img[^>]+>/gi, '').trim();
+    } else if (campanha.media_url) {
+        const baseUrl = process.env.API_BASE_URL || 'https://cash.gutoapps.site';
+        fullMediaUrl = campanha.media_url.startsWith('http') ? campanha.media_url : `${baseUrl}${campanha.media_url}`;
+        console.log(`📸 WhatsApp: Using legacy media_url - URL: ${fullMediaUrl}`);
+    }
+
+    const variablesReplaced = replaceVariables(rawText);
+    const text = convertHtmlToWhatsapp(variablesReplaced);
+
+    // Send via Evolution API
+    if (fullMediaUrl) {
+        const isVideo = fullMediaUrl.match(/\.(mp4|mov|avi|wmv)$/i);
+        const mediatype = isVideo ? 'video' : 'image';
+        await evolutionService.sendMedia(lead.telefone, fullMediaUrl, text, mediatype);
+    } else {
+        await evolutionService.sendText(lead.telefone, text);
+    }
+}
