@@ -91,4 +91,11 @@ router.post('/campanhas/:id/disparar-async', campanhasController.dispararAsync);
 // FIX DB (Temporary)
 router.post('/campanhas/db-fix', campanhasController.runDatabaseFix);
 
+
+// Detalhes de disparo (para monitoramento em tempo real)
+router.get('/campanhas/:id/dispatch-details', campanhasController.getDispatchDetails);
+
+// Aplicar migração do redesign
+router.post('/campanhas/apply-redesign-migration', campanhasController.applyRedesignMigration);
+
 module.exports = router;

@@ -423,6 +423,7 @@ export const CampanhasManager = (project) => {
         <div style="margin-bottom: 1rem; display: flex; gap: 0.5rem; align-items: center;">
             <button id="btn-new" class="btn-primary">+ Nova Campanha</button>
             <button id="btn-refresh" class="btn-secondary" title="Atualizar Dados">🔄</button>
+            <button id="btn-migrate" class="btn-secondary" title="Aplicar Migração do Redesign" style="background:#10b981; color:white;">🔧 Aplicar Migração</button>
         </div>
 
         <div id="table-container" style="flex: 1; overflow: hidden; display: flex; flex-direction: column;"></div>
@@ -430,6 +431,34 @@ export const CampanhasManager = (project) => {
 
     container.querySelector('#btn-new').addEventListener('click', createCampanha);
     container.querySelector('#btn-refresh').onclick = loadCampanhas;
+    container.querySelector('#btn-migrate').onclick = async () => {
+        if (!confirm('Deseja aplicar a migração do redesign de campanhas? Isso irá adicionar a coluna dispatch_interval_seconds ao banco de dados.')) {
+            return;
+        }
+
+        try {
+            const response = await fetch(`${API_BASE_URL}/marketing/campanhas/apply-redesign-migration`, {
+                method: 'POST',
+                headers: getHeaders()
+            });
+
+            const result = await response.json();
+
+            if (result.success) {
+                showToast('✅ Migração aplicada com sucesso!', 'success');
+                console.log('Passos executados:', result.steps);
+                if (result.errors.length > 0) {
+                    console.warn('Avisos:', result.errors);
+                }
+            } else {
+                showToast('❌ Erro na migração: ' + result.message, 'error');
+                console.error('Erros:', result.errors);
+            }
+        } catch (error) {
+            showToast('❌ Erro ao executar migração: ' + error.message, 'error');
+            console.error(error);
+        }
+    };
 
     const tableContainer = container.querySelector('#table-container');
     sharedTable = new SharedTable({
