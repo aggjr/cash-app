@@ -158,7 +158,7 @@ export const CampanhasManager = (project) => {
         {
             key: 'leads_processados',
             label: 'Já Enviados',
-            width: '80px',
+            width: '90px',
             align: 'center',
             type: 'number',
             render: (item) => {
@@ -166,29 +166,36 @@ export const CampanhasManager = (project) => {
             }
         },
         {
-            key: 'leads_sucesso',
-            label: 'Sucesso',
-            width: '80px',
+            key: 'email_sucesso',
+            label: '📧 E-mail OK',
+            width: '90px',
             align: 'center',
             type: 'number',
             render: (item) => {
+                const count = item.email_sucesso || 0;
                 const span = document.createElement('span');
-                span.textContent = item.leads_sucesso || 0;
-                span.style.color = 'green';
-                span.style.fontWeight = 'bold';
+                span.textContent = count;
+                if (count > 0) {
+                    span.style.color = 'green';
+                    span.style.fontWeight = 'bold';
+                }
                 return span;
             }
         },
         {
-            key: 'leads_falha',
-            label: 'Falhas',
-            width: '80px',
+            key: 'whatsapp_sucesso',
+            label: '💬 WhatsApp OK',
+            width: '110px',
             align: 'center',
             type: 'number',
             render: (item) => {
+                const count = item.whatsapp_sucesso || 0;
                 const span = document.createElement('span');
-                span.textContent = item.leads_falha || 0;
-                if ((item.leads_falha || 0) > 0) span.style.color = 'red';
+                span.textContent = count;
+                if (count > 0) {
+                    span.style.color = 'green';
+                    span.style.fontWeight = 'bold';
+                }
                 return span;
             }
         }

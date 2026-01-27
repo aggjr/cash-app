@@ -246,10 +246,40 @@ export const CampanhaWizard = {
                     previewHeader.style.background = type === 'email' ? '#4a5568' : '#075e54';
                     let contentHtml = body || '<span style="color:#aaa; font-style:italic;">(Digite para visualizar...)</span>';
                     if (type === 'whatsapp') {
+                        // Extract images
                         const parser = new DOMParser();
                         const doc = parser.parseFromString(body, 'text/html');
                         const img = doc.querySelector('img');
-                        if (img) contentHtml = `<div style="margin-bottom:10px;"><img src="${img.src}" style="max-width:100%; border-radius:8px;"></div>` + contentHtml.replace(/<img[^>]+>/g, '');
+                        let textContent = contentHtml.replace(/<img[^>]+>/g, '').replace(/<[^>]+>/g, ' '); // Strip text only for formatting but keep structure? 
+
+                        // Better approach: use regex on the raw HTML or cleaned text
+                        // Quill returns HTML with <p>. We need to preserve lines but strip other tags for MD parsing?
+                        // Or just parse existing text content.
+                        // Let's rely on simple string replacement for now.
+
+                        // 1. Remove HTML tags but keep line breaks
+                        let rawText = contentHtml
+                            .replace(/<br\s*\/?>/gi, '\n')
+                            .replace(/<\/p>/gi, '\n\n')
+                            .replace(/<[^>]+>/g, ''); // Strip remaining tags
+
+                        // 2. Decode entities
+                        const txt = document.createElement('textarea');
+                        txt.innerHTML = rawText;
+                        rawText = txt.value;
+
+                        // 3. Markdowns
+                        // Bold *text* -> <b>text</b>
+                        rawText = rawText.replace(/\*(.*?)\*/g, '<b>$1</b>');
+                        // Italic _text_ -> <i>text</i>
+                        rawText = rawText.replace(/_(.*?)_/g, '<i>$1</i>');
+                        // Strike ~text~ -> <s>text</s>
+                        rawText = rawText.replace(/~(.*?)~/g, '<s>$1</s>');
+
+                        // 4. Restore line breaks
+                        contentHtml = rawText.replace(/\n/g, '<br>');
+
+                        if (img) contentHtml = `<div style="margin-bottom:10px;"><img src="${img.src}" style="max-width:100%; border-radius:8px;"></div>` + contentHtml;
                     }
                     previewBody.innerHTML = contentHtml.replace(/{{nome}}/g, state.leads[0]?.nome || 'João Silva');
                 };

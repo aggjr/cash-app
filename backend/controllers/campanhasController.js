@@ -12,9 +12,10 @@ exports.getAll = async (req, res) => {
       SELECT 
         c.*,
         COUNT(DISTINCT lc.lead_id) as total_leads,
-        COUNT(CASE WHEN lc.status != 'pendente' THEN 1 END) as leads_processados,
-        COUNT(CASE WHEN lc.status = 'contatado' THEN 1 END) as leads_sucesso,
-        COUNT(CASE WHEN lc.status = 'falha' THEN 1 END) as leads_falha,
+        COUNT(CASE WHEN lc.status_email IS NOT NULL AND lc.status_email != 'pendente' THEN 1 END) + 
+        COUNT(CASE WHEN lc.status_whatsapp IS NOT NULL AND lc.status_whatsapp != 'pendente' THEN 1 END) as leads_processados,
+        COUNT(CASE WHEN lc.status_email = 'sucesso' THEN 1 END) as email_sucesso,
+        COUNT(CASE WHEN lc.status_whatsapp = 'sucesso' THEN 1 END) as whatsapp_sucesso,
         COUNT(DISTINCT gc.grupo_id) as total_grupos
       FROM campanhas c
       LEFT JOIN leads_campanhas lc ON c.id = lc.campanha_id
@@ -453,20 +454,50 @@ exports.sendSingle = async (req, res) => {
             return res.status(400).json({ error: 'Canal inválido' });
         }
 
-        // 4. Update Status in leads_campanhas
-        // Only if success, otherwise client likely handles error or we can log it here
+        // 4. Update Status in leads_campanhas per channel
         if (success) {
-            await db.query(
-                `INSERT INTO leads_campanhas (lead_id, campanha_id, status, data_contato) 
-                 VALUES (?, ?, 'contatado', NOW()) 
-                 ON DUPLICATE KEY UPDATE status = 'contatado', data_contato = NOW()`,
-                [leadId, id]
-            );
+            if (channel === 'email') {
+                await db.query(
+                    `INSERT INTO leads_campanhas (lead_id, campanha_id, status_email, data_contato) 
+                     VALUES (?, ?, 'sucesso', NOW()) 
+                     ON DUPLICATE KEY UPDATE status_email = 'sucesso', data_contato = NOW()`,
+                    [leadId, id]
+                );
+            } else if (channel === 'whatsapp') {
+                await db.query(
+                    `INSERT INTO leads_campanhas (lead_id, campanha_id, status_whatsapp, data_contato) 
+                     VALUES (?, ?, 'sucesso', NOW()) 
+                     ON DUPLICATE KEY UPDATE status_whatsapp = 'sucesso', data_contato = NOW()`,
+                    [leadId, id]
+                );
+            }
         }
 
         res.json({ success: true, channel });
     } catch (error) {
         console.error('Erro no disparo:', error);
+
+        // Record failure in DB per channel
+        try {
+            if (channel === 'email') {
+                await db.query(
+                    `INSERT INTO leads_campanhas (lead_id, campanha_id, status_email, data_contato) 
+                     VALUES (?, ?, 'falha', NOW()) 
+                     ON DUPLICATE KEY UPDATE status_email = 'falha', data_contato = NOW()`,
+                    [leadId, id]
+                );
+            } else if (channel === 'whatsapp') {
+                await db.query(
+                    `INSERT INTO leads_campanhas (lead_id, campanha_id, status_whatsapp, data_contato) 
+                     VALUES (?, ?, 'falha', NOW()) 
+                     ON DUPLICATE KEY UPDATE status_whatsapp = 'falha', data_contato = NOW()`,
+                    [leadId, id]
+                );
+            }
+        } catch (dbError) {
+            console.error('Erro ao registrar falha:', dbError);
+        }
+
         res.status(500).json({ error: 'Erro no disparo: ' + error.message });
     }
 };
