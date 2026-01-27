@@ -355,27 +355,6 @@ export const CampanhaWizard = {
                 const editorPanel = document.createElement('div');
                 Object.assign(editorPanel.style, { width: '50%', borderRight: '1px solid #ddd', display: 'flex', flexDirection: 'column' });
 
-                // Media Upload Section
-                const mediaDiv = document.createElement('div');
-                Object.assign(mediaDiv.style, { padding: '1rem', borderBottom: '1px solid #eee', background: '#fafafa' });
-                mediaDiv.innerHTML = `
-                    <label style="font-weight:600; font-size:0.9rem; color:#444; margin-bottom:8px; display:block;">
-                        📸 Mídia da Campanha (Imagem ou Vídeo)
-                    </label>
-                    <div id="media-upload-area" style="
-                        border: 2px dashed #ccc; border-radius: 8px; padding: 1.5rem; text-align: center; 
-                        background: white; cursor: pointer; transition: all 0.2s; position: relative;">
-                        <span id="media-placeholder" style="color: #888; pointer-events: none;">
-                            Clique para selecionar ou <b>Cole (Ctrl+V)</b> aqui
-                        </span>
-                        <input type="file" id="media-input" accept="image/*,video/*" style="display: none;" />
-                        <div id="media-preview-container" style="display: none; margin-top: 10px;">
-                            <!-- Preview injected here -->
-                        </div>
-                    </div>
-                `;
-                editorPanel.appendChild(mediaDiv);
-
                 // Tab Headers
                 const tabsDiv = document.createElement('div');
                 tabsDiv.style.display = 'flex';
@@ -404,6 +383,13 @@ export const CampanhaWizard = {
                         <label>Assunto</label>
                         <input type="text" id="msg-email-subject" class="form-input" value="${state.message.emailSubject}" placeholder="Assunto do e-mail..." />
                     </div>
+                    <div class="form-group" style="margin-bottom:0.5rem; display:flex; gap:0.5rem; align-items:center;">
+                         <button id="btn-email-upload" class="btn-secondary" style="font-size:0.85rem; padding: 6px 12px; display:flex; align-items:center; gap:6px;">
+                            <span>📷</span> Inserir Imagem/Banner
+                         </button>
+                         <span id="email-upload-status" style="font-size:0.8rem; color:#666; display:none;">Enviando...</span>
+                         <input type="file" id="email-media-input" accept="image/*" style="display: none;" />
+                    </div>
                     <div class="form-group">
                         <label>Corpo do E-mail</label>
                         <div id="editor-email-container" style="min-height:320px; background:white;"></div>
@@ -415,6 +401,22 @@ export const CampanhaWizard = {
                 whatsappEditor.id = 'editor-whatsapp';
                 whatsappEditor.style.display = 'none';
                 whatsappEditor.innerHTML = `
+                    <div style="background:#f0f9ff; padding:12px; border-radius:8px; margin-bottom:1.5rem; border:1px solid #bae6fd;">
+                        <label style="font-weight:600; font-size:0.9rem; color:#0369a1; margin-bottom:8px; display:block;">
+                            📸 Mídia do WhatsApp (Cabeçalho)
+                        </label>
+                         <div id="media-upload-area" style="
+                            border: 2px dashed #0ea5e9; border-radius: 8px; padding: 1rem; text-align: center; 
+                            background: white; cursor: pointer; transition: all 0.2s; position: relative;">
+                            <span id="media-placeholder" style="color: #0369a1; font-size:0.9rem; pointer-events: none;">
+                                Clique ou <b>Cole (Ctrl+V)</b> aqui
+                            </span>
+                            <input type="file" id="media-input" accept="image/*,video/*" style="display: none;" />
+                            <div id="media-preview-container" style="display: none; margin-top: 10px;">
+                                <!-- Preview injected here -->
+                            </div>
+                        </div>
+                    </div>
                     <div class="form-group">
                         <label>Mensagem WhatsApp</label>
                          <div id="editor-whatsapp-container" style="min-height:320px; background:white;"></div>
@@ -454,8 +456,9 @@ export const CampanhaWizard = {
 
                 // Logic
                 const updateMediaPreview = () => {
-                    const container = mediaDiv.querySelector('#media-preview-container');
-                    const placeholder = mediaDiv.querySelector('#media-placeholder');
+                    const container = whatsappEditor.querySelector('#media-preview-container');
+                    const placeholder = whatsappEditor.querySelector('#media-placeholder');
+                    if (!container || !placeholder) return;
 
                     if (state.message.mediaUrl) {
                         const isVideo = state.message.mediaUrl.match(/\.(mp4|mov|avi|wmv)$/i);
@@ -482,9 +485,9 @@ export const CampanhaWizard = {
                     if (!file) return;
 
                     // Show Loading
-                    const placeholder = mediaDiv.querySelector('#media-placeholder');
-                    const originalText = placeholder.textContent;
-                    placeholder.textContent = '⏳ Enviando...';
+                    const placeholder = whatsappEditor.querySelector('#media-placeholder');
+                    const originalText = placeholder ? placeholder.textContent : '';
+                    if (placeholder) placeholder.textContent = '⏳ Enviando...';
 
                     const formData = new FormData();
                     formData.append('file', file);
@@ -508,16 +511,18 @@ export const CampanhaWizard = {
                         console.error(error);
                         showToast('Erro ao enviar imagem/vídeo', 'error');
                     } finally {
-                        placeholder.textContent = originalText;
+                        if (placeholder) placeholder.textContent = originalText;
                     }
                 };
 
-                // Upload Events
-                const uploadArea = mediaDiv.querySelector('#media-upload-area');
-                const fileInput = mediaDiv.querySelector('#media-input');
+                // Upload Events (WhatsApp)
+                const uploadArea = whatsappEditor.querySelector('#media-upload-area');
+                const fileInput = whatsappEditor.querySelector('#media-input');
 
-                uploadArea.onclick = () => fileInput.click();
-                fileInput.onchange = (e) => handleUpload(e.target.files[0]);
+                if (uploadArea && fileInput) {
+                    uploadArea.onclick = () => fileInput.click();
+                    fileInput.onchange = (e) => handleUpload(e.target.files[0]);
+                }
 
                 // Paste Event
                 uploadArea.addEventListener('paste', (e) => {
@@ -560,29 +565,16 @@ export const CampanhaWizard = {
                     let contentHtml = body || '<span style="color:#aaa; font-style:italic;">(Digite para visualizar...)</span>';
 
                     // Inject Media Preview in Content
-                    if (state.message.mediaUrl) {
+                    if (state.message.mediaUrl && type === 'whatsapp') { // Only for WhatsApp
                         const isVideo = state.message.mediaUrl.match(/\.(mp4|mov|avi|wmv)$/i);
                         const fullUrl = state.message.mediaUrl.startsWith('http') ? state.message.mediaUrl : `${getApiBaseUrl()}${state.message.mediaUrl}`;
 
                         let mediaHtml = '';
-                        if (type === 'email') {
-                            // Email logic (similar to backend)
-                            if (isVideo) {
-                                mediaHtml = `<div style="margin-bottom:15px; border:1px solid #ddd; padding:10px; border-radius:4px; text-align:center;">
-                                    <p style="margin:0;">🎥 Vídeo: <a href="${fullUrl}" target="_blank">Clique para assistir</a></p>
-                                </div>`;
-                            } else {
-                                mediaHtml = `<div style="margin-bottom:15px;"><img src="${fullUrl}" style="max-width:100%; border-radius:8px;"></div>`;
-                            }
+                        if (isVideo) {
+                            mediaHtml = `<div style="margin-bottom:10px;"><video src="${fullUrl}" controls style="max-width:100%; border-radius:8px;"></video></div>`;
                         } else {
-                            // WhatsApp logic
-                            if (isVideo) {
-                                mediaHtml = `<div style="margin-bottom:10px;"><video src="${fullUrl}" controls style="max-width:100%; border-radius:8px;"></video></div>`;
-                            } else {
-                                mediaHtml = `<div style="margin-bottom:10px;"><img src="${fullUrl}" style="max-width:100%; border-radius:8px;"></div>`;
-                            }
+                            mediaHtml = `<div style="margin-bottom:10px;"><img src="${fullUrl}" style="max-width:100%; border-radius:8px;"></div>`;
                         }
-
                         contentHtml = mediaHtml + contentHtml;
                     }
 
@@ -701,6 +693,160 @@ export const CampanhaWizard = {
                             updatePreview('whatsapp');
                         }
                     });
+
+                }, 50);
+
+                // Initialize Email Upload Button
+                setTimeout(() => {
+                    const btnEmailUpload = emailEditor.querySelector('#btn-email-upload');
+                    const inputEmailUpload = emailEditor.querySelector('#email-media-input');
+                    const statusEmailUpload = emailEditor.querySelector('#email-upload-status');
+
+                    if (btnEmailUpload && inputEmailUpload) {
+                        btnEmailUpload.onclick = () => inputEmailUpload.click();
+                        inputEmailUpload.onchange = async (e) => {
+                            const file = e.target.files[0];
+                            if (!file) return;
+
+                            if (statusEmailUpload) statusEmailUpload.style.display = 'inline';
+                            btnEmailUpload.disabled = true;
+
+                            const formData = new FormData();
+                            formData.append('file', file);
+
+                            try {
+                                const res = await fetch(`${getApiBaseUrl()}/upload`, {
+                                    method: 'POST',
+                                    headers: { 'Authorization': `Bearer ${localStorage.getItem('token')}` },
+                                    body: formData
+                                });
+
+                                if (!res.ok) throw new Error('Falha no upload');
+
+                                const data = await res.json();
+                                const fullUrl = data.fileUrl.startsWith('http') ? data.fileUrl : `${getApiBaseUrl()}${data.fileUrl}`;
+
+                                // Insert into Quill
+                                // Use API to find the quill instance if not accessible variables (it isn't here clearly)
+                                // But we know the container ID: #editor-email-container
+                                // Quill API stores instance on element: No, not officially.
+                                // But we defined 'quillEmail' inside standard scope of the parent 'setTimeout'.
+                                // Ah, I cannot access 'quillEmail' here because it's in the *other* setTimeout block above.
+                                // I must merge this logic into the block above or access it differently.
+                                // For now, let's assume I can't access 'quillEmail' variable.
+                                // I will use `Quill.find` if available or just append HTML.
+                                // Actually, I should merge this into the main setTimeout.
+                                // RE-WRITING THIS CHUNK TO MERGE INTO THE MAIN TIMEOUT (Lines 645-705)
+                            } catch (e) {
+                                console.error(e);
+                                showToast('Erro ao enviar imagem', 'error');
+                            } finally {
+                                if (statusEmailUpload) statusEmailUpload.style.display = 'none';
+                                btnEmailUpload.disabled = false;
+                                inputEmailUpload.value = ''; // Reset
+                            }
+                        };
+                    }
+                }, 50);
+
+                // Initialize Quill Editors
+                setTimeout(() => {
+                    // Email Toolbar (Full Rich Text)
+                    const emailToolbar = [
+                        ['bold', 'italic', 'underline', 'strike'],
+                        [{ 'list': 'ordered' }, { 'list': 'bullet' }],
+                        [{ 'size': ['small', false, 'large', 'huge'] }],
+                        [{ 'header': [1, 2, 3, 4, 5, 6, false] }],
+                        [{ 'color': [] }, { 'background': [] }],
+                        [{ 'align': [] }],
+                        ['link', 'image']
+                    ];
+
+                    // WhatsApp Toolbar
+                    const whatsappToolbar = [
+                        ['clean'] // Minimal
+                    ];
+
+                    // Init Email
+                    const quillEmail = new Quill('#editor-email-container', {
+                        theme: 'snow',
+                        placeholder: 'Escreva o conteúdo do e-mail aqui',
+                        modules: {
+                            toolbar: emailToolbar,
+                            blotFormatter: {}
+                        }
+                    });
+
+                    if (state.message.emailBody) quillEmail.root.innerHTML = state.message.emailBody;
+
+                    quillEmail.on('text-change', () => {
+                        state.message.emailBody = quillEmail.root.innerHTML;
+                        updatePreview('email');
+                    });
+
+                    // Bind Email Upload Logic Here to access quillEmail
+                    const btnEmailUpload = emailEditor.querySelector('#btn-email-upload');
+                    const inputEmailUpload = emailEditor.querySelector('#email-media-input');
+                    const statusEmailUpload = emailEditor.querySelector('#email-upload-status');
+
+                    if (btnEmailUpload && inputEmailUpload) {
+                        btnEmailUpload.onclick = () => inputEmailUpload.click();
+                        inputEmailUpload.onchange = async (e) => {
+                            const file = e.target.files[0];
+                            if (!file) return;
+
+                            if (statusEmailUpload) statusEmailUpload.style.display = 'inline';
+                            btnEmailUpload.disabled = true;
+
+                            const formData = new FormData();
+                            formData.append('file', file);
+
+                            try {
+                                const res = await fetch(`${getApiBaseUrl()}/upload`, {
+                                    method: 'POST',
+                                    headers: { 'Authorization': `Bearer ${localStorage.getItem('token')}` },
+                                    body: formData
+                                });
+
+                                if (!res.ok) throw new Error('Falha no upload');
+
+                                const data = await res.json();
+                                const fullUrl = data.fileUrl.startsWith('http') ? data.fileUrl : `${getApiBaseUrl()}${data.fileUrl}`;
+
+                                // Insert Image
+                                const range = quillEmail.getSelection(true) || { index: quillEmail.getLength(), length: 0 };
+                                quillEmail.insertEmbed(range.index, 'image', fullUrl);
+
+                            } catch (e) {
+                                console.error(e);
+                                showToast('Erro ao enviar imagem', 'error');
+                            } finally {
+                                if (statusEmailUpload) statusEmailUpload.style.display = 'none';
+                                btnEmailUpload.disabled = false;
+                                inputEmailUpload.value = '';
+                            }
+                        };
+                    }
+
+                    // Init WhatsApp
+                    const quillWhatsapp = new Quill('#editor-whatsapp-container', {
+                        theme: 'snow',
+                        placeholder: 'Escreva sua mensagem aqui. Use *negrito* para destaque.',
+                        modules: {
+                            toolbar: whatsappToolbar,
+                            blotFormatter: {}
+                        }
+                    });
+
+                    if (state.message.whatsappText) quillWhatsapp.root.innerHTML = state.message.whatsappText;
+
+                    quillWhatsapp.on('text-change', () => {
+                        state.message.whatsappText = quillWhatsapp.root.innerHTML;
+                        if (stepContainer.dataset.activeTab === 'whatsapp') {
+                            updatePreview('whatsapp');
+                        }
+                    });
+
 
                 }, 50);
 

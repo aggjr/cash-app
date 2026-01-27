@@ -360,20 +360,8 @@ exports.sendSingle = async (req, res) => {
             let finalHtml = html.includes('<') ? html : html.replace(/\n/g, '<br>');
 
             // Embed Media if exists
-            if (campanha.media_url) {
-                const baseUrl = process.env.API_BASE_URL || 'https://cash.gutoapps.site';
-                const fullMediaUrl = campanha.media_url.startsWith('http') ? campanha.media_url : `${baseUrl}${campanha.media_url}`;
-
-                const isVideo = campanha.media_url.match(/\.(mp4|mov|avi|wmv)$/i);
-
-                if (isVideo) {
-                    finalHtml = `<div style="margin-bottom: 20px;">
-                        <p>🎥 <strong>Assista ao vídeo:</strong> <a href="${fullMediaUrl}" target="_blank">Clique aqui para assistir</a></p>
-                     </div>` + finalHtml;
-                } else {
-                    finalHtml = `<div style="margin-bottom: 20px;"><img src="${fullMediaUrl}" style="max-width: 100%; border-radius: 8px;" alt="Banner"></div>` + finalHtml;
-                }
-            }
+            // REMOVED: Media is now embedded directly in email_body by the user.
+            // if (campanha.media_url) { ... }
 
             await emailService.sendGenericEmail(lead.email, subject, finalHtml);
             success = true;
