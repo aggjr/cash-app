@@ -42,7 +42,8 @@ export const CampanhaWizard = {
                     dataFim: '',
                     status: 'planejamento',
                     useEmail: true,
-                    useWhatsapp: true
+                    useWhatsapp: true,
+                    dispatchIntervalSeconds: 120
                 },
                 groups: new Set(), // Set of selected Group IDs
                 leads: [], // Preview leads
@@ -558,6 +559,7 @@ export const CampanhaWizard = {
                     nome: getInput('#campaign-name'),
                     dataInicio: getInput('#campaign-start'),
                     dataFim: getInput('#campaign-end'),
+                    dispatchInterval: getInput('#campaign-interval'),
                     useEmail: getInput('#check-use-email'),
                     useWhatsapp: getInput('#check-use-whatsapp')
                 };
@@ -565,6 +567,10 @@ export const CampanhaWizard = {
                 if (inputs.nome) inputs.nome.oninput = (e) => state.config.nome = e.target.value;
                 if (inputs.dataInicio) inputs.dataInicio.onchange = (e) => state.config.dataInicio = e.target.value;
                 if (inputs.dataFim) inputs.dataFim.onchange = (e) => state.config.dataFim = e.target.value;
+                if (inputs.dispatchInterval) inputs.dispatchInterval.oninput = (e) => {
+                    const val = parseInt(e.target.value);
+                    state.config.dispatchIntervalSeconds = isNaN(val) ? 120 : Math.max(1, Math.min(3600, val));
+                };
 
                 if (inputs.useEmail) inputs.useEmail.onchange = (e) => {
                     state.config.useEmail = e.target.checked;
@@ -667,6 +673,10 @@ export const CampanhaWizard = {
                          <label style="font-size:0.85rem; color:#666; display:block; margin-bottom:4px;">Fim <span style="color:red; margin-left:2px;">*</span></label>
                          <input type="date" id="campaign-end" class="form-input" value="${state.config.dataFim}" style="width:100%; padding:8px; border:1px solid #ddd; border-radius:6px;" />
                      </div>
+                     <div class="form-group" style="width: 180px;">
+                         <label style="font-size:0.85rem; color:#666; display:block; margin-bottom:4px;">Intervalo entre Mensagens (s) <span style="color:red; margin-left:2px;">*</span></label>
+                         <input type="number" id="campaign-interval" class="form-input" value="${state.config.dispatchIntervalSeconds}" min="1" max="3600" placeholder="120" style="width:100%; padding:8px; border:1px solid #ddd; border-radius:6px;" />
+                     </div>
                  `;
 
                 // Split View: Tree + List
@@ -725,7 +735,7 @@ export const CampanhaWizard = {
                 const whatsappStatus = state.config.useWhatsapp ? (state.message.whatsappText ? 'Pronto' : 'Pendente') : 'Não Habilitado';
 
                 const summaryDiv = document.createElement('div');
-                summaryDiv.style.marginBottom = '1.5rem';
+                summaryDiv.style.marginBottom = '1rem';
                 summaryDiv.innerHTML = `
                     <div style="background:#f0f9ff; padding:1rem; border-radius:8px; border:1px solid #bae6fd;">
                         <h3 style="margin:0 0 0.5rem 0; color:var(--color-primary);">${state.config.nome || 'Campanha Sem Nome'}</h3>
@@ -737,76 +747,165 @@ export const CampanhaWizard = {
                     </div>
                 `;
 
-                // Progress Area
-                const progressContainer = document.createElement('div');
-                Object.assign(progressContainer.style, { display: 'flex', gap: '1rem', flex: '1', overflow: 'hidden' });
+                // Grid Container
+                const gridContainer = document.createElement('div');
+                Object.assign(gridContainer.style, {
+                    flex: '1',
+                    border: '1px solid #ddd',
+                    borderRadius: '8px',
+                    overflow: 'hidden',
+                    display: 'flex',
+                    flexDirection: 'column',
+                    backgroundColor: 'white'
+                });
 
-                const renderColumn = (title, icon, type) => {
-                    const col = document.createElement('div');
-                    Object.assign(col.style, { flex: '1', border: '1px solid #ddd', borderRadius: '8px', display: 'flex', flexDirection: 'column', backgroundColor: 'white' });
+                // Grid Header
+                const gridHeader = document.createElement('div');
+                Object.assign(gridHeader.style, {
+                    display: 'grid',
+                    gridTemplateColumns: '1fr 200px 200px',
+                    gap: '1rem',
+                    padding: '0.75rem 1rem',
+                    background: '#f8f9fa',
+                    borderBottom: '2px solid #ddd',
+                    fontWeight: 'bold',
+                    fontSize: '0.9rem',
+                    color: '#444'
+                });
 
-                    // Visual cue if disabled
-                    const isEnabled = (type === 'email' && state.config.useEmail) || (type === 'whatsapp' && state.config.useWhatsapp);
-                    if (!isEnabled) {
-                        col.style.opacity = '0.5';
-                        col.style.backgroundColor = '#f0f0f0';
-                    }
+                gridHeader.innerHTML = `
+                    <div>👤 Lead</div>
+                    <div style="text-align: center;">📧 E-mail</div>
+                    <div style="text-align: center;">💬 WhatsApp</div>
+                `;
 
-                    col.innerHTML = `
-                        <div style="padding:0.75rem; background:#f8f9fa; border-bottom:1px solid #ddd; font-weight:bold; display:flex; align-items:center;">
-                            <span style="margin-right:0.5rem;">${icon}</span> ${title} ${!isEnabled ? '(Desativado)' : ''}
-                        </div>
-                        <div id="progress-list-${type}" style="flex:1; overflow-y:auto; padding:0.5rem;">
-                            <!-- Items will be injected here -->
-                        </div>
-                    `;
-                    return col;
-                };
+                // Grid Body (scrollable)
+                const gridBody = document.createElement('div');
+                Object.assign(gridBody.style, {
+                    flex: '1',
+                    overflowY: 'auto',
+                    padding: '0.5rem'
+                });
+                gridBody.id = 'dispatch-grid-body';
 
-                const emailCol = renderColumn('Envio de E-mails', '📧', 'email');
-                const waCol = renderColumn('Envio de WhatsApp', '💬', 'whatsapp');
-
-                progressContainer.appendChild(emailCol);
-                progressContainer.appendChild(waCol);
+                gridContainer.appendChild(gridHeader);
+                gridContainer.appendChild(gridBody);
 
                 stepContainer.appendChild(summaryDiv);
-                stepContainer.appendChild(progressContainer);
+                stepContainer.appendChild(gridContainer);
 
-                // Initialize List
+                // Initialize Grid
                 setTimeout(() => {
-                    renderProgressItems('email');
-                    renderProgressItems('whatsapp');
+                    renderDispatchGrid();
                 }, 0);
 
                 return stepContainer;
             };
 
-            const renderProgressItems = (type) => {
-                const list = document.getElementById(`progress-list-${type}`);
-                if (!list) return;
-                list.innerHTML = '';
+            const renderDispatchGrid = () => {
+                const gridBody = document.getElementById('dispatch-grid-body');
+                if (!gridBody) return;
+                gridBody.innerHTML = '';
 
-                // If disabled, maybe show just one item saying "Ignored"? Or list all as ignored?
-                const isEnabled = (type === 'email' && state.config.useEmail) || (type === 'whatsapp' && state.config.useWhatsapp);
+                if (state.leads.length === 0) {
+                    gridBody.innerHTML = '<div style="padding:2rem; text-align:center; color:#999;">Nenhum lead selecionado</div>';
+                    return;
+                }
 
                 state.leads.forEach(lead => {
-                    const item = document.createElement('div');
-                    item.id = `item-${type}-${lead.id}`;
-                    item.style.padding = '8px';
-                    item.style.borderBottom = '1px solid #eee';
-                    item.style.fontSize = '0.9rem';
-                    item.style.display = 'flex';
-                    item.style.justifyContent = 'space-between';
+                    const row = document.createElement('div');
+                    row.id = `dispatch-row-${lead.id}`;
+                    Object.assign(row.style, {
+                        display: 'grid',
+                        gridTemplateColumns: '1fr 200px 200px',
+                        gap: '1rem',
+                        padding: '0.75rem 1rem',
+                        borderBottom: '1px solid #eee',
+                        alignItems: 'center',
+                        fontSize: '0.9rem',
+                        transition: 'background-color 0.2s'
+                    });
 
-                    const statusText = isEnabled ? 'Pendente' : 'Ignorado';
-                    const statusColor = isEnabled ? '#666' : '#aaa';
+                    row.onmouseover = () => row.style.backgroundColor = '#f9fafb';
+                    row.onmouseout = () => row.style.backgroundColor = 'transparent';
 
-                    item.innerHTML = `
-                        <span>${lead.nome}</span>
-                        <span class="status-badge" style="color:${statusColor};">${statusText}</span>
+                    // Lead Info
+                    const leadInfo = document.createElement('div');
+                    leadInfo.innerHTML = `
+                        <div style="font-weight: 500; color: #333;">${lead.nome}</div>
+                        <div style="font-size: 0.8rem; color: #666;">${lead.email || lead.telefone || ''}</div>
                     `;
-                    list.appendChild(item);
+
+                    // Email Status
+                    const emailStatus = document.createElement('div');
+                    emailStatus.id = `status-email-${lead.id}`;
+                    Object.assign(emailStatus.style, {
+                        textAlign: 'center',
+                        padding: '0.5rem',
+                        borderRadius: '6px',
+                        fontWeight: '500',
+                        fontSize: '0.85rem'
+                    });
+
+                    if (!state.config.useEmail) {
+                        emailStatus.textContent = '—';
+                        emailStatus.style.color = '#999';
+                        emailStatus.style.backgroundColor = '#f5f5f5';
+                    } else {
+                        emailStatus.textContent = 'Pendente';
+                        emailStatus.style.color = '#666';
+                        emailStatus.style.backgroundColor = '#f0f0f0';
+                    }
+
+                    // WhatsApp Status
+                    const whatsappStatus = document.createElement('div');
+                    whatsappStatus.id = `status-whatsapp-${lead.id}`;
+                    Object.assign(whatsappStatus.style, {
+                        textAlign: 'center',
+                        padding: '0.5rem',
+                        borderRadius: '6px',
+                        fontWeight: '500',
+                        fontSize: '0.85rem'
+                    });
+
+                    if (!state.config.useWhatsapp) {
+                        whatsappStatus.textContent = '—';
+                        whatsappStatus.style.color = '#999';
+                        whatsappStatus.style.backgroundColor = '#f5f5f5';
+                    } else {
+                        whatsappStatus.textContent = 'Pendente';
+                        whatsappStatus.style.color = '#666';
+                        whatsappStatus.style.backgroundColor = '#f0f0f0';
+                    }
+
+                    row.appendChild(leadInfo);
+                    row.appendChild(emailStatus);
+                    row.appendChild(whatsappStatus);
+                    gridBody.appendChild(row);
                 });
+            };
+
+            const updateDispatchStatus = (leadId, channel, status, message = '') => {
+                const statusEl = document.getElementById(`status-${channel}-${leadId}`);
+                if (!statusEl) return;
+
+                // Status can be: 'pending', 'sending', 'ok', 'error'
+                const statusConfig = {
+                    pending: { text: 'Pendente', color: '#666', bg: '#f0f0f0' },
+                    sending: { text: 'Enviando...', color: '#f59e0b', bg: '#fef3c7' },
+                    ok: { text: 'OK', color: '#10b981', bg: '#d1fae5' },
+                    error: { text: 'NÃO OK', color: '#ef4444', bg: '#fee2e2' }
+                };
+
+                const config = statusConfig[status] || statusConfig.pending;
+                statusEl.textContent = config.text;
+                statusEl.style.color = config.color;
+                statusEl.style.backgroundColor = config.bg;
+
+                if (message) {
+                    statusEl.title = message;
+                    statusEl.style.cursor = 'help';
+                }
             };
 
             // Execution Logic
