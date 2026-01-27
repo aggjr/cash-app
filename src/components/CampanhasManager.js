@@ -423,7 +423,6 @@ export const CampanhasManager = (project) => {
         <div style="margin-bottom: 1rem; display: flex; gap: 0.5rem; align-items: center;">
             <button id="btn-new" class="btn-primary">+ Nova Campanha</button>
             <button id="btn-refresh" class="btn-secondary" title="Atualizar Dados">🔄</button>
-            <button id="btn-db-fix" class="btn-secondary" style="background-color: #fffbeb; color: #b45309; border: 1px solid #fcd34d;">🛠️ Corrigir Banco</button>
         </div>
 
         <div id="table-container" style="flex: 1; overflow: hidden; display: flex; flex-direction: column;"></div>
@@ -431,34 +430,6 @@ export const CampanhasManager = (project) => {
 
     container.querySelector('#btn-new').addEventListener('click', createCampanha);
     container.querySelector('#btn-refresh').onclick = loadCampanhas;
-
-    // DB FIX Handler
-    container.querySelector('#btn-db-fix').onclick = async () => {
-        const btn = container.querySelector('#btn-db-fix');
-        const originalText = btn.textContent;
-        btn.disabled = true;
-        btn.textContent = '⏳ Corrigindo...';
-
-        try {
-            const res = await fetch(`${API_BASE_URL}/marketing/campanhas/db-fix`, {
-                method: 'POST',
-                headers: getHeaders()
-            });
-            const data = await res.json();
-
-            if (res.ok) {
-                showToast(data.message || 'Banco corrigido!', 'success');
-            } else {
-                throw new Error(data.error || 'Erro ao corrigir');
-            }
-        } catch (e) {
-            console.error(e);
-            showToast('Erro: ' + e.message, 'error');
-        } finally {
-            btn.disabled = false;
-            btn.textContent = originalText;
-        }
-    };
 
     const tableContainer = container.querySelector('#table-container');
     sharedTable = new SharedTable({

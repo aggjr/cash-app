@@ -367,6 +367,14 @@ exports.sendSingle = async (req, res) => {
             // REMOVED: Media is now embedded directly in email_body by the user.
             // if (campanha.media_url) { ... }
 
+            // Log image detection for debugging
+            const hasImage = /<img[^>]+>/i.test(finalHtml);
+            console.log(`📧 Email: Sending to ${lead.email}, Has image: ${hasImage}`);
+            if (hasImage) {
+                const imgSrc = finalHtml.match(/<img[^>]+src=["']([^"']+)["'][^>]*>/i);
+                if (imgSrc) console.log(`📧 Email: Image URL: ${imgSrc[1]}`);
+            }
+
             await emailService.sendGenericEmail(lead.email, subject, finalHtml);
             success = true;
         } else if (channel === 'whatsapp') {
@@ -406,19 +414,24 @@ exports.sendSingle = async (req, res) => {
             };
 
             // 1. Check for Embedded Media in Raw Text first (from new Unified Input)
-            const imgMatch = campanha.whatsapp_text.match(/<img[^>]+src="([^">]+)"/);
+            // Improved regex to handle various img tag formats from Quill editor
+            const imgMatch = campanha.whatsapp_text.match(/<img[^>]+src=["']([^"']+)["'][^>]*>/i);
             let fullMediaUrl = null;
             let mediatype = 'image';
             let rawText = campanha.whatsapp_text;
 
             if (imgMatch) {
                 fullMediaUrl = imgMatch[1];
+                console.log(`📸 WhatsApp: Image found in HTML - URL: ${fullMediaUrl}`);
                 // Remove the image tag from the text to be converted
-                rawText = rawText.replace(/<img[^>]+>/g, '').trim();
+                rawText = rawText.replace(/<img[^>]+>/gi, '').trim();
             } else if (campanha.media_url) {
                 // Fallback to legacy field
                 const baseUrl = process.env.API_BASE_URL || 'https://cash.gutoapps.site';
                 fullMediaUrl = campanha.media_url.startsWith('http') ? campanha.media_url : `${baseUrl}${campanha.media_url}`;
+                console.log(`📸 WhatsApp: Using legacy media_url - URL: ${fullMediaUrl}`);
+            } else {
+                console.log(`📸 WhatsApp: No image found in message`);
             }
 
             // 2. Convert Variables & HTML to WhatsApp Text

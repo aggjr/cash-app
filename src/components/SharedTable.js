@@ -138,6 +138,29 @@ export class SharedTable {
         }
     }
 
+    // Sync selection state with current data
+    // Removes any selected IDs that no longer exist in currentData
+    syncSelection() {
+        if (this.selection.size === 0) return;
+
+        const currentIds = new Set(this.currentData.map(item => item.id));
+        const idsToRemove = [];
+
+        // Find IDs in selection that don't exist in current data
+        this.selection.forEach(id => {
+            if (!currentIds.has(id)) {
+                idsToRemove.push(id);
+            }
+        });
+
+        // Remove stale IDs
+        if (idsToRemove.length > 0) {
+            idsToRemove.forEach(id => this.selection.delete(id));
+            this.notifySelectionChange();
+            this.updateFooterSummary();
+        }
+    }
+
     renderSpecialRow(rowConfig, className) {
         const tr = document.createElement('tr');
         tr.className = className;
@@ -361,6 +384,9 @@ export class SharedTable {
 
         // Apply Client-Side Filtering
         this.applyClientSideFilter();
+
+        // Sync selection state - remove any selected IDs that no longer exist
+        this.syncSelection();
 
         // Client Side Sort Fallback (if no server sort handler provided)
         if (!this.onSortChange && this.sortConfig.key) {
