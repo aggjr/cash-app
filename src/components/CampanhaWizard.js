@@ -27,7 +27,7 @@ export const CampanhaWizard = {
             const content = document.createElement('div');
             content.className = 'wizard-content animate-float-in';
             Object.assign(content.style, {
-                width: '95%', height: '90vh', backgroundColor: 'white',
+                width: '95%', height: '96vh', backgroundColor: 'white',
                 borderRadius: '12px', boxShadow: '0 10px 40px rgba(0,0,0,0.2)',
                 display: 'flex', flexDirection: 'column', overflow: 'hidden'
             });
@@ -353,7 +353,7 @@ export const CampanhaWizard = {
 
                 // Left: Editors (Tabs)
                 const editorPanel = document.createElement('div');
-                Object.assign(editorPanel.style, { width: '50%', borderRight: '1px solid #ddd', display: 'flex', flexDirection: 'column' });
+                Object.assign(editorPanel.style, { width: '65%', borderRight: '1px solid #ddd', display: 'flex', flexDirection: 'column' });
 
                 // Tab Headers
                 const tabsDiv = document.createElement('div');
@@ -380,15 +380,17 @@ export const CampanhaWizard = {
                 emailEditor.style.display = 'none';
                 emailEditor.innerHTML = `
                     <div class="form-group">
-                        <label>Assunto</label>
+                        <div style="display:flex; justify-content:space-between; align-items:flex-end; margin-bottom:4px;">
+                            <label>Assunto</label>
+                            <div style="display:flex; align-items:center; gap:6px;">
+                                <span id="email-upload-status" style="font-size:0.75rem; color:#666; display:none;">Enviando...</span>
+                                <button id="btn-email-upload" class="btn-secondary" style="font-size:0.75rem; padding: 4px 10px; display:flex; align-items:center; gap:4px; height:28px;">
+                                    <span>📷</span> Inserir Imagem
+                                </button>
+                                <input type="file" id="email-media-input" accept="image/*" style="display: none;" />
+                            </div>
+                        </div>
                         <input type="text" id="msg-email-subject" class="form-input" value="${state.message.emailSubject}" placeholder="Assunto do e-mail..." />
-                    </div>
-                    <div class="form-group" style="margin-bottom:0.5rem; display:flex; gap:0.5rem; align-items:center;">
-                         <button id="btn-email-upload" class="btn-secondary" style="font-size:0.85rem; padding: 6px 12px; display:flex; align-items:center; gap:6px;">
-                            <span>📷</span> Inserir Imagem/Banner
-                         </button>
-                         <span id="email-upload-status" style="font-size:0.8rem; color:#666; display:none;">Enviando...</span>
-                         <input type="file" id="email-media-input" accept="image/*" style="display: none;" />
                     </div>
                     <div class="form-group">
                         <label>Corpo do E-mail</label>
@@ -633,68 +635,7 @@ export const CampanhaWizard = {
                     };
                 });
 
-                // Initialize Quill Editors
-                setTimeout(() => {
-                    // Email Toolbar (Full Rich Text)
-                    const emailToolbar = [
-                        ['bold', 'italic', 'underline', 'strike'],
-                        [{ 'list': 'ordered' }, { 'list': 'bullet' }],
-                        [{ 'size': ['small', false, 'large', 'huge'] }],
-                        [{ 'header': [1, 2, 3, 4, 5, 6, false] }],
-                        [{ 'color': [] }, { 'background': [] }],
-                        [{ 'align': [] }],
-                        ['link', 'image']
-                    ];
 
-                    // WhatsApp Toolbar (Image Only - User wants *text* for bold)
-                    const whatsappToolbar = [
-                        // Only basic text - user said "Use *negrito* para texto".
-                        // Also user wants media via the separate field.
-                        // Standard quill toolbar minimal
-                        // Remove image from here since we use the dedicated upload
-                        ['clean'] // Minimal
-                    ];
-
-                    // Init Email
-                    const quillEmail = new Quill('#editor-email-container', {
-                        theme: 'snow',
-                        placeholder: 'Escreva o conteúdo do e-mail aqui',
-                        modules: {
-                            toolbar: emailToolbar,
-                            blotFormatter: {}
-                        }
-                    });
-
-                    if (state.message.emailBody) quillEmail.root.innerHTML = state.message.emailBody;
-
-                    quillEmail.on('text-change', () => {
-                        state.message.emailBody = quillEmail.root.innerHTML;
-                        updatePreview('email');
-                    });
-
-                    // Init WhatsApp
-                    const quillWhatsapp = new Quill('#editor-whatsapp-container', {
-                        theme: 'snow',
-                        placeholder: 'Escreva sua mensagem aqui. Use *negrito* para destaque.',
-                        modules: {
-                            toolbar: whatsappToolbar,
-                            blotFormatter: {}
-                        }
-                    });
-
-                    if (state.message.whatsappText) quillWhatsapp.root.innerHTML = state.message.whatsappText;
-
-                    quillWhatsapp.on('text-change', () => {
-                        // For WA, we might want text, but images make it HTML.
-                        // We save HTML to state to preserve the image tag.
-                        // Converter will handle it later.
-                        state.message.whatsappText = quillWhatsapp.root.innerHTML;
-                        if (stepContainer.dataset.activeTab === 'whatsapp') {
-                            updatePreview('whatsapp');
-                        }
-                    });
-
-                }, 50);
 
                 // Initialize Email Upload Button
                 setTimeout(() => {
