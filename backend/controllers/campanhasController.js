@@ -12,6 +12,9 @@ exports.getAll = async (req, res) => {
       SELECT 
         c.*,
         COUNT(DISTINCT lc.lead_id) as total_leads,
+        COUNT(CASE WHEN lc.status != 'pendente' THEN 1 END) as leads_processados,
+        COUNT(CASE WHEN lc.status = 'contatado' THEN 1 END) as leads_sucesso,
+        COUNT(CASE WHEN lc.status = 'falha' THEN 1 END) as leads_falha,
         COUNT(DISTINCT gc.grupo_id) as total_grupos
       FROM campanhas c
       LEFT JOIN leads_campanhas lc ON c.id = lc.campanha_id
@@ -422,11 +425,26 @@ exports.sendSingle = async (req, res) => {
             const text = convertHtmlToWhatsapp(variablesReplaced); // This uses the helper above to strip tags
 
             // 3. Send
+            // 3. Send
+            let sentMedia = false;
             if (fullMediaUrl) {
-                const isVideo = fullMediaUrl.match(/\.(mp4|mov|avi|wmv)$/i);
-                mediatype = isVideo ? 'video' : 'image';
-                await evolutionService.sendMedia(lead.telefone, fullMediaUrl, mediatype, text);
-            } else {
+                // Validate if it is really a URL
+                try {
+                    new URL(fullMediaUrl); // Throws if invalid
+
+                    const isVideo = fullMediaUrl.match(/\.(mp4|mov|avi|wmv)$/i);
+                    mediatype = isVideo ? 'video' : 'image';
+                    console.log(`Sending WhatsApp Media: ${fullMediaUrl} (${mediatype})`);
+
+                    await evolutionService.sendMedia(lead.telefone, fullMediaUrl, mediatype, text);
+                    sentMedia = true;
+                } catch (e) {
+                    console.warn(`Invalid Media URL detected: ${fullMediaUrl}. Falling back to text message.`);
+                    // Fallback to text
+                }
+            }
+
+            if (!sentMedia) {
                 await evolutionService.sendMessage(lead.telefone, text);
             }
 

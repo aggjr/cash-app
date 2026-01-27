@@ -79,7 +79,7 @@ export const CampanhasManager = (project) => {
             }
         },
         { key: 'nome', label: 'Nome', width: 'auto', align: 'left', type: 'text' },
-        { key: 'descricao', label: 'Descrição', width: '25%', align: 'left', type: 'text' },
+        // Descrição removida
         {
             key: 'data_inicio',
             label: 'Início',
@@ -107,48 +107,89 @@ export const CampanhasManager = (project) => {
         {
             key: 'status',
             label: 'Status',
-            width: '120px',
+            width: '140px',
             align: 'center',
             type: 'text',
             render: (item) => {
-                const statusMap = {
-                    'planejamento': { label: 'Planejamento', class: 'badge-info', color: '#3b82f6', bg: '#eff6ff' },
-                    'ativa': { label: 'Ativa', class: 'badge-success', color: '#10b981', bg: '#ecfdf5' },
-                    'pausada': { label: 'Pausada', class: 'badge-warning', color: '#f59e0b', bg: '#fffbeb' },
-                    'concluida': { label: 'Concluída', class: 'badge-secondary', color: '#6b7280', bg: '#f3f4f6' },
-                    'cancelada': { label: 'Cancelada', class: 'badge-danger', color: '#ef4444', bg: '#fef2f2' }
-                };
-                const status = statusMap[item.status] || statusMap['planejamento'];
+                let statusLabel = 'Planejamento';
+                let statusBg = '#eff6ff'; // blue-50
+                let statusColor = '#3b82f6'; // blue-500
+
+                const total = item.total_leads || 0;
+                const processados = item.leads_processados || 0;
+
+                if (total > 0 && processados >= total) {
+                    statusLabel = 'ENVIO FINALIZADO';
+                    statusBg = '#ecfdf5'; // green-50
+                    statusColor = '#10b981'; // green-500
+                } else if (processados > 0) {
+                    statusLabel = 'ENVIANDO';
+                    statusBg = '#fffbeb'; // amber-50
+                    statusColor = '#f59e0b'; // amber-500
+                } else if (item.status === 'pausada') {
+                    statusLabel = 'PAUSADA';
+                    statusBg = '#fef2f2';
+                    statusColor = '#ef4444';
+                }
+
                 const badge = document.createElement('span');
-                // Custom styles for better look
-                badge.style.backgroundColor = status.bg;
-                badge.style.color = status.color;
+                badge.style.backgroundColor = statusBg;
+                badge.style.color = statusColor;
                 badge.style.padding = '4px 10px';
                 badge.style.borderRadius = '20px';
-                badge.style.fontSize = '0.8rem';
-                badge.style.fontWeight = '600';
+                badge.style.fontSize = '0.75rem';
+                badge.style.fontWeight = '700';
                 badge.style.display = 'inline-block';
-                badge.textContent = status.label;
+                badge.style.whiteSpace = 'nowrap';
+                badge.textContent = statusLabel;
                 return badge;
             }
         },
         {
             key: 'total_leads',
-            label: 'Leads',
+            label: 'Total Leads',
             width: '80px',
             align: 'center',
             type: 'number',
             render: (item) => {
-                const badge = document.createElement('span');
-                badge.className = 'badge-info';
-                badge.textContent = item.total_leads || 0;
-                // Reuse style from GruposLeads for consistency
-                badge.style.backgroundColor = 'var(--color-primary-light)';
-                badge.style.color = 'var(--color-primary)';
-                badge.style.padding = '2px 8px';
-                badge.style.borderRadius = '12px';
-                badge.style.fontSize = '0.85rem';
-                return badge;
+                return item.total_leads || 0;
+            }
+        },
+        {
+            key: 'leads_processados',
+            label: 'Já Enviados',
+            width: '80px',
+            align: 'center',
+            type: 'number',
+            render: (item) => {
+                return item.leads_processados || 0;
+            }
+        },
+        {
+            key: 'leads_sucesso',
+            label: 'Sucesso',
+            width: '80px',
+            align: 'center',
+            type: 'number',
+            render: (item) => {
+                const span = document.createElement('span');
+                span.textContent = item.leads_sucesso || 0;
+                span.style.color = 'green';
+                span.style.fontWeight = 'bold';
+                return span;
+            }
+        },
+        {
+            key: 'leads_falha',
+            label: 'Falhas',
+            width: '80px',
+            align: 'center',
+            type: 'number',
+            render: (item) => {
+                const span = document.createElement('span');
+                span.textContent = item.leads_falha || 0;
+                if ((item.leads_falha || 0) > 0) span.style.color = 'red';
+                return span;
             }
         }
     ];
@@ -372,14 +413,16 @@ export const CampanhasManager = (project) => {
             <h2>📢 Campanhas</h2>
         </div>
 
-        <div style="margin-bottom: 1rem;">
+        <div style="margin-bottom: 1rem; display: flex; gap: 0.5rem; align-items: center;">
             <button id="btn-new" class="btn-primary">+ Nova Campanha</button>
+            <button id="btn-refresh" class="btn-secondary" title="Atualizar Dados">🔄</button>
         </div>
 
         <div id="table-container" style="flex: 1; overflow: hidden; display: flex; flex-direction: column;"></div>
     `;
 
     container.querySelector('#btn-new').addEventListener('click', createCampanha);
+    container.querySelector('#btn-refresh').onclick = loadCampanhas; // Add refresh handler
 
     const tableContainer = container.querySelector('#table-container');
     sharedTable = new SharedTable({
