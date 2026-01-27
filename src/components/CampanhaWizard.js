@@ -98,8 +98,8 @@ export const CampanhaWizard = {
                 return wrapper;
             };
 
-            header.appendChild(renderStepBadge(1, 'Configuração e Público'));
-            header.appendChild(renderStepBadge(2, 'Mensagem'));
+            header.appendChild(renderStepBadge(1, 'Mensagem e Canais'));
+            header.appendChild(renderStepBadge(2, 'Configuração e Público'));
             header.appendChild(renderStepBadge(3, 'Confirmação e Disparo'));
 
             // Body
@@ -129,71 +129,194 @@ export const CampanhaWizard = {
                 });
 
                 formDiv.innerHTML = `
-                     <div class="form-group" style="flex: 1 1 40%; min-width:220px; max-width:600px;">
-                         <label style="font-size:0.85rem; color:#666; display:block; margin-bottom:4px;">Nome da Campanha (v0.9.13) <span style="color:red; margin-left:2px;">*</span></label>
-                         <input type="text" id="campaign-name" class="form-input" value="${state.config.nome}" placeholder="Ex: Promoção de Natal (v0.9.13)" style="width:100%; padding:8px; border:1px solid #ddd; border-radius:6px;" />
-                     </div>
-                     <div class="form-group" style="width: 140px;">
-                         <label style="font-size:0.85rem; color:#666; display:block; margin-bottom:4px;">Início <span style="color:red; margin-left:2px;">*</span></label>
-                         <input type="date" id="campaign-start" class="form-input" value="${state.config.dataInicio}" style="width:100%; padding:8px; border:1px solid #ddd; border-radius:6px;" />
-                     </div>
-                     <div class="form-group" style="width: 140px;">
-                         <label style="font-size:0.85rem; color:#666; display:block; margin-bottom:4px;">Fim <span style="color:red; margin-left:2px;">*</span></label>
-                         <input type="date" id="campaign-end" class="form-input" value="${state.config.dataFim}" style="width:100%; padding:8px; border:1px solid #ddd; border-radius:6px;" />
-                     </div>
-                     <div class="form-group" style="display:flex; gap:1rem; align-items:center; white-space:nowrap; flex-direction:row !important; flex-wrap:nowrap !important; flex-shrink:0; min-width: 200px;">
-                          <label style="display:flex; align-items:center; cursor:pointer; font-size:0.9rem; user-select:none; white-space: nowrap;">
-                             <input type="checkbox" id="check-use-email" ${state.config.useEmail ? 'checked' : ''} style="margin-right:6px; width:16px; height:16px;">
-                             <span>E-mail</span>
-                          </label>
-                          <label style="display:flex; align-items:center; cursor:pointer; font-size:0.9rem; user-select:none; white-space: nowrap;">
-                             <input type="checkbox" id="check-use-whatsapp" ${state.config.useWhatsapp ? 'checked' : ''} style="margin-right:6px; width:16px; height:16px;">
-                             <span>WhatsApp</span>
-                          </label>
-                     </div>
-                 `;
+                    <div style="font-weight:600; color:#444;">Canais de Envio:</div>
+                    <label style="display:flex; alignItems:center; cursor:pointer;">
+                        <input type="checkbox" id="check-use-email" ${state.config.useEmail ? 'checked' : ''} style="margin-right:8px; transform:scale(1.2);">
+                        <span>E-mail</span>
+                    </label>
+                    <label style="display:flex; alignItems:center; cursor:pointer;">
+                        <input type="checkbox" id="check-use-whatsapp" ${state.config.useWhatsapp ? 'checked' : ''} style="margin-right:8px; transform:scale(1.2);">
+                        <span>WhatsApp</span>
+                    </label>
+                `;
 
-                // Split View: Tree + List
-                const splitDiv = document.createElement('div');
-                Object.assign(splitDiv.style, { display: 'flex', flex: '1', gap: '1rem', overflow: 'hidden' });
+                // Main Area
+                const mainArea = document.createElement('div');
+                Object.assign(mainArea.style, { display: 'flex', flex: '1', overflow: 'hidden' });
 
-                // Tree Column
-                const treeCol = document.createElement('div');
-                Object.assign(treeCol.style, { width: '350px', border: '1px solid #eee', borderRadius: '8px', overflow: 'hidden', display: 'flex', flexDirection: 'column', backgroundColor: '#fafafa' });
-                treeCol.innerHTML = `<div style="padding:0.75rem; background:#f8f9fa; border-bottom:1px solid #eee; font-weight:600; font-size:0.9rem; color:#444;">Grupos (Origem)</div>`;
+                // Left: Editors (Tabs)
+                const editorPanel = document.createElement('div');
+                Object.assign(editorPanel.style, { width: '60%', borderRight: '1px solid #ddd', display: 'flex', flexDirection: 'column' });
 
-                const treeContent = document.createElement('div');
-                Object.assign(treeContent.style, { flex: '1', overflowY: 'auto', padding: '0.5rem' });
-                treeContent.id = 'wizard-tree-content';
-                treeCol.appendChild(treeContent);
-                treeContainerRef = treeContent; // Save Ref
+                const tabsDiv = document.createElement('div');
+                tabsDiv.style.display = 'flex';
+                tabsDiv.style.borderBottom = '1px solid #ddd';
 
-                // List Column (Preview)
-                const listCol = document.createElement('div');
-                Object.assign(listCol.style, { flex: '1', border: '1px solid #eee', borderRadius: '8px', overflow: 'hidden', display: 'flex', flexDirection: 'column', backgroundColor: 'white' });
-                listCol.innerHTML = `
-                     <div style="padding:0.75rem; background:#f8f9fa; border-bottom:1px solid #eee; font-weight:600; font-size:0.9rem; color:#444; display:flex; justify-content:space-between; align-items:center;">
-                         <span>Leads Selecionados (Preview)</span>
-                         <span id="wizard-lead-count" style="background:#e0e7ff; color:#4338ca; padding:2px 10px; border-radius:12px; font-size:0.75rem; font-weight:bold;">0 leads</span>
-                     </div>
-                 `;
+                const renderTabs = () => {
+                    let tabsHtml = '';
+                    if (state.config.useEmail) tabsHtml += `<button class="tab-btn" data-tab="email" style="flex:1; padding:1rem; border:none; background:#f8f9fa; cursor:pointer; color:#666;">📧 E-mail</button>`;
+                    if (state.config.useWhatsapp) tabsHtml += `<button class="tab-btn" data-tab="whatsapp" style="flex:1; padding:1rem; border:none; background:#f8f9fa; cursor:pointer; color:#666;">💬 WhatsApp</button>`;
+                    if (!tabsHtml) tabsHtml = `<div style="padding:1rem; color:#999; width:100%; text-align:center;">Nenhum canal selecionado</div>`;
+                    tabsDiv.innerHTML = tabsHtml;
+                };
+                renderTabs();
 
-                const listContent = document.createElement('div');
-                Object.assign(listContent.style, { flex: '1', overflowY: 'hidden', display: 'flex', flexDirection: 'column' }); // Changed to hidden/flex to let SharedTable handle scroll
-                listContent.id = 'wizard-leads-table';
-                listCol.appendChild(listContent);
+                const contentDiv = document.createElement('div');
+                contentDiv.style.flex = '1';
+                contentDiv.style.padding = '1.5rem';
+                contentDiv.style.overflowY = 'auto';
 
-                splitDiv.appendChild(treeCol);
-                splitDiv.appendChild(listCol);
+                const emailEditor = document.createElement('div');
+                emailEditor.id = 'editor-email';
+                emailEditor.style.display = 'none';
+                emailEditor.innerHTML = `
+                    <div class="form-group">
+                        <div style="display:flex; justify-content:space-between; align-items:flex-end; margin-bottom:4px;">
+                            <label>Assunto</label>
+                            <div style="display:flex; align-items:center; gap:6px;">
+                                <span id="email-upload-status" style="font-size:0.75rem; color:#666; display:none;">Enviando...</span>
+                                <button id="btn-email-upload" class="btn-secondary" style="font-size:0.75rem; padding: 4px 10px; display:flex; align-items:center; gap:4px; height:28px;"><span>📷</span> Inserir Imagem</button>
+                                <input type="file" id="email-media-input" accept="image/*" style="display: none;" />
+                            </div>
+                        </div>
+                        <input type="text" id="msg-email-subject" class="form-input" value="${state.message.emailSubject}" placeholder="Assunto do e-mail..." />
+                    </div>
+                    <div class="form-group"><label>Corpo do E-mail</label><div id="editor-email-container" style="min-height:320px; background:white;"></div></div>
+                `;
 
-                stepContainer.appendChild(formDiv);
-                stepContainer.appendChild(splitDiv);
+                const whatsappEditor = document.createElement('div');
+                whatsappEditor.id = 'editor-whatsapp';
+                whatsappEditor.style.display = 'none';
+                whatsappEditor.innerHTML = `
+                    <div class="form-group">
+                         <div style="display:flex; justify-content:space-between; align-items:flex-end; margin-bottom:4px;">
+                            <label>Mensagem WhatsApp</label>
+                            <div style="display:flex; align-items:center; gap:6px;">
+                                <span id="whatsapp-upload-status" style="font-size:0.75rem; color:#666; display:none;">Enviando...</span>
+                                <button id="btn-whatsapp-upload" class="btn-secondary" style="font-size:0.75rem; padding: 4px 10px; display:flex; align-items:center; gap:4px; height:28px;"><span>📷</span> Inserir Imagem</button>
+                                <input type="file" id="whatsapp-media-input" accept="image/*" style="display: none;" />
+                            </div>
+                        </div>
+                        <div id="editor-whatsapp-container" style="min-height:320px; background:white;"></div>
+                        <div style="font-size:0.8rem; color:#666; margin-top:0.5rem;">Variáveis disponíveis: {{nome}}, {{empresa}}. Use *negrito* para texto.</div>
+                    </div>
+                `;
 
-                // Initialize Logic
+                contentDiv.appendChild(emailEditor);
+                contentDiv.appendChild(whatsappEditor);
+                editorPanel.appendChild(tabsDiv);
+                editorPanel.appendChild(contentDiv);
+
+                // Right: Preview
+                const previewPanel = document.createElement('div');
+                Object.assign(previewPanel.style, { flex: '1', backgroundColor: '#e5ddd5', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', padding: '2rem' });
+                const previewCard = document.createElement('div');
+                Object.assign(previewCard.style, { width: '360px', height: '600px', backgroundColor: 'white', borderRadius: '20px', boxShadow: '0 10px 25px rgba(0,0,0,0.1)', overflow: 'hidden', display: 'flex', flexDirection: 'column' });
+                const previewHeader = document.createElement('div');
+                Object.assign(previewHeader.style, { padding: '1rem', background: '#075e54', color: 'white', fontWeight: 'bold' });
+                previewHeader.id = 'preview-header';
+                previewHeader.textContent = 'Preview';
+                const previewBody = document.createElement('div');
+                Object.assign(previewBody.style, { flex: '1', padding: '1rem', overflowY: 'auto', fontSize: '0.9rem', whiteSpace: 'pre-wrap' });
+                previewBody.id = 'preview-body';
+                previewCard.appendChild(previewHeader);
+                previewCard.appendChild(previewBody);
+                previewPanel.appendChild(previewCard);
+
+                mainArea.appendChild(editorPanel);
+                mainArea.appendChild(previewPanel);
+                stepContainer.appendChild(mainArea);
+
+                // LOGIC Helper Functions (defined inside renderStep1 to capture closures)
+                const updateTabsVisibility = () => {
+                    renderTabs();
+                    tabsDiv.querySelectorAll('.tab-btn').forEach(btn => btn.onclick = () => activateTab(btn.dataset.tab));
+
+                    if (state.config.useEmail && !state.config.useWhatsapp) activateTab('email');
+                    else if (!state.config.useEmail && state.config.useWhatsapp) activateTab('whatsapp');
+                    else if (state.config.useEmail && state.config.useWhatsapp) activateTab(stepContainer.dataset.activeTab || 'email');
+                    else { emailEditor.style.display = 'none'; whatsappEditor.style.display = 'none'; }
+                };
+
+                const updatePreview = (type) => {
+                    const header = type === 'email' ? state.message.emailSubject || 'Sem Assunto' : 'WhatsApp Preview';
+                    const body = type === 'email' ? state.message.emailBody : state.message.whatsappText;
+                    previewHeader.textContent = header;
+                    previewHeader.style.background = type === 'email' ? '#4a5568' : '#075e54';
+                    let contentHtml = body || '<span style="color:#aaa; font-style:italic;">(Digite para visualizar...)</span>';
+                    if (type === 'whatsapp') {
+                        const parser = new DOMParser();
+                        const doc = parser.parseFromString(body, 'text/html');
+                        const img = doc.querySelector('img');
+                        if (img) contentHtml = `<div style="margin-bottom:10px;"><img src="${img.src}" style="max-width:100%; border-radius:8px;"></div>` + contentHtml.replace(/<img[^>]+>/g, '');
+                    }
+                    previewBody.innerHTML = contentHtml.replace(/{{nome}}/g, state.leads[0]?.nome || 'João Silva');
+                };
+
+                const activateTab = (tab) => {
+                    tabsDiv.querySelectorAll('.tab-btn').forEach(b => { b.style.background = '#f8f9fa'; b.style.borderBottom = 'none'; b.classList.remove('active'); });
+                    const btn = tabsDiv.querySelector(`[data-tab="${tab}"]`);
+                    if (btn) { btn.style.background = 'white'; btn.style.borderBottom = '2px solid var(--color-primary)'; btn.classList.add('active'); }
+                    emailEditor.style.display = tab === 'email' ? 'block' : 'none';
+                    whatsappEditor.style.display = tab === 'whatsapp' ? 'block' : 'none';
+                    stepContainer.dataset.activeTab = tab;
+                    updatePreview(tab);
+                };
+
+                // INITIALIZATION
                 setTimeout(() => {
-                    loadGroups(treeContent);
-                    bindFormEvents(formDiv);
-                }, 0);
+                    const checkEmail = formDiv.querySelector('#check-use-email');
+                    const checkWa = formDiv.querySelector('#check-use-whatsapp');
+                    if (checkEmail) checkEmail.onchange = (e) => { state.config.useEmail = e.target.checked; updateTabsVisibility(); };
+                    if (checkWa) checkWa.onchange = (e) => { state.config.useWhatsapp = e.target.checked; updateTabsVisibility(); };
+
+                    const subjectInput = emailEditor.querySelector('#msg-email-subject');
+                    if (subjectInput) subjectInput.oninput = (e) => { state.message.emailSubject = e.target.value; updatePreview('email'); };
+                    updateTabsVisibility();
+
+                    // Init Editors
+                    const emailToolbar = [['bold', 'italic', 'underline', 'strike'], [{ 'list': 'ordered' }, { 'list': 'bullet' }], [{ 'size': ['small', false, 'large', 'huge'] }], ['link', 'image']];
+                    const whatsappToolbar = [['clean']];
+
+                    if (document.getElementById('editor-email-container')) {
+                        const quillEmail = new Quill('#editor-email-container', { theme: 'snow', placeholder: 'Conteúdo E-mail...', modules: { toolbar: emailToolbar, blotFormatter: {} } });
+                        if (state.message.emailBody) quillEmail.root.innerHTML = state.message.emailBody;
+                        quillEmail.on('text-change', () => { state.message.emailBody = quillEmail.root.innerHTML; if (stepContainer.dataset.activeTab === 'email') updatePreview('email'); });
+                        const btnEmailUpload = emailEditor.querySelector('#btn-email-upload'); const inputEmailUpload = emailEditor.querySelector('#email-media-input');
+                        if (btnEmailUpload && inputEmailUpload) {
+                            btnEmailUpload.onclick = () => inputEmailUpload.click();
+                            inputEmailUpload.onchange = async (e) => {
+                                const file = e.target.files[0]; if (!file) return;
+                                const formData = new FormData(); formData.append('file', file);
+                                try {
+                                    const res = await fetch(`${getApiBaseUrl()}/upload`, { method: 'POST', headers: { 'Authorization': `Bearer ${localStorage.getItem('token')}` }, body: formData }); const data = await res.json();
+                                    const fullUrl = data.fileUrl.startsWith('http') ? data.fileUrl : `${getApiBaseUrl()}${data.fileUrl}`;
+                                    const range = quillEmail.getSelection(true) || { index: quillEmail.getLength(), length: 0 }; quillEmail.insertEmbed(range.index, 'image', fullUrl);
+                                } catch (e) { console.error(e); } inputEmailUpload.value = '';
+                            };
+                        }
+                    }
+
+                    if (document.getElementById('editor-whatsapp-container')) {
+                        const quillWhatsapp = new Quill('#editor-whatsapp-container', { theme: 'snow', placeholder: 'Mensagem WhatsApp...', modules: { toolbar: whatsappToolbar, blotFormatter: {} } });
+                        if (state.message.whatsappText) quillWhatsapp.root.innerHTML = state.message.whatsappText;
+                        quillWhatsapp.on('text-change', () => { state.message.whatsappText = quillWhatsapp.root.innerHTML; if (stepContainer.dataset.activeTab === 'whatsapp') updatePreview('whatsapp'); });
+                        const btnWa = whatsappEditor.querySelector('#btn-whatsapp-upload'); const inputWa = whatsappEditor.querySelector('#whatsapp-media-input');
+                        if (btnWa && inputWa) {
+                            btnWa.onclick = () => inputWa.click();
+                            inputWa.onchange = async (e) => {
+                                const file = e.target.files[0]; if (!file) return;
+                                const formData = new FormData(); formData.append('file', file);
+                                try {
+                                    const res = await fetch(`${getApiBaseUrl()}/upload`, { method: 'POST', headers: { 'Authorization': `Bearer ${localStorage.getItem('token')}` }, body: formData }); const data = await res.json();
+                                    const fullUrl = data.fileUrl.startsWith('http') ? data.fileUrl : `${getApiBaseUrl()}${data.fileUrl}`;
+                                    const range = quillWhatsapp.getSelection(true) || { index: quillWhatsapp.getLength(), length: 0 }; quillWhatsapp.insertEmbed(range.index, 'image', fullUrl);
+                                } catch (e) { console.error(e); } inputWa.value = '';
+                            };
+                        }
+                    }
+
+                }, 50);
 
                 return stepContainer;
             };
@@ -346,399 +469,75 @@ export const CampanhaWizard = {
                 }
             };
 
-            // STEP 2: MESSAGE
+            // STEP 2: CONFIG & AUDIENCE
             const renderStep2 = () => {
                 const stepContainer = document.createElement('div');
                 Object.assign(stepContainer.style, { display: 'flex', height: '100%', overflow: 'hidden' });
 
-                // Left: Editors (Tabs)
-                const editorPanel = document.createElement('div');
-                Object.assign(editorPanel.style, { width: '65%', borderRight: '1px solid #ddd', display: 'flex', flexDirection: 'column' });
-
-                // Tab Headers
-                const tabsDiv = document.createElement('div');
-                tabsDiv.style.display = 'flex';
-                tabsDiv.style.borderBottom = '1px solid #ddd';
-
-                let tabsHtml = '';
-                if (state.config.useEmail) {
-                    tabsHtml += `<button class="tab-btn" data-tab="email" style="flex:1; padding:1rem; border:none; background:#f8f9fa; cursor:pointer; color:#666;">📧 E-mail</button>`;
-                }
-                if (state.config.useWhatsapp) {
-                    tabsHtml += `<button class="tab-btn" data-tab="whatsapp" style="flex:1; padding:1rem; border:none; background:#f8f9fa; cursor:pointer; color:#666;">💬 WhatsApp</button>`;
-                }
-                tabsDiv.innerHTML = tabsHtml;
-
-                // Content Area
-                const contentDiv = document.createElement('div');
-                contentDiv.style.flex = '1';
-                contentDiv.style.padding = '1.5rem';
-                contentDiv.style.overflowY = 'auto';
-
-                const emailEditor = document.createElement('div');
-                emailEditor.id = 'editor-email';
-                emailEditor.style.display = 'none';
-                emailEditor.innerHTML = `
-                    <div class="form-group">
-                        <div style="display:flex; justify-content:space-between; align-items:flex-end; margin-bottom:4px;">
-                            <label>Assunto</label>
-                            <div style="display:flex; align-items:center; gap:6px;">
-                                <span id="email-upload-status" style="font-size:0.75rem; color:#666; display:none;">Enviando...</span>
-                                <button id="btn-email-upload" class="btn-secondary" style="font-size:0.75rem; padding: 4px 10px; display:flex; align-items:center; gap:4px; height:28px;">
-                                    <span>📷</span> Inserir Imagem
-                                </button>
-                                <input type="file" id="email-media-input" accept="image/*" style="display: none;" />
-                            </div>
-                        </div>
-                        <input type="text" id="msg-email-subject" class="form-input" value="${state.message.emailSubject}" placeholder="Assunto do e-mail..." />
-                    </div>
-                    <div class="form-group">
-                        <label>Corpo do E-mail</label>
-                        <div id="editor-email-container" style="min-height:320px; background:white;"></div>
-                        <div style="font-size:0.8rem; color:#666; margin-top:0.5rem;">Variáveis disponíveis: {{nome}}, {{empresa}}.</div>
-                    </div>
-                `;
-
-                const whatsappEditor = document.createElement('div');
-                whatsappEditor.id = 'editor-whatsapp';
-                whatsappEditor.style.display = 'none';
-                whatsappEditor.innerHTML = `
-                    <div class="form-group">
-                        <div style="display:flex; justify-content:space-between; align-items:flex-end; margin-bottom:4px;">
-                            <label>Mensagem WhatsApp</label>
-                            <div style="display:flex; align-items:center; gap:6px;">
-                                <span id="whatsapp-upload-status" style="font-size:0.75rem; color:#666; display:none;">Enviando...</span>
-                                <button id="btn-whatsapp-upload" class="btn-secondary" style="font-size:0.75rem; padding: 4px 10px; display:flex; align-items:center; gap:4px; height:28px;">
-                                    <span>📷</span> Inserir Imagem
-                                </button>
-                                <input type="file" id="whatsapp-media-input" accept="image/*" style="display: none;" />
-                            </div>
-                        </div>
-                         <div id="editor-whatsapp-container" style="min-height:320px; background:white;"></div>
-                        <div style="font-size:0.8rem; color:#666; margin-top:0.5rem;">Variáveis disponíveis: {{nome}}, {{empresa}}. Use *negrito* para texto.</div>
-                    </div>
-                `;
-
-                if (state.config.useEmail) contentDiv.appendChild(emailEditor);
-                if (state.config.useWhatsapp) contentDiv.appendChild(whatsappEditor);
-
-                editorPanel.appendChild(tabsDiv);
-                editorPanel.appendChild(contentDiv);
-
-                // Right: Preview
-                const previewPanel = document.createElement('div');
-                Object.assign(previewPanel.style, { flex: '1', backgroundColor: '#e5ddd5', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', padding: '2rem' });
-
-                // Phone Frame for WA / Card for Email
-                const previewCard = document.createElement('div');
-                Object.assign(previewCard.style, { width: '360px', height: '600px', backgroundColor: 'white', borderRadius: '20px', boxShadow: '0 10px 25px rgba(0,0,0,0.1)', overflow: 'hidden', display: 'flex', flexDirection: 'column' });
-
-                const previewHeader = document.createElement('div');
-                Object.assign(previewHeader.style, { padding: '1rem', background: '#075e54', color: 'white', fontWeight: 'bold' });
-                previewHeader.id = 'preview-header';
-                previewHeader.textContent = 'Preview';
-
-                const previewBody = document.createElement('div');
-                Object.assign(previewBody.style, { flex: '1', padding: '1rem', overflowY: 'auto', fontSize: '0.9rem', whiteSpace: 'pre-wrap' });
-                previewBody.id = 'preview-body';
-
-                previewCard.appendChild(previewHeader);
-                previewCard.appendChild(previewBody);
-                previewPanel.appendChild(previewCard);
-
-                stepContainer.appendChild(editorPanel);
-                stepContainer.appendChild(previewPanel);
-
-                // Media Preview logic is now handled in updatePreview by parsing HTML
-                const updateMediaPreview = () => {
-                    // Legacy function kept for compatibility if needed, but logic moved to updatePreview
-                };
-
-                const handleUpload = async (file) => {
-                    // Generic handler - logic now specific in button events
-                };
-
-                // Remove legacy upload events block
-                // ...
-
-                // Paste Event
-                uploadArea.addEventListener('paste', (e) => {
-                    const items = (e.clipboardData || e.originalEvent.clipboardData).items;
-                    for (let index in items) {
-                        const item = items[index];
-                        if (item.kind === 'file') {
-                            const blob = item.getAsFile();
-                            handleUpload(blob);
-                            e.preventDefault(); // Prevent pasting text if any
-                            break;
-                        }
-                    }
+                // Top: Config Form (Compact Layout)
+                const formDiv = document.createElement('div');
+                Object.assign(formDiv.style, {
+                    display: 'flex', flexWrap: 'wrap', alignItems: 'flex-end', gap: '1rem',
+                    marginBottom: '1rem', padding: '1rem', backgroundColor: '#fff', borderBottom: '1px solid #eee'
                 });
 
-                // Allow pasting anywhere in the wizard (if focusing body)? similar to Notion/Discord
-                // Use a global listener on the stepContainer for convenience
-                stepContainer.addEventListener('paste', (e) => {
-                    // Only if not pasting into an input/textarea
-                    if (e.target.tagName === 'INPUT' || e.target.tagName === 'TEXTAREA' || e.target.contentEditable === 'true') return;
+                formDiv.innerHTML = `
+                     <div class="form-group" style="flex: 1 1 40%; min-width:220px; max-width:600px;">
+                         <label style="font-size:0.85rem; color:#666; display:block; margin-bottom:4px;">Nome da Campanha (v0.9.13) <span style="color:red; margin-left:2px;">*</span></label>
+                         <input type="text" id="campaign-name" class="form-input" value="${state.config.nome}" placeholder="Ex: Promoção de Natal (v0.9.13)" style="width:100%; padding:8px; border:1px solid #ddd; border-radius:6px;" />
+                     </div>
+                     <div class="form-group" style="width: 140px;">
+                         <label style="font-size:0.85rem; color:#666; display:block; margin-bottom:4px;">Início <span style="color:red; margin-left:2px;">*</span></label>
+                         <input type="date" id="campaign-start" class="form-input" value="${state.config.dataInicio}" style="width:100%; padding:8px; border:1px solid #ddd; border-radius:6px;" />
+                     </div>
+                     <div class="form-group" style="width: 140px;">
+                         <label style="font-size:0.85rem; color:#666; display:block; margin-bottom:4px;">Fim <span style="color:red; margin-left:2px;">*</span></label>
+                         <input type="date" id="campaign-end" class="form-input" value="${state.config.dataFim}" style="width:100%; padding:8px; border:1px solid #ddd; border-radius:6px;" />
+                     </div>
+                 `;
 
-                    const items = (e.clipboardData || e.originalEvent.clipboardData).items;
-                    for (let index in items) {
-                        const item = items[index];
-                        if (item.kind === 'file') {
-                            const blob = item.getAsFile();
-                            handleUpload(blob);
-                            break;
-                        }
-                    }
-                });
+                // Split View: Tree + List
+                const splitDiv = document.createElement('div');
+                Object.assign(splitDiv.style, { display: 'flex', flex: '1', gap: '1rem', overflow: 'hidden' });
 
-                const updatePreview = (type) => {
-                    const header = type === 'email' ? state.message.emailSubject || 'Sem Assunto' : 'WhatsApp Preview';
-                    const body = type === 'email' ? state.message.emailBody : state.message.whatsappText;
+                // Tree Column
+                const treeCol = document.createElement('div');
+                Object.assign(treeCol.style, { width: '350px', border: '1px solid #eee', borderRadius: '8px', overflow: 'hidden', display: 'flex', flexDirection: 'column', backgroundColor: '#fafafa' });
+                treeCol.innerHTML = `<div style="padding:0.75rem; background:#f8f9fa; border-bottom:1px solid #eee; font-weight:600; font-size:0.9rem; color:#444;">Grupos (Origem)</div>`;
 
-                    previewHeader.textContent = header;
-                    previewHeader.style.background = type === 'email' ? '#4a5568' : '#075e54';
+                const treeContent = document.createElement('div');
+                Object.assign(treeContent.style, { flex: '1', overflowY: 'auto', padding: '0.5rem' });
+                treeContent.id = 'wizard-tree-content';
+                treeCol.appendChild(treeContent);
+                treeContainerRef = treeContent; // Save Ref
 
-                    let contentHtml = body || '<span style="color:#aaa; font-style:italic;">(Digite para visualizar...)</span>';
+                // List Column (Preview)
+                const listCol = document.createElement('div');
+                Object.assign(listCol.style, { flex: '1', border: '1px solid #eee', borderRadius: '8px', overflow: 'hidden', display: 'flex', flexDirection: 'column', backgroundColor: 'white' });
+                listCol.innerHTML = `
+                     <div style="padding:0.75rem; background:#f8f9fa; border-bottom:1px solid #eee; font-weight:600; font-size:0.9rem; color:#444; display:flex; justify-content:space-between; align-items:center;">
+                         <span>Leads Selecionados (Preview)</span>
+                         <span id="wizard-lead-count" style="background:#e0e7ff; color:#4338ca; padding:2px 10px; border-radius:12px; font-size:0.75rem; font-weight:bold;">0 leads</span>
+                     </div>
+                 `;
 
-                    // Inject Media Preview in Content
-                    if (type === 'whatsapp') {
-                        // Parse body to find image
-                        const parser = new DOMParser();
-                        const doc = parser.parseFromString(body, 'text/html');
-                        const img = doc.querySelector('img');
-                        const video = doc.querySelector('video');// or link to video
+                const listContent = document.createElement('div');
+                Object.assign(listContent.style, { flex: '1', overflowY: 'hidden', display: 'flex', flexDirection: 'column' });
+                listContent.id = 'wizard-leads-table';
+                listCol.appendChild(listContent);
 
-                        let mediaUrl = null;
-                        if (img) mediaUrl = img.src;
+                splitDiv.appendChild(treeCol);
+                splitDiv.appendChild(listCol);
 
-                        if (mediaUrl) {
-                            const isVideo = mediaUrl.match(/\.(mp4|mov|avi|wmv)$/i);
-                            // If relative path, fix it (though usually it's full url from upload)
-                            // But upload returns relative? Check helper.
-                            // The upload helper below does pre-pending.
-
-                            let mediaHtml = '';
-                            if (isVideo) {
-                                mediaHtml = `<div style="margin-bottom:10px;"><video src="${mediaUrl}" controls style="max-width:100%; border-radius:8px;"></video></div>`;
-                            } else {
-                                mediaHtml = `<div style="margin-bottom:10px;"><img src="${mediaUrl}" style="max-width:100%; border-radius:8px;"></div>`;
-                            }
-                            // Prepend media
-                            contentHtml = mediaHtml + contentHtml.replace(/<img[^>]+>/g, ''); // Remove image from text body for preview
-                        }
-                    }
-
-                    // Render HTML for body preview
-                    previewBody.innerHTML = contentHtml;
-
-                    // Simple variable replacement preview (on HTML string)
-                    const demoName = state.leads[0]?.nome || 'João Silva';
-                    previewBody.innerHTML = previewBody.innerHTML.replace(/{{nome}}/g, demoName);
-                };
-
-                // Tab Switching
-                const activateTab = (tab) => {
-                    tabsDiv.querySelectorAll('.tab-btn').forEach(b => {
-                        b.style.background = '#f8f9fa';
-                        b.style.borderBottom = 'none';
-                        b.style.color = '#666';
-                        b.classList.remove('active');
-                    });
-
-                    const btn = tabsDiv.querySelector(`[data-tab="${tab}"]`);
-                    if (btn) {
-                        btn.style.background = 'white';
-                        btn.style.borderBottom = '2px solid var(--color-primary)';
-                        btn.style.color = 'black';
-                        btn.classList.add('active');
-                    }
-
-                    if (emailEditor) emailEditor.style.display = tab === 'email' ? 'block' : 'none';
-                    if (whatsappEditor) whatsappEditor.style.display = tab === 'whatsapp' ? 'block' : 'none';
-
-                    updatePreview(tab);
-                    stepContainer.dataset.activeTab = tab;
-                };
-
-                tabsDiv.querySelectorAll('.tab-btn').forEach(btn => {
-                    btn.onclick = () => activateTab(btn.dataset.tab);
-                });
-
-                // Show existing Media if coming back to step
-                setTimeout(updateMediaPreview, 50);
-
-                // Auto-select tab
-                if (state.config.useEmail) {
-                    activateTab('email');
-                } else if (state.config.useWhatsapp) {
-                    activateTab('whatsapp');
-                }
-
-                // Input Events
-                const inputs = stepContainer.querySelectorAll('input, textarea');
-                inputs.forEach(input => {
-                    input.oninput = (e) => {
-                        if (e.target.id === 'msg-email-subject') state.message.emailSubject = e.target.value;
-                        updatePreview(stepContainer.dataset.activeTab);
-                    };
-                });
+                stepContainer.appendChild(formDiv);
+                stepContainer.appendChild(splitDiv);
 
 
-
-                // Initialize Email Upload Button
+                // Initialize Logic
                 setTimeout(() => {
-                    const btnEmailUpload = emailEditor.querySelector('#btn-email-upload');
-                    const inputEmailUpload = emailEditor.querySelector('#email-media-input');
-                    const statusEmailUpload = emailEditor.querySelector('#email-upload-status');
-
-                    if (btnEmailUpload && inputEmailUpload) {
-                        btnEmailUpload.onclick = () => inputEmailUpload.click();
-                        inputEmailUpload.onchange = async (e) => {
-                            const file = e.target.files[0];
-                            if (!file) return;
-
-                            if (statusEmailUpload) statusEmailUpload.style.display = 'inline';
-                            btnEmailUpload.disabled = true;
-
-                            const formData = new FormData();
-                            formData.append('file', file);
-
-                            try {
-                                const res = await fetch(`${getApiBaseUrl()}/upload`, {
-                                    method: 'POST',
-                                    headers: { 'Authorization': `Bearer ${localStorage.getItem('token')}` },
-                                    body: formData
-                                });
-
-                                if (!res.ok) throw new Error('Falha no upload');
-
-                                const data = await res.json();
-                                const fullUrl = data.fileUrl.startsWith('http') ? data.fileUrl : `${getApiBaseUrl()}${data.fileUrl}`;
-
-                                // Insert into Quill
-                                // Use API to find the quill instance if not accessible variables (it isn't here clearly)
-                                // But we know the container ID: #editor-email-container
-                                // Quill API stores instance on element: No, not officially.
-                                // But we defined 'quillEmail' inside standard scope of the parent 'setTimeout'.
-                                // Ah, I cannot access 'quillEmail' here because it's in the *other* setTimeout block above.
-                                // I must merge this logic into the block above or access it differently.
-                                // For now, let's assume I can't access 'quillEmail' variable.
-                                // I will use `Quill.find` if available or just append HTML.
-                                // Actually, I should merge this into the main setTimeout.
-                                // RE-WRITING THIS CHUNK TO MERGE INTO THE MAIN TIMEOUT (Lines 645-705)
-                            } catch (e) {
-                                console.error(e);
-                                showToast('Erro ao enviar imagem', 'error');
-                            } finally {
-                                if (statusEmailUpload) statusEmailUpload.style.display = 'none';
-                                btnEmailUpload.disabled = false;
-                                inputEmailUpload.value = ''; // Reset
-                            }
-                        };
-                    }
-                }, 50);
-
-                // Initialize Quill Editors
-                setTimeout(() => {
-                    // Email Toolbar (Full Rich Text)
-                    const emailToolbar = [
-                        ['bold', 'italic', 'underline', 'strike'],
-                        [{ 'list': 'ordered' }, { 'list': 'bullet' }],
-                        [{ 'size': ['small', false, 'large', 'huge'] }],
-                        [{ 'header': [1, 2, 3, 4, 5, 6, false] }],
-                        [{ 'color': [] }, { 'background': [] }],
-                        [{ 'align': [] }],
-                        ['link', 'image']
-                    ];
-
-                    // WhatsApp Toolbar
-                    const whatsappToolbar = [
-                        ['clean'] // Minimal
-                    ];
-
-                    // Init Email
-                    const quillEmail = new Quill('#editor-email-container', {
-                        theme: 'snow',
-                        placeholder: 'Escreva o conteúdo do e-mail aqui',
-                        modules: {
-                            toolbar: emailToolbar,
-                            blotFormatter: {}
-                        }
-                    });
-
-                    if (state.message.emailBody) quillEmail.root.innerHTML = state.message.emailBody;
-
-                    quillEmail.on('text-change', () => {
-                        state.message.emailBody = quillEmail.root.innerHTML;
-                        updatePreview('email');
-                    });
-
-                    // Bind Email Upload Logic Here to access quillEmail
-                    const btnEmailUpload = emailEditor.querySelector('#btn-email-upload');
-                    const inputEmailUpload = emailEditor.querySelector('#email-media-input');
-                    const statusEmailUpload = emailEditor.querySelector('#email-upload-status');
-
-                    if (btnEmailUpload && inputEmailUpload) {
-                        btnEmailUpload.onclick = () => inputEmailUpload.click();
-                        inputEmailUpload.onchange = async (e) => {
-                            const file = e.target.files[0];
-                            if (!file) return;
-
-                            if (statusEmailUpload) statusEmailUpload.style.display = 'inline';
-                            btnEmailUpload.disabled = true;
-
-                            const formData = new FormData();
-                            formData.append('file', file);
-
-                            try {
-                                const res = await fetch(`${getApiBaseUrl()}/upload`, {
-                                    method: 'POST',
-                                    headers: { 'Authorization': `Bearer ${localStorage.getItem('token')}` },
-                                    body: formData
-                                });
-
-                                if (!res.ok) throw new Error('Falha no upload');
-
-                                const data = await res.json();
-                                const fullUrl = data.fileUrl.startsWith('http') ? data.fileUrl : `${getApiBaseUrl()}${data.fileUrl}`;
-
-                                // Insert Image
-                                const range = quillEmail.getSelection(true) || { index: quillEmail.getLength(), length: 0 };
-                                quillEmail.insertEmbed(range.index, 'image', fullUrl);
-
-                            } catch (e) {
-                                console.error(e);
-                                showToast('Erro ao enviar imagem', 'error');
-                            } finally {
-                                if (statusEmailUpload) statusEmailUpload.style.display = 'none';
-                                btnEmailUpload.disabled = false;
-                                inputEmailUpload.value = '';
-                            }
-                        };
-                    }
-
-                    // Init WhatsApp
-                    const quillWhatsapp = new Quill('#editor-whatsapp-container', {
-                        theme: 'snow',
-                        placeholder: 'Escreva sua mensagem aqui. Use *negrito* para destaque.',
-                        modules: {
-                            toolbar: whatsappToolbar,
-                            blotFormatter: {}
-                        }
-                    });
-
-                    if (state.message.whatsappText) quillWhatsapp.root.innerHTML = state.message.whatsappText;
-
-                    quillWhatsapp.on('text-change', () => {
-                        state.message.whatsappText = quillWhatsapp.root.innerHTML;
-                        if (stepContainer.dataset.activeTab === 'whatsapp') {
-                            updatePreview('whatsapp');
-                        }
-                    });
-
-
-                }, 50);
+                    loadGroups(treeContent);
+                    bindFormEvents(formDiv);
+                }, 0);
 
                 return stepContainer;
             };
@@ -963,7 +762,21 @@ export const CampanhaWizard = {
             btnNext.className = 'btn-primary';
             btnNext.textContent = 'Próximo';
             btnNext.onclick = () => {
+                // VALIDATION STEP 1: MESSAGE & CHANNELS
                 if (currentStep === 1) {
+                    if (!state.config.useEmail && !state.config.useWhatsapp) {
+                        showToast('Selecione ao menos um canal de envio (E-mail ou WhatsApp)', 'warning');
+                        return;
+                    }
+                    if (state.config.useEmail && !state.message.emailSubject) {
+                        showToast('O Assunto do E-mail é obrigatório.', 'warning');
+                        return;
+                    }
+                    // Optional: Check if bodies are empty?
+                }
+
+                // VALIDATION STEP 2: CONFIG & AUDIENCE
+                if (currentStep === 2) {
                     let hasError = false;
                     const requiredIds = ['campaign-name', 'campaign-start', 'campaign-end'];
 
@@ -977,13 +790,12 @@ export const CampanhaWizard = {
                     });
 
                     if (hasError) {
-                        showToast('Preencha os campos obrigatórios em vermelho.', 'warning');
+                        showToast('Preencha os campos obrigatórios da campanha.', 'warning');
                         return;
                     }
 
-                    if (!state.config.nome) { showToast('Nome da campanha obrigatório', 'warning'); return; } // Backup check
-                    if (state.groups.size === 0) { showToast('Selecione ao menos um grupo', 'warning'); return; }
-                    if (!state.config.useEmail && !state.config.useWhatsapp) { showToast('Selecione ao menos um canal de envio', 'warning'); return; }
+                    if (!state.config.nome) { showToast('Nome da campanha obrigatório', 'warning'); return; }
+                    if (state.groups.size === 0) { showToast('Selecione ao menos um grupo de leads', 'warning'); return; }
                 }
 
                 if (currentStep < 3) {
