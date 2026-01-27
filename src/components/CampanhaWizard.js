@@ -51,7 +51,8 @@ export const CampanhaWizard = {
                     emailBody: '',
                     whatsappText: '',
                     mediaUrl: '' // NEW: Media URL
-                }
+                },
+                expandedGroups: new Set(['ALL']) // Tree View State
             };
 
             let treeRoot = null;
@@ -322,66 +323,198 @@ export const CampanhaWizard = {
             };
 
             // Helpers for Step 1
+            // Tree Helpers
+            let fetchedGroups = [];
+
+
+            const buildTree = (items) => {
+                const rootItems = [];
+                const lookup = {};
+                items.forEach(item => {
+                    item.children = [];
+                    lookup[item.id] = item;
+                });
+                items.forEach(item => {
+                    if (item.parent_id && lookup[item.parent_id]) {
+                        lookup[item.parent_id].children.push(item);
+                    } else {
+                        rootItems.push(item);
+                    }
+                });
+                return rootItems;
+            };
+
+            const toggleExpand = (e, groupId) => {
+                e.stopPropagation();
+                if (state.expandedGroups.has(groupId)) state.expandedGroups.delete(groupId);
+                else state.expandedGroups.add(groupId);
+                renderTree();
+            };
+
+            const toggleGroupSelection = (e, group) => {
+                if (e) e.stopPropagation();
+
+                const isSelected = state.groups.has(group.id);
+                // Toggle
+                if (isSelected) {
+                    state.groups.delete(group.id);
+                    // Optional: Deselect children?
+                    // For now, simple toggle.
+                } else {
+                    state.groups.add(group.id);
+                    // Optional: Select children?
+                }
+
+                updateLeadsPreview();
+                renderTree();
+            };
+
+            const renderGroupNode = (group, level = 0) => {
+                const hasChildren = group.children && group.children.length > 0;
+                const isExpanded = state.expandedGroups.has(group.id);
+                const isSelected = state.groups.has(group.id);
+                const paddingLeft = level * 1.5;
+
+                // Container
+                const nodeContainer = document.createElement('div');
+                nodeContainer.className = 'group-node';
+
+                // Row
+                const row = document.createElement('div');
+                row.className = 'group-row';
+                Object.assign(row.style, {
+                    display: 'flex', alignItems: 'center', padding: '6px 12px',
+                    cursor: 'pointer', userSelect: 'none', borderBottom: '1px solid #f0f0f0',
+                    backgroundColor: isSelected ? '#e0f2fe' : 'transparent',
+                    transition: 'background-color 0.2s'
+                });
+
+                row.onmouseover = () => { if (!isSelected) row.style.backgroundColor = '#f9fafb'; };
+                row.onmouseout = () => { if (!isSelected) row.style.backgroundColor = 'transparent'; };
+                row.onclick = (e) => toggleGroupSelection(e, group);
+
+                // Indent
+                const indent = document.createElement('div');
+                indent.style.width = `${paddingLeft}rem`;
+                row.appendChild(indent);
+
+                // Toggle Icon
+                const toggleIcon = document.createElement('span');
+                Object.assign(toggleIcon.style, {
+                    width: '20px', display: 'inline-flex', justifyContent: 'center',
+                    marginRight: '4px', color: '#6b7280', fontSize: '0.7rem'
+                });
+
+                if (hasChildren) {
+                    toggleIcon.textContent = isExpanded ? '▼' : '▶';
+                    toggleIcon.style.cursor = 'pointer';
+                    toggleIcon.onclick = (e) => toggleExpand(e, group.id);
+                } else {
+                    toggleIcon.innerHTML = '&nbsp;';
+                }
+                row.appendChild(toggleIcon);
+
+                // Checkbox
+                const checkbox = document.createElement('input');
+                checkbox.type = 'checkbox';
+                checkbox.checked = isSelected;
+                checkbox.style.marginRight = '8px';
+                checkbox.style.cursor = 'pointer';
+                checkbox.onclick = (e) => {
+                    // Stop prop to avoid double toggle from row click
+                    // Actually row click handles toggle. 
+                    // If we click checkbox, it changes state, but row click handler also runs if propagation isn't stopped?
+                    // If we stop prop, we must handle toggle here.
+                    e.stopPropagation();
+                    toggleGroupSelection(null, group);
+                };
+                row.appendChild(checkbox);
+
+                // Folder Icon
+                const folderIcon = document.createElement('span');
+                folderIcon.textContent = isExpanded ? '📂' : '📁';
+                folderIcon.style.marginRight = '8px';
+                row.appendChild(folderIcon);
+
+                // Name & Count
+                const nameSpan = document.createElement('span');
+                const countText = group.total_leads ? ` (${group.total_leads})` : ' (0)';
+                nameSpan.textContent = `${group.nome}${countText}`;
+                nameSpan.style.flex = '1';
+                nameSpan.style.fontWeight = isSelected ? '600' : '400';
+                nameSpan.style.color = isSelected ? 'var(--color-primary)' : 'inherit';
+                row.appendChild(nameSpan);
+
+                nodeContainer.appendChild(row);
+
+                // Children
+                if (hasChildren && isExpanded) {
+                    const childrenContainer = document.createElement('div');
+                    group.children.forEach(child => {
+                        childrenContainer.appendChild(renderGroupNode(child, level + 1));
+                    });
+                    nodeContainer.appendChild(childrenContainer);
+                }
+
+                return nodeContainer;
+            };
+
+            const renderTree = () => {
+                if (!treeContainerRef) return;
+                treeContainerRef.innerHTML = '';
+
+                // Add Styles if not present (inline styles used mostly, but classes help)
+                // Assuming styles from main.css cover basics, or we rely on inline.
+
+                if (fetchedGroups.length === 0) {
+                    treeContainerRef.innerHTML = '<div style="padding:1rem; text-align:center; color:#666;">Nenhum grupo encontrado.</div>';
+                    return;
+                }
+
+                const realRoots = buildTree(fetchedGroups);
+
+                // Virtual Root: "Todos os Leads"
+                // Assuming we want to show it as a selectable option? 
+                // If selected, it selects ALL? logic in toggleGroupSelection might need to know.
+                // For now, let's treat "Todos os Leads" as a group with ID 'ALL'.
+                // If the backend expects actual group IDs, 'ALL' might be special.
+                // updateLeadsPreview handles 'ALL' specifically?
+                // The current updateLeadsPreview logic: `const groupIds = Array.from(state.groups).join(',');`
+                // If 'ALL' is in Set, groupIds string includes 'ALL'.
+                // Does backend `/marketing/leads?grupos=ALL` work?
+                // I checked `loadGroups` previously, it didn't seem to have 'ALL'.
+                // But `GruposLeadsManager` has.
+                // Let's include it.
+
+                const totalLeads = fetchedGroups.reduce((acc, g) => acc + (g.total_leads || 0), 0);
+                // Note: sum of groups != total unique leads, but it's an estimation. 
+                // Better: usage leads.length from a separate fetch? 
+                // For now, let's use sum or just don't show count for ALL if unsure.
+
+                const virtualRoot = {
+                    id: 'ALL',
+                    nome: 'Todos os Leads',
+                    children: realRoots,
+                    total_leads: '?' // We don't have total count handy without fetching all leads first.
+                };
+
+                // Manually render Root
+                treeContainerRef.appendChild(renderGroupNode(virtualRoot));
+            };
+
             const loadGroups = async (container) => {
-                container.innerHTML = '<div style="padding:1rem; text-align:center; color:#666;">Carregando grupos...</div>';
+                treeContainerRef = container;
+                container.innerHTML = '<div style="padding:1rem; text-align:center; color:#666;">Carregando árvore de grupos...</div>';
+
                 try {
                     const res = await fetch(`${API_BASE_URL}/marketing/grupos-leads`, { headers: getHeaders() });
                     if (!res.ok) throw new Error('Falha ao carregar grupos');
-                    const groups = await res.json();
+                    fetchedGroups = await res.json();
 
-                    container.innerHTML = '';
-                    if (groups.length === 0) {
-                        container.innerHTML = '<div style="padding:1rem; text-align:center; color:#666;">Nenhum grupo encontrado.</div>';
-                        return;
-                    }
+                    // Simple total count approximation or just 'ALL'
+                    // renderTree will handle building structure
+                    renderTree();
 
-                    const list = document.createElement('div');
-                    list.style.display = 'flex';
-                    list.style.flexDirection = 'column';
-                    list.style.gap = '0.5rem';
-
-                    groups.forEach(g => {
-                        const item = document.createElement('label');
-                        Object.assign(item.style, {
-                            display: 'flex', alignItems: 'center', gap: '0.5rem', padding: '0.5rem',
-                            border: '1px solid #eee', borderRadius: '4px', cursor: 'pointer',
-                            backgroundColor: state.groups.has(g.id) ? '#e0e7ff' : 'white'
-                        });
-
-                        const checkbox = document.createElement('input');
-                        checkbox.type = 'checkbox';
-                        checkbox.value = g.id;
-                        checkbox.checked = state.groups.has(g.id);
-                        checkbox.style.width = '16px';
-                        checkbox.style.height = '16px';
-
-                        checkbox.onchange = async () => {
-                            if (checkbox.checked) {
-                                state.groups.add(g.id);
-                                item.style.backgroundColor = '#e0e7ff';
-                            } else {
-                                state.groups.delete(g.id);
-                                item.style.backgroundColor = 'white';
-                            }
-                            await updateLeadsPreview();
-                        };
-
-                        const name = document.createElement('span');
-                        name.textContent = g.nome;
-                        name.style.fontWeight = '500';
-
-                        const count = document.createElement('span');
-                        count.textContent = `(${g.total_leads || 0})`;
-                        count.style.fontSize = '0.8rem';
-                        count.style.color = '#666';
-
-                        item.appendChild(checkbox);
-                        item.appendChild(name);
-                        item.appendChild(count);
-                        list.appendChild(item);
-                    });
-
-                    container.appendChild(list);
                 } catch (e) {
                     console.error(e);
                     container.innerHTML = '<div style="padding:1rem; text-align:center; color:red;">Erro ao carregar grupos.</div>';
@@ -418,11 +551,21 @@ export const CampanhaWizard = {
                 if (countBadge) countBadge.textContent = 'Carregando...';
 
                 try {
-                    const groupIds = Array.from(state.groups).join(',');
-                    if (!groupIds) {
+                    if (state.groups.size === 0) {
                         state.leads = [];
                     } else {
-                        const res = await fetch(`${API_BASE_URL}/marketing/leads?grupos=${groupIds}`, { headers: getHeaders() });
+                        let url = `${API_BASE_URL}/marketing/leads`;
+                        // If 'ALL' is selected, fetch all leads (no query param or specific logic?)
+                        // If endpoint supports 'grupos' as list of IDs, we send them. 
+                        // If 'ALL' is present, we just want everything.
+                        if (state.groups.has('ALL')) {
+                            // Fetch all (no params)
+                        } else {
+                            const groupIds = Array.from(state.groups).join(',');
+                            url += `?grupos=${groupIds}`;
+                        }
+
+                        const res = await fetch(url, { headers: getHeaders() });
                         if (res.ok) {
                             const leads = await res.json();
 
@@ -472,7 +615,7 @@ export const CampanhaWizard = {
             // STEP 2: CONFIG & AUDIENCE
             const renderStep2 = () => {
                 const stepContainer = document.createElement('div');
-                Object.assign(stepContainer.style, { display: 'flex', height: '100%', overflow: 'hidden' });
+                Object.assign(stepContainer.style, { display: 'flex', flexDirection: 'column', height: '100%', overflow: 'hidden' });
 
                 // Top: Config Form (Compact Layout)
                 const formDiv = document.createElement('div');
