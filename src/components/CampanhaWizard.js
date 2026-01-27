@@ -403,24 +403,17 @@ export const CampanhaWizard = {
                 whatsappEditor.id = 'editor-whatsapp';
                 whatsappEditor.style.display = 'none';
                 whatsappEditor.innerHTML = `
-                    <div style="background:#f0f9ff; padding:12px; border-radius:8px; margin-bottom:1.5rem; border:1px solid #bae6fd;">
-                        <label style="font-weight:600; font-size:0.9rem; color:#0369a1; margin-bottom:8px; display:block;">
-                            📸 Mídia do WhatsApp (Cabeçalho)
-                        </label>
-                         <div id="media-upload-area" style="
-                            border: 2px dashed #0ea5e9; border-radius: 8px; padding: 1rem; text-align: center; 
-                            background: white; cursor: pointer; transition: all 0.2s; position: relative;">
-                            <span id="media-placeholder" style="color: #0369a1; font-size:0.9rem; pointer-events: none;">
-                                Clique ou <b>Cole (Ctrl+V)</b> aqui
-                            </span>
-                            <input type="file" id="media-input" accept="image/*,video/*" style="display: none;" />
-                            <div id="media-preview-container" style="display: none; margin-top: 10px;">
-                                <!-- Preview injected here -->
+                    <div class="form-group">
+                        <div style="display:flex; justify-content:space-between; align-items:flex-end; margin-bottom:4px;">
+                            <label>Mensagem WhatsApp</label>
+                            <div style="display:flex; align-items:center; gap:6px;">
+                                <span id="whatsapp-upload-status" style="font-size:0.75rem; color:#666; display:none;">Enviando...</span>
+                                <button id="btn-whatsapp-upload" class="btn-secondary" style="font-size:0.75rem; padding: 4px 10px; display:flex; align-items:center; gap:4px; height:28px;">
+                                    <span>📷</span> Inserir Imagem
+                                </button>
+                                <input type="file" id="whatsapp-media-input" accept="image/*" style="display: none;" />
                             </div>
                         </div>
-                    </div>
-                    <div class="form-group">
-                        <label>Mensagem WhatsApp</label>
                          <div id="editor-whatsapp-container" style="min-height:320px; background:white;"></div>
                         <div style="font-size:0.8rem; color:#666; margin-top:0.5rem;">Variáveis disponíveis: {{nome}}, {{empresa}}. Use *negrito* para texto.</div>
                     </div>
@@ -456,75 +449,17 @@ export const CampanhaWizard = {
                 stepContainer.appendChild(editorPanel);
                 stepContainer.appendChild(previewPanel);
 
-                // Logic
+                // Media Preview logic is now handled in updatePreview by parsing HTML
                 const updateMediaPreview = () => {
-                    const container = whatsappEditor.querySelector('#media-preview-container');
-                    const placeholder = whatsappEditor.querySelector('#media-placeholder');
-                    if (!container || !placeholder) return;
-
-                    if (state.message.mediaUrl) {
-                        const isVideo = state.message.mediaUrl.match(/\.(mp4|mov|avi|wmv)$/i);
-                        const fullUrl = state.message.mediaUrl.startsWith('http') ? state.message.mediaUrl : `${getApiBaseUrl()}${state.message.mediaUrl}`;
-
-                        let html = '';
-                        if (isVideo) {
-                            html = `<video src="${fullUrl}" controls style="max-width: 100%; max-height: 200px; border-radius: 4px;"></video>`;
-                        } else {
-                            html = `<img src="${fullUrl}" style="max-width: 100%; max-height: 200px; border-radius: 4px; object-fit: contain;">`;
-                        }
-
-                        container.innerHTML = html;
-                        container.style.display = 'block';
-                        placeholder.style.display = 'none';
-                    } else {
-                        container.innerHTML = '';
-                        container.style.display = 'none';
-                        placeholder.style.display = 'inline';
-                    }
+                    // Legacy function kept for compatibility if needed, but logic moved to updatePreview
                 };
 
                 const handleUpload = async (file) => {
-                    if (!file) return;
-
-                    // Show Loading
-                    const placeholder = whatsappEditor.querySelector('#media-placeholder');
-                    const originalText = placeholder ? placeholder.textContent : '';
-                    if (placeholder) placeholder.textContent = '⏳ Enviando...';
-
-                    const formData = new FormData();
-                    formData.append('file', file);
-
-                    try {
-                        const res = await fetch(`${getApiBaseUrl()}/upload`, {
-                            method: 'POST',
-                            headers: { 'Authorization': `Bearer ${localStorage.getItem('token')}` },
-                            body: formData
-                        });
-
-                        if (!res.ok) throw new Error('Falha no upload');
-
-                        const data = await res.json();
-                        state.message.mediaUrl = data.fileUrl; // Save URL
-                        showToast('Upload concluído!', 'success');
-
-                        updateMediaPreview();
-                        updatePreview(stepContainer.dataset.activeTab); // Update main preview
-                    } catch (error) {
-                        console.error(error);
-                        showToast('Erro ao enviar imagem/vídeo', 'error');
-                    } finally {
-                        if (placeholder) placeholder.textContent = originalText;
-                    }
+                    // Generic handler - logic now specific in button events
                 };
 
-                // Upload Events (WhatsApp)
-                const uploadArea = whatsappEditor.querySelector('#media-upload-area');
-                const fileInput = whatsappEditor.querySelector('#media-input');
-
-                if (uploadArea && fileInput) {
-                    uploadArea.onclick = () => fileInput.click();
-                    fileInput.onchange = (e) => handleUpload(e.target.files[0]);
-                }
+                // Remove legacy upload events block
+                // ...
 
                 // Paste Event
                 uploadArea.addEventListener('paste', (e) => {
@@ -567,17 +502,31 @@ export const CampanhaWizard = {
                     let contentHtml = body || '<span style="color:#aaa; font-style:italic;">(Digite para visualizar...)</span>';
 
                     // Inject Media Preview in Content
-                    if (state.message.mediaUrl && type === 'whatsapp') { // Only for WhatsApp
-                        const isVideo = state.message.mediaUrl.match(/\.(mp4|mov|avi|wmv)$/i);
-                        const fullUrl = state.message.mediaUrl.startsWith('http') ? state.message.mediaUrl : `${getApiBaseUrl()}${state.message.mediaUrl}`;
+                    if (type === 'whatsapp') {
+                        // Parse body to find image
+                        const parser = new DOMParser();
+                        const doc = parser.parseFromString(body, 'text/html');
+                        const img = doc.querySelector('img');
+                        const video = doc.querySelector('video');// or link to video
 
-                        let mediaHtml = '';
-                        if (isVideo) {
-                            mediaHtml = `<div style="margin-bottom:10px;"><video src="${fullUrl}" controls style="max-width:100%; border-radius:8px;"></video></div>`;
-                        } else {
-                            mediaHtml = `<div style="margin-bottom:10px;"><img src="${fullUrl}" style="max-width:100%; border-radius:8px;"></div>`;
+                        let mediaUrl = null;
+                        if (img) mediaUrl = img.src;
+
+                        if (mediaUrl) {
+                            const isVideo = mediaUrl.match(/\.(mp4|mov|avi|wmv)$/i);
+                            // If relative path, fix it (though usually it's full url from upload)
+                            // But upload returns relative? Check helper.
+                            // The upload helper below does pre-pending.
+
+                            let mediaHtml = '';
+                            if (isVideo) {
+                                mediaHtml = `<div style="margin-bottom:10px;"><video src="${mediaUrl}" controls style="max-width:100%; border-radius:8px;"></video></div>`;
+                            } else {
+                                mediaHtml = `<div style="margin-bottom:10px;"><img src="${mediaUrl}" style="max-width:100%; border-radius:8px;"></div>`;
+                            }
+                            // Prepend media
+                            contentHtml = mediaHtml + contentHtml.replace(/<img[^>]+>/g, ''); // Remove image from text body for preview
                         }
-                        contentHtml = mediaHtml + contentHtml;
                     }
 
                     // Render HTML for body preview

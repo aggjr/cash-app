@@ -401,23 +401,30 @@ exports.sendSingle = async (req, res) => {
                 return text.trim();
             };
 
-            const rawText = replaceVariables(campanha.whatsapp_text);
-            const text = convertHtmlToWhatsapp(rawText);
+            // 1. Check for Embedded Media in Raw Text first (from new Unified Input)
+            const imgMatch = campanha.whatsapp_text.match(/<img[^>]+src="([^">]+)"/);
+            let fullMediaUrl = null;
+            let mediatype = 'image';
+            let rawText = campanha.whatsapp_text;
 
-            // Handle Media
-            if (campanha.media_url) {
-                // Determine media type
-                const isVideo = campanha.media_url.match(/\.(mp4|mov|avi|wmv)$/i);
-                const mediatype = isVideo ? 'video' : 'image';
+            if (imgMatch) {
+                fullMediaUrl = imgMatch[1];
+                // Remove the image tag from the text to be converted
+                rawText = rawText.replace(/<img[^>]+>/g, '').trim();
+            } else if (campanha.media_url) {
+                // Fallback to legacy field
+                const baseUrl = process.env.API_BASE_URL || 'https://cash.gutoapps.site';
+                fullMediaUrl = campanha.media_url.startsWith('http') ? campanha.media_url : `${baseUrl}${campanha.media_url}`;
+            }
 
-                // Construct Public URL
-                // Assuming env variable for API URL or constructing from host. 
-                // However, backend might verify if it's local. 
-                // Evolution API needs PUBLIC URL.
-                // If CASH is hosted at cash.gutoapps.site, we use that.
-                const baseUrl = process.env.API_BASE_URL || 'https://cash.gutoapps.site'; // Make this configurable!
-                const fullMediaUrl = campanha.media_url.startsWith('http') ? campanha.media_url : `${baseUrl}${campanha.media_url}`;
+            // 2. Convert Variables & HTML to WhatsApp Text
+            const variablesReplaced = replaceVariables(rawText);
+            const text = convertHtmlToWhatsapp(variablesReplaced); // This uses the helper above to strip tags
 
+            // 3. Send
+            if (fullMediaUrl) {
+                const isVideo = fullMediaUrl.match(/\.(mp4|mov|avi|wmv)$/i);
+                mediatype = isVideo ? 'video' : 'image';
                 await evolutionService.sendMedia(lead.telefone, fullMediaUrl, mediatype, text);
             } else {
                 await evolutionService.sendMessage(lead.telefone, text);
