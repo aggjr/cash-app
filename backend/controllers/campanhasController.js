@@ -744,9 +744,9 @@ async function enviarWhatsAppParaLead(campanha, lead) {
     if (fullMediaUrl) {
         const isVideo = fullMediaUrl.match(/\.(mp4|mov|avi|wmv)$/i);
         const mediatype = isVideo ? 'video' : 'image';
-        await evolutionService.sendMedia(lead.telefone, fullMediaUrl, text, mediatype);
+        await evolutionService.sendMedia(lead.telefone, fullMediaUrl, mediatype, text);
     } else {
-        await evolutionService.sendText(lead.telefone, text);
+        await evolutionService.sendMessage(lead.telefone, text);
     }
 }
 
@@ -783,7 +783,7 @@ exports.applyRedesignMigration = async (req, res) => {
         const { applyRedesignMigration } = require('../migrations/campaign_redesign_migration');
         console.log('🔧 Executando migração do redesign via endpoint...');
         const results = await applyRedesignMigration();
-        
+
         if (results.success) {
             res.json({
                 success: true,
