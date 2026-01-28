@@ -534,7 +534,9 @@ exports.sendSingle = async (req, res) => {
 exports.runDatabaseFix = async (req, res) => {
     try {
         console.log('Starting Manual Database Fix...');
+        const results = [];
 
+        // 1. Add status_email and status_whatsapp columns to leads_campanhas
         const queries = [
             `ALTER TABLE leads_campanhas ADD COLUMN status_email VARCHAR(50) DEFAULT 'pendente' AFTER status`,
             `ALTER TABLE leads_campanhas ADD COLUMN status_whatsapp VARCHAR(50) DEFAULT 'pendente' AFTER status_email`
@@ -543,17 +545,77 @@ exports.runDatabaseFix = async (req, res) => {
         for (const query of queries) {
             try {
                 await db.query(query);
-                console.log('Executed:', query);
+                console.log('✅ Executed:', query);
+                results.push(`✅ ${query.substring(0, 50)}...`);
             } catch (e) {
                 if (e.code === 'ER_DUP_FIELDNAME') {
-                    console.log('Column already exists, skipping.');
+                    console.log('ℹ️ Column already exists, skipping.');
+                    results.push(`ℹ️ Column already exists`);
                 } else {
-                    console.warn('Error executing query:', query, e.message);
+                    console.warn('⚠️ Error executing query:', query, e.message);
+                    results.push(`⚠️ Error: ${e.message}`);
                 }
             }
         }
 
-        res.json({ success: true, message: 'Verificação e Correção do Banco Concluída.' });
+        // 2. Fix status column ENUM to support new values
+        try {
+            console.log('🔧 Fixing status column ENUM...');
+
+            // Check current status column definition
+            const [columns] = await db.query(`
+                SELECT COLUMN_TYPE 
+                FROM INFORMATION_SCHEMA.COLUMNS 
+                WHERE TABLE_SCHEMA = DATABASE() AND TABLE_NAME = 'campanhas' AND COLUMN_NAME = 'status'
+            `);
+
+            if (columns.length > 0) {
+                const columnType = columns[0].COLUMN_TYPE;
+                console.log(`Current status type: ${columnType}`);
+
+                // Check if it's an ENUM and needs updating
+                if (columnType.includes('enum')) {
+                    // Check if it already has the new values
+                    if (!columnType.includes('enviando') || !columnType.includes('envio_finalizado') || !columnType.includes('erro')) {
+                        console.log('Status is ENUM and needs updating. Adding missing values...');
+
+                        await db.query(`
+                            ALTER TABLE campanhas
+                            MODIFY COLUMN status ENUM(
+                                'planejamento',
+                                'ativa',
+                                'pausada',
+                                'concluida',
+                                'cancelada',
+                                'enviando',
+                                'envio_finalizado',
+                                'erro'
+                            ) DEFAULT 'planejamento'
+                        `);
+                        console.log('✅ Status column updated with new values.');
+                        results.push('✅ Status ENUM updated: enviando, envio_finalizado, erro');
+                    } else {
+                        console.log('ℹ️ Status ENUM already has all required values.');
+                        results.push('ℹ️ Status ENUM already correct');
+                    }
+                } else {
+                    console.log('ℹ️ Status is not ENUM, no changes needed.');
+                    results.push('ℹ️ Status column is not ENUM');
+                }
+            } else {
+                console.log('⚠️ Status column not found!');
+                results.push('⚠️ Status column not found');
+            }
+        } catch (error) {
+            console.error('❌ Error fixing status column:', error);
+            results.push(`❌ Status fix error: ${error.message}`);
+        }
+
+        res.json({
+            success: true,
+            message: 'Verificação e Correção do Banco Concluída.',
+            results
+        });
     } catch (error) {
         console.error('Database Fix Failed:', error);
         res.status(500).json({ error: 'Erro ao corrigir banco: ' + error.message });
