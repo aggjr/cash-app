@@ -808,3 +808,80 @@ exports.applyRedesignMigration = async (req, res) => {
         });
     }
 };
+
+// Fix status column to support new values (enviando, envio_finalizado, erro)
+exports.fixStatusColumn = async (req, res) => {
+    try {
+        console.log('🔧 Fixing status column in campanhas table...');
+        const steps = [];
+        const errors = [];
+
+        // Check current status column definition
+        const [columns] = await db.query(`
+            SELECT COLUMN_TYPE 
+            FROM INFORMATION_SCHEMA.COLUMNS 
+            WHERE TABLE_SCHEMA = DATABASE() AND TABLE_NAME = 'campanhas' AND COLUMN_NAME = 'status'
+        `);
+
+        if (columns.length > 0) {
+            steps.push(`Current status column type: ${columns[0].COLUMN_TYPE}`);
+
+            // Check if it's an ENUM
+            if (columns[0].COLUMN_TYPE.includes('enum')) {
+                steps.push('Status is ENUM. Modifying to include missing values...');
+
+                try {
+                    // Modify ENUM to include all necessary values
+                    await db.query(`
+                        ALTER TABLE campanhas
+                        MODIFY COLUMN status ENUM(
+                            'planejamento',
+                            'ativa',
+                            'pausada',
+                            'concluida',
+                            'cancelada',
+                            'enviando',
+                            'envio_finalizado',
+                            'erro'
+                        ) DEFAULT 'planejamento'
+                    `);
+                    steps.push('✅ Status column updated successfully with new values.');
+                } catch (error) {
+                    errors.push(`Error modifying ENUM: ${error.message}`);
+                    throw error;
+                }
+            } else {
+                steps.push('Status is not ENUM. Converting to VARCHAR for flexibility...');
+
+                try {
+                    // Convert to VARCHAR for more flexibility
+                    await db.query(`
+                        ALTER TABLE campanhas
+                        MODIFY COLUMN status VARCHAR(50) DEFAULT 'planejamento'
+                    `);
+                    steps.push('✅ Status column converted to VARCHAR(50).');
+                } catch (error) {
+                    errors.push(`Error converting to VARCHAR: ${error.message}`);
+                    throw error;
+                }
+            }
+        } else {
+            errors.push('❌ Status column not found!');
+            throw new Error('Status column not found');
+        }
+
+        res.json({
+            success: true,
+            message: 'Status column fixed successfully!',
+            steps,
+            errors
+        });
+    } catch (error) {
+        console.error('❌ Error fixing status column:', error);
+        res.status(500).json({
+            success: false,
+            message: 'Error fixing status column',
+            error: error.message
+        });
+    }
+};
