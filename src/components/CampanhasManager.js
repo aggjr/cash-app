@@ -55,10 +55,9 @@ export const CampanhasManager = (project) => {
                 div.style.gap = '0.5rem';
                 div.style.justifyContent = 'center';
 
-                // Monitor button (eye icon) - only for active/sending campaigns
+                // Monitor button (eye icon) - show for campaigns with leads
                 const total = item.total_leads || 0;
-                const processados = item.leads_processados || 0;
-                const isMonitorable = (processados > 0) || (total > 0 && processados >= total);
+                const isMonitorable = total > 0; // Show if campaign has any leads
 
                 if (isMonitorable) {
                     const btnMonitor = document.createElement('button');
