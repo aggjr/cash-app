@@ -98,4 +98,7 @@ router.get('/campanhas/:id/dispatch-details', campanhasController.getDispatchDet
 // Aplicar migração do redesign
 router.post('/campanhas/apply-redesign-migration', campanhasController.applyRedesignMigration);
 
+// Corrigir coluna status (adicionar valores enviando, envio_finalizado, erro)
+router.post('/campanhas/fix-status-column', campanhasController.fixStatusColumn);
+
 module.exports = router;
