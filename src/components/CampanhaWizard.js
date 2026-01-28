@@ -675,7 +675,7 @@ export const CampanhaWizard = {
                      </div>
                      <div class="form-group" style="width: 180px;">
                          <label style="font-size:0.85rem; color:#666; display:block; margin-bottom:4px;">Intervalo entre Mensagens (s) <span style="color:#EF4444; margin-left:2px; font-weight:bold;">*</span></label>
-                         <input type="number" id="campaign-interval" class="form-input required-field" value="${state.config.dispatchIntervalSeconds}" min="1" max="3600" placeholder="120" required style="width:100%; padding:8px; border:2px solid #ddd; border-radius:6px;" />
+                         <input type="number" id="campaign-interval" class="form-input required-field" value="${state.config.dispatchIntervalSeconds}" min="1" max="3600" placeholder="120" required style="width:100%; padding:8px; border:2px solid #ddd; border-radius:6px; text-align:right;" />
                      </div>
                  `;
 
