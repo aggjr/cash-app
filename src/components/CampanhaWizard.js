@@ -1167,5 +1167,228 @@ export const CampanhaWizard = {
             // Init
             updateStep(1);
         });
+    },
+
+    showMonitoring({ campanha, leads, onClose }) {
+        return new Promise((resolve) => {
+            const API_BASE_URL = getApiBaseUrl();
+            let container = document.getElementById('wizard-container');
+            if (container) document.body.removeChild(container);
+
+            container = document.createElement('div');
+            container.id = 'wizard-container';
+            container.className = 'wizard-overlay';
+            Object.assign(container.style, {
+                position: 'fixed', top: 0, left: 0, right: 0, bottom: 0,
+                backgroundColor: 'rgba(0,0,0,0.5)', zIndex: 9999,
+                display: 'flex', justifyContent: 'center', alignItems: 'center'
+            });
+
+            const content = document.createElement('div');
+            content.className = 'wizard-content animate-float-in';
+            Object.assign(content.style, {
+                width: '95%', height: '96vh', backgroundColor: 'white',
+                borderRadius: '12px', boxShadow: '0 10px 40px rgba(0,0,0,0.2)',
+                display: 'flex', flexDirection: 'column', overflow: 'hidden'
+            });
+
+            // Header
+            const header = document.createElement('div');
+            Object.assign(header.style, {
+                display: 'flex', justifyContent: 'center', alignItems: 'center',
+                padding: '1.5rem', borderBottom: '1px solid #eee', backgroundColor: '#fff',
+                position: 'relative'
+            });
+
+            const title = document.createElement('h2');
+            title.textContent = `📊 Monitorando: ${campanha.nome}`;
+            title.style.margin = '0';
+            title.style.color = 'var(--color-primary)';
+            header.appendChild(title);
+
+            const btnClose = document.createElement('button');
+            btnClose.innerHTML = '×';
+            Object.assign(btnClose.style, {
+                position: 'absolute', top: '1rem', right: '1rem',
+                background: 'none', border: 'none', fontSize: '1.5rem',
+                color: '#999', cursor: 'pointer', lineHeight: 1
+            });
+            header.appendChild(btnClose);
+
+            // Body
+            const body = document.createElement('div');
+            body.style.flex = '1';
+            body.style.padding = '1rem';
+            body.style.overflow = 'auto';
+
+            // Status Summary
+            const summary = document.createElement('div');
+            summary.id = 'status-summary';
+            Object.assign(summary.style, {
+                display: 'flex', gap: '1rem', marginBottom: '1rem',
+                padding: '1rem', backgroundColor: '#f9fafb',
+                borderRadius: '8px', justifyContent: 'space-around'
+            });
+
+            const createStat = (label, value, color) => {
+                const stat = document.createElement('div');
+                stat.style.textAlign = 'center';
+                stat.innerHTML = `
+                    <div style="font-size: 2rem; font-weight: bold; color: ${color};">${value}</div>
+                    <div style="font-size: 0.875rem; color: #666;">${label}</div>
+                `;
+                return stat;
+            };
+
+            const totalLeads = leads.length;
+            const emailOk = leads.filter(l => l.status_email === 'sucesso').length;
+            const whatsappOk = leads.filter(l => l.status_whatsapp === 'sucesso').length;
+            const pendentes = leads.filter(l =>
+                (l.status_email === 'pendente' || !l.status_email) &&
+                (l.status_whatsapp === 'pendente' || !l.status_whatsapp)
+            ).length;
+
+            summary.appendChild(createStat('Total Leads', totalLeads, '#3b82f6'));
+            summary.appendChild(createStat('📧 E-mail OK', emailOk, '#10b981'));
+            summary.appendChild(createStat('💬 WhatsApp OK', whatsappOk, '#10b981'));
+            summary.appendChild(createStat('⏳ Pendentes', pendentes, '#f59e0b'));
+
+            body.appendChild(summary);
+
+            // Grid
+            const gridContainer = document.createElement('div');
+            gridContainer.id = 'dispatch-grid';
+            gridContainer.style.flex = '1';
+            gridContainer.style.overflow = 'auto';
+
+            const table = document.createElement('table');
+            table.style.width = '100%';
+            table.style.borderCollapse = 'collapse';
+            table.innerHTML = `
+                <thead>
+                    <tr style="background: #f3f4f6; position: sticky; top: 0;">
+                        <th style="padding: 12px; text-align: left; border-bottom: 2px solid #e5e7eb;">Lead</th>
+                        <th style="padding: 12px; text-align: center; border-bottom: 2px solid #e5e7eb; width: 150px;">📧 E-mail</th>
+                        <th style="padding: 12px; text-align: center; border-bottom: 2px solid #e5e7eb; width: 150px;">💬 WhatsApp</th>
+                    </tr>
+                </thead>
+                <tbody id="dispatch-tbody"></tbody>
+            `;
+
+            const tbody = table.querySelector('#dispatch-tbody');
+
+            const renderLeads = (leadsData) => {
+                tbody.innerHTML = '';
+                leadsData.forEach(lead => {
+                    const row = document.createElement('tr');
+                    row.style.borderBottom = '1px solid #e5e7eb';
+                    row.dataset.leadId = lead.id;
+
+                    const getStatusBadge = (status) => {
+                        const badges = {
+                            'pendente': { text: 'Pendente', bg: '#f3f4f6', color: '#6b7280' },
+                            'enviando': { text: 'Enviando...', bg: '#fffbeb', color: '#f59e0b' },
+                            'sucesso': { text: 'OK', bg: '#ecfdf5', color: '#10b981' },
+                            'falha': { text: 'Erro', bg: '#fef2f2', color: '#ef4444' }
+                        };
+                        const badge = badges[status] || badges['pendente'];
+                        return `<span style="background: ${badge.bg}; color: ${badge.color}; padding: 4px 12px; border-radius: 12px; font-size: 0.75rem; font-weight: 600;">${badge.text}</span>`;
+                    };
+
+                    row.innerHTML = `
+                        <td style="padding: 12px;">
+                            <div style="font-weight: 500;">${lead.nome}</div>
+                            <div style="font-size: 0.75rem; color: #6b7280;">${lead.email || ''}</div>
+                        </td>
+                        <td style="padding: 12px; text-align: center;" data-channel="email">
+                            ${getStatusBadge(lead.status_email || 'pendente')}
+                        </td>
+                        <td style="padding: 12px; text-align: center;" data-channel="whatsapp">
+                            ${getStatusBadge(lead.status_whatsapp || 'pendente')}
+                        </td>
+                    `;
+                    tbody.appendChild(row);
+                });
+            };
+
+            renderLeads(leads);
+            gridContainer.appendChild(table);
+            body.appendChild(gridContainer);
+
+            // Footer
+            const footer = document.createElement('div');
+            Object.assign(footer.style, {
+                display: 'flex', justifyContent: 'space-between', alignItems: 'center',
+                padding: '1rem', borderTop: '1px solid #eee', backgroundColor: '#fff'
+            });
+
+            const statusText = document.createElement('span');
+            statusText.id = 'auto-refresh-status';
+            statusText.textContent = '🔄 Atualizando a cada 3 segundos...';
+            statusText.style.color = '#666';
+            statusText.style.fontSize = '0.875rem';
+
+            const btnCloseFooter = document.createElement('button');
+            btnCloseFooter.className = 'btn-secondary';
+            btnCloseFooter.textContent = 'Fechar';
+
+            footer.appendChild(statusText);
+            footer.appendChild(btnCloseFooter);
+
+            // Assemble
+            content.appendChild(header);
+            content.appendChild(body);
+            content.appendChild(footer);
+            container.appendChild(content);
+            document.body.appendChild(container);
+
+            // Auto-refresh logic
+            const getHeaders = () => ({
+                'Authorization': `Bearer ${localStorage.getItem('token')}`,
+                'Content-Type': 'application/json'
+            });
+
+            let updateInterval = setInterval(async () => {
+                try {
+                    const response = await fetch(`${API_BASE_URL}/marketing/campanhas/${campanha.id}/dispatch-details`, {
+                        headers: getHeaders()
+                    });
+
+                    if (!response.ok) return;
+
+                    const updatedLeads = await response.json();
+
+                    // Update stats
+                    const newEmailOk = updatedLeads.filter(l => l.status_email === 'sucesso').length;
+                    const newWhatsappOk = updatedLeads.filter(l => l.status_whatsapp === 'sucesso').length;
+                    const newPendentes = updatedLeads.filter(l =>
+                        (l.status_email === 'pendente' || !l.status_email) &&
+                        (l.status_whatsapp === 'pendente' || !l.status_whatsapp)
+                    ).length;
+
+                    const stats = summary.querySelectorAll('div[style*="font-size: 2rem"]');
+                    if (stats[1]) stats[1].textContent = newEmailOk;
+                    if (stats[2]) stats[2].textContent = newWhatsappOk;
+                    if (stats[3]) stats[3].textContent = newPendentes;
+
+                    // Update grid
+                    renderLeads(updatedLeads);
+                } catch (error) {
+                    console.error('Error updating dispatch status:', error);
+                }
+            }, 3000);
+
+            const close = () => {
+                clearInterval(updateInterval);
+                if (document.body.contains(container)) {
+                    document.body.removeChild(container);
+                }
+                if (onClose) onClose();
+                resolve(null);
+            };
+
+            btnClose.onclick = close;
+            btnCloseFooter.onclick = close;
+        });
     }
 };

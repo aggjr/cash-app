@@ -55,6 +55,23 @@ export const CampanhasManager = (project) => {
                 div.style.gap = '0.5rem';
                 div.style.justifyContent = 'center';
 
+                // Monitor button (eye icon) - only for active/sending campaigns
+                const total = item.total_leads || 0;
+                const processados = item.leads_processados || 0;
+                const isMonitorable = (processados > 0) || (total > 0 && processados >= total);
+
+                if (isMonitorable) {
+                    const btnMonitor = document.createElement('button');
+                    btnMonitor.innerHTML = '👁️';
+                    btnMonitor.title = 'Monitorar Disparos';
+                    btnMonitor.style.background = 'none';
+                    btnMonitor.style.border = 'none';
+                    btnMonitor.style.cursor = 'pointer';
+                    btnMonitor.style.fontSize = '1.1rem';
+                    btnMonitor.onclick = (e) => { e.stopPropagation(); monitorCampanha(item); };
+                    div.appendChild(btnMonitor);
+                }
+
                 const btnEdit = document.createElement('button');
                 btnEdit.innerHTML = '✏️';
                 btnEdit.title = 'Editar';
@@ -282,6 +299,31 @@ export const CampanhasManager = (project) => {
                 }
             }
         });
+    };
+
+    const monitorCampanha = async (campanha) => {
+        try {
+            // Fetch dispatch details
+            const response = await fetch(`${API_BASE_URL}/marketing/campanhas/${campanha.id}/dispatch-details`, {
+                headers: getHeaders()
+            });
+
+            if (!response.ok) {
+                throw new Error('Falha ao carregar detalhes de disparo');
+            }
+
+            const leads = await response.json();
+
+            // Open wizard in monitoring mode
+            await CampanhaWizard.showMonitoring({
+                campanha,
+                leads,
+                onClose: () => loadCampanhas()
+            });
+        } catch (error) {
+            console.error('Erro ao abrir monitoramento:', error);
+            showToast('Erro ao carregar monitoramento: ' + error.message, 'error');
+        }
     };
 
     const deleteCampanha = async (campanha) => {
