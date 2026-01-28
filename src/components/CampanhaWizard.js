@@ -972,8 +972,7 @@ export const CampanhaWizard = {
                     btn.textContent = 'Fechar';
                     btn.disabled = false;
                     btn.onclick = () => {
-                        close();
-                        window.location.reload(); // Refresh to show updated stats
+                        close(); // Just close the wizard, don't reload the page
                     };
                 }
 
