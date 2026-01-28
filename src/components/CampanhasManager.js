@@ -465,6 +465,7 @@ export const CampanhasManager = (project) => {
             <button id="btn-new" class="btn-primary">+ Nova Campanha</button>
             <button id="btn-refresh" class="btn-secondary" title="Atualizar Dados">🔄</button>
             <button id="btn-migrate" class="btn-secondary" title="Aplicar Migração do Redesign" style="background:#10b981; color:white;">🔧 Aplicar Migração</button>
+            <button id="btn-db-fix" class="btn-secondary" title="Corrigir Banco de Dados" style="background:#f59e0b; color:white;">🔨 Correções de BD</button>
         </div>
 
         <div id="table-container" style="flex: 1; overflow: hidden; display: flex; flex-direction: column;"></div>
@@ -497,6 +498,35 @@ export const CampanhasManager = (project) => {
             }
         } catch (error) {
             showToast('❌ Erro ao executar migração: ' + error.message, 'error');
+            console.error(error);
+        }
+    };
+
+    container.querySelector('#btn-db-fix').onclick = async () => {
+        if (!confirm('Deseja executar as correções de banco de dados? Isso irá corrigir a coluna status e outras estruturas necessárias.')) {
+            return;
+        }
+
+        try {
+            const response = await fetch(`${API_BASE_URL}/marketing/campanhas/db-fix`, {
+                method: 'POST',
+                headers: getHeaders()
+            });
+
+            const result = await response.json();
+
+            if (result.success) {
+                showToast('✅ Correções aplicadas com sucesso!', 'success');
+                console.log('Resultados:', result.results);
+                if (result.results) {
+                    result.results.forEach(r => console.log(r));
+                }
+            } else {
+                showToast('❌ Erro nas correções: ' + result.message, 'error');
+                console.error('Erro:', result.error);
+            }
+        } catch (error) {
+            showToast('❌ Erro ao executar correções: ' + error.message, 'error');
             console.error(error);
         }
     };
