@@ -167,39 +167,57 @@ const sendGenericEmail = async (toEmail, subject, htmlContent) => {
     const attachments = [];
     let processedHtml = htmlContent;
 
-    // Regex to find Base64 images: <img src="data:image/...;base64,..." />
-    const base64ImgRegex = /<img[^>]+src=["']data:image\/([^;]+);base64,([^"']+)["'][^>]*>/gi;
+    // Regex to find Base64 media (images and videos)
+    // Matches: <img src="...">, <video src="...">, <source src="...">
+    const base64MediaRegex = /<(img|video|source)[^>]+src=["']data:(image|video)\/([^;]+);base64,([^"']+)["'][^>]*>/gi;
+
     let match;
-    let imageIndex = 0;
+    let mediaIndex = 0;
 
-    console.log(`📧 [EMAIL SERVICE] Procurando imagens Base64...`);
+    console.log(`📧 [EMAIL SERVICE] Procurando mídias (imagem/vídeo) Base64...`);
 
-    while ((match = base64ImgRegex.exec(htmlContent)) !== null) {
-        const fullMatch = match[0];
-        const imageType = match[1]; // png, jpeg, gif, etc.
-        const base64Data = match[2];
+    // We can't easily iterate and replace in the same string with regex because indices shift.
+    // Instead we collect replacements first or just process carefully.
+    // Since distinct matches don't overlap, simpler to build attachments then simple replace?
+    // But exact string matching for replacement is safer.
 
-        imageIndex++;
-        const cid = `image${imageIndex}@cash.app`;
+    // Let's iterate using the regex
+    while ((match = base64MediaRegex.exec(processedHtml)) !== null) {
+        const fullTag = match[0];
+        const tagName = match[1].toLowerCase(); // img, video, source
+        const mediaType = match[2]; // image, video
+        const extension = match[3]; // png, mp4, etc.
+        const base64Data = match[4];
 
-        console.log(`📧 [EMAIL SERVICE] ✅ Imagem ${imageIndex} encontrada!`);
-        console.log(`📧 [EMAIL SERVICE]   - Tipo: ${imageType}`);
+        mediaIndex++;
+        const cid = `media${mediaIndex}@cash.app`;
+        const filename = `file${mediaIndex}.${extension}`;
+
+        console.log(`📧 [EMAIL SERVICE] ✅ Mídia ${mediaIndex} encontrada!`);
+        console.log(`📧 [EMAIL SERVICE]   - Tag: <${tagName}>`);
+        console.log(`📧 [EMAIL SERVICE]   - Tipo: ${mediaType}/${extension}`);
         console.log(`📧 [EMAIL SERVICE]   - Base64 length: ${base64Data.length} chars`);
         console.log(`📧 [EMAIL SERVICE]   - CID: ${cid}`);
 
         // Add attachment
         attachments.push({
-            filename: `image${imageIndex}.${imageType}`,
+            filename: filename,
             content: base64Data,
             encoding: 'base64',
             cid: cid
         });
 
-        // Replace Base64 src with cid reference
-        processedHtml = processedHtml.replace(fullMatch, `<img src="cid:${cid}" />`);
+        // Replace the src content in the tag, preserving other attributes
+        // Re-construct the src string to replace just that part?
+        // match[0] is the whole tag.
+        // Let's replace the specific data uri pattern "data:type/ext;base64,HASH" with "cid:CID"
+        // This is safer than replacing the whole tag.
+
+        const dataUriPattern = `data:${mediaType}/${extension};base64,${base64Data}`;
+        processedHtml = processedHtml.replace(dataUriPattern, `cid:${cid}`);
     }
 
-    console.log(`📧 [EMAIL SERVICE] Total de imagens convertidas: ${imageIndex}`);
+    console.log(`📧 [EMAIL SERVICE] Total de mídias convertidas: ${mediaIndex}`);
     console.log(`📧 [EMAIL SERVICE] HTML processado length: ${processedHtml.length} chars`);
 
     const mailOptions = {

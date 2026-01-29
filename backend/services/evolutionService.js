@@ -119,10 +119,12 @@ class EvolutionApiService {
             // Extract pure Base64 if it's a data URI
             let processedMedia = mediaUrl;
             if (mediaUrl.startsWith('data:')) {
-                const base64Match = mediaUrl.match(/data:image\/[^;]+;base64,(.+)/);
+                // Support both image and video data URIs
+                const base64Match = mediaUrl.match(/data:(image|video)\/[^;]+;base64,(.+)/);
                 if (base64Match) {
-                    processedMedia = base64Match[1];
+                    processedMedia = base64Match[2]; // Group 2 is the Base64 part
                     console.log(`🌐 [EVOLUTION] 🔧 Extraído Base64 puro (sem prefixo data:)`);
+                    console.log(`🌐 [EVOLUTION] 🔧 Tipo de mídia: ${base64Match[1]}`);
                     console.log(`🌐 [EVOLUTION] 🔧 Base64 length: ${processedMedia.length} chars`);
                     console.log(`🌐 [EVOLUTION] 🔧 Primeiros 50 chars: ${processedMedia.substring(0, 50)}`);
                 }

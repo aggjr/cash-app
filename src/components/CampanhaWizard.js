@@ -5,7 +5,30 @@ import 'quill/dist/quill.snow.css';
 
 Quill.register('modules/blotFormatter', BlotFormatter);
 import { showToast } from '../utils/toast.js';
+import { startOfWeek } from 'date-fns'; // Unused but likely available, or just ignore
 import { getApiBaseUrl } from '../utils/apiConfig.js';
+
+// --- CUSTOM VIDEO BLOT FOR QUILL ---
+const BlockEmbed = Quill.import('blots/block/embed');
+class VideoBlot extends BlockEmbed {
+    static create(value) {
+        let node = super.create();
+        node.setAttribute('src', value);
+        node.setAttribute('controls', '');
+        node.setAttribute('preload', 'metadata');
+        node.setAttribute('width', '100%');
+        node.setAttribute('style', 'max-width: 100%; border-radius: 8px; margin: 10px 0; background-color: #000;');
+        return node;
+    }
+
+    static value(node) {
+        return node.getAttribute('src');
+    }
+}
+VideoBlot.blotName = 'video-file';
+VideoBlot.tagName = 'video';
+Quill.register(VideoBlot);
+// -----------------------------------
 
 export const CampanhaWizard = {
     show({ onSave }) {
@@ -178,8 +201,8 @@ export const CampanhaWizard = {
                             <label>Assunto</label>
                             <div style="display:flex; align-items:center; gap:6px;">
                                 <span id="email-upload-status" style="font-size:0.75rem; color:#666; display:none;">Enviando...</span>
-                                <button id="btn-email-upload" class="btn-secondary" style="font-size:0.75rem; padding: 4px 10px; display:flex; align-items:center; gap:4px; height:28px;"><span>📷</span> Inserir Imagem</button>
-                                <input type="file" id="email-media-input" accept="image/*" style="display: none;" />
+                                <button id="btn-email-upload" class="btn-secondary" style="font-size:0.75rem; padding: 4px 10px; display:flex; align-items:center; gap:4px; height:28px;"><span>📷/🎥</span> Inserir Mídia</button>
+                                <input type="file" id="email-media-input" accept="image/*,video/*" style="display: none;" />
                             </div>
                         </div>
                         <input type="text" id="msg-email-subject" class="form-input" value="${state.message.emailSubject}" placeholder="Assunto do e-mail..." />
@@ -196,8 +219,8 @@ export const CampanhaWizard = {
                             <label>Mensagem WhatsApp</label>
                             <div style="display:flex; align-items:center; gap:6px;">
                                 <span id="whatsapp-upload-status" style="font-size:0.75rem; color:#666; display:none;">Enviando...</span>
-                                <button id="btn-whatsapp-upload" class="btn-secondary" style="font-size:0.75rem; padding: 4px 10px; display:flex; align-items:center; gap:4px; height:28px;"><span>📷</span> Inserir Imagem</button>
-                                <input type="file" id="whatsapp-media-input" accept="image/*" style="display: none;" />
+                                <button id="btn-whatsapp-upload" class="btn-secondary" style="font-size:0.75rem; padding: 4px 10px; display:flex; align-items:center; gap:4px; height:28px;"><span>📷/🎥</span> Inserir Mídia</button>
+                                <input type="file" id="whatsapp-media-input" accept="image/*,video/*" style="display: none;" />
                             </div>
                         </div>
                         <div id="editor-whatsapp-container" style="min-height:320px; background:white;"></div>
@@ -282,6 +305,10 @@ export const CampanhaWizard = {
                         contentHtml = rawText.replace(/\n/g, '<br>');
 
                         if (img) contentHtml = `<div style="margin-bottom:10px;"><img src="${img.src}" style="max-width:100%; border-radius:8px;"></div>` + contentHtml;
+                        else if (doc.querySelector('video')) {
+                            const video = doc.querySelector('video');
+                            contentHtml = `<div style="margin-bottom:10px;"><video src="${video.getAttribute('src')}" controls style="max-width:100%; border-radius:8px; background: black;"></video></div>` + contentHtml;
+                        }
                     }
                     previewBody.innerHTML = contentHtml.replace(/{{nome}}/g, state.leads[0]?.nome || 'João Silva');
                 };
@@ -322,9 +349,16 @@ export const CampanhaWizard = {
                                 const file = e.target.files[0]; if (!file) return;
                                 const formData = new FormData(); formData.append('file', file);
                                 try {
-                                    const res = await fetch(`${getApiBaseUrl()}/upload`, { method: 'POST', headers: { 'Authorization': `Bearer ${localStorage.getItem('token')}` }, body: formData }); const data = await res.json();
+                                    const res = await fetch(`${getApiBaseUrl()}/upload`, { method: 'POST', headers: { 'Authorization': `Bearer ${localStorage.getItem('token')}` }, body: formData });
+                                    const data = await res.json();
                                     const fullUrl = data.fileUrl.startsWith('http') ? data.fileUrl : `${getApiBaseUrl()}${data.fileUrl}`;
-                                    const range = quillEmail.getSelection(true) || { index: quillEmail.getLength(), length: 0 }; quillEmail.insertEmbed(range.index, 'image', fullUrl);
+                                    const range = quillEmail.getSelection(true) || { index: quillEmail.getLength(), length: 0 };
+
+                                    if (file.type.startsWith('video/')) {
+                                        quillEmail.insertEmbed(range.index, 'video-file', fullUrl);
+                                    } else {
+                                        quillEmail.insertEmbed(range.index, 'image', fullUrl);
+                                    }
                                 } catch (e) { console.error(e); } inputEmailUpload.value = '';
                             };
                         }
@@ -341,9 +375,16 @@ export const CampanhaWizard = {
                                 const file = e.target.files[0]; if (!file) return;
                                 const formData = new FormData(); formData.append('file', file);
                                 try {
-                                    const res = await fetch(`${getApiBaseUrl()}/upload`, { method: 'POST', headers: { 'Authorization': `Bearer ${localStorage.getItem('token')}` }, body: formData }); const data = await res.json();
+                                    const res = await fetch(`${getApiBaseUrl()}/upload`, { method: 'POST', headers: { 'Authorization': `Bearer ${localStorage.getItem('token')}` }, body: formData });
+                                    const data = await res.json();
                                     const fullUrl = data.fileUrl.startsWith('http') ? data.fileUrl : `${getApiBaseUrl()}${data.fileUrl}`;
-                                    const range = quillWhatsapp.getSelection(true) || { index: quillWhatsapp.getLength(), length: 0 }; quillWhatsapp.insertEmbed(range.index, 'image', fullUrl);
+                                    const range = quillWhatsapp.getSelection(true) || { index: quillWhatsapp.getLength(), length: 0 };
+
+                                    if (file.type.startsWith('video/')) {
+                                        quillWhatsapp.insertEmbed(range.index, 'video-file', fullUrl);
+                                    } else {
+                                        quillWhatsapp.insertEmbed(range.index, 'image', fullUrl);
+                                    }
                                 } catch (e) { console.error(e); } inputWa.value = '';
                             };
                         }

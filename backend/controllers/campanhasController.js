@@ -858,13 +858,16 @@ async function enviarWhatsAppParaLead(campanha, lead) {
     console.log(`💬 [WHATSAPP] Texto original length: ${campanha.whatsapp_text?.length || 0} chars`);
     console.log(`💬 [WHATSAPP] Media URL (campo): ${campanha.media_url || 'NULL'}`);
 
-    // Extract image from HTML
+    // Extract image or video from HTML
     const imgMatch = campanha.whatsapp_text.match(/<img[^>]+src=["']([^"']+)["'][^>]*>/i);
+    const videoMatch = campanha.whatsapp_text.match(/<video[^>]*>\s*<source[^>]+src=["']([^"']+)["'][^>]*>|<video[^>]+src=["']([^"']+)["'][^>]*>/i);
     let fullMediaUrl = null;
     let rawText = campanha.whatsapp_text;
+    let mediaType = null;
 
     if (imgMatch) {
         fullMediaUrl = imgMatch[1];
+        mediaType = 'image';
         console.log(`💬 [WHATSAPP] ✅ Imagem encontrada no HTML!`);
         console.log(`💬 [WHATSAPP] URL da imagem (do HTML): ${fullMediaUrl.substring(0, 100)}...`);
         console.log(`💬 [WHATSAPP] URL length: ${fullMediaUrl.length} chars`);
@@ -889,6 +892,27 @@ async function enviarWhatsAppParaLead(campanha, lead) {
 
         rawText = rawText.replace(/<img[^>]+>/gi, '').trim();
         console.log(`💬 [WHATSAPP] Texto após remover <img>: "${rawText.substring(0, 50)}..."`);
+    } else if (videoMatch) {
+        fullMediaUrl = videoMatch[1] || videoMatch[2];
+        mediaType = 'video';
+        console.log(`💬 [WHATSAPP] ✅ Vídeo encontrado no HTML!`);
+        console.log(`💬 [WHATSAPP] URL do vídeo (do HTML): ${fullMediaUrl.substring(0, 100)}...`);
+        console.log(`💬 [WHATSAPP] URL length: ${fullMediaUrl.length} chars`);
+
+        // Check if it's Base64
+        if (fullMediaUrl.startsWith('data:video/')) {
+            const base64Match = fullMediaUrl.match(/data:video\/[^;]+;base64,(.+)/);
+            if (base64Match) {
+                const base64Data = base64Match[1];
+                console.log(`💬 [WHATSAPP] 📊 Base64 de vídeo detectado!`);
+                console.log(`💬 [WHATSAPP] 📊 Base64 length: ${base64Data.length} chars`);
+                console.log(`💬 [WHATSAPP] 📊 Base64 primeiros 50 chars: ${base64Data.substring(0, 50)}`);
+                console.log(`💬 [WHATSAPP] 📊 Base64 últimos 50 chars: ${base64Data.substring(base64Data.length - 50)}`);
+            }
+        }
+
+        rawText = rawText.replace(/<video[^>]*>.*?<\/video>/gi, '').trim();
+        console.log(`💬 [WHATSAPP] Texto após remover <video>: "${rawText.substring(0, 50)}..."`);
     } else if (campanha.media_url) {
         const baseUrl = process.env.API_BASE_URL || 'https://cash.gutoapps.site';
         fullMediaUrl = campanha.media_url.startsWith('http') ? campanha.media_url : `${baseUrl}${campanha.media_url}`;
@@ -907,8 +931,12 @@ async function enviarWhatsAppParaLead(campanha, lead) {
     try {
         // Send via Evolution API
         if (fullMediaUrl) {
-            const isVideo = fullMediaUrl.match(/\.(mp4|mov|avi|wmv)$/i);
-            const mediatype = isVideo ? 'video' : 'image';
+            // Determine media type from detected tag or file extension
+            let mediatype = mediaType || 'image';
+            if (!mediaType) {
+                const isVideo = fullMediaUrl.match(/\.(mp4|mov|avi|wmv)$/i) || fullMediaUrl.startsWith('data:video/');
+                mediatype = isVideo ? 'video' : 'image';
+            }
             console.log(`💬 [WHATSAPP] 🚀 Enviando MÍDIA (${mediatype})...`);
             console.log(`💬 [WHATSAPP] URL: ${fullMediaUrl}`);
             console.log(`💬 [WHATSAPP] Caption: "${text.substring(0, 50)}..."`);
