@@ -26,9 +26,15 @@ class EvolutionApiService {
      * @param {string} text - Message text
      */
     async sendMessage(phone, text) {
+        console.log(`\n========== 🌐 EVOLUTION API - SEND MESSAGE ==========`);
+        console.log(`🌐 [EVOLUTION] Phone (original): ${phone}`);
+        console.log(`🌐 [EVOLUTION] Text length: ${text?.length || 0} chars`);
+        console.log(`🌐 [EVOLUTION] Text preview: "${text?.substring(0, 100)}..."`);
+
         try {
             // Remove non-numeric characters from phone
-            const cleanPhone = phone.replace(/\D/g, '');
+            const cleanPhone = phone.replace(/\\D/g, '');
+            console.log(`🌐 [EVOLUTION] Phone (cleaned): ${cleanPhone}`);
 
             // For Evolution API v2, typically just the number (DDI+DDD+NUM) is preferred in the payload.
             // Appending @s.whatsapp.net can sometimes cause issues if the API expects to resolve it.
@@ -36,6 +42,7 @@ class EvolutionApiService {
             const number = cleanPhone;
 
             const url = `${this.baseUrl}/message/sendText/${this.instanceName}`;
+            console.log(`🌐 [EVOLUTION] URL: ${url}`);
 
             const payload = {
                 number: number,
@@ -47,6 +54,9 @@ class EvolutionApiService {
                 }
             };
 
+            console.log(`🌐 [EVOLUTION] Payload:`, JSON.stringify(payload, null, 2));
+            console.log(`🌐 [EVOLUTION] 🚀 Fazendo requisição POST...`);
+
             fileLogger.log(`Sending WhatsApp message to ${number} via Evolution API...`);
 
             const response = await fetch(url, {
@@ -55,16 +65,29 @@ class EvolutionApiService {
                 body: JSON.stringify(payload)
             });
 
+            console.log(`🌐 [EVOLUTION] Response status: ${response.status} ${response.statusText}`);
+
             if (!response.ok) {
                 const errorText = await response.text();
+                console.error(`🌐 [EVOLUTION] ❌ Erro na resposta:`);
+                console.error(`🌐 [EVOLUTION] Status: ${response.status}`);
+                console.error(`🌐 [EVOLUTION] Body: ${errorText}`);
                 throw new Error(`Evolution API Error ${response.status}: ${errorText}`);
             }
 
             const data = await response.json();
+            console.log(`🌐 [EVOLUTION] ✅ Mensagem enviada com sucesso!`);
+            console.log(`🌐 [EVOLUTION] Response data:`, JSON.stringify(data, null, 2));
+            console.log(`========== 🌐 EVOLUTION API - SUCCESS ==========\n`);
 
             fileLogger.log(`WhatsApp message sent successfully: ${JSON.stringify(data)}`);
             return data;
         } catch (error) {
+            console.error(`🌐 [EVOLUTION] ❌ ERRO ao enviar mensagem:`);
+            console.error(`🌐 [EVOLUTION] Erro: ${error.message}`);
+            console.error(`🌐 [EVOLUTION] Stack: ${error.stack}`);
+            console.log(`========== 🌐 EVOLUTION API - FAILED ==========\n`);
+
             fileLogger.log(`Error sending WhatsApp message: ${error.message}`);
             throw error;
         }
@@ -78,11 +101,20 @@ class EvolutionApiService {
      * @param {string} caption 
      */
     async sendMedia(phone, mediaUrl, mediatype, caption) {
+        console.log(`\n========== 🌐 EVOLUTION API - SEND MEDIA ==========`);
+        console.log(`🌐 [EVOLUTION] Phone (original): ${phone}`);
+        console.log(`🌐 [EVOLUTION] Media URL: ${mediaUrl}`);
+        console.log(`🌐 [EVOLUTION] Media type: ${mediatype}`);
+        console.log(`🌐 [EVOLUTION] Caption length: ${caption?.length || 0} chars`);
+        console.log(`🌐 [EVOLUTION] Caption preview: "${caption?.substring(0, 100)}..."`);
+
         try {
-            const cleanPhone = phone.replace(/\D/g, '');
+            const cleanPhone = phone.replace(/\\D/g, '');
             const number = cleanPhone; // Evolution v2 prefers digits
+            console.log(`🌐 [EVOLUTION] Phone (cleaned): ${cleanPhone}`);
 
             const url = `${this.baseUrl}/message/sendMedia/${this.instanceName}`;
+            console.log(`🌐 [EVOLUTION] URL: ${url}`);
 
             const payload = {
                 number: number,
@@ -95,6 +127,9 @@ class EvolutionApiService {
                 }
             };
 
+            console.log(`🌐 [EVOLUTION] Payload:`, JSON.stringify(payload, null, 2));
+            console.log(`🌐 [EVOLUTION] 🚀 Fazendo requisição POST...`);
+
             fileLogger.log(`Sending WhatsApp MEDIA (${mediatype}) to ${number}...`);
 
             const response = await fetch(url, {
@@ -103,15 +138,29 @@ class EvolutionApiService {
                 body: JSON.stringify(payload)
             });
 
+            console.log(`🌐 [EVOLUTION] Response status: ${response.status} ${response.statusText}`);
+
             if (!response.ok) {
                 const errorText = await response.text();
+                console.error(`🌐 [EVOLUTION] ❌ Erro na resposta:`);
+                console.error(`🌐 [EVOLUTION] Status: ${response.status}`);
+                console.error(`🌐 [EVOLUTION] Body: ${errorText}`);
                 throw new Error(`Evolution API Error ${response.status}: ${errorText}`);
             }
 
             const data = await response.json();
+            console.log(`🌐 [EVOLUTION] ✅ Mídia enviada com sucesso!`);
+            console.log(`🌐 [EVOLUTION] Response data:`, JSON.stringify(data, null, 2));
+            console.log(`========== 🌐 EVOLUTION API - SUCCESS ==========\n`);
+
             fileLogger.log(`WhatsApp media sent successfully: ${JSON.stringify(data)}`);
             return data;
         } catch (error) {
+            console.error(`🌐 [EVOLUTION] ❌ ERRO ao enviar mídia:`);
+            console.error(`🌐 [EVOLUTION] Erro: ${error.message}`);
+            console.error(`🌐 [EVOLUTION] Stack: ${error.stack}`);
+            console.log(`========== 🌐 EVOLUTION API - FAILED ==========\n`);
+
             fileLogger.log(`Error sending WhatsApp media: ${error.message}`);
             throw error;
         }

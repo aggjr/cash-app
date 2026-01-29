@@ -680,39 +680,65 @@ async function processarDisparosBackground(campaignId) {
         // Process each lead
         for (let i = 0; i < leads.length; i++) {
             const lead = leads[i];
-            console.log(`📨 Processando lead ${i + 1}/${leads.length}: ${lead.nome}`);
+            console.log(`\n📨 ========== LEAD ${i + 1}/${leads.length} ==========`);
+            console.log(`📨 Nome: ${lead.nome}`);
+            console.log(`📨 E-mail: ${lead.email || 'N/A'}`);
+            console.log(`📨 Telefone: ${lead.telefone || 'N/A'}`);
+
             // Send Email if configured
             if (campanha.email_subject && campanha.email_body && lead.email) {
+                console.log(`\n📧 [STATUS] Iniciando envio de e-mail...`);
                 try {
                     await enviarEmailParaLead(campanha, lead);
-                    await db.query(
+                    console.log(`📧 [STATUS] ✅ E-mail enviado! Atualizando status no BD...`);
+
+                    const [result] = await db.query(
                         `UPDATE leads_campanhas SET status_email = 'sucesso' WHERE campanha_id = ? AND lead_id = ?`,
                         [campaignId, lead.id]
                     );
+                    console.log(`📧 [STATUS] ✅ Status atualizado! Rows affected: ${result.affectedRows}`);
                 } catch (error) {
-                    console.error(`Erro ao enviar email para lead ${lead.id}:`, error);
-                    await db.query(
+                    console.error(`📧 [STATUS] ❌ ERRO ao enviar email para lead ${lead.id}:`);
+                    console.error(`📧 [STATUS] Erro: ${error.message}`);
+                    console.error(`📧 [STATUS] Stack: ${error.stack}`);
+                    console.log(`📧 [STATUS] Marcando como 'falha' no BD...`);
+
+                    const [result] = await db.query(
                         `UPDATE leads_campanhas SET status_email = 'falha' WHERE campanha_id = ? AND lead_id = ?`,
                         [campaignId, lead.id]
                     );
+                    console.log(`📧 [STATUS] Status 'falha' registrado! Rows affected: ${result.affectedRows}`);
                 }
+            } else {
+                console.log(`📧 [STATUS] ⏭️ Pulando e-mail (não configurado ou lead sem e-mail)`);
             }
 
             // Send WhatsApp if configured
             if (campanha.whatsapp_text && lead.telefone) {
+                console.log(`\n💬 [STATUS] Iniciando envio de WhatsApp...`);
                 try {
                     await enviarWhatsAppParaLead(campanha, lead);
-                    await db.query(
+                    console.log(`💬 [STATUS] ✅ WhatsApp enviado! Atualizando status no BD...`);
+
+                    const [result] = await db.query(
                         `UPDATE leads_campanhas SET status_whatsapp = 'sucesso' WHERE campanha_id = ? AND lead_id = ?`,
                         [campaignId, lead.id]
                     );
+                    console.log(`💬 [STATUS] ✅ Status atualizado! Rows affected: ${result.affectedRows}`);
                 } catch (error) {
-                    console.error(`Erro ao enviar WhatsApp para lead ${lead.id}:`, error);
-                    await db.query(
+                    console.error(`💬 [STATUS] ❌ ERRO ao enviar WhatsApp para lead ${lead.id}:`);
+                    console.error(`💬 [STATUS] Erro: ${error.message}`);
+                    console.error(`💬 [STATUS] Stack: ${error.stack}`);
+                    console.log(`💬 [STATUS] Marcando como 'falha' no BD...`);
+
+                    const [result] = await db.query(
                         `UPDATE leads_campanhas SET status_whatsapp = 'falha' WHERE campanha_id = ? AND lead_id = ?`,
                         [campaignId, lead.id]
                     );
+                    console.log(`💬 [STATUS] Status 'falha' registrado! Rows affected: ${result.affectedRows}`);
                 }
+            } else {
+                console.log(`💬 [STATUS] ⏭️ Pulando WhatsApp (não configurado ou lead sem telefone)`);
             }
 
             // Wait before processing next lead (except for the last one)
@@ -741,6 +767,10 @@ async function processarDisparosBackground(campaignId) {
 
 // Helper function to send email to a lead
 async function enviarEmailParaLead(campanha, lead) {
+    console.log(`\n========== 📧 ENVIANDO E-MAIL ==========`);
+    console.log(`📧 [EMAIL] Lead: ${lead.nome} <${lead.email}>`);
+    console.log(`📧 [EMAIL] Campanha ID: ${campanha.id}`);
+
     const replaceVariables = (text) => {
         if (!text) return text;
         return text
@@ -749,23 +779,56 @@ async function enviarEmailParaLead(campanha, lead) {
             .replace(/\{\{telefone\}\}/gi, lead.telefone || '');
     };
 
+    console.log(`📧 [EMAIL] Subject original: "${campanha.email_subject}"`);
+    console.log(`📧 [EMAIL] Body length: ${campanha.email_body?.length || 0} chars`);
+
     const emailBody = replaceVariables(campanha.email_body);
     const emailSubject = replaceVariables(campanha.email_subject);
     let finalHtml = emailBody.includes('<') ? emailBody : emailBody.replace(/\n/g, '<br>');
 
+    console.log(`📧 [EMAIL] Subject após variáveis: "${emailSubject}"`);
+    console.log(`📧 [EMAIL] HTML final length: ${finalHtml.length} chars`);
+
     // Log image detection
     const hasImage = /<img[^>]+>/i.test(finalHtml);
-    console.log(`📧 Email: Sending to ${lead.email}, Has image: ${hasImage}`);
+    console.log(`📧 [EMAIL] Contém imagem: ${hasImage}`);
+
     if (hasImage) {
         const imgSrc = finalHtml.match(/<img[^>]+src=["']([^"']+)["'][^>]*>/i);
-        if (imgSrc) console.log(`📧 Email: Image URL: ${imgSrc[1]}`);
+        if (imgSrc) {
+            console.log(`📧 [EMAIL] ✅ Imagem detectada!`);
+            console.log(`📧 [EMAIL] URL da imagem: ${imgSrc[1]}`);
+            console.log(`📧 [EMAIL] Tipo de URL: ${imgSrc[1].startsWith('http') ? 'Externa (HTTP)' : imgSrc[1].startsWith('data:') ? 'Base64 inline' : 'Relativa'}`);
+        } else {
+            console.log(`📧 [EMAIL] ⚠️ Tag <img> encontrada mas sem src válido`);
+        }
+    } else {
+        console.log(`📧 [EMAIL] ℹ️ Nenhuma imagem no conteúdo`);
     }
 
-    await emailService.sendGenericEmail(lead.email, emailSubject, finalHtml);
+    try {
+        console.log(`📧 [EMAIL] 🚀 Chamando emailService.sendGenericEmail...`);
+        const result = await emailService.sendGenericEmail(lead.email, emailSubject, finalHtml);
+        console.log(`📧 [EMAIL] ✅ E-mail enviado com sucesso!`);
+        console.log(`📧 [EMAIL] Message ID: ${result?.messageId || 'N/A'}`);
+        console.log(`========== 📧 E-MAIL CONCLUÍDO ==========\n`);
+        return result;
+    } catch (error) {
+        console.error(`📧 [EMAIL] ❌ ERRO ao enviar e-mail:`);
+        console.error(`📧 [EMAIL] Erro: ${error.message}`);
+        console.error(`📧 [EMAIL] Stack: ${error.stack}`);
+        console.log(`========== 📧 E-MAIL FALHOU ==========\n`);
+        throw error;
+    }
 }
 
 // Helper function to send WhatsApp to a lead
 async function enviarWhatsAppParaLead(campanha, lead) {
+    console.log(`\n========== 💬 ENVIANDO WHATSAPP ==========`);
+    console.log(`💬 [WHATSAPP] Lead: ${lead.nome}`);
+    console.log(`💬 [WHATSAPP] Telefone: ${lead.telefone}`);
+    console.log(`💬 [WHATSAPP] Campanha ID: ${campanha.id}`);
+
     const replaceVariables = (text) => {
         if (!text) return text;
         return text
@@ -784,6 +847,9 @@ async function enviarWhatsAppParaLead(campanha, lead) {
             .trim();
     };
 
+    console.log(`💬 [WHATSAPP] Texto original length: ${campanha.whatsapp_text?.length || 0} chars`);
+    console.log(`💬 [WHATSAPP] Media URL (campo): ${campanha.media_url || 'NULL'}`);
+
     // Extract image from HTML
     const imgMatch = campanha.whatsapp_text.match(/<img[^>]+src=["']([^"']+)["'][^>]*>/i);
     let fullMediaUrl = null;
@@ -791,24 +857,52 @@ async function enviarWhatsAppParaLead(campanha, lead) {
 
     if (imgMatch) {
         fullMediaUrl = imgMatch[1];
-        console.log(`📸 WhatsApp: Image found - URL: ${fullMediaUrl}`);
+        console.log(`💬 [WHATSAPP] ✅ Imagem encontrada no HTML!`);
+        console.log(`💬 [WHATSAPP] URL da imagem (do HTML): ${fullMediaUrl}`);
         rawText = rawText.replace(/<img[^>]+>/gi, '').trim();
+        console.log(`💬 [WHATSAPP] Texto após remover <img>: "${rawText.substring(0, 50)}..."`);
     } else if (campanha.media_url) {
         const baseUrl = process.env.API_BASE_URL || 'https://cash.gutoapps.site';
         fullMediaUrl = campanha.media_url.startsWith('http') ? campanha.media_url : `${baseUrl}${campanha.media_url}`;
-        console.log(`📸 WhatsApp: Using legacy media_url - URL: ${fullMediaUrl}`);
+        console.log(`💬 [WHATSAPP] ✅ Usando media_url legado`);
+        console.log(`💬 [WHATSAPP] URL da mídia (campo): ${fullMediaUrl}`);
+    } else {
+        console.log(`💬 [WHATSAPP] ℹ️ Nenhuma mídia configurada`);
     }
 
     const variablesReplaced = replaceVariables(rawText);
     const text = convertHtmlToWhatsapp(variablesReplaced);
 
-    // Send via Evolution API
-    if (fullMediaUrl) {
-        const isVideo = fullMediaUrl.match(/\.(mp4|mov|avi|wmv)$/i);
-        const mediatype = isVideo ? 'video' : 'image';
-        await evolutionService.sendMedia(lead.telefone, fullMediaUrl, mediatype, text);
-    } else {
-        await evolutionService.sendMessage(lead.telefone, text);
+    console.log(`💬 [WHATSAPP] Texto final (após conversão): "${text.substring(0, 100)}..."`);
+    console.log(`💬 [WHATSAPP] Texto final length: ${text.length} chars`);
+
+    try {
+        // Send via Evolution API
+        if (fullMediaUrl) {
+            const isVideo = fullMediaUrl.match(/\.(mp4|mov|avi|wmv)$/i);
+            const mediatype = isVideo ? 'video' : 'image';
+            console.log(`💬 [WHATSAPP] 🚀 Enviando MÍDIA (${mediatype})...`);
+            console.log(`💬 [WHATSAPP] URL: ${fullMediaUrl}`);
+            console.log(`💬 [WHATSAPP] Caption: "${text.substring(0, 50)}..."`);
+
+            const result = await evolutionService.sendMedia(lead.telefone, fullMediaUrl, mediatype, text);
+            console.log(`💬 [WHATSAPP] ✅ Mídia enviada com sucesso!`);
+            console.log(`💬 [WHATSAPP] Resposta:`, JSON.stringify(result, null, 2));
+        } else {
+            console.log(`💬 [WHATSAPP] 🚀 Enviando TEXTO puro...`);
+            console.log(`💬 [WHATSAPP] Mensagem: "${text.substring(0, 100)}..."`);
+
+            const result = await evolutionService.sendMessage(lead.telefone, text);
+            console.log(`💬 [WHATSAPP] ✅ Texto enviado com sucesso!`);
+            console.log(`💬 [WHATSAPP] Resposta:`, JSON.stringify(result, null, 2));
+        }
+        console.log(`========== 💬 WHATSAPP CONCLUÍDO ==========\n`);
+    } catch (error) {
+        console.error(`💬 [WHATSAPP] ❌ ERRO ao enviar WhatsApp:`);
+        console.error(`💬 [WHATSAPP] Erro: ${error.message}`);
+        console.error(`💬 [WHATSAPP] Stack: ${error.stack}`);
+        console.log(`========== 💬 WHATSAPP FALHOU ==========\n`);
+        throw error;
     }
 }
 
