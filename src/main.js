@@ -372,11 +372,11 @@ function initAppLogic() {
 
   const versionEl = document.createElement('div');
   versionEl.id = versionId;
-  versionEl.textContent = 'v0.9.14';
+  versionEl.textContent = 'v0.9.15';
   versionEl.style.cssText = `
     position: fixed;
     bottom: 5px;
-    left: 8px; /* Slightly indented */
+    left: 60px; /* Moved right to avoid icon overlap */
     font-size: 0.75rem;
     color: var(--color-text-muted);
     opacity: 0.6;
