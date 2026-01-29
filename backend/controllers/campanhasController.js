@@ -866,7 +866,27 @@ async function enviarWhatsAppParaLead(campanha, lead) {
     if (imgMatch) {
         fullMediaUrl = imgMatch[1];
         console.log(`💬 [WHATSAPP] ✅ Imagem encontrada no HTML!`);
-        console.log(`💬 [WHATSAPP] URL da imagem (do HTML): ${fullMediaUrl}`);
+        console.log(`💬 [WHATSAPP] URL da imagem (do HTML): ${fullMediaUrl.substring(0, 100)}...`);
+        console.log(`💬 [WHATSAPP] URL length: ${fullMediaUrl.length} chars`);
+
+        // Check if it's Base64
+        if (fullMediaUrl.startsWith('data:image/')) {
+            const base64Match = fullMediaUrl.match(/data:image\/[^;]+;base64,(.+)/);
+            if (base64Match) {
+                const base64Data = base64Match[1];
+                console.log(`💬 [WHATSAPP] 📊 Base64 detectado!`);
+                console.log(`💬 [WHATSAPP] 📊 Base64 length: ${base64Data.length} chars`);
+                console.log(`💬 [WHATSAPP] 📊 Base64 primeiros 50 chars: ${base64Data.substring(0, 50)}`);
+                console.log(`💬 [WHATSAPP] 📊 Base64 últimos 50 chars: ${base64Data.substring(base64Data.length - 50)}`);
+
+                // Check if truncated (Base64 should end with = or alphanumeric, not in the middle)
+                const lastChar = base64Data.charAt(base64Data.length - 1);
+                if (base64Data.length < 1000) {
+                    console.log(`💬 [WHATSAPP] ⚠️ AVISO: Base64 muito pequeno (${base64Data.length} chars) - pode estar truncado!`);
+                }
+            }
+        }
+
         rawText = rawText.replace(/<img[^>]+>/gi, '').trim();
         console.log(`💬 [WHATSAPP] Texto após remover <img>: "${rawText.substring(0, 50)}..."`);
     } else if (campanha.media_url) {
