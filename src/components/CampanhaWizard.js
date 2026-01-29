@@ -11,6 +11,16 @@ export const CampanhaWizard = {
     show({ onSave }) {
         return new Promise((resolve) => {
             const API_BASE_URL = getApiBaseUrl();
+
+            // Helper function to get auth headers
+            const getHeaders = () => {
+                const token = localStorage.getItem('token');
+                return {
+                    'Content-Type': 'application/json',
+                    'Authorization': `Bearer ${token}`
+                };
+            };
+
             let container = document.getElementById('wizard-container');
             if (container) document.body.removeChild(container);
 
