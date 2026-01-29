@@ -19,7 +19,8 @@
         "quill": "^2.0.3",
         "quill-blot-formatter": "^1.0.5",
         "nodemailer": "^6.9.9",
-        "date-fns": "^3.3.1"
+        "date-fns": "^3.3.1",
+        "socket.io-client": "^4.7.4"
     },
     "overrides": {
         "quill-blot-formatter": {
