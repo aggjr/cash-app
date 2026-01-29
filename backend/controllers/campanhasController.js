@@ -1041,3 +1041,77 @@ exports.fixStatusColumn = async (req, res) => {
         });
     }
 };
+
+// Fix text columns to support large Base64 images
+exports.fixTextColumns = async (req, res) => {
+    try {
+        console.log('🔧 Fixing text columns for Base64 support...');
+        const steps = [];
+        const errors = [];
+
+        // Check current column types
+        const [columns] = await db.query(`
+            SELECT COLUMN_NAME, COLUMN_TYPE, CHARACTER_MAXIMUM_LENGTH
+            FROM INFORMATION_SCHEMA.COLUMNS
+            WHERE TABLE_SCHEMA = DATABASE()
+            AND TABLE_NAME = 'campanhas'
+            AND COLUMN_NAME IN ('whatsapp_text', 'email_body')
+        `);
+
+        steps.push('📊 Current columns:');
+        columns.forEach(col => {
+            steps.push(`  - ${col.COLUMN_NAME}: ${col.COLUMN_TYPE} (max: ${col.CHARACTER_MAXIMUM_LENGTH || 'N/A'})`);
+        });
+
+        // Fix whatsapp_text to LONGTEXT
+        try {
+            await db.query(`
+                ALTER TABLE campanhas 
+                MODIFY COLUMN whatsapp_text LONGTEXT
+            `);
+            steps.push('✅ whatsapp_text changed to LONGTEXT');
+        } catch (error) {
+            errors.push(`Error changing whatsapp_text: ${error.message}`);
+        }
+
+        // Fix email_body to LONGTEXT
+        try {
+            await db.query(`
+                ALTER TABLE campanhas 
+                MODIFY COLUMN email_body LONGTEXT
+            `);
+            steps.push('✅ email_body changed to LONGTEXT');
+        } catch (error) {
+            errors.push(`Error changing email_body: ${error.message}`);
+        }
+
+        // Verify changes
+        const [newColumns] = await db.query(`
+            SELECT COLUMN_NAME, COLUMN_TYPE
+            FROM INFORMATION_SCHEMA.COLUMNS
+            WHERE TABLE_SCHEMA = DATABASE()
+            AND TABLE_NAME = 'campanhas'
+            AND COLUMN_NAME IN ('whatsapp_text', 'email_body')
+        `);
+
+        steps.push('✅ Columns after changes:');
+        newColumns.forEach(col => {
+            steps.push(`  - ${col.COLUMN_NAME}: ${col.COLUMN_TYPE}`);
+        });
+
+        res.json({
+            success: true,
+            message: 'Text columns fixed successfully!',
+            steps,
+            errors
+        });
+    } catch (error) {
+        console.error('❌ Error fixing text columns:', error);
+        res.status(500).json({
+            success: false,
+            message: 'Error fixing text columns',
+            error: error.message
+        });
+    }
+};
+

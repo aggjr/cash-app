@@ -91,6 +91,8 @@ router.post('/campanhas/:id/disparar-async', campanhasController.dispararAsync);
 // FIX DB (Temporary)
 router.post('/campanhas/db-fix', campanhasController.runDatabaseFix);
 
+// Fix text columns for Base64 support
+router.post('/campanhas/fix-text-columns', campanhasController.fixTextColumns);
 
 // Detalhes de disparo (para monitoramento em tempo real)
 router.get('/campanhas/:id/dispatch-details', campanhasController.getDispatchDetails);

@@ -466,6 +466,7 @@ export const CampanhasManager = (project) => {
             <button id="btn-refresh" class="btn-secondary" title="Atualizar Dados">🔄</button>
             <button id="btn-migrate" class="btn-secondary" title="Aplicar Migração do Redesign" style="background:#10b981; color:white;">🔧 Aplicar Migração</button>
             <button id="btn-db-fix" class="btn-secondary" title="Corrigir Banco de Dados" style="background:#f59e0b; color:white;">🔨 Correções de BD</button>
+            <button id="btn-fix-text" class="btn-secondary" title="Corrigir Colunas de Texto (Base64)" style="background:#8b5cf6; color:white;">📝 Fix Base64</button>
         </div>
 
         <div id="table-container" style="flex: 1; overflow: hidden; display: flex; flex-direction: column;"></div>
@@ -527,6 +528,36 @@ export const CampanhasManager = (project) => {
             }
         } catch (error) {
             showToast('❌ Erro ao executar correções: ' + error.message, 'error');
+            console.error(error);
+        }
+    };
+
+    container.querySelector('#btn-fix-text').onclick = async () => {
+        if (!confirm('Deseja corrigir as colunas de texto para suportar imagens Base64 grandes? Isso irá alterar whatsapp_text e email_body para LONGTEXT.')) {
+            return;
+        }
+
+        try {
+            const response = await fetch(`${API_BASE_URL}/marketing/campanhas/fix-text-columns`, {
+                method: 'POST',
+                headers: getHeaders()
+            });
+
+            const result = await response.json();
+
+            if (result.success) {
+                showToast('✅ Colunas corrigidas com sucesso!', 'success');
+                console.log('Passos executados:');
+                result.steps.forEach(step => console.log(step));
+                if (result.errors.length > 0) {
+                    console.warn('Avisos:', result.errors);
+                }
+            } else {
+                showToast('❌ Erro ao corrigir colunas: ' + result.message, 'error');
+                console.error('Erro:', result.error);
+            }
+        } catch (error) {
+            showToast('❌ Erro ao executar correção: ' + error.message, 'error');
             console.error(error);
         }
     };
