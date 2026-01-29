@@ -116,9 +116,21 @@ class EvolutionApiService {
             const url = `${this.baseUrl}/message/sendMedia/${this.instanceName}`;
             console.log(`🌐 [EVOLUTION] URL: ${url}`);
 
+            // Extract pure Base64 if it's a data URI
+            let processedMedia = mediaUrl;
+            if (mediaUrl.startsWith('data:')) {
+                const base64Match = mediaUrl.match(/data:image\/[^;]+;base64,(.+)/);
+                if (base64Match) {
+                    processedMedia = base64Match[1];
+                    console.log(`🌐 [EVOLUTION] 🔧 Extraído Base64 puro (sem prefixo data:)`);
+                    console.log(`🌐 [EVOLUTION] 🔧 Base64 length: ${processedMedia.length} chars`);
+                    console.log(`🌐 [EVOLUTION] 🔧 Primeiros 50 chars: ${processedMedia.substring(0, 50)}`);
+                }
+            }
+
             const payload = {
                 number: number,
-                media: mediaUrl,
+                media: processedMedia,
                 mediatype: mediatype,
                 caption: caption,
                 options: {
