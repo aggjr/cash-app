@@ -376,7 +376,7 @@ function initAppLogic() {
   versionEl.style.cssText = `
     position: fixed;
     bottom: 5px;
-    left: 60px; /* Moved right to avoid icon overlap */
+    left: 140px; /* Moved right to avoid icon overlap */
     font-size: 0.75rem;
     color: var(--color-text-muted);
     opacity: 0.6;
