@@ -234,7 +234,7 @@ export const CampanhasManager = (project) => {
             campanhas = await response.json();
 
             if (sharedTable) {
-                sharedTable.setData(campanhas);
+                sharedTable.render(campanhas);
                 updateFooter();
             }
 
