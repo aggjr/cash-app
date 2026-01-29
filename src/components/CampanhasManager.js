@@ -227,18 +227,26 @@ export const CampanhasManager = (project) => {
                 headers: getHeaders()
             });
 
-            if (response.ok) {
-                campanhas = await response.json();
-                if (sharedTable) {
-                    sharedTable.render(campanhas);
-                }
-                updateFooter();
-            } else {
+            if (!response.ok) {
                 throw new Error('Falha ao carregar campanhas');
             }
+
+            campanhas = await response.json();
+
+            if (sharedTable) {
+                sharedTable.setData(campanhas);
+                updateFooter();
+            }
+
+            // Auto-refresh: Se houver campanhas "enviando", fazer polling
+            const hasEnviando = campanhas.some(c => c.status === 'enviando' || (c.total_leads > 0 && c.leads_processados < c.total_leads));
+            if (hasEnviando) {
+                console.log('🔄 Campanhas em envio detectadas. Auto-refresh em 5 segundos...');
+                setTimeout(loadCampanhas, 5000); // Refresh a cada 5 segundos
+            }
         } catch (error) {
-            console.error('Error loading campanhas:', error);
-            showToast('Erro de conexão', 'error');
+            console.error('Erro ao carregar campanhas:', error);
+            showToast('Erro ao carregar campanhas', 'error');
         } finally {
             if (sharedTable && container.querySelector('#table-container')) {
                 container.querySelector('#table-container').classList.remove('loading');

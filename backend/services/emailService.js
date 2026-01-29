@@ -156,21 +156,80 @@ const sendPasswordResetEmail = async (toEmail, toName, resetToken) => {
 
 // Send generic email (for campaigns)
 const sendGenericEmail = async (toEmail, subject, htmlContent) => {
+    console.log(`\n========== 📧 EMAIL SERVICE - SEND ==========`);
+    console.log(`📧 [EMAIL SERVICE] To: ${toEmail}`);
+    console.log(`📧 [EMAIL SERVICE] Subject: ${subject}`);
+    console.log(`📧 [EMAIL SERVICE] HTML length: ${htmlContent?.length || 0} chars`);
+
     const transporter = createTransporter();
+
+    // Extract Base64 images and convert to CID attachments
+    const attachments = [];
+    let processedHtml = htmlContent;
+
+    // Regex to find Base64 images: <img src="data:image/...;base64,..." />
+    const base64ImgRegex = /<img[^>]+src=["']data:image\/([^;]+);base64,([^"']+)["'][^>]*>/gi;
+    let match;
+    let imageIndex = 0;
+
+    console.log(`📧 [EMAIL SERVICE] Procurando imagens Base64...`);
+
+    while ((match = base64ImgRegex.exec(htmlContent)) !== null) {
+        const fullMatch = match[0];
+        const imageType = match[1]; // png, jpeg, gif, etc.
+        const base64Data = match[2];
+
+        imageIndex++;
+        const cid = `image${imageIndex}@cash.app`;
+
+        console.log(`📧 [EMAIL SERVICE] ✅ Imagem ${imageIndex} encontrada!`);
+        console.log(`📧 [EMAIL SERVICE]   - Tipo: ${imageType}`);
+        console.log(`📧 [EMAIL SERVICE]   - Base64 length: ${base64Data.length} chars`);
+        console.log(`📧 [EMAIL SERVICE]   - CID: ${cid}`);
+
+        // Add attachment
+        attachments.push({
+            filename: `image${imageIndex}.${imageType}`,
+            content: base64Data,
+            encoding: 'base64',
+            cid: cid
+        });
+
+        // Replace Base64 src with cid reference
+        processedHtml = processedHtml.replace(fullMatch, `<img src="cid:${cid}" />`);
+    }
+
+    console.log(`📧 [EMAIL SERVICE] Total de imagens convertidas: ${imageIndex}`);
+    console.log(`📧 [EMAIL SERVICE] HTML processado length: ${processedHtml.length} chars`);
 
     const mailOptions = {
         from: process.env.EMAIL_FROM || '"CASH App" <noreply@cash.com>',
         to: toEmail,
         subject: subject,
-        html: htmlContent
+        html: processedHtml,
+        attachments: attachments.length > 0 ? attachments : undefined
     };
 
+    if (attachments.length > 0) {
+        console.log(`📧 [EMAIL SERVICE] 📎 Anexos:`, attachments.map(a => ({
+            filename: a.filename,
+            cid: a.cid,
+            size: a.content.length
+        })));
+    }
+
     try {
+        console.log(`📧 [EMAIL SERVICE] 🚀 Enviando e-mail...`);
         const info = await transporter.sendMail(mailOptions);
-        console.log('Generic email sent:', info.messageId);
+        console.log(`📧 [EMAIL SERVICE] ✅ E-mail enviado com sucesso!`);
+        console.log(`📧 [EMAIL SERVICE] Message ID: ${info.messageId}`);
+        console.log(`========== 📧 EMAIL SERVICE - SUCCESS ==========\n`);
         return { success: true, messageId: info.messageId };
     } catch (error) {
-        console.error('Error sending generic email:', error);
+        console.error(`📧 [EMAIL SERVICE] ❌ ERRO ao enviar e-mail:`);
+        console.error(`📧 [EMAIL SERVICE] Erro: ${error.message}`);
+        console.error(`📧 [EMAIL SERVICE] Stack: ${error.stack}`);
+        console.log(`========== 📧 EMAIL SERVICE - FAILED ==========\n`);
         throw new Error('Failed to send email: ' + error.message);
     }
 };
