@@ -1002,6 +1002,8 @@ export const CampanhaWizard = {
                 }).then(res => {
                     if (res.ok) {
                         console.log('Disparos iniciados em background');
+                        // Start Polling for status updates in this screen
+                        startStep3Polling(campaignId);
                     } else {
                         console.error('Erro ao iniciar disparos');
                     }
@@ -1019,7 +1021,45 @@ export const CampanhaWizard = {
                 }
 
                 // Show toast that sending has started in background
-                showToast('Disparos iniciados! Acompanhe o progresso na lista de campanhas.', 'success');
+                showToast('Disparos iniciados! Acompanhe o progresso aqui ou na lista.', 'success');
+            };
+
+            let step3PollInterval = null;
+            const startStep3Polling = (campaignId) => {
+                const poll = async () => {
+                    if (!document.getElementById('wizard-container')) {
+                        clearInterval(step3PollInterval);
+                        return;
+                    }
+                    try {
+                        const res = await fetch(`${API_BASE_URL}/marketing/campanhas/${campaignId}/dispatch-details`, { headers: getHeaders() });
+                        if (!res.ok) return;
+                        const details = await res.json();
+
+                        details.forEach(lead => {
+                            // Map backend status 'sucesso' -> 'ok' for UI helper
+                            const mapStatus = (s) => {
+                                if (s === 'sucesso') return 'ok';
+                                if (s === 'falha') return 'error';
+                                if (s === 'enviando') return 'sending';
+                                return 'pending';
+                            };
+
+                            if (state.config.useEmail) {
+                                updateDispatchStatus(lead.id, 'email', mapStatus(lead.status_email));
+                            }
+                            if (state.config.useWhatsapp) {
+                                updateDispatchStatus(lead.id, 'whatsapp', mapStatus(lead.status_whatsapp));
+                            }
+                        });
+
+                        // Check if all done? Optional.
+                    } catch (e) { console.error("Poll error", e); }
+                };
+
+                if (step3PollInterval) clearInterval(step3PollInterval);
+                step3PollInterval = setInterval(poll, 2000);
+                poll();
             };
 
             const executeSend = async (campaignId, leadId, channel) => {
@@ -1199,7 +1239,8 @@ export const CampanhaWizard = {
             });
 
             const close = () => {
-                document.body.removeChild(container);
+                if (step3PollInterval) clearInterval(step3PollInterval);
+                if (container.parentNode) document.body.removeChild(container);
                 resolve(null);
             };
 
