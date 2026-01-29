@@ -1036,29 +1036,48 @@ export const CampanhaWizard = {
                         if (!res.ok) return;
                         const details = await res.json();
 
+                        let unfinishedCount = 0;
+                        const mapStatus = (s) => {
+                            if (s === 'sucesso') return 'ok';
+                            if (s === 'falha') return 'error';
+                            if (s === 'enviando') return 'sending';
+                            return 'pending';
+                        };
+
                         details.forEach(lead => {
-                            // Map backend status 'sucesso' -> 'ok' for UI helper
-                            const mapStatus = (s) => {
-                                if (s === 'sucesso') return 'ok';
-                                if (s === 'falha') return 'error';
-                                if (s === 'enviando') return 'sending';
-                                return 'pending';
-                            };
+                            let isOngoing = false;
 
                             if (state.config.useEmail) {
-                                updateDispatchStatus(lead.id, 'email', mapStatus(lead.status_email));
+                                const s = lead.status_email || 'pendente';
+                                updateDispatchStatus(lead.id, 'email', mapStatus(s));
+                                if (s === 'pendente' || s === 'enviando') isOngoing = true;
                             }
+
                             if (state.config.useWhatsapp) {
-                                updateDispatchStatus(lead.id, 'whatsapp', mapStatus(lead.status_whatsapp));
+                                const s = lead.status_whatsapp || 'pendente';
+                                updateDispatchStatus(lead.id, 'whatsapp', mapStatus(s));
+                                if (s === 'pendente' || s === 'enviando') isOngoing = true;
                             }
+
+                            if (isOngoing) unfinishedCount++;
                         });
 
-                        // Check if all done? Optional.
+                        // Stop polling if all leads are done (no pending/sending)
+                        if (unfinishedCount === 0) {
+                            console.log('Todos os leads processados. Parando polling.');
+                            clearInterval(step3PollInterval);
+                            showToast('Processamento da campanha concluído!', 'success');
+                            const btn = document.querySelector('#wizard-container .btn-primary');
+                            if (btn && btn.textContent === 'Fechar') {
+                                btn.textContent = 'Fechar'; // Keep as Fechar or add checkmark, user wants just stop polling
+                                // Maybe add a visual indicator?
+                            }
+                        }
                     } catch (e) { console.error("Poll error", e); }
                 };
 
                 if (step3PollInterval) clearInterval(step3PollInterval);
-                step3PollInterval = setInterval(poll, 2000);
+                step3PollInterval = setInterval(poll, 3000);
                 poll();
             };
 
