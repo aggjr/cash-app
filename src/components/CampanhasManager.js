@@ -218,34 +218,56 @@ export const CampanhasManager = (project) => {
     ];
 
     const loadCampanhas = async () => {
+        console.log('\n========== 📋 [FRONTEND] CARREGANDO CAMPANHAS ==========');
         try {
             if (sharedTable && container.querySelector('#table-container')) {
                 container.querySelector('#table-container').classList.add('loading');
             }
 
+            console.log('📋 [FRONTEND] Fazendo requisição GET /marketing/campanhas...');
             const response = await fetch(`${API_BASE_URL}/marketing/campanhas`, {
                 headers: getHeaders()
             });
+
+            console.log(`📋 [FRONTEND] Response status: ${response.status} ${response.statusText}`);
 
             if (!response.ok) {
                 throw new Error('Falha ao carregar campanhas');
             }
 
             campanhas = await response.json();
+            console.log(`📋 [FRONTEND] ✅ ${campanhas.length} campanhas carregadas`);
+
+            // Log detalhado de cada campanha
+            campanhas.forEach((c, i) => {
+                console.log(`📋 [FRONTEND] Campanha ${i + 1}: ID=${c.id}, Nome="${c.nome}", Status="${c.status}", Leads=${c.total_leads || 0}, Processados=${c.leads_processados || 0}`);
+            });
 
             if (sharedTable) {
+                console.log('📋 [FRONTEND] Renderizando tabela...');
                 sharedTable.render(campanhas);
                 updateFooter();
+                console.log('📋 [FRONTEND] ✅ Tabela renderizada');
             }
 
             // Auto-refresh: Se houver campanhas "enviando", fazer polling
             const hasEnviando = campanhas.some(c => c.status === 'enviando' || (c.total_leads > 0 && c.leads_processados < c.total_leads));
             if (hasEnviando) {
-                console.log('🔄 Campanhas em envio detectadas. Auto-refresh em 5 segundos...');
+                const enviandoCampanhas = campanhas.filter(c => c.status === 'enviando' || (c.total_leads > 0 && c.leads_processados < c.total_leads));
+                console.log(`🔄 [FRONTEND] ${enviandoCampanhas.length} campanha(s) em envio detectada(s):`);
+                enviandoCampanhas.forEach(c => {
+                    console.log(`🔄 [FRONTEND]   - ID ${c.id}: ${c.leads_processados || 0}/${c.total_leads || 0} processados`);
+                });
+                console.log('🔄 [FRONTEND] Auto-refresh agendado para 5 segundos...');
                 setTimeout(loadCampanhas, 5000); // Refresh a cada 5 segundos
+            } else {
+                console.log('✅ [FRONTEND] Nenhuma campanha em envio. Auto-refresh desativado.');
             }
+
+            console.log('========== 📋 [FRONTEND] CARREGAMENTO CONCLUÍDO ==========\n');
         } catch (error) {
-            console.error('Erro ao carregar campanhas:', error);
+            console.error('❌ [FRONTEND] Erro ao carregar campanhas:', error);
+            console.error('❌ [FRONTEND] Stack:', error.stack);
             showToast('Erro ao carregar campanhas', 'error');
         } finally {
             if (sharedTable && container.querySelector('#table-container')) {
