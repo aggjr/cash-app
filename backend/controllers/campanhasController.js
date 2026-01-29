@@ -713,7 +713,14 @@ async function processarDisparosBackground(campaignId) {
                 console.log(`📧 [STATUS] ⏭️ Pulando e-mail (não configurado ou lead sem e-mail)`);
             }
 
+
             // Send WhatsApp if configured
+            console.log(`\n💬 [DEBUG] Verificando condições para WhatsApp:`);
+            console.log(`💬 [DEBUG]   - campanha.whatsapp_text existe: ${!!campanha.whatsapp_text}`);
+            console.log(`💬 [DEBUG]   - campanha.whatsapp_text length: ${campanha.whatsapp_text?.length || 0}`);
+            console.log(`💬 [DEBUG]   - lead.telefone existe: ${!!lead.telefone}`);
+            console.log(`💬 [DEBUG]   - lead.telefone valor: ${lead.telefone || 'NULL'}`);
+
             if (campanha.whatsapp_text && lead.telefone) {
                 console.log(`\n💬 [STATUS] Iniciando envio de WhatsApp...`);
                 try {
@@ -739,6 +746,7 @@ async function processarDisparosBackground(campaignId) {
                 }
             } else {
                 console.log(`💬 [STATUS] ⏭️ Pulando WhatsApp (não configurado ou lead sem telefone)`);
+                console.log(`💬 [STATUS]   - Motivo: ${!campanha.whatsapp_text ? 'whatsapp_text vazio' : 'lead sem telefone'}`);
             }
 
             // Wait before processing next lead (except for the last one)
