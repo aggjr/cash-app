@@ -3,7 +3,6 @@ const emailService = require('../services/emailService');
 const evolutionService = require('../services/evolutionService');
 
 // Listar todas as campanhas
-// Listar todas as campanhas
 exports.getAll = async (req, res) => {
     try {
         const { status } = req.query;
@@ -630,8 +629,10 @@ exports.dispararAsync = async (req, res) => {
         // Return immediately - processing will happen in background
         res.json({ success: true, message: 'Disparos iniciados em background' });
 
+        const io = req.app.get('io'); // Get Socket.io instance
+
         // Process sends in background (don't await)
-        processarDisparosBackground(id).catch(err => {
+        processarDisparosBackground(id, io).catch(err => {
             console.error(`Erro ao processar disparos da campanha ${id}:`, err);
         });
     } catch (error) {
@@ -641,24 +642,20 @@ exports.dispararAsync = async (req, res) => {
 };
 
 // Função auxiliar para processar disparos em background
-async function processarDisparosBackground(campaignId) {
-    try {
-        console.log(`📤 Iniciando disparos em background para campanha ${campaignId}`);
+async function processarDisparosBackground(campaignId, io) {
+    console.log(`LOG: [Campaign ${campaignId}] Background processor STARTED.`);
+    if (!io) console.error(`LOG: [Campaign ${campaignId}] CRITICAL: Socket.IO instance is MISSING.`);
+    else console.log(`LOG: [Campaign ${campaignId}] Socket.IO instance attached.`);
 
+    try {
         // Update campaign status to "enviando"
-        await db.query(
-            `UPDATE campanhas SET status = 'enviando' WHERE id = ?`,
-            [campaignId]
-        );
+        await db.query(`UPDATE campanhas SET status = 'enviando' WHERE id = ?`, [campaignId]);
 
         // Get campaign details
-        const [campanhas] = await db.query(
-            `SELECT * FROM campanhas WHERE id = ?`,
-            [campaignId]
-        );
+        const [campanhas] = await db.query(`SELECT * FROM campanhas WHERE id = ?`, [campaignId]);
 
         if (campanhas.length === 0) {
-            console.error(`Campanha ${campaignId} não encontrada`);
+            console.error(`LOG: [Campaign ${campaignId}] Campaign not found.`);
             return;
         }
 
@@ -672,104 +669,96 @@ async function processarDisparosBackground(campaignId) {
             [campaignId]
         );
 
-        console.log(`📤 Processando ${leads.length} leads para campanha ${campaignId}`);
-
+        console.log(`LOG: [Campaign ${campaignId}] Processing ${leads.length} leads.`);
         const intervalSeconds = campanha.dispatch_interval_seconds || 120;
-        console.log(`⏱️  Intervalo entre disparos: ${intervalSeconds} segundos`);
+        console.log(`LOG: [Campaign ${campaignId}] Interval: ${intervalSeconds}s`);
 
         // Process each lead
         for (let i = 0; i < leads.length; i++) {
             const lead = leads[i];
-            console.log(`\n📨 ========== LEAD ${i + 1}/${leads.length} ==========`);
-            console.log(`📨 Nome: ${lead.nome}`);
-            console.log(`📨 E-mail: ${lead.email || 'N/A'}`);
-            console.log(`📨 Telefone: ${lead.telefone || 'N/A'}`);
+            console.log(`LOG: [Campaign ${campaignId}] Processing Lead ${i + 1}/${leads.length} (ID: ${lead.id})`);
+
+            if (io) {
+                io.emit('campaign_progress', {
+                    campaignId,
+                    total: leads.length,
+                    current: i + 1,
+                    percentage: Math.round(((i + 1) / leads.length) * 100),
+                    status: 'sending'
+                });
+            }
 
             // Send Email if configured
             if (campanha.email_subject && campanha.email_body && lead.email) {
-                console.log(`\n📧 [STATUS] Iniciando envio de e-mail...`);
+                console.log(`LOG: [Campaign ${campaignId}] Sending Email to lead ${lead.id}...`);
                 try {
                     await enviarEmailParaLead(campanha, lead);
-                    console.log(`📧 [STATUS] ✅ E-mail enviado! Atualizando status no BD...`);
 
-                    const [result] = await db.query(
+                    await db.query(
                         `UPDATE leads_campanhas SET status_email = 'sucesso' WHERE campanha_id = ? AND lead_id = ?`,
                         [campaignId, lead.id]
                     );
-                    console.log(`📧 [STATUS] ✅ Status atualizado! Rows affected: ${result.affectedRows}`);
-                } catch (error) {
-                    console.error(`📧 [STATUS] ❌ ERRO ao enviar email para lead ${lead.id}:`);
-                    console.error(`📧 [STATUS] Erro: ${error.message}`);
-                    console.error(`📧 [STATUS] Stack: ${error.stack}`);
-                    console.log(`📧 [STATUS] Marcando como 'falha' no BD...`);
 
-                    const [result] = await db.query(
+                    if (io) io.emit('lead_status_update', { campaignId, leadId: lead.id, channel: 'email', status: 'ok' });
+                } catch (error) {
+                    console.error(`LOG: [Campaign ${campaignId}] Email ERROR: ${error.message}`);
+                    await db.query(
                         `UPDATE leads_campanhas SET status_email = 'falha' WHERE campanha_id = ? AND lead_id = ?`,
                         [campaignId, lead.id]
                     );
-                    console.log(`📧 [STATUS] Status 'falha' registrado! Rows affected: ${result.affectedRows}`);
+                    if (io) io.emit('lead_status_update', { campaignId, leadId: lead.id, channel: 'email', status: 'error' });
                 }
             } else {
-                console.log(`📧 [STATUS] ⏭️ Pulando e-mail (não configurado ou lead sem e-mail)`);
+                console.log(`LOG: [Campaign ${campaignId}] Skipping Email.`);
             }
 
-
             // Send WhatsApp if configured
-            console.log(`\n💬 [DEBUG] Verificando condições para WhatsApp:`);
-            console.log(`💬 [DEBUG]   - campanha.whatsapp_text existe: ${!!campanha.whatsapp_text}`);
-            console.log(`💬 [DEBUG]   - campanha.whatsapp_text length: ${campanha.whatsapp_text?.length || 0}`);
-            console.log(`💬 [DEBUG]   - lead.telefone existe: ${!!lead.telefone}`);
-            console.log(`💬 [DEBUG]   - lead.telefone valor: ${lead.telefone || 'NULL'}`);
-
             if (campanha.whatsapp_text && lead.telefone) {
-                console.log(`\n💬 [STATUS] Iniciando envio de WhatsApp...`);
+                console.log(`LOG: [Campaign ${campaignId}] Sending WhatsApp to lead ${lead.id}...`);
                 try {
                     await enviarWhatsAppParaLead(campanha, lead);
-                    console.log(`💬 [STATUS] ✅ WhatsApp enviado! Atualizando status no BD...`);
 
-                    const [result] = await db.query(
+                    await db.query(
                         `UPDATE leads_campanhas SET status_whatsapp = 'sucesso' WHERE campanha_id = ? AND lead_id = ?`,
                         [campaignId, lead.id]
                     );
-                    console.log(`💬 [STATUS] ✅ Status atualizado! Rows affected: ${result.affectedRows}`);
-                } catch (error) {
-                    console.error(`💬 [STATUS] ❌ ERRO ao enviar WhatsApp para lead ${lead.id}:`);
-                    console.error(`💬 [STATUS] Erro: ${error.message}`);
-                    console.error(`💬 [STATUS] Stack: ${error.stack}`);
-                    console.log(`💬 [STATUS] Marcando como 'falha' no BD...`);
 
-                    const [result] = await db.query(
+                    if (io) io.emit('lead_status_update', { campaignId, leadId: lead.id, channel: 'whatsapp', status: 'ok' });
+                } catch (error) {
+                    console.error(`LOG: [Campaign ${campaignId}] WhatsApp ERROR: ${error.message}`);
+                    await db.query(
                         `UPDATE leads_campanhas SET status_whatsapp = 'falha' WHERE campanha_id = ? AND lead_id = ?`,
                         [campaignId, lead.id]
                     );
-                    console.log(`💬 [STATUS] Status 'falha' registrado! Rows affected: ${result.affectedRows}`);
+                    if (io) io.emit('lead_status_update', { campaignId, leadId: lead.id, channel: 'whatsapp', status: 'error' });
                 }
             } else {
-                console.log(`💬 [STATUS] ⏭️ Pulando WhatsApp (não configurado ou lead sem telefone)`);
-                console.log(`💬 [STATUS]   - Motivo: ${!campanha.whatsapp_text ? 'whatsapp_text vazio' : 'lead sem telefone'}`);
+                console.log(`LOG: [Campaign ${campaignId}] Skipping WhatsApp (Not configured or no phone).`);
             }
 
-            // Wait before processing next lead (except for the last one)
+            // Wait interval (except last)
             if (i < leads.length - 1) {
-                console.log(`⏳ Aguardando ${intervalSeconds} segundos antes do próximo lead...`);
+                console.log(`LOG: [Campaign ${campaignId}] Waiting ${intervalSeconds}s...`);
                 await new Promise(resolve => setTimeout(resolve, intervalSeconds * 1000));
             }
         }
 
-        // Update campaign status to "envio_finalizado"
-        await db.query(
-            `UPDATE campanhas SET status = 'envio_finalizado' WHERE id = ?`,
-            [campaignId]
-        );
+        // Finish
+        await db.query(`UPDATE campanhas SET status = 'envio_finalizado' WHERE id = ?`, [campaignId]);
+        console.log(`LOG: [Campaign ${campaignId}] Finished.`);
 
-        console.log(`✅ Disparos concluídos para campanha ${campaignId}`);
+        if (io) {
+            io.emit('campaign_complete', {
+                campaignId,
+                status: 'completed',
+                total: leads.length
+            });
+        }
+
     } catch (error) {
-        console.error(`Erro ao processar disparos da campanha ${campaignId}:`, error);
-        // Update campaign status to error
-        await db.query(
-            `UPDATE campanhas SET status = 'erro' WHERE id = ?`,
-            [campaignId]
-        ).catch(err => console.error('Erro ao atualizar status:', err));
+        console.error(`LOG: [Campaign ${campaignId}] CRITICAL ERROR:`, error);
+        await db.query(`UPDATE campanhas SET status = 'erro' WHERE id = ?`, [campaignId])
+            .catch(err => console.error('Error updating status to error:', err));
     }
 }
 
@@ -967,7 +956,18 @@ async function enviarWhatsAppParaLead(campanha, lead) {
 exports.getDispatchDetails = async (req, res) => {
     try {
         const { id } = req.params;
+        const page = parseInt(req.query.page) || 1;
+        const limit = parseInt(req.query.limit) || 20;
+        const offset = (page - 1) * limit;
 
+        // Get total count
+        const [countResult] = await db.query(
+            `SELECT COUNT(*) as total FROM leads_campanhas WHERE campanha_id = ?`,
+            [id]
+        );
+        const total = countResult[0].total;
+
+        // Get paginated leads
         const [leads] = await db.query(`
             SELECT 
                 l.id,
@@ -980,9 +980,18 @@ exports.getDispatchDetails = async (req, res) => {
             INNER JOIN leads_campanhas lc ON l.id = lc.lead_id
             WHERE lc.campanha_id = ?
             ORDER BY l.nome
-        `, [id]);
+            LIMIT ? OFFSET ?
+        `, [id, limit, offset]);
 
-        res.json(leads);
+        res.json({
+            leads,
+            pagination: {
+                total,
+                page,
+                limit,
+                totalPages: Math.ceil(total / limit)
+            }
+        });
     } catch (error) {
         console.error('Erro ao buscar detalhes de disparo:', error);
         res.status(500).json({ error: 'Erro ao buscar detalhes de disparo' });
@@ -1170,4 +1179,3 @@ exports.fixTextColumns = async (req, res) => {
         });
     }
 };
-

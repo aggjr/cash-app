@@ -27,7 +27,32 @@ const settingsRoutes = require('./routes/settings');
 const userManagementRoutes = require('./routes/userManagement');
 const marketingRoutes = require('./routes/marketing');
 
+const http = require('http');
+const { Server } = require("socket.io");
+
 const app = express();
+const server = http.createServer(app);
+
+// Socket.io setup
+// Socket.io setup
+const io = new Server(server, {
+    cors: {
+        origin: "*", // Adjust in production
+        methods: ["GET", "POST"]
+    }
+});
+
+io.on("connection", (socket) => {
+    console.log(`LOG: [Socket] Client connected: ${socket.id}`);
+
+    socket.on("disconnect", (reason) => {
+        console.log(`LOG: [Socket] Client disconnected: ${socket.id}, Reason: ${reason}`);
+    });
+});
+
+// Share io instance via app
+app.set('io', io);
+
 const PORT = process.env.PORT || 3001;
 
 // Middleware
@@ -201,9 +226,9 @@ function startServer() {
     // Prevent double start if multiple paths somehow triggered
     if (app.serverInstance) return;
 
-    app.serverInstance = app.listen(PORT, '0.0.0.0', () => {
+    app.serverInstance = server.listen(PORT, '0.0.0.0', () => {
         console.log(`\n========================================`);
-        console.log(`🚀 CASH Backend API Server`);
+        console.log(`🚀 CASH Backend API Server (with WebSockets)`);
         console.log(`========================================`);
         console.log(`⏰ Started at: ${new Date().toISOString()}`);
         console.log(`🌍 Timezone: ${Intl.DateTimeFormat().resolvedOptions().timeZone}`);
@@ -213,6 +238,7 @@ function startServer() {
         console.log(`========================================\n`);
     });
 }
+
 
 module.exports = app;
 

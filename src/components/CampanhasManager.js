@@ -494,9 +494,6 @@ export const CampanhasManager = (project) => {
         <div style="margin-bottom: 1rem; display: flex; gap: 0.5rem; align-items: center;">
             <button id="btn-new" class="btn-primary">+ Nova Campanha</button>
             <button id="btn-refresh" class="btn-secondary" title="Atualizar Dados">🔄</button>
-            <button id="btn-migrate" class="btn-secondary" title="Aplicar Migração do Redesign" style="background:#10b981; color:white;">🔧 Aplicar Migração</button>
-            <button id="btn-db-fix" class="btn-secondary" title="Corrigir Banco de Dados" style="background:#f59e0b; color:white;">🔨 Correções de BD</button>
-            <button id="btn-fix-text" class="btn-secondary" title="Corrigir Colunas de Texto (Base64)" style="background:#8b5cf6; color:white;">📝 Fix Base64</button>
         </div>
 
         <div id="table-container" style="flex: 1; overflow: hidden; display: flex; flex-direction: column;"></div>

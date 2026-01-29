@@ -7,6 +7,7 @@ Quill.register('modules/blotFormatter', BlotFormatter);
 import { showToast } from '../utils/toast.js';
 import { startOfWeek } from 'date-fns'; // Unused but likely available, or just ignore
 import { getApiBaseUrl } from '../utils/apiConfig.js';
+import SocketService from '../services/SocketService.js';
 
 // --- CUSTOM VIDEO BLOT FOR QUILL ---
 const BlockEmbed = Quill.import('blots/block/embed');
@@ -767,357 +768,326 @@ export const CampanhaWizard = {
                 return stepContainer;
             };
 
-            // STEP 3: EXECUTION
+            // --- Step 3: Confirmation & Progress (WebSocket + Pagination) ---
+            let step3State = {
+                page: 1, limit: 20, total: 0, totalPages: 1,
+                campaignId: null, socketActive: false, filterStatus: 'all'
+            };
+
             const renderStep3 = () => {
                 const stepContainer = document.createElement('div');
-                Object.assign(stepContainer.style, { display: 'flex', flexDirection: 'column', height: '100%', padding: '1rem', overflow: 'hidden' });
+                Object.assign(stepContainer.style, { display: 'flex', flexDirection: 'column', gap: '1rem', height: '100%' });
 
-                // Summary
-                const emailStatus = state.config.useEmail ? (state.message.emailSubject ? 'Pronto' : 'Pendente') : 'Não Habilitado';
-                const whatsappStatus = state.config.useWhatsapp ? (state.message.whatsappText ? 'Pronto' : 'Pendente') : 'Não Habilitado';
-
+                // Summary Header (Progress Bar)
                 const summaryDiv = document.createElement('div');
-                summaryDiv.style.marginBottom = '1rem';
                 summaryDiv.innerHTML = `
-                    <div style="background:#f0f9ff; padding:1rem; border-radius:8px; border:1px solid #bae6fd;">
-                        <h3 style="margin:0 0 0.5rem 0; color:var(--color-primary);">${state.config.nome || 'Campanha Sem Nome'}</h3>
-                        <div style="display:flex; gap:2rem; font-size:0.9rem;">
-                            <span>👥 <b>Leads:</b> ${state.leads.length}</span>
-                            <span>📧 <b>E-mail:</b> ${emailStatus}</span>
-                            <span>💬 <b>WhatsApp:</b> ${whatsappStatus}</span>
+                    <div style="background:#f8f9fa; padding:15px; border-radius:8px; border:1px solid #ddd; display:flex; flex-direction:column; gap:10px;">
+                        <div style="display:flex; justify-content:space-between; font-weight:bold;">
+                            <span>Progresso do Disparo</span>
+                            <span id="progress-text">0%</span>
                         </div>
+                        <div style="width:100%; background:#e9ecef; border-radius:10px; height:20px; overflow:hidden;">
+                            <div id="progress-bar" style="width:0%; height:100%; background:#4caf50; transition:width 0.5s;"></div>
+                        </div>
+                        <div style="display:flex; gap:15px; font-size:0.9rem; margin-top:5px;">
+                            <span style="color:#666;">Total: <b id="stat-total">0</b></span>
+                            <span style="color:#2196f3;">Enviando: <b id="stat-sending">0</b></span>
+                            <span style="color:#4caf50;">Sucesso: <b id="stat-success">0</b></span>
+                            <span style="color:#f44336;">Falhas: <b id="stat-error">0</b></span>
+                        </div>
+                    </div>
+                `;
+
+                // Filters & Toolbar
+                const toolbar = document.createElement('div');
+                toolbar.style.display = 'flex';
+                toolbar.style.justifyContent = 'space-between';
+                toolbar.style.alignItems = 'center';
+                toolbar.innerHTML = `
+                    <div style="font-weight:bold; color:#555;">Lista de Disparos</div>
+                    <div style="display:flex; gap:10px;">
+                        <button id="refresh-btn" class="btn-secondary" title="Atualizar Lista">🔄</button>
                     </div>
                 `;
 
                 // Grid Container
                 const gridContainer = document.createElement('div');
                 Object.assign(gridContainer.style, {
-                    flex: '1',
-                    border: '1px solid #ddd',
-                    borderRadius: '8px',
-                    overflow: 'hidden',
-                    display: 'flex',
-                    flexDirection: 'column',
-                    backgroundColor: 'white'
+                    flex: '1', border: '1px solid #ddd', borderRadius: '8px',
+                    overflow: 'hidden', display: 'flex', flexDirection: 'column', backgroundColor: 'white'
                 });
 
                 // Grid Header
                 const gridHeader = document.createElement('div');
                 Object.assign(gridHeader.style, {
-                    display: 'grid',
-                    gridTemplateColumns: '1fr 200px 200px',
-                    gap: '1rem',
-                    padding: '0.75rem 1rem',
-                    background: '#f8f9fa',
-                    borderBottom: '2px solid #ddd',
-                    fontWeight: 'bold',
-                    fontSize: '0.9rem',
-                    color: '#444'
+                    display: 'grid', gridTemplateColumns: '1fr 150px 150px', gap: '1rem',
+                    padding: '0.75rem 1rem', background: '#f8f9fa', borderBottom: '2px solid #ddd',
+                    fontWeight: 'bold', fontSize: '0.9rem', color: '#444'
                 });
+                gridHeader.innerHTML = `<div>👤 Lead</div><div style="text-align:center;">📧 E-mail</div><div style="text-align:center;">💬 WhatsApp</div>`;
 
-                gridHeader.innerHTML = `
-                    <div>👤 Lead</div>
-                    <div style="text-align: center;">📧 E-mail</div>
-                    <div style="text-align: center;">💬 WhatsApp</div>
-                `;
-
-                // Grid Body (scrollable)
+                // Grid Body
                 const gridBody = document.createElement('div');
-                Object.assign(gridBody.style, {
-                    flex: '1',
-                    overflowY: 'auto',
-                    padding: '0.5rem'
-                });
                 gridBody.id = 'dispatch-grid-body';
+                Object.assign(gridBody.style, { flex: '1', overflowY: 'auto', padding: '0.5rem' });
+
+                // Pagination Footer
+                const paginationDiv = document.createElement('div');
+                Object.assign(paginationDiv.style, {
+                    padding: '10px', borderTop: '1px solid #ddd', display: 'flex', justifyContent: 'center', gap: '10px', background: '#f8f9fa'
+                });
+                paginationDiv.innerHTML = `
+                    <button id="prev-page" class="btn-secondary" disabled>Anterior</button>
+                    <span id="page-info" style="align-self:center; font-weight:500;">Página 1 de 1</span>
+                    <button id="next-page" class="btn-secondary" disabled>Próxima</button>
+                `;
 
                 gridContainer.appendChild(gridHeader);
                 gridContainer.appendChild(gridBody);
+                gridContainer.appendChild(paginationDiv);
 
                 stepContainer.appendChild(summaryDiv);
+                stepContainer.appendChild(toolbar);
                 stepContainer.appendChild(gridContainer);
 
-                // Initialize Grid
+                // Bind Events
                 setTimeout(() => {
-                    renderDispatchGrid();
+                    if (stepContainer.querySelector('#prev-page')) {
+                        stepContainer.querySelector('#prev-page').onclick = () => changePage(-1);
+                        stepContainer.querySelector('#next-page').onclick = () => changePage(1);
+                        stepContainer.querySelector('#refresh-btn').onclick = () => loadPage(step3State.page);
+
+                        // Initial render (empty or cached preview)
+                        renderGrid(state.leads.slice(0, 20));
+                        document.getElementById('stat-total').textContent = state.leads.length;
+                    }
                 }, 0);
 
                 return stepContainer;
             };
 
-            const renderDispatchGrid = () => {
+            const changePage = (delta) => {
+                const newPage = step3State.page + delta;
+                if (newPage >= 1 && newPage <= step3State.totalPages) {
+                    step3State.page = newPage;
+                    loadPage(newPage);
+                }
+            };
+
+            const loadPage = async (page) => {
+                if (!step3State.campaignId) return;
+
+                try {
+                    const gridBody = document.getElementById('dispatch-grid-body');
+                    if (gridBody) gridBody.style.opacity = '0.5';
+
+                    const res = await fetch(`${API_BASE_URL}/marketing/campanhas/${step3State.campaignId}/dispatch-details?page=${page}&limit=${step3State.limit}`, {
+                        headers: getHeaders()
+                    });
+
+                    if (res.ok) {
+                        const data = await res.json();
+                        step3State.total = data.pagination?.total || data.length || 0;
+                        step3State.totalPages = data.pagination?.totalPages || 1;
+                        renderGrid(data.leads || data);
+                        updatePaginationUI();
+                    }
+                } catch (e) {
+                    console.error("Erro ao carregar página:", e);
+                } finally {
+                    const gridBody = document.getElementById('dispatch-grid-body');
+                    if (gridBody) gridBody.style.opacity = '1';
+                }
+            };
+
+            const updatePaginationUI = () => {
+                const info = document.getElementById('page-info');
+                const prev = document.getElementById('prev-page');
+                const next = document.getElementById('next-page');
+                if (info && prev && next) {
+                    info.textContent = `Página ${step3State.page} de ${step3State.totalPages}`;
+                    prev.disabled = step3State.page <= 1;
+                    next.disabled = step3State.page >= step3State.totalPages;
+                }
+            };
+
+            const renderGrid = (leads) => {
                 const gridBody = document.getElementById('dispatch-grid-body');
                 if (!gridBody) return;
                 gridBody.innerHTML = '';
 
-                if (state.leads.length === 0) {
-                    gridBody.innerHTML = '<div style="padding:2rem; text-align:center; color:#999;">Nenhum lead selecionado</div>';
+                if (!leads || leads.length === 0) {
+                    gridBody.innerHTML = '<div style="padding:2rem; text-align:center; color:#999;">Nenhum lead nesta página</div>';
                     return;
                 }
 
-                state.leads.forEach(lead => {
+                leads.forEach(lead => {
                     const row = document.createElement('div');
-                    row.id = `dispatch-row-${lead.id}`;
+                    row.id = `row-${lead.id}`;
                     Object.assign(row.style, {
-                        display: 'grid',
-                        gridTemplateColumns: '1fr 200px 200px',
-                        gap: '1rem',
-                        padding: '0.75rem 1rem',
-                        borderBottom: '1px solid #eee',
-                        alignItems: 'center',
-                        fontSize: '0.9rem',
-                        transition: 'background-color 0.2s'
+                        display: 'grid', gridTemplateColumns: '1fr 150px 150px', gap: '1rem',
+                        padding: '0.75rem 1rem', borderBottom: '1px solid #eee', alignItems: 'center', fontSize: '0.9rem'
                     });
-
-                    row.onmouseover = () => row.style.backgroundColor = '#f9fafb';
-                    row.onmouseout = () => row.style.backgroundColor = 'transparent';
 
                     // Lead Info
-                    const leadInfo = document.createElement('div');
-                    leadInfo.innerHTML = `
-                        <div style="font-weight: 500; color: #333;">${lead.nome}</div>
-                        <div style="font-size: 0.8rem; color: #666;">${lead.email || lead.telefone || ''}</div>
+                    row.innerHTML = `
+                        <div>
+                            <div style="font-weight: 500;">${lead.nome}</div>
+                            <div style="font-size: 0.8rem; color: #666;">${lead.email || lead.telefone || ''}</div>
+                        </div>
                     `;
 
-                    // Email Status
-                    const emailStatus = document.createElement('div');
-                    emailStatus.id = `status-email-${lead.id}`;
-                    Object.assign(emailStatus.style, {
-                        textAlign: 'center',
-                        padding: '0.5rem',
-                        borderRadius: '6px',
-                        fontWeight: '500',
-                        fontSize: '0.85rem'
-                    });
+                    // Helper for status
+                    const createStatus = (type, val) => {
+                        const el = document.createElement('div');
+                        el.id = `status-${type}-${lead.id}`;
+                        el.style.textAlign = 'center';
+                        el.style.padding = '5px';
+                        el.style.borderRadius = '4px';
+                        el.style.fontSize = '0.8rem';
+                        updateStatusElement(el, val || 'pendente');
+                        return el;
+                    };
 
-                    if (!state.config.useEmail) {
-                        emailStatus.textContent = '—';
-                        emailStatus.style.color = '#999';
-                        emailStatus.style.backgroundColor = '#f5f5f5';
-                    } else {
-                        emailStatus.textContent = 'Pendente';
-                        emailStatus.style.color = '#666';
-                        emailStatus.style.backgroundColor = '#f0f0f0';
-                    }
+                    row.appendChild(createStatus('email', state.config.useEmail ? lead.status_email : '—'));
+                    row.appendChild(createStatus('whatsapp', state.config.useWhatsapp ? lead.status_whatsapp : '—'));
 
-                    // WhatsApp Status
-                    const whatsappStatus = document.createElement('div');
-                    whatsappStatus.id = `status-whatsapp-${lead.id}`;
-                    Object.assign(whatsappStatus.style, {
-                        textAlign: 'center',
-                        padding: '0.5rem',
-                        borderRadius: '6px',
-                        fontWeight: '500',
-                        fontSize: '0.85rem'
-                    });
-
-                    if (!state.config.useWhatsapp) {
-                        whatsappStatus.textContent = '—';
-                        whatsappStatus.style.color = '#999';
-                        whatsappStatus.style.backgroundColor = '#f5f5f5';
-                    } else {
-                        whatsappStatus.textContent = 'Pendente';
-                        whatsappStatus.style.color = '#666';
-                        whatsappStatus.style.backgroundColor = '#f0f0f0';
-                    }
-
-                    row.appendChild(leadInfo);
-                    row.appendChild(emailStatus);
-                    row.appendChild(whatsappStatus);
                     gridBody.appendChild(row);
                 });
             };
 
-            const updateDispatchStatus = (leadId, channel, status, message = '') => {
-                const statusEl = document.getElementById(`status-${channel}-${leadId}`);
-                if (!statusEl) return;
-
-                // Status can be: 'pending', 'sending', 'ok', 'error'
-                const statusConfig = {
-                    pending: { text: 'Pendente', color: '#666', bg: '#f0f0f0' },
-                    sending: { text: 'Enviando...', color: '#f59e0b', bg: '#fef3c7' },
-                    ok: { text: 'OK', color: '#10b981', bg: '#d1fae5' },
-                    error: { text: 'NÃO OK', color: '#ef4444', bg: '#fee2e2' }
-                };
-
-                const config = statusConfig[status] || statusConfig.pending;
-                statusEl.textContent = config.text;
-                statusEl.style.color = config.color;
-                statusEl.style.backgroundColor = config.bg;
-
-                if (message) {
-                    statusEl.title = message;
-                    statusEl.style.cursor = 'help';
+            const updateStatusElement = (el, status) => {
+                if (status === '—') {
+                    el.textContent = '—'; el.style.background = '#f5f5f5'; el.style.color = '#999'; return;
                 }
+                const map = {
+                    'pendente': { t: 'Pendente', c: '#666', b: '#f0f0f0' },
+                    'sending': { t: 'Enviando...', c: '#f59e0b', b: '#fef3c7' },
+                    'enviando': { t: 'Enviando...', c: '#f59e0b', b: '#fef3c7' },
+                    'sucesso': { t: 'OK', c: '#10b981', b: '#d1fae5' },
+                    'ok': { t: 'OK', c: '#10b981', b: '#d1fae5' },
+                    'falha': { t: 'Erro', c: '#ef4444', b: '#fee2e2' },
+                    'error': { t: 'Erro', c: '#ef4444', b: '#fee2e2' }
+                };
+                const cfg = map[status] || map['pendente'];
+                el.textContent = cfg.t;
+                el.style.color = cfg.c;
+                el.style.backgroundColor = cfg.b;
             };
 
-            // Execution Logic
+            const setupSocketListeners = (campaignId) => {
+                console.log(`LOG: [CampanhaWizard] setupSocketListeners called for campaign ${campaignId}`);
+                if (step3State.socketActive) {
+                    console.log('LOG: [CampanhaWizard] Socket listeners already active. Skipping.');
+                    return;
+                }
+
+                console.log('LOG: [CampanhaWizard] Connecting to SocketService...');
+                SocketService.connect();
+                step3State.socketActive = true;
+
+                SocketService.on('connect', () => console.log('LOG: [CampanhaWizard] ✅ Socket Connected via Wizard'));
+
+                SocketService.on('campaign_progress', (data) => {
+                    console.log('LOG: [CampanhaWizard] 📥 Received campaign_progress:', data);
+                    if (data.campaignId != campaignId) return;
+
+                    const bar = document.getElementById('progress-bar');
+                    const text = document.getElementById('progress-text');
+                    if (bar && text) {
+                        bar.style.width = `${data.percentage}%`;
+                        text.textContent = `${data.percentage}%`;
+                    }
+
+                    const statTotal = document.getElementById('stat-total');
+                    const statSending = document.getElementById('stat-sending');
+                    if (statTotal) statTotal.textContent = data.total;
+                    if (statSending) statSending.textContent = data.current;
+                });
+
+                SocketService.on('lead_status_update', (data) => {
+                    console.log('LOG: [CampanhaWizard] 📥 Received lead_status_update:', data);
+                    if (data.campaignId != campaignId) return;
+
+                    // Update row if visible
+                    const el = document.getElementById(`status-${data.channel}-${data.leadId}`);
+                    if (el) {
+                        updateStatusElement(el, data.status);
+                    }
+                    // Update Stats implicitly
+                    const isSuccess = data.status === 'ok' || data.status === 'sucesso';
+                    const statId = isSuccess ? 'stat-success' : 'stat-error';
+                    const statEl = document.getElementById(statId);
+                    if (statEl) {
+                        const currentVal = parseInt(statEl.textContent) || 0;
+                        statEl.textContent = currentVal + 1;
+                    }
+                });
+
+                SocketService.on('campaign_complete', (data) => {
+                    console.log('LOG: [CampanhaWizard] 📥 Received campaign_complete:', data);
+                    if (data.campaignId != campaignId) return;
+                    showToast('Campanha concluída com sucesso!', 'success');
+
+                    const btn = document.querySelector('#wizard-container .btn-primary');
+                    if (btn) {
+                        btn.textContent = 'Fechar - Concluído';
+                        btn.disabled = false;
+                    }
+                    loadPage(step3State.page);
+                });
+            };
+
+            // Execution Logic (Socket)
             const startExecution = async () => {
                 const btn = footer.querySelector('button.btn-primary');
-                if (btn) btn.disabled = true;
-                btn.textContent = 'Salvando e Iniciando...';
+                if (btn) {
+                    btn.disabled = true;
+                    btn.textContent = 'Iniciando...';
+                }
 
+                // 1. Save Campaign First
                 let campaignId = null;
-
-                // 1. Save Campaign
                 try {
                     if (onSave) {
-                        const payload = {
-                            ...state.config,
-                            leadsIds: state.leads.map(l => l.id),
-                            message: state.message
-                        };
-                        const savedCampaign = await onSave(payload);
-                        if (savedCampaign && savedCampaign.id) {
-                            campaignId = savedCampaign.id;
-                        } else {
-                            // If ID not returned (legacy controller?), we might have an issue.
-                            // But we updated CampanhasManager to return it.
-                            console.warn("Sem ID salvo, tentando prosseguir (risco de falha)...", savedCampaign);
-                            // Fallback if needed? 
-                        }
+                        const payload = { ...state.config, leadsIds: state.leads.map(l => l.id), message: state.message };
+                        const saved = await onSave(payload);
+                        campaignId = saved?.id;
                     }
                 } catch (e) {
-                    console.error(e);
-                    showToast('Erro ao salvar campanha: ' + (e.message || 'Erro desconhecido'), 'error');
-                    if (btn) {
-                        btn.disabled = false;
-                        btn.textContent = 'Iniciar Disparos';
-                    }
-                    return;
+                    showToast('Erro ao salvar: ' + e.message, 'error');
+                    if (btn) btn.disabled = false; return;
                 }
 
-                if (!campaignId) {
-                    showToast('Erro: ID da campanha não obtido. Não é possível enviar.', 'error');
-                    if (btn) {
-                        btn.disabled = false;
-                        btn.textContent = 'Iniciar Disparos';
-                    }
-                    return;
-                }
+                if (!campaignId) { showToast('Erro ID campanha.', 'error'); if (btn) btn.disabled = false; return; }
+                step3State.campaignId = campaignId;
 
-                // Trigger async dispatch in backend - don't wait for completion
+                // 2. Start Socket Listeners
+                setupSocketListeners(campaignId);
+
+                // 3. Trigger Dispatch
                 fetch(`${API_BASE_URL}/marketing/campanhas/${campaignId}/disparar-async`, {
                     method: 'POST',
                     headers: getHeaders()
                 }).then(res => {
                     if (res.ok) {
-                        console.log('Disparos iniciados em background');
-                        // Start Polling for status updates in this screen
-                        startStep3Polling(campaignId);
+                        showToast('Disparos iniciados! Acompanhe.', 'success');
+                        loadPage(1);
+
+                        // Change button to Close
+                        if (btn) {
+                            btn.textContent = 'Fechar';
+                            btn.disabled = false;
+                            btn.onclick = () => close();
+                        }
                     } else {
-                        console.error('Erro ao iniciar disparos');
+                        showToast('Erro ao iniciar disparos.', 'error');
+                        if (btn) btn.disabled = false;
                     }
                 }).catch(err => {
-                    console.error('Erro ao iniciar disparos:', err);
+                    console.error('Erro disparar:', err);
+                    if (btn) btn.disabled = false;
                 });
-
-                // Change button to "Fechar" immediately - dispatch is happening in background
-                if (btn) {
-                    btn.textContent = 'Fechar';
-                    btn.disabled = false;
-                    btn.onclick = () => {
-                        close(); // Just close the wizard, don't reload the page
-                    };
-                }
-
-                // Show toast that sending has started in background
-                showToast('Disparos iniciados! Acompanhe o progresso aqui ou na lista.', 'success');
-            };
-
-            let step3PollInterval = null;
-            const startStep3Polling = (campaignId) => {
-                const poll = async () => {
-                    if (!document.getElementById('wizard-container')) {
-                        clearInterval(step3PollInterval);
-                        return;
-                    }
-                    try {
-                        const res = await fetch(`${API_BASE_URL}/marketing/campanhas/${campaignId}/dispatch-details`, { headers: getHeaders() });
-                        if (!res.ok) return;
-                        const details = await res.json();
-
-                        let unfinishedCount = 0;
-                        const mapStatus = (s) => {
-                            if (s === 'sucesso') return 'ok';
-                            if (s === 'falha') return 'error';
-                            if (s === 'enviando') return 'sending';
-                            return 'pending';
-                        };
-
-                        details.forEach(lead => {
-                            let isOngoing = false;
-
-                            if (state.config.useEmail) {
-                                const s = lead.status_email || 'pendente';
-                                updateDispatchStatus(lead.id, 'email', mapStatus(s));
-                                if (s === 'pendente' || s === 'enviando') isOngoing = true;
-                            }
-
-                            if (state.config.useWhatsapp) {
-                                const s = lead.status_whatsapp || 'pendente';
-                                updateDispatchStatus(lead.id, 'whatsapp', mapStatus(s));
-                                if (s === 'pendente' || s === 'enviando') isOngoing = true;
-                            }
-
-                            if (isOngoing) unfinishedCount++;
-                        });
-
-                        // Stop polling if all leads are done (no pending/sending)
-                        if (unfinishedCount === 0) {
-                            console.log('Todos os leads processados. Parando polling.');
-                            clearInterval(step3PollInterval);
-                            showToast('Processamento da campanha concluído!', 'success');
-                            const btn = document.querySelector('#wizard-container .btn-primary');
-                            if (btn && btn.textContent === 'Fechar') {
-                                btn.textContent = 'Fechar'; // Keep as Fechar or add checkmark, user wants just stop polling
-                                // Maybe add a visual indicator?
-                            }
-                        }
-                    } catch (e) { console.error("Poll error", e); }
-                };
-
-                if (step3PollInterval) clearInterval(step3PollInterval);
-                step3PollInterval = setInterval(poll, 3000);
-                poll();
-            };
-
-            const executeSend = async (campaignId, leadId, channel) => {
-                updateStatusItem(channel, leadId, 'Enviando...', 'orange');
-
-                try {
-                    const res = await fetch(`${API_BASE_URL}/marketing/campanhas/${campaignId}/disparar`, {
-                        method: 'POST',
-                        headers: getHeaders(),
-                        body: JSON.stringify({ leadId, channel })
-                    });
-
-                    if (res.ok) {
-                        updateStatusItem(channel, leadId, 'OK', 'green', true);
-                    } else {
-                        const err = await res.json();
-                        const errorMessage = err.error || 'Erro desconhecido';
-                        updateStatusItem(channel, leadId, 'Falha', 'red', true, errorMessage);
-                        console.error(`Falha ${channel} lead ${leadId}:`, errorMessage);
-                    }
-                } catch (e) {
-                    updateStatusItem(channel, leadId, 'Erro', 'red', true, e.message);
-                    console.error(`Erro ${channel} lead ${leadId}:`, e);
-                }
-            };
-
-            const updateStatusItem = (channel, leadId, text, color, bold = false, tooltip = '') => {
-                const el = document.getElementById(`item-${channel}-${leadId}`);
-                if (!el) return;
-                const badge = el.querySelector('.status-badge');
-                if (badge) {
-                    badge.textContent = text;
-                    badge.style.color = color;
-                    badge.style.fontWeight = bold ? 'bold' : 'normal';
-                    if (tooltip) {
-                        badge.title = tooltip;
-                        badge.style.cursor = 'help';
-                    }
-                }
             };
 
             // --- NAVIGATION ---
@@ -1127,7 +1097,7 @@ export const CampanhaWizard = {
             });
 
             const versionSpan = document.createElement('span');
-            versionSpan.textContent = 'v0.9.14';
+            versionSpan.textContent = 'v0.9.15';
             versionSpan.style.marginRight = 'auto';
             versionSpan.style.color = '#ccc';
             versionSpan.style.fontSize = '0.8rem';
@@ -1258,7 +1228,7 @@ export const CampanhaWizard = {
             });
 
             const close = () => {
-                if (step3PollInterval) clearInterval(step3PollInterval);
+                SocketService.disconnect();
                 if (container.parentNode) document.body.removeChild(container);
                 resolve(null);
             };
@@ -1322,39 +1292,26 @@ export const CampanhaWizard = {
             body.style.padding = '1rem';
             body.style.overflow = 'auto';
 
-            // Status Summary
-            const summary = document.createElement('div');
-            summary.id = 'status-summary';
-            Object.assign(summary.style, {
-                display: 'flex', gap: '1rem', marginBottom: '1rem',
-                padding: '1rem', backgroundColor: '#f9fafb',
-                borderRadius: '8px', justifyContent: 'space-around'
-            });
-
-            const createStat = (label, value, color) => {
-                const stat = document.createElement('div');
-                stat.style.textAlign = 'center';
-                stat.innerHTML = `
-                    <div style="font-size: 2rem; font-weight: bold; color: ${color};">${value}</div>
-                    <div style="font-size: 0.875rem; color: #666;">${label}</div>
-                `;
-                return stat;
-            };
-
-            const totalLeads = leads.length;
-            const emailOk = leads.filter(l => l.status_email === 'sucesso').length;
-            const whatsappOk = leads.filter(l => l.status_whatsapp === 'sucesso').length;
-            const pendentes = leads.filter(l =>
-                (l.status_email === 'pendente' || !l.status_email) &&
-                (l.status_whatsapp === 'pendente' || !l.status_whatsapp)
-            ).length;
-
-            summary.appendChild(createStat('Total Leads', totalLeads, '#3b82f6'));
-            summary.appendChild(createStat('📧 E-mail OK', emailOk, '#10b981'));
-            summary.appendChild(createStat('💬 WhatsApp OK', whatsappOk, '#10b981'));
-            summary.appendChild(createStat('⏳ Pendentes', pendentes, '#f59e0b'));
-
-            body.appendChild(summary);
+            // Progress Bar & Stats (Copied & Adapted from Step 3)
+            const summaryDiv = document.createElement('div');
+            summaryDiv.innerHTML = `
+                <div style="background:#f8f9fa; padding:15px; border-radius:8px; border:1px solid #ddd; display:flex; flex-direction:column; gap:10px; margin-bottom: 1rem;">
+                    <div style="display:flex; justify-content:space-between; font-weight:bold;">
+                        <span>Progresso do Disparo</span>
+                        <span id="progress-text">0%</span>
+                    </div>
+                    <div style="width:100%; background:#e9ecef; border-radius:10px; height:20px; overflow:hidden;">
+                        <div id="progress-bar" style="width:0%; height:100%; background:#4caf50; transition:width 0.5s;"></div>
+                    </div>
+                    <div style="display:flex; gap:15px; font-size:0.9rem; margin-top:5px; justify-content: space-around;">
+                        <span style="color:#666;">Total: <b id="stat-total">0</b></span>
+                        <span style="color:#2196f3;">Processados: <b id="stat-sending">0</b></span>
+                        <span style="color:#10b981;">E-mail OK: <b id="stat-email-ok">0</b></span>
+                        <span style="color:#10b981;">WhatsApp OK: <b id="stat-whatsapp-ok">0</b></span>
+                    </div>
+                </div>
+            `;
+            body.appendChild(summaryDiv);
 
             // Grid
             const gridContainer = document.createElement('div');
@@ -1367,7 +1324,7 @@ export const CampanhaWizard = {
             table.style.borderCollapse = 'collapse';
             table.innerHTML = `
                 <thead>
-                    <tr style="background: #f3f4f6; position: sticky; top: 0;">
+                    <tr style="background: #f3f4f6; position: sticky; top: 0; z-index: 10;">
                         <th style="padding: 12px; text-align: left; border-bottom: 2px solid #e5e7eb;">Lead</th>
                         <th style="padding: 12px; text-align: center; border-bottom: 2px solid #e5e7eb; width: 150px;">📧 E-mail</th>
                         <th style="padding: 12px; text-align: center; border-bottom: 2px solid #e5e7eb; width: 150px;">💬 WhatsApp</th>
@@ -1385,31 +1342,55 @@ export const CampanhaWizard = {
                     row.style.borderBottom = '1px solid #e5e7eb';
                     row.dataset.leadId = lead.id;
 
-                    const getStatusBadge = (status) => {
-                        const badges = {
-                            'pendente': { text: 'Pendente', bg: '#f3f4f6', color: '#6b7280' },
-                            'enviando': { text: 'Enviando...', bg: '#fffbeb', color: '#f59e0b' },
-                            'sucesso': { text: 'OK', bg: '#ecfdf5', color: '#10b981' },
-                            'falha': { text: 'Erro', bg: '#fef2f2', color: '#ef4444' }
-                        };
-                        const badge = badges[status] || badges['pendente'];
-                        return `<span style="background: ${badge.bg}; color: ${badge.color}; padding: 4px 12px; border-radius: 12px; font-size: 0.75rem; font-weight: 600;">${badge.text}</span>`;
+                    const createStatusBadge = (type, val) => {
+                        // val can be 'sucesso', 'falha', 'pendente', 'enviando', etc.
+                        // We will create a span with an ID to update it easily
+                        const span = document.createElement('span');
+                        span.id = `monitor-status-${type}-${lead.id}`;
+                        updateMonitorStatus(span, val);
+                        return span;
                     };
 
-                    row.innerHTML = `
-                        <td style="padding: 12px;">
-                            <div style="font-weight: 500;">${lead.nome}</div>
-                            <div style="font-size: 0.75rem; color: #6b7280;">${lead.email || ''}</div>
-                        </td>
-                        <td style="padding: 12px; text-align: center;" data-channel="email">
-                            ${getStatusBadge(lead.status_email || 'pendente')}
-                        </td>
-                        <td style="padding: 12px; text-align: center;" data-channel="whatsapp">
-                            ${getStatusBadge(lead.status_whatsapp || 'pendente')}
-                        </td>
-                    `;
+                    const tdName = document.createElement('td');
+                    tdName.style.padding = '12px';
+                    tdName.innerHTML = `<div style="font-weight: 500;">${lead.nome}</div><div style="font-size: 0.75rem; color: #6b7280;">${lead.email || ''}</div>`;
+                    row.appendChild(tdName);
+
+                    const tdEmail = document.createElement('td');
+                    tdEmail.style.padding = '12px';
+                    tdEmail.style.textAlign = 'center';
+                    tdEmail.appendChild(createStatusBadge('email', lead.status_email));
+                    row.appendChild(tdEmail);
+
+                    const tdWa = document.createElement('td');
+                    tdWa.style.padding = '12px';
+                    tdWa.style.textAlign = 'center';
+                    tdWa.appendChild(createStatusBadge('whatsapp', lead.status_whatsapp));
+                    row.appendChild(tdWa);
+
                     tbody.appendChild(row);
                 });
+            };
+
+            const updateMonitorStatus = (el, status) => {
+                const map = {
+                    'pendente': { t: 'Pendente', bg: '#f3f4f6', c: '#6b7280' },
+                    'sending': { t: 'Enviando...', bg: '#fffbeb', c: '#f59e0b' },
+                    'enviando': { t: 'Enviando...', bg: '#fffbeb', c: '#f59e0b' },
+                    'sucesso': { t: 'OK', bg: '#ecfdf5', c: '#10b981' },
+                    'ok': { t: 'OK', bg: '#ecfdf5', c: '#10b981' },
+                    'falha': { t: 'Erro', bg: '#fef2f2', c: '#ef4444' },
+                    'error': { t: 'Erro', bg: '#fef2f2', c: '#ef4444' }
+                };
+                const cfg = map[status] || map['pendente'];
+
+                el.textContent = cfg.t;
+                el.style.backgroundColor = cfg.bg;
+                el.style.color = cfg.c;
+                el.style.padding = '4px 12px';
+                el.style.borderRadius = '12px';
+                el.style.fontSize = '0.75rem';
+                el.style.fontWeight = '600';
             };
 
             renderLeads(leads);
@@ -1424,10 +1405,10 @@ export const CampanhaWizard = {
             });
 
             const statusText = document.createElement('span');
-            statusText.id = 'auto-refresh-status';
-            statusText.textContent = '🔄 Atualizando a cada 3 segundos...';
-            statusText.style.color = '#666';
+            statusText.textContent = '⚡ Conectado ao servidor de disparos';
+            statusText.style.color = '#10b981';
             statusText.style.fontSize = '0.875rem';
+            statusText.style.fontWeight = '500';
 
             const btnCloseFooter = document.createElement('button');
             btnCloseFooter.className = 'btn-secondary';
@@ -1443,44 +1424,83 @@ export const CampanhaWizard = {
             container.appendChild(content);
             document.body.appendChild(container);
 
-            // Auto-refresh logic
-            const getHeaders = () => ({
-                'Authorization': `Bearer ${localStorage.getItem('token')}`,
-                'Content-Type': 'application/json'
+            // --- REAL TIME SOCKET LOGIC ---
+            // Initial Stats Calculation
+            const updateStats = (currentLeads) => {
+                const total = currentLeads.length;
+                const emailOk = currentLeads.filter(l => l.status_email === 'sucesso' || l.status_email === 'ok').length;
+                const waOk = currentLeads.filter(l => l.status_whatsapp === 'sucesso' || l.status_whatsapp === 'ok').length;
+                const processed = currentLeads.filter(l =>
+                    (l.status_email && l.status_email !== 'pendente') ||
+                    (l.status_whatsapp && l.status_whatsapp !== 'pendente')
+                ).length;
+
+                // Progress is roughly processed / total
+                const pct = total === 0 ? 0 : Math.round((processed / total) * 100);
+
+                const elTotal = document.getElementById('stat-total');
+                const elSending = document.getElementById('stat-sending');
+                const elEmailOk = document.getElementById('stat-email-ok');
+                const elWaOk = document.getElementById('stat-whatsapp-ok');
+                const elBar = document.getElementById('progress-bar');
+                const elText = document.getElementById('progress-text');
+
+                if (elTotal) elTotal.textContent = total;
+                if (elSending) elSending.textContent = processed;
+                if (elEmailOk) elEmailOk.textContent = emailOk;
+                if (elWaOk) elWaOk.textContent = waOk;
+                if (elBar) elBar.style.width = `${pct}%`;
+                if (elText) elText.textContent = `${pct}%`;
+            };
+
+            // Run initial stats
+            updateStats(leads);
+
+            // Connect Socket
+            console.log('LOG: [CampanhaWizard] Connecting Socket for Monitoring...');
+            SocketService.connect();
+
+            SocketService.on('campaign_progress', (data) => {
+                if (data.campaignId != campanha.id) return;
+                // Update Progress Bar directly from server event if available
+                const elBar = document.getElementById('progress-bar');
+                const elText = document.getElementById('progress-text');
+                const elSending = document.getElementById('stat-sending');
+
+                if (elBar) elBar.style.width = `${data.percentage}%`;
+                if (elText) elText.textContent = `${data.percentage}%`;
+                if (elSending) elSending.textContent = data.current;
             });
 
-            let updateInterval = setInterval(async () => {
-                try {
-                    const response = await fetch(`${API_BASE_URL}/marketing/campanhas/${campanha.id}/dispatch-details`, {
-                        headers: getHeaders()
-                    });
+            SocketService.on('lead_status_update', (data) => {
+                if (data.campaignId != campanha.id) return;
 
-                    if (!response.ok) return;
+                const el = document.getElementById(`monitor-status-${data.channel}-${data.leadId}`);
+                if (el) {
+                    updateMonitorStatus(el, data.status);
 
-                    const updatedLeads = await response.json();
-
-                    // Update stats
-                    const newEmailOk = updatedLeads.filter(l => l.status_email === 'sucesso').length;
-                    const newWhatsappOk = updatedLeads.filter(l => l.status_whatsapp === 'sucesso').length;
-                    const newPendentes = updatedLeads.filter(l =>
-                        (l.status_email === 'pendente' || !l.status_email) &&
-                        (l.status_whatsapp === 'pendente' || !l.status_whatsapp)
-                    ).length;
-
-                    const stats = summary.querySelectorAll('div[style*="font-size: 2rem"]');
-                    if (stats[1]) stats[1].textContent = newEmailOk;
-                    if (stats[2]) stats[2].textContent = newWhatsappOk;
-                    if (stats[3]) stats[3].textContent = newPendentes;
-
-                    // Update grid
-                    renderLeads(updatedLeads);
-                } catch (error) {
-                    console.error('Error updating dispatch status:', error);
+                    // Increment Stats locally
+                    if (data.status === 'ok' || data.status === 'sucesso') {
+                        const statId = data.channel === 'email' ? 'stat-email-ok' : 'stat-whatsapp-ok';
+                        const statEl = document.getElementById(statId);
+                        if (statEl) {
+                            statEl.textContent = (parseInt(statEl.textContent) || 0) + 1;
+                        }
+                    }
                 }
-            }, 3000);
+            });
+
+            SocketService.on('campaign_complete', (data) => {
+                if (data.campaignId != campanha.id) return;
+                showToast('Campanha concluída!', 'success');
+                const elBar = document.getElementById('progress-bar');
+                const elText = document.getElementById('progress-text');
+                if (elBar) elBar.style.width = '100%';
+                if (elText) elText.textContent = '100%';
+            });
 
             const close = () => {
-                clearInterval(updateInterval);
+                SocketService.disconnect();
                 if (document.body.contains(container)) {
                     document.body.removeChild(container);
                 }
