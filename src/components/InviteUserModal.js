@@ -93,13 +93,13 @@ export const InviteUserModal = {
                 togglePassword.addEventListener('click', () => {
                     const type = passwordInput.type === 'password' ? 'text' : 'password';
                     passwordInput.type = type;
-                    togglePassword.textContent = type === 'password' ? '🙈' : '👁️';
+                    togglePassword.textContent = type === 'password' ? '🙈' : '🙊';
                 });
 
                 togglePasswordConfirm.addEventListener('click', () => {
                     const type = passwordConfirmInput.type === 'password' ? 'text' : 'password';
                     passwordConfirmInput.type = type;
-                    togglePasswordConfirm.textContent = type === 'password' ? '🙈' : '👁️';
+                    togglePasswordConfirm.textContent = type === 'password' ? '🙈' : '🙊';
                 });
 
                 // Real-time password validation
