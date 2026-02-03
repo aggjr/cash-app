@@ -251,36 +251,6 @@ export const CompanyManager = (project) => {
         }
     };
 
-    const renameProject = async () => {
-        const confirmed = await Dialogs.confirm(
-            'Deseja renomear o projeto de "Projeto de Ariana" para "Projeto do Juri"?',
-            'Renomear Projeto'
-        );
-        if (!confirmed) return;
-
-        try {
-            const response = await fetch(`${API_BASE_URL}/projects/${project.id}`, {
-                method: 'PUT',
-                headers: getHeaders(),
-                body: JSON.stringify({
-                    name: 'Projeto do Juri'
-                })
-            });
-
-            if (response.ok) {
-                showToast('Projeto renomeado com sucesso!', 'success');
-                // Reload page to update project name in sidebar
-                setTimeout(() => window.location.reload(), 1000);
-            } else {
-                const error = await response.json();
-                showToast(error.error || 'Erro ao renomear projeto', 'error');
-            }
-        } catch (error) {
-            console.error('Error renaming project:', error);
-            showToast('Erro de conexão', 'error');
-        }
-    };
-
     // State for selection
     let selectedItems = new Set();
 
@@ -360,7 +330,6 @@ export const CompanyManager = (project) => {
 
         <div style="margin-bottom: 1rem;">
             <button id="btn-new-company" class="btn-primary">+ Nova Empresa</button>
-            <button id="btn-rename-project" class="btn-secondary" style="margin-left: 0.5rem; background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white; border: none;">🔄 Renomear Projeto</button>
         </div>
 
         <div id="table-container" style="flex: 1; overflow: hidden; display: flex; flex-direction: column;"></div>
@@ -368,7 +337,6 @@ export const CompanyManager = (project) => {
 
     // Event Listeners
     container.querySelector('#btn-new-company').addEventListener('click', createCompany);
-    container.querySelector('#btn-rename-project').addEventListener('click', renameProject);
     container.querySelector('#btn-print-pdf').addEventListener('click', () => {
         PrintHelper.autoConfigureOrientation('#table-container table');
         window.print();
