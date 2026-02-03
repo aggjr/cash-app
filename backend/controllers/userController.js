@@ -6,12 +6,13 @@ const { logAudit } = require('../utils/auditLogger');
 exports.inviteUser = async (req, res) => {
     let connection;
     try {
-        const { projectId } = req.params;
-        const { name, email, initialPassword, role = 'user', companyId } = req.body;
+        // Handle both :projectId and :id params (for route compatibility)
+        const projectId = req.params.projectId || req.params.id;
+        let { name, email, initialPassword, role = 'user', companyId } = req.body;
         const inviterId = req.user.id;
 
-        if (!name || !email || !initialPassword || !companyId) {
-            return res.status(400).json({ error: 'Nome, e-mail, senha inicial e empresa são obrigatórios' });
+        if (!name || !email || !initialPassword) {
+            return res.status(400).json({ error: 'Nome, e-mail e senha inicial são obrigatórios' });
         }
 
         if (initialPassword.length < 8) {
@@ -23,13 +24,23 @@ exports.inviteUser = async (req, res) => {
 
         // Check if inviter is master of the project
         const [inviterRole] = await connection.query(
-            'SELECT role FROM project_users WHERE project_id = ? AND user_id = ?',
+            'SELECT role, company_id FROM project_users WHERE project_id = ? AND user_id = ?',
             [projectId, inviterId]
         );
 
         if (!inviterRole.length || inviterRole[0].role !== 'master') {
             await connection.rollback();
             return res.status(403).json({ error: 'Apenas o master do projeto pode convidar usuários' });
+        }
+
+        // If companyId not provided, use inviter's company
+        if (!companyId) {
+            companyId = inviterRole[0].company_id;
+        }
+
+        if (!companyId) {
+            await connection.rollback();
+            return res.status(400).json({ error: 'Empresa não identificada' });
         }
 
         // Check if user already exists

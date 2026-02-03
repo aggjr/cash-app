@@ -35,8 +35,19 @@ export const InviteUserModal = {
 
                             <div class="form-group">
                                 <label for="invite-password">Senha Inicial <span class="required">*</span></label>
-                                <input type="text" id="invite-password" class="form-input" placeholder="Mínimo 8 caracteres" required minlength="8" />
-                                <small style="color: #666; font-size: 0.85rem;">Esta senha será usada no primeiro login. O usuário deverá trocá-la.</small>
+                                <div style="position: relative;">
+                                    <input type="password" id="invite-password" class="form-input" placeholder="Mínimo 8 caracteres" required minlength="8" style="padding-right: 40px;" />
+                                    <span class="password-toggle" id="toggle-password" style="position: absolute; right: 10px; top: 50%; transform: translateY(-50%); cursor: pointer; font-size: 1.2rem; user-select: none;">🙈</span>
+                                </div>
+                            </div>
+
+                            <div class="form-group">
+                                <label for="invite-password-confirm">Confirmar Senha <span class="required">*</span></label>
+                                <div style="position: relative;">
+                                    <input type="password" id="invite-password-confirm" class="form-input" placeholder="Digite a senha novamente" required minlength="8" style="padding-right: 40px;" />
+                                    <span class="password-toggle" id="toggle-password-confirm" style="position: absolute; right: 10px; top: 50%; transform: translateY(-50%); cursor: pointer; font-size: 1.2rem; user-select: none;">🙈</span>
+                                </div>
+                                <small id="password-match-msg" style="font-size: 0.85rem; margin-top: 0.25rem; display: block;"></small>
                             </div>
 
                             <div class="form-group">
@@ -70,9 +81,66 @@ export const InviteUserModal = {
                 const nameInput = modal.querySelector('#invite-name');
                 const emailInput = modal.querySelector('#invite-email');
                 const passwordInput = modal.querySelector('#invite-password');
+                const passwordConfirmInput = modal.querySelector('#invite-password-confirm');
+                const passwordMatchMsg = modal.querySelector('#password-match-msg');
+                const togglePassword = modal.querySelector('#toggle-password');
+                const togglePasswordConfirm = modal.querySelector('#toggle-password-confirm');
                 const roleSelect = modal.querySelector('#invite-role');
                 const sendBtn = modal.querySelector('#modal-send');
                 const cancelBtn = modal.querySelector('#modal-cancel');
+
+                // Password visibility toggles
+                togglePassword.addEventListener('click', () => {
+                    const type = passwordInput.type === 'password' ? 'text' : 'password';
+                    passwordInput.type = type;
+                    togglePassword.textContent = type === 'password' ? '🙈' : '👁️';
+                });
+
+                togglePasswordConfirm.addEventListener('click', () => {
+                    const type = passwordConfirmInput.type === 'password' ? 'text' : 'password';
+                    passwordConfirmInput.type = type;
+                    togglePasswordConfirm.textContent = type === 'password' ? '🙈' : '👁️';
+                });
+
+                // Real-time password validation
+                const validatePasswords = () => {
+                    const password = passwordInput.value;
+                    const confirm = passwordConfirmInput.value;
+
+                    // Check minimum length
+                    if (password.length > 0 && password.length < 8) {
+                        passwordInput.style.borderColor = '#ef4444';
+                        passwordInput.style.backgroundColor = '#fee2e2';
+                    } else if (password.length >= 8) {
+                        passwordInput.style.borderColor = '#10b981';
+                        passwordInput.style.backgroundColor = '#d1fae5';
+                    } else {
+                        passwordInput.style.borderColor = '';
+                        passwordInput.style.backgroundColor = '';
+                    }
+
+                    // Check if passwords match
+                    if (confirm.length > 0) {
+                        if (password === confirm && password.length >= 8) {
+                            passwordConfirmInput.style.borderColor = '#10b981';
+                            passwordConfirmInput.style.backgroundColor = '#d1fae5';
+                            passwordMatchMsg.textContent = '✓ Senhas coincidem';
+                            passwordMatchMsg.style.color = '#10b981';
+                        } else {
+                            passwordConfirmInput.style.borderColor = '#ef4444';
+                            passwordConfirmInput.style.backgroundColor = '#fee2e2';
+                            passwordMatchMsg.textContent = password !== confirm ? '✗ Senhas não coincidem' : '✗ Mínimo 8 caracteres';
+                            passwordMatchMsg.style.color = '#ef4444';
+                        }
+                    } else {
+                        passwordConfirmInput.style.borderColor = '';
+                        passwordConfirmInput.style.backgroundColor = '';
+                        passwordMatchMsg.textContent = '';
+                    }
+                };
+
+                passwordInput.addEventListener('input', validatePasswords);
+                passwordConfirmInput.addEventListener('input', validatePasswords);
 
                 const validate = () => {
                     let isValid = true;
@@ -96,6 +164,13 @@ export const InviteUserModal = {
                         isValid = false;
                     } else {
                         passwordInput.classList.remove('input-error');
+                    }
+
+                    if (!passwordConfirmInput.value || passwordConfirmInput.value !== passwordInput.value) {
+                        passwordConfirmInput.classList.add('input-error');
+                        isValid = false;
+                    } else {
+                        passwordConfirmInput.classList.remove('input-error');
                     }
 
                     return isValid;

@@ -130,16 +130,35 @@ export const UserModal = {
 
                                 <div class="form-group" style="flex: 1;">
                                     <label for="user-password">Senha Inicial <span class="required">*</span></label>
-                                    <input 
-                                        type="password" 
-                                        id="user-password" 
-                                        class="form-input" 
-                                        placeholder="Mínimo 8 caracteres"
-                                        required
-                                    />
-                                    <small style="color: var(--color-text-muted);">O usuário será obrigado a trocar a senha no primeiro login</small>
+                                    <div style="position: relative;">
+                                        <input 
+                                            type="password" 
+                                            id="user-password" 
+                                            class="form-input" 
+                                            placeholder="Mínimo 8 caracteres"
+                                            required
+                                            style="padding-right: 40px;"
+                                        />
+                                        <button id="toggle-pass-1" type="button" style="position: absolute; right: 5px; top: 50%; transform: translateY(-50%); background: none; border: none; cursor: pointer; font-size: 1.2rem;">🙈</button>
+                                    </div>
+                                </div>
+                                
+                                <div class="form-group" style="flex: 1;">
+                                    <label for="user-password-confirm">Confirmar Senha <span class="required">*</span></label>
+                                    <div style="position: relative;">
+                                        <input 
+                                            type="password" 
+                                            id="user-password-confirm" 
+                                            class="form-input" 
+                                            placeholder="Confirme a senha"
+                                            required
+                                            style="padding-right: 40px;"
+                                        />
+                                        <button id="toggle-pass-2" type="button" style="position: absolute; right: 5px; top: 50%; transform: translateY(-50%); background: none; border: none; cursor: pointer; font-size: 1.2rem;">🙈</button>
+                                    </div>
                                 </div>
                             </div>
+                            <small id="password-match-msg" style="display: block; margin-top: -10px; margin-bottom: 10px; font-weight: bold;"></small>
                         ` : `
                             <div class="form-group full-width" style="margin-top: 5px;">
                                 <label for="user-role">Tipo de Usuário <span class="required">*</span></label>
@@ -171,10 +190,12 @@ export const UserModal = {
             const nameInput = modal.querySelector('#user-name');
             const emailInput = modal.querySelector('#user-email');
             const passwordInput = modal.querySelector('#user-password');
+            const passwordConfirmInput = modal.querySelector('#user-password-confirm');
             const companySelect = modal.querySelector('#user-company');
             const roleSelect = modal.querySelector('#user-role');
             const saveBtn = modal.querySelector('#modal-save');
             const cancelBtn = modal.querySelector('#modal-cancel');
+            const matchMsg = modal.querySelector('#password-match-msg');
 
             // Validation
             const validate = () => {
@@ -205,11 +226,40 @@ export const UserModal = {
                     }
 
                     const password = passwordInput.value;
+                    const confirm = passwordConfirmInput.value;
+
+                    // Password Length check
                     if (!password || password.length < 8) {
                         passwordInput.classList.add('input-error');
                         isValid = false;
                     } else {
                         passwordInput.classList.remove('input-error');
+                    }
+
+                    // Password Match check
+                    if (password !== confirm) {
+                        passwordConfirmInput.classList.add('input-error');
+                        if (matchMsg) {
+                            matchMsg.textContent = 'As senhas não conferem';
+                            matchMsg.style.color = '#EF4444';
+                        }
+                        isValid = false;
+                    } else {
+                        passwordConfirmInput.classList.remove('input-error');
+                        if (password && password.length >= 8) {
+                            // Valid and matching
+                            passwordInput.style.borderColor = '#10B981';
+                            passwordConfirmInput.style.borderColor = '#10B981';
+                            if (matchMsg) {
+                                matchMsg.textContent = 'As senhas conferem';
+                                matchMsg.style.color = '#10B981';
+                            }
+                        } else {
+                            // Empty or short, reset green border if set previously
+                            passwordInput.style.borderColor = '';
+                            passwordConfirmInput.style.borderColor = '';
+                            if (matchMsg) matchMsg.textContent = '';
+                        }
                     }
                 }
 
@@ -220,6 +270,7 @@ export const UserModal = {
                 nameInput.addEventListener('input', validate);
                 emailInput.addEventListener('input', validate);
                 passwordInput.addEventListener('input', validate);
+                passwordConfirmInput.addEventListener('input', validate);
             }
 
             // Close modal
@@ -233,6 +284,19 @@ export const UserModal = {
                     }
                     resolve(result);
                 }, 200);
+            };
+
+            // NEW: Password Visibility Toggle Logic
+            const togglePassword = (inputId, btnId) => {
+                const input = document.getElementById(inputId);
+                const btn = document.getElementById(btnId);
+                if (input.type === 'password') {
+                    input.type = 'text';
+                    btn.textContent = '🐵'; // Eyes open
+                } else {
+                    input.type = 'password';
+                    btn.textContent = '🙈'; // Eyes closed
+                }
             };
 
             // Keyboard handling
@@ -249,6 +313,16 @@ export const UserModal = {
             };
 
             document.addEventListener('keydown', handleKeydown);
+
+            // Password toggle event listeners need to be attached after innerHTML reflow
+            setTimeout(() => {
+                if (!isEdit) {
+                    const btn1 = document.getElementById('toggle-pass-1');
+                    const btn2 = document.getElementById('toggle-pass-2');
+                    if (btn1) btn1.onclick = () => togglePassword('user-password', 'toggle-pass-1');
+                    if (btn2) btn2.onclick = () => togglePassword('user-password-confirm', 'toggle-pass-2');
+                }
+            }, 0);
 
             // Save button
             saveBtn.addEventListener('click', () => {
