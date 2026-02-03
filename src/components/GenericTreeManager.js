@@ -644,6 +644,31 @@ export const createTreeManager = (tableName, title, term = 'Categoria', onClose 
         }
     };
 
+    const fixAriana = async () => {
+        if (await Dialogs.confirm('Isso irá forçar a exclusão do tipo "Ariana" e limpar entradas fantasmas bloqueando o banco. Continuar?', 'Correção Forçada')) {
+            try {
+                const loadingEl = document.getElementById('tree-loading');
+                if (loadingEl) loadingEl.style.display = 'block';
+
+                const response = await fetch(`${API_BASE_URL}/debug/fix-ariana`, { headers: getHeaders() });
+                const data = await response.json();
+
+                if (loadingEl) loadingEl.style.display = 'none';
+
+                if (data.success) {
+                    await Dialogs.alert('Correção aplicada com sucesso! O registro foi removido.', 'Sucesso');
+                    loadTreeData();
+                } else {
+                    await Dialogs.alert('Erro ao corrigir: ' + (data.error || 'Erro desconhecido'), 'Erro');
+                }
+            } catch (err) {
+                const loadingEl = document.getElementById('tree-loading');
+                if (loadingEl) loadingEl.style.display = 'none';
+                await Dialogs.alert('Erro de conexão: ' + err.message, 'Erro');
+            }
+        }
+    };
+
     // Rendering
     let visibleRowIndex = 0;
 
@@ -753,6 +778,9 @@ export const createTreeManager = (tableName, title, term = 'Categoria', onClose 
             <button class="btn-secondary" onclick="window.treeActions_${tableName}.print()" title="Imprimir / Salvar PDF">🖨️ PDF</button>
             <button class="btn-secondary" onclick="window.treeActions_${tableName}.export()" title="Exportar para Excel">📊 Excel</button>
             <button class="btn-primary" onclick="window.treeActions_${tableName}.addRoot()">+ Nova ${term}</button>
+            ${tableName === 'tipo_entrada' ? `
+            <button class="btn-delete" style="background-color: #dc2626; color: white; margin-left: 10px;" onclick="window.treeActions_${tableName}.fixAriana()" title="Corrigir Bug Ariana (Inativo)">🛠️ Fix Ariana</button>
+            ` : ''}
             </div>
             ${onClose ? `
             <button onclick="window.treeActions_${tableName}.close()" 
@@ -933,6 +961,7 @@ export const createTreeManager = (tableName, title, term = 'Categoria', onClose 
                     window.print();
                 },
                 export: exportToCSV,
+                fixAriana: fixAriana,
                 // Save current view (selection) to server
                 // Auto-save is now internal, explicit save removed
                 // Keeping empty saveView just in case of stale references

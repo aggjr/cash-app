@@ -783,6 +783,29 @@ async function enviarEmailParaLead(campanha, lead) {
     const emailSubject = replaceVariables(campanha.email_subject);
     let finalHtml = emailBody.includes('<') ? emailBody : emailBody.replace(/\n/g, '<br>');
 
+    // [VIDEO SUPPORT] Transform <video> tags into clickable Image Links (since email clients don't support video)
+    if (finalHtml.includes('<video')) {
+        console.log(`📧 [EMAIL] Video detected, transforming to link...`);
+        // Regex to capture src and optional poster
+        // Handles <video src="..." poster="..."> format
+        finalHtml = finalHtml.replace(/<video[^>]+src=["']([^"']+)["'](?:[^>]*poster=["']([^"']+)["'])?[^>]*>.*?<\/video>/gi, (match, src, poster) => {
+            const thumbUrl = poster || 'https://via.placeholder.com/640x360?text=Assistir+Video'; // Fallback
+            return `
+                <div style="margin: 20px 0; text-align: center;">
+                    <a href="${src}" target="_blank" style="text-decoration: none; display: inline-block; position: relative;">
+                         <img src="${thumbUrl}" alt="Assistir Vídeo" style="max-width: 100%; border-radius: 8px; box-shadow: 0 4px 12px rgba(0,0,0,0.15); display: block;" />
+                         <div style="position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); width: 64px; height: 64px; background: rgba(0,0,0,0.6); border-radius: 50%; display: flex; align-items: center; justify-content: center; backdrop-filter: blur(2px);">
+                            <span style="color: white; font-size: 32px; margin-left: 5px;">&#9658;</span>
+                         </div>
+                    </a>
+                    <p style="margin-top: 8px; font-size: 14px; color: #666; font-family: sans-serif;">
+                        <a href="${src}" target="_blank" style="color: #0066cc; text-decoration: none;">Clique aqui para assistir o vídeo</a>
+                    </p>
+                </div>
+            `;
+        });
+    }
+
     console.log(`📧 [EMAIL] Subject após variáveis: "${emailSubject}"`);
     console.log(`📧 [EMAIL] HTML final length: ${finalHtml.length} chars`);
 

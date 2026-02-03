@@ -14,7 +14,13 @@ const BlockEmbed = Quill.import('blots/block/embed');
 class VideoBlot extends BlockEmbed {
     static create(value) {
         let node = super.create();
-        node.setAttribute('src', value);
+        // Support object { url, poster } or string url
+        let src = typeof value === 'string' ? value : value.url;
+        let poster = typeof value === 'object' ? value.poster : null;
+
+        node.setAttribute('src', src);
+        if (poster) node.setAttribute('poster', poster);
+
         node.setAttribute('controls', '');
         node.setAttribute('preload', 'metadata');
         node.setAttribute('width', '100%');
@@ -23,12 +29,68 @@ class VideoBlot extends BlockEmbed {
     }
 
     static value(node) {
-        return node.getAttribute('src');
+        return {
+            url: node.getAttribute('src'),
+            poster: node.getAttribute('poster')
+        };
     }
 }
 VideoBlot.blotName = 'video-file';
 VideoBlot.tagName = 'video';
 Quill.register(VideoBlot);
+
+// Helper: Generate Thumbnail from Video File
+const generateVideoThumbnail = (file) => {
+    return new Promise((resolve) => {
+        const video = document.createElement('video');
+        video.setAttribute('src', URL.createObjectURL(file));
+        video.muted = true;
+        video.playsInline = true;
+        video.currentTime = 0.5; // Capture at 0.5s to avoid black frame
+
+        video.onloadeddata = () => {
+            // Wait a bit for seek
+            video.currentTime = Math.min(1, video.duration / 2); // Middleware or start
+        };
+
+        video.onseeked = () => {
+            const canvas = document.createElement('canvas');
+            canvas.width = video.videoWidth;
+            canvas.height = video.videoHeight;
+            const ctx = canvas.getContext('2d');
+
+            // Draw video frame
+            ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
+
+            // Draw Play Icon Overlay
+            const centerX = canvas.width / 2;
+            const centerY = canvas.height / 2;
+            const radius = Math.min(canvas.width, canvas.height) * 0.15;
+
+            ctx.fillStyle = 'rgba(0, 0, 0, 0.6)';
+            ctx.beginPath();
+            ctx.arc(centerX, centerY, radius, 0, 2 * Math.PI);
+            ctx.fill();
+
+            // Triangle
+            const triSize = radius * 0.6;
+            ctx.fillStyle = 'white';
+            ctx.beginPath();
+            ctx.moveTo(centerX - triSize / 2, centerY - triSize);
+            ctx.lineTo(centerX + triSize, centerY);
+            ctx.lineTo(centerX - triSize / 2, centerY + triSize);
+            ctx.closePath();
+            ctx.fill();
+
+            canvas.toBlob((blob) => {
+                resolve(blob);
+                URL.revokeObjectURL(video.src); // Cleanup
+            }, 'image/jpeg', 0.85);
+        };
+
+        video.onerror = () => resolve(null);
+    });
+};
 // -----------------------------------
 
 export const CampanhaWizard = {
@@ -348,19 +410,51 @@ export const CampanhaWizard = {
                             btnEmailUpload.onclick = () => inputEmailUpload.click();
                             inputEmailUpload.onchange = async (e) => {
                                 const file = e.target.files[0]; if (!file) return;
-                                const formData = new FormData(); formData.append('file', file);
+
+                                const statusSpan = emailEditor.querySelector('#email-upload-status');
+                                if (statusSpan) { statusSpan.style.display = 'inline'; statusSpan.textContent = 'Gerando thumb...'; }
+
                                 try {
+                                    // 1. Generate Thumb if Video
+                                    let thumbUrl = null;
+                                    const isVideo = file.type.startsWith('video/');
+
+                                    if (isVideo) {
+                                        const thumbBlob = await generateVideoThumbnail(file);
+                                        if (thumbBlob) {
+                                            if (statusSpan) statusSpan.textContent = 'Enviando thumb...';
+                                            const thumbData = new FormData();
+                                            thumbData.append('file', thumbBlob, 'thumbnail.jpg');
+                                            const resThumb = await fetch(`${getApiBaseUrl()}/upload`, { method: 'POST', headers: { 'Authorization': `Bearer ${localStorage.getItem('token')}` }, body: thumbData });
+                                            const dataThumb = await resThumb.json();
+                                            thumbUrl = dataThumb.fileUrl.startsWith('http') ? dataThumb.fileUrl : `${getApiBaseUrl()}${dataThumb.fileUrl}`;
+                                        }
+                                    }
+
+                                    // 2. Upload Main File
+                                    if (statusSpan) statusSpan.textContent = 'Enviando arquivo...';
+                                    const formData = new FormData();
+                                    formData.append('file', file);
+
                                     const res = await fetch(`${getApiBaseUrl()}/upload`, { method: 'POST', headers: { 'Authorization': `Bearer ${localStorage.getItem('token')}` }, body: formData });
                                     const data = await res.json();
                                     const fullUrl = data.fileUrl.startsWith('http') ? data.fileUrl : `${getApiBaseUrl()}${data.fileUrl}`;
+
                                     const range = quillEmail.getSelection(true) || { index: quillEmail.getLength(), length: 0 };
 
-                                    if (file.type.startsWith('video/')) {
-                                        quillEmail.insertEmbed(range.index, 'video-file', fullUrl);
+                                    if (isVideo) {
+                                        // Insert Video with Poster info
+                                        quillEmail.insertEmbed(range.index, 'video-file', { url: fullUrl, poster: thumbUrl });
                                     } else {
                                         quillEmail.insertEmbed(range.index, 'image', fullUrl);
                                     }
-                                } catch (e) { console.error(e); } inputEmailUpload.value = '';
+                                } catch (e) {
+                                    console.error(e);
+                                    showToast('Erro no upload: ' + e.message, 'error');
+                                } finally {
+                                    if (statusSpan) statusSpan.style.display = 'none';
+                                    inputEmailUpload.value = '';
+                                }
                             };
                         }
                     }
@@ -374,19 +468,50 @@ export const CampanhaWizard = {
                             btnWa.onclick = () => inputWa.click();
                             inputWa.onchange = async (e) => {
                                 const file = e.target.files[0]; if (!file) return;
-                                const formData = new FormData(); formData.append('file', file);
+
+                                const statusSpan = whatsappEditor.querySelector('#whatsapp-upload-status');
+                                if (statusSpan) { statusSpan.style.display = 'inline'; statusSpan.textContent = 'Gerando thumb...'; }
+
                                 try {
+                                    // 1. Generate Thumb if Video
+                                    let thumbUrl = null;
+                                    const isVideo = file.type.startsWith('video/');
+
+                                    if (isVideo) {
+                                        const thumbBlob = await generateVideoThumbnail(file);
+                                        if (thumbBlob) {
+                                            if (statusSpan) statusSpan.textContent = 'Enviando thumb...';
+                                            const thumbData = new FormData();
+                                            thumbData.append('file', thumbBlob, 'thumbnail.jpg');
+                                            const resThumb = await fetch(`${getApiBaseUrl()}/upload`, { method: 'POST', headers: { 'Authorization': `Bearer ${localStorage.getItem('token')}` }, body: thumbData });
+                                            const dataThumb = await resThumb.json();
+                                            thumbUrl = dataThumb.fileUrl.startsWith('http') ? dataThumb.fileUrl : `${getApiBaseUrl()}${dataThumb.fileUrl}`;
+                                        }
+                                    }
+
+                                    // 2. Upload Main File
+                                    if (statusSpan) statusSpan.textContent = 'Enviando arquivo...';
+                                    const formData = new FormData();
+                                    formData.append('file', file);
+
                                     const res = await fetch(`${getApiBaseUrl()}/upload`, { method: 'POST', headers: { 'Authorization': `Bearer ${localStorage.getItem('token')}` }, body: formData });
                                     const data = await res.json();
                                     const fullUrl = data.fileUrl.startsWith('http') ? data.fileUrl : `${getApiBaseUrl()}${data.fileUrl}`;
+
                                     const range = quillWhatsapp.getSelection(true) || { index: quillWhatsapp.getLength(), length: 0 };
 
-                                    if (file.type.startsWith('video/')) {
-                                        quillWhatsapp.insertEmbed(range.index, 'video-file', fullUrl);
+                                    if (isVideo) {
+                                        quillWhatsapp.insertEmbed(range.index, 'video-file', { url: fullUrl, poster: thumbUrl });
                                     } else {
                                         quillWhatsapp.insertEmbed(range.index, 'image', fullUrl);
                                     }
-                                } catch (e) { console.error(e); } inputWa.value = '';
+                                } catch (e) {
+                                    console.error(e);
+                                    showToast('Erro no upload: ' + e.message, 'error');
+                                } finally {
+                                    if (statusSpan) statusSpan.style.display = 'none';
+                                    inputWa.value = '';
+                                }
                             };
                         }
                     }
