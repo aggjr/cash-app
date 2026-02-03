@@ -347,7 +347,6 @@ export const AccountManager = (project) => {
 
         <div style="margin-bottom: 1rem; display: flex; align-items: center; gap: 1rem;">
             <button id="btn-new-account" class="btn-primary">+ Nova Conta</button>
-            <button id="btn-fix-db" class="btn-secondary" style="background-color: #fca5a5; border-color: #f87171; color: #7f1d1d;" title="Executar correção do banco de dados (Temporário)">🛠️ Corrigir Banco</button>
             <span id="company-warning" style="color: var(--color-text-muted); font-size: 0.9rem; font-style: italic; display: none;">⚠️ É obrigatório cadastrar uma empresa antes de criar uma conta.</span>
         </div>
 
@@ -356,39 +355,6 @@ export const AccountManager = (project) => {
 
     // Event Listeners
     container.querySelector('#btn-new-account').addEventListener('click', createAccount);
-
-    // Fix DB Button Handler
-    container.querySelector('#btn-fix-db').addEventListener('click', async () => {
-        if (!confirm('Isso tentará criar a coluna "initial_balance" no banco de dados. Deseja continuar?')) return;
-
-        const btn = container.querySelector('#btn-fix-db');
-        const originalText = btn.textContent;
-        btn.textContent = '⏳ Processando...';
-        btn.disabled = true;
-
-        try {
-            const response = await fetch(`${API_BASE_URL}/manual-migration/fix-initial-balance`, {
-                method: 'POST',
-                headers: getHeaders()
-            });
-
-            const result = await response.json();
-
-            if (response.ok && result.success) {
-                showToast(`Sucesso: ${result.message}`, 'success');
-                // Remove button after success? Maybe let user decide or refresh.
-                // btn.style.display = 'none'; 
-            } else {
-                showToast(`Erro: ${result.message}`, 'error');
-            }
-        } catch (error) {
-            console.error('Migration error:', error);
-            showToast('Erro ao conectar com servidor', 'error');
-        } finally {
-            btn.textContent = originalText;
-            btn.disabled = false;
-        }
-    });
 
     container.querySelector('#btn-print-pdf').addEventListener('click', () => {
         PrintHelper.autoConfigureOrientation('#table-container table');
