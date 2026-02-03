@@ -18,9 +18,12 @@ export const PrevisaoFluxoManager = (project) => {
 
     // --- State ---
     const today = new Date();
+    const storageKeyMode = `cash_previsao_mode_${project.id}`;
+
     // Default to current month range
     let startStr = localStorage.getItem('previsao_startDate') || new Date(today.getFullYear(), today.getMonth(), 1).toISOString().split('T')[0];
     let endStr = localStorage.getItem('previsao_endDate') || new Date(today.getFullYear(), today.getMonth() + 1, 0).toISOString().split('T')[0];
+    let viewMode = localStorage.getItem(storageKeyMode) || 'daily'; // 'monthly' | 'daily'
 
     let expandedNodes = new Set();
     let forecastData = null; // { initialBalance: 0, data: [] }
@@ -33,22 +36,43 @@ export const PrevisaoFluxoManager = (project) => {
         return new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(val || 0);
     };
 
-    // --- Helper: Generate Day Array ---
-    const getDays = () => {
-        const days = [];
-        let current = new Date(startStr);
-        // Fix timezone offset issue by setting T12:00:00 or using UTC?
-        // Simple way: Add T00:00:00 and handle date object carefully.
-        // Or just manipulate the string if we stick to YYYY-MM-DD.
-        // Let's use Date object with T12:00:00 to avoid timezone rollover bugs.
-        current = new Date(startStr + 'T12:00:00');
+    // --- Helper: Generate Column List (Days or Months) ---
+    const getColumnList = () => {
+        const list = [];
+        let current = new Date(startStr + 'T12:00:00');
         const end = new Date(endStr + 'T12:00:00');
 
-        while (current <= end) {
-            days.push(current.toISOString().split('T')[0]);
-            current.setDate(current.getDate() + 1);
+        if (viewMode === 'monthly') {
+            // Monthly View: Generate last day of each month
+            // Normalize to first day of start month
+            current.setDate(1);
+            end.setDate(1);
+
+            while (current <= end) {
+                // Get last day of current month
+                const lastDay = new Date(current.getFullYear(), current.getMonth() + 1, 0);
+                list.push(lastDay.toISOString().split('T')[0]);
+                // Move to next month
+                current.setMonth(current.getMonth() + 1);
+            }
+        } else {
+            // Daily View: Generate all days
+            while (current <= end) {
+                list.push(current.toISOString().split('T')[0]);
+                current.setDate(current.getDate() + 1);
+            }
         }
-        return days;
+        return list;
+    };
+
+    // --- Helper: Format Date Header ---
+    const formatDateHeader = (dateStr) => {
+        const [y, m, d] = dateStr.split('-');
+        if (viewMode === 'monthly') {
+            return `${m}/${y}`; // MM/YYYY
+        } else {
+            return `${d}/${m}`; // DD/MM
+        }
     };
 
     // Pre-declare renderTable
@@ -125,7 +149,7 @@ export const PrevisaoFluxoManager = (project) => {
     // --- Render Table ---
     renderTable = () => {
         const tableContainer = container.querySelector('#previsao-table-container');
-        const days = getDays();
+        const days = getColumnList(); // Changed from getDays()
 
         // Calculate Day Balances
         // We need an array map of day -> { initial, final }
@@ -207,10 +231,7 @@ export const PrevisaoFluxoManager = (project) => {
                 <thead style="position: sticky; top: 0; z-index: 20; background-color: #00425F; color: white;">
                     <tr>
                         <th style="padding: 0.4rem 0.5rem; text-align: left; border-bottom: 2px solid #e5e7eb; min-width: 300px; position: sticky; left: 0; z-index: 21; background-color: #00425F;">TRANSAÇÕES</th>
-                        ${days.map(d => {
-            const [y, m, day] = d.split('-');
-            return `<th style="padding: 0.4rem 0.5rem; text-align: center; border-bottom: 2px solid #e5e7eb; min-width: 120px;">${day}/${m}</th>`;
-        }).join('')}
+                        ${days.map(d => `<th style="padding: 0.4rem 0.5rem; text-align: center; border-bottom: 2px solid #e5e7eb; min-width: 120px;">${formatDateHeader(d)}</th>`).join('')}
                     </tr>
                 </thead>
                 <tbody>
@@ -432,6 +453,14 @@ export const PrevisaoFluxoManager = (project) => {
 
     controls.innerHTML = `
         <div style="display: flex; align-items: center; gap: 1.5rem;">
+             <!-- View Mode Toggle -->
+             <div style="min-width: 150px;">
+                <label style="display: block; margin-bottom: 0.25rem; font-weight: 500; font-size: 0.9rem; color: #374151;">Visão</label>
+                <div id="view-mode-toggle" style="display: flex; background-color: #e5e7eb; border-radius: 6px; padding: 2px; height: 38px;">
+                    <button id="btn-monthly" style="padding: 0 12px; border: none; border-radius: 4px; cursor: pointer; flex: 1; font-size: 0.9rem; font-weight: 500;">Mensal</button>
+                    <button id="btn-daily" style="padding: 0 12px; border: none; border-radius: 4px; cursor: pointer; flex: 1; font-size: 0.9rem; font-weight: 500;">Diário</button>
+                </div>
+             </div>
              <!-- Company Filter -->
              <div style="display: flex; align-items: center; gap: 0.5rem;">
                 <label style="font-size: 0.9rem; color: #4B5563; font-weight: 500;">Empresas:</label>
@@ -439,10 +468,10 @@ export const PrevisaoFluxoManager = (project) => {
              </div>
              <!-- Date Range -->
              <div style="display: flex; align-items: center; gap: 0.5rem;">
-                <label style="font-size: 0.9rem; color: #4B5563;">De:</label>
+                <label style="font-size: 0.9rem; color: #4B5563;" id="label-start-date">De:</label>
                 <input type="date" id="start-date" value="${startStr}" style="padding: 0.4rem; border: 1px solid #d1d5db; border-radius: 4px; font-family: inherit;">
                 
-                <label style="font-size: 0.9rem; color: #4B5563;">Até:</label>
+                <label style="font-size: 0.9rem; color: #4B5563;" id="label-end-date">Até:</label>
                 <input type="date" id="end-date" value="${endStr}" style="padding: 0.4rem; border: 1px solid #d1d5db; border-radius: 4px; font-family: inherit;">
              </div>
              <div style="display: flex; gap: 0.5rem;">
@@ -451,8 +480,8 @@ export const PrevisaoFluxoManager = (project) => {
              </div>
         </div>
         
-        <div style="font-size: 1.2rem; font-weight: bold; color: #00425F;">
-            📊 Previsão Diária
+        <div style="font-size: 1.2rem; font-weight: bold; color: #00425F;" id="screen-title">
+            📊 Previsão ${viewMode === 'monthly' ? 'Mensal' : 'Diária'}
         </div>
     `;
 
@@ -476,6 +505,53 @@ export const PrevisaoFluxoManager = (project) => {
     // --- Listeners ---
     const startInput = controls.querySelector('#start-date');
     const endInput = controls.querySelector('#end-date');
+    const btnMonthly = controls.querySelector('#btn-monthly');
+    const btnDaily = controls.querySelector('#btn-daily');
+
+    // Update toggle button styles
+    const updateToggle = () => {
+        if (viewMode === 'monthly') {
+            btnMonthly.style.backgroundColor = 'white';
+            btnMonthly.style.color = '#00425F';
+            btnMonthly.style.boxShadow = '0 1px 2px rgba(0,0,0,0.1)';
+            btnDaily.style.backgroundColor = 'transparent';
+            btnDaily.style.color = '#6b7280';
+            btnDaily.style.boxShadow = 'none';
+        } else {
+            btnDaily.style.backgroundColor = 'white';
+            btnDaily.style.color = '#00425F';
+            btnDaily.style.boxShadow = '0 1px 2px rgba(0,0,0,0.1)';
+            btnMonthly.style.backgroundColor = 'transparent';
+            btnMonthly.style.color = '#6b7280';
+            btnMonthly.style.boxShadow = 'none';
+        }
+    };
+    updateToggle();
+
+    // Toggle event handlers
+    btnMonthly.onclick = () => {
+        if (viewMode !== 'monthly') {
+            viewMode = 'monthly';
+            localStorage.setItem(storageKeyMode, 'monthly');
+            updateToggle();
+            // Update title
+            const title = container.querySelector('#screen-title');
+            if (title) title.textContent = '📊 Previsão Mensal';
+            loadData();
+        }
+    };
+
+    btnDaily.onclick = () => {
+        if (viewMode !== 'daily') {
+            viewMode = 'daily';
+            localStorage.setItem(storageKeyMode, 'daily');
+            updateToggle();
+            // Update title
+            const title = container.querySelector('#screen-title');
+            if (title) title.textContent = '📊 Previsão Diária';
+            loadData();
+        }
+    };
 
     const handleDateChange = () => {
         startStr = startInput.value;
@@ -501,7 +577,7 @@ export const PrevisaoFluxoManager = (project) => {
                         return;
                     }
 
-                    const days = getDays();
+                    const days = getColumnList(); // Changed from getDays()
                     const exportData = [];
 
                     // Flatten hierarchy
@@ -511,8 +587,7 @@ export const PrevisaoFluxoManager = (project) => {
                             const row = { 'Categoria': indent + node.name };
 
                             days.forEach(d => {
-                                const [y, m, day] = d.split('-');
-                                const label = `${day}/${m}`;
+                                const label = formatDateHeader(d);
                                 row[label] = node.dailyTotals[d] || 0;
                             });
 
@@ -528,8 +603,7 @@ export const PrevisaoFluxoManager = (project) => {
                     const initialRow = { 'Categoria': 'Saldo Inicial' };
                     let runningBalance = forecastData.initialBalance || 0;
                     days.forEach(d => {
-                        const [y, m, day] = d.split('-');
-                        const label = `${day}/${m}`;
+                        const label = formatDateHeader(d);
                         initialRow[label] = runningBalance;
                         // Update running balance for next day
                         const data = forecastData.data || [];
@@ -563,8 +637,7 @@ export const PrevisaoFluxoManager = (project) => {
                         const outVal = (saidasRoot?.dailyTotals[d] || 0) + (producaoRoot?.dailyTotals[d] || 0) + (retiradasRoot?.dailyTotals[d] || 0);
                         finalBalance = finalBalance + inVal - outVal;
 
-                        const [y, m, day] = d.split('-');
-                        const label = `${day}/${m}`;
+                        const label = formatDateHeader(d);
                         finalRow[label] = finalBalance;
                     });
                     exportData.push(finalRow);
@@ -579,8 +652,7 @@ export const PrevisaoFluxoManager = (project) => {
                         const diffTime = cellDate - todayDate;
                         const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
 
-                        const [y, m, day] = d.split('-');
-                        const label = `${day}/${m}`;
+                        const label = formatDateHeader(d);
                         relativeDaysRow[label] = diffDays;
                     });
                     exportData.push(relativeDaysRow);
@@ -591,8 +663,7 @@ export const PrevisaoFluxoManager = (project) => {
                     ];
 
                     days.forEach(d => {
-                        const [y, m, day] = d.split('-');
-                        const label = `${day}/${m}`;
+                        const label = formatDateHeader(d);
                         columns.push({
                             header: label,
                             key: label,
@@ -604,8 +675,8 @@ export const PrevisaoFluxoManager = (project) => {
                     await ExcelExporter.exportTable(
                         exportData,
                         columns,
-                        'Previsão Diária de Fluxo',
-                        'previsao_fluxo'
+                        'Previsão ' + (viewMode === 'monthly' ? 'Mensal' : 'Diária') + ' de Fluxo',
+                        'previsao_fluxo_' + viewMode
                     );
                 } catch (error) {
                     console.error('Excel export error:', error);
