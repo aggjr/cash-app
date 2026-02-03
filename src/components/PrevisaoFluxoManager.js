@@ -452,10 +452,16 @@ export const PrevisaoFluxoManager = (project) => {
     controls.style.borderRadius = '8px 8px 0 0';
 
     controls.innerHTML = `
+        <!-- Title on first line -->
+        <div style="font-size: 1.2rem; font-weight: bold; color: #00425F; margin-bottom: 1rem;" id="screen-title">
+            📊 Previsão ${viewMode === 'monthly' ? 'Mensal' : 'Diária'}
+        </div>
+        
+        <!-- Controls on second line -->
         <div style="display: flex; align-items: center; gap: 1.5rem;">
-             <!-- View Mode Toggle -->
-             <div style="min-width: 150px;">
-                <label style="display: block; margin-bottom: 0.25rem; font-weight: 500; font-size: 0.9rem; color: #374151;">Visão</label>
+             <!-- View Mode Toggle with inline label -->
+             <div style="display: flex; align-items: center; gap: 0.5rem;">
+                <label style="font-size: 0.9rem; color: #374151; font-weight: 500;">Visão:</label>
                 <div id="view-mode-toggle" style="display: flex; background-color: #e5e7eb; border-radius: 6px; padding: 2px; height: 38px;">
                     <button id="btn-monthly" style="padding: 0 12px; border: none; border-radius: 4px; cursor: pointer; flex: 1; font-size: 0.9rem; font-weight: 500;">Mensal</button>
                     <button id="btn-daily" style="padding: 0 12px; border: none; border-radius: 4px; cursor: pointer; flex: 1; font-size: 0.9rem; font-weight: 500;">Diário</button>
@@ -478,10 +484,6 @@ export const PrevisaoFluxoManager = (project) => {
                  <button id="btn-excel-prev" class="btn-outline">📊 Excel</button>
                  <button id="btn-pdf-prev" class="btn-outline">🖨️ PDF</button>
              </div>
-        </div>
-        
-        <div style="font-size: 1.2rem; font-weight: bold; color: #00425F;" id="screen-title">
-            📊 Previsão ${viewMode === 'monthly' ? 'Mensal' : 'Diária'}
         </div>
     `;
 
