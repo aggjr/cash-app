@@ -153,6 +153,9 @@ export const Sidebar = () => {
           <span class="menu-text">Sair</span>
         </a>
       </div>
+      <div style="padding: 0.5rem; text-align: center; font-size: 0.7rem; color: #64748b; opacity: 0.8;">
+        v0.9.16
+      </div>
     </aside>
   `;
 };
