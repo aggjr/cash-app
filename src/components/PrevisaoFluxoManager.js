@@ -75,6 +75,28 @@ export const PrevisaoFluxoManager = (project) => {
         }
     };
 
+    // --- Helper: Aggregate Daily Totals by Month ---
+    // For monthly view, sum all daily transactions within each month
+    const aggregateDailyTotalsByMonth = (dailyTotals, monthKey) => {
+        if (!dailyTotals || viewMode !== 'monthly') {
+            return dailyTotals?.[monthKey] || 0;
+        }
+
+        // monthKey is the last day of the month (YYYY-MM-DD)
+        const [year, month] = monthKey.split('-');
+        let total = 0;
+
+        // Sum all days in this month
+        Object.keys(dailyTotals).forEach(day => {
+            const [dayYear, dayMonth] = day.split('-');
+            if (dayYear === year && dayMonth === month) {
+                total += dailyTotals[day] || 0;
+            }
+        });
+
+        return total;
+    };
+
     // Pre-declare renderTable
     let renderTable;
 
@@ -170,14 +192,17 @@ export const PrevisaoFluxoManager = (project) => {
         const pagamentosEmprestimosRoot = data.find(n => n.id === 'pagamentos_emprestimos_root');
 
         days.forEach(day => {
-            const inVal = (entradasRoot?.dailyTotals[day] || 0) + (aportesRoot?.dailyTotals[day] || 0) + (emprestimosRoot?.dailyTotals[day] || 0);
-            const outVal = (saidasRoot?.dailyTotals[day] || 0) + (producaoRoot?.dailyTotals[day] || 0) + (retiradasRoot?.dailyTotals[day] || 0) + (pagamentosEmprestimosRoot?.dailyTotals[day] || 0);
+            const inVal = aggregateDailyTotalsByMonth(entradasRoot?.dailyTotals, day) +
+                aggregateDailyTotalsByMonth(aportesRoot?.dailyTotals, day) +
+                aggregateDailyTotalsByMonth(emprestimosRoot?.dailyTotals, day);
+            const outVal = aggregateDailyTotalsByMonth(saidasRoot?.dailyTotals, day) +
+                aggregateDailyTotalsByMonth(producaoRoot?.dailyTotals, day) +
+                aggregateDailyTotalsByMonth(retiradasRoot?.dailyTotals, day) +
+                aggregateDailyTotalsByMonth(pagamentosEmprestimosRoot?.dailyTotals, day);
 
             const initial = runningBalance;
             const final = initial + inVal - outVal;
 
-            dayBalances[day] = { initial, final };
-            runningBalance = final;
             dayBalances[day] = { initial, final };
             runningBalance = final;
         });
@@ -272,9 +297,9 @@ export const PrevisaoFluxoManager = (project) => {
 
                 let dayCells = '';
                 days.forEach(d => {
-                    const val = node.dailyTotals[d] || 0;
-                    const delayedVal = node.dailyDelayed?.[d] || 0;
-                    const overdueVal = node.dailyOverdue?.[d] || 0;
+                    const val = aggregateDailyTotalsByMonth(node.dailyTotals, d);
+                    const delayedVal = aggregateDailyTotalsByMonth(node.dailyDelayed, d);
+                    const overdueVal = aggregateDailyTotalsByMonth(node.dailyOverdue, d);
 
                     let cellContent = '';
 
@@ -597,7 +622,7 @@ export const PrevisaoFluxoManager = (project) => {
 
                             days.forEach(d => {
                                 const label = formatDateHeader(d);
-                                row[label] = node.dailyTotals[d] || 0;
+                                row[label] = aggregateDailyTotalsByMonth(node.dailyTotals, d);
                             });
 
                             exportData.push(row);
@@ -622,8 +647,12 @@ export const PrevisaoFluxoManager = (project) => {
                         const entradasRoot = data.find(n => n.id === 'entradas_root');
                         const saidasRoot = data.find(n => n.id === 'saidas_root');
                         const producaoRoot = data.find(n => n.id === 'producao_root');
-                        const inVal = (entradasRoot?.dailyTotals[d] || 0) + (aportesRoot?.dailyTotals[d] || 0) + (emprestimosRoot?.dailyTotals[d] || 0);
-                        const outVal = (saidasRoot?.dailyTotals[d] || 0) + (producaoRoot?.dailyTotals[d] || 0) + (retiradasRoot?.dailyTotals[d] || 0);
+                        const inVal = aggregateDailyTotalsByMonth(entradasRoot?.dailyTotals, d) +
+                            aggregateDailyTotalsByMonth(aportesRoot?.dailyTotals, d) +
+                            aggregateDailyTotalsByMonth(emprestimosRoot?.dailyTotals, d);
+                        const outVal = aggregateDailyTotalsByMonth(saidasRoot?.dailyTotals, d) +
+                            aggregateDailyTotalsByMonth(producaoRoot?.dailyTotals, d) +
+                            aggregateDailyTotalsByMonth(retiradasRoot?.dailyTotals, d);
                         runningBalance = runningBalance + inVal - outVal;
                     });
                     exportData.push(initialRow);
@@ -642,8 +671,12 @@ export const PrevisaoFluxoManager = (project) => {
                         const entradasRoot = data.find(n => n.id === 'entradas_root');
                         const saidasRoot = data.find(n => n.id === 'saidas_root');
                         const producaoRoot = data.find(n => n.id === 'producao_root');
-                        const inVal = (entradasRoot?.dailyTotals[d] || 0) + (aportesRoot?.dailyTotals[d] || 0) + (emprestimosRoot?.dailyTotals[d] || 0);
-                        const outVal = (saidasRoot?.dailyTotals[d] || 0) + (producaoRoot?.dailyTotals[d] || 0) + (retiradasRoot?.dailyTotals[d] || 0);
+                        const inVal = aggregateDailyTotalsByMonth(entradasRoot?.dailyTotals, d) +
+                            aggregateDailyTotalsByMonth(aportesRoot?.dailyTotals, d) +
+                            aggregateDailyTotalsByMonth(emprestimosRoot?.dailyTotals, d);
+                        const outVal = aggregateDailyTotalsByMonth(saidasRoot?.dailyTotals, d) +
+                            aggregateDailyTotalsByMonth(producaoRoot?.dailyTotals, d) +
+                            aggregateDailyTotalsByMonth(retiradasRoot?.dailyTotals, d);
                         finalBalance = finalBalance + inVal - outVal;
 
                         const label = formatDateHeader(d);
