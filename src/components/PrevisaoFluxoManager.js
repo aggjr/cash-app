@@ -115,7 +115,7 @@ export const PrevisaoFluxoManager = (project) => {
             }
 
             // Initialize filter
-            const filterContainer = document.getElementById('previsao-filter-container');
+            const filterContainer = container.querySelector('#previsao-filter-container');
             if (filterContainer && companies.length > 0) {
                 // Map company data
                 const filterData = companies.map(c => ({

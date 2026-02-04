@@ -353,9 +353,11 @@ export const ConsolidadasManager = (project, fixedViewType = null) => {
                 }
                 const averageCell = `<td data-key="average" style="padding: 0.35rem 0.5rem; text-align: right; border-bottom: 1px solid #d1d5db; font-weight: bold; color: ${totalColor}; font-size: ${fontSize}; position: sticky; left: var(--c2-left, 320px); background-color: #f3f4f6; z-index: 1; white-space: nowrap;">${displayAvg}</td>`;
 
+                // Extract plain text for title (remove HTML tags)
+                const plainName = node.name.replace(/<[^>]*>/g, '');
                 rowsHtml += `
                     <tr class="${rowClass}" data-id="${node.id}" style="background-color: ${rowBg}; cursor: ${hasChildren ? 'pointer' : 'default'};">
-                        <td class="js-col-name" data-key="label" style="padding: 0.35rem 0.25rem 0.35rem ${paddingLeft}rem; border-bottom: 1px solid #f3f4f6; font-weight: ${fontWeight}; font-size: ${fontSize}; display: flex; align-items: center; gap: 0.5rem; position: sticky; left: 0; background-color: ${rowBg}; z-index: 1; width: auto; white-space: nowrap;" title="${node.name}">
+                        <td class="js-col-name" data-key="label" style="padding: 0.35rem 0.25rem 0.35rem ${paddingLeft}rem; border-bottom: 1px solid #f3f4f6; font-weight: ${fontWeight}; font-size: ${fontSize}; display: flex; align-items: center; gap: 0.5rem; position: sticky; left: 0; background-color: ${rowBg}; z-index: 1; width: auto; white-space: nowrap;" title="${plainName}">
                             ${hasChildren ? `<span style="font-size: 0.8rem; transform: rotate(${isExpanded ? '90deg' : '0deg'}); transition: transform 0.2s;">▶</span>` : ''}
                             ${node.name}
                         </td>
