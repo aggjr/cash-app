@@ -3,6 +3,7 @@ import { getApiBaseUrl } from '../utils/apiConfig.js';
 import { ExcelExporter } from '../utils/ExcelExporter.js';
 import { PrintHelper } from '../utils/printHelper.js';
 import { FlatMultiSelect } from './FlatMultiSelect.js';
+import { MonthPicker } from './MonthPicker.js';
 
 export const PrevisaoFluxoManager = (project) => {
     const container = document.createElement('div');
@@ -479,46 +480,238 @@ export const PrevisaoFluxoManager = (project) => {
         });
     };
 
-    // --- Build Header ---
-    const controls = document.createElement('div');
-    controls.style.display = 'flex';
-    controls.style.justifyContent = 'space-between';
-    controls.style.alignItems = 'center';
-    controls.style.padding = '1rem';
-    controls.style.backgroundColor = 'white';
-    controls.style.borderBottom = '1px solid #e5e7eb';
-    controls.style.borderRadius = '8px 8px 0 0';
+    // --- Build Controls (Dynamic based on viewMode) ---
+    const renderControls = () => {
+        const controls = document.createElement('div');
+        controls.style.display = 'flex';
+        controls.style.justifyContent = 'space-between';
+        controls.style.alignItems = 'center';
+        controls.style.padding = '1rem';
+        controls.style.backgroundColor = 'white';
+        controls.style.borderBottom = '1px solid #e5e7eb';
+        controls.style.borderRadius = '8px 8px 0 0';
 
-    controls.innerHTML = `
-        <!-- Controls line -->
-        <div style="display: flex; align-items: center; gap: 1.5rem;">
-             <!-- View Mode Toggle with inline label -->
-             <div style="display: flex; align-items: center; gap: 0.5rem;">
-                <label style="font-size: 0.9rem; color: #374151; font-weight: 500;">Visão:</label>
-                <div id="view-mode-toggle" style="display: flex; background-color: #e5e7eb; border-radius: 6px; padding: 2px; height: 38px;">
-                    <button id="btn-monthly" style="padding: 0 12px; border: none; border-radius: 4px; cursor: pointer; flex: 1; font-size: 0.9rem; font-weight: 500;">Mensal</button>
-                    <button id="btn-daily" style="padding: 0 12px; border: none; border-radius: 4px; cursor: pointer; flex: 1; font-size: 0.9rem; font-weight: 500;">Diário</button>
-                </div>
-             </div>
-             <!-- Company Filter -->
-             <div style="display: flex; align-items: center; gap: 0.5rem;">
-                <label style="font-size: 0.9rem; color: #4B5563; font-weight: 500;">Empresas:</label>
-                <div id="previsao-filter-container"></div>
-             </div>
-             <!-- Date Range -->
-             <div style="display: flex; align-items: center; gap: 0.5rem;">
-                <label style="font-size: 0.9rem; color: #4B5563;" id="label-start-date">De:</label>
-                <input type="date" id="start-date" value="${startStr}" style="padding: 0.4rem; border: 1px solid #d1d5db; border-radius: 4px; font-family: inherit;">
-                
-                <label style="font-size: 0.9rem; color: #4B5563;" id="label-end-date">Até:</label>
-                <input type="date" id="end-date" value="${endStr}" style="padding: 0.4rem; border: 1px solid #d1d5db; border-radius: 4px; font-family: inherit;">
-             </div>
-             <div style="display: flex; gap: 0.5rem;">
-                 <button id="btn-excel-prev" class="btn-outline">📊 Excel</button>
-                 <button id="btn-pdf-prev" class="btn-outline">🖨️ PDF</button>
-             </div>
-        </div>
-    `;
+        const leftSection = document.createElement('div');
+        leftSection.style.display = 'flex';
+        leftSection.style.alignItems = 'center';
+        leftSection.style.gap = '1.5rem';
+
+        // View Mode Toggle
+        const toggleDiv = document.createElement('div');
+        toggleDiv.style.display = 'flex';
+        toggleDiv.style.alignItems = 'center';
+        toggleDiv.style.gap = '0.5rem';
+
+        const toggleLabel = document.createElement('label');
+        toggleLabel.textContent = 'Visão:';
+        toggleLabel.style.fontSize = '0.9rem';
+        toggleLabel.style.color = '#374151';
+        toggleLabel.style.fontWeight = '500';
+
+        const toggleContainer = document.createElement('div');
+        toggleContainer.style.display = 'flex';
+        toggleContainer.style.backgroundColor = '#e5e7eb';
+        toggleContainer.style.borderRadius = '6px';
+        toggleContainer.style.padding = '2px';
+        toggleContainer.style.height = '38px';
+
+        const btnMonthly = document.createElement('button');
+        btnMonthly.textContent = 'Mensal';
+        btnMonthly.style.padding = '0 12px';
+        btnMonthly.style.border = 'none';
+        btnMonthly.style.borderRadius = '4px';
+        btnMonthly.style.cursor = 'pointer';
+        btnMonthly.style.flex = '1';
+        btnMonthly.style.fontSize = '0.9rem';
+        btnMonthly.style.fontWeight = '500';
+
+        const btnDaily = document.createElement('button');
+        btnDaily.textContent = 'Diário';
+        btnDaily.style.padding = '0 12px';
+        btnDaily.style.border = 'none';
+        btnDaily.style.borderRadius = '4px';
+        btnDaily.style.cursor = 'pointer';
+        btnDaily.style.flex = '1';
+        btnDaily.style.fontSize = '0.9rem';
+        btnDaily.style.fontWeight = '500';
+
+        // Update toggle styles
+        const updateToggle = () => {
+            if (viewMode === 'monthly') {
+                btnMonthly.style.backgroundColor = 'white';
+                btnMonthly.style.color = '#00425F';
+                btnMonthly.style.boxShadow = '0 1px 2px rgba(0,0,0,0.1)';
+                btnDaily.style.backgroundColor = 'transparent';
+                btnDaily.style.color = '#6b7280';
+                btnDaily.style.boxShadow = 'none';
+            } else {
+                btnDaily.style.backgroundColor = 'white';
+                btnDaily.style.color = '#00425F';
+                btnDaily.style.boxShadow = '0 1px 2px rgba(0,0,0,0.1)';
+                btnMonthly.style.backgroundColor = 'transparent';
+                btnMonthly.style.color = '#6b7280';
+                btnMonthly.style.boxShadow = 'none';
+            }
+        };
+        updateToggle();
+
+        btnMonthly.onclick = () => {
+            if (viewMode !== 'monthly') {
+                viewMode = 'monthly';
+                localStorage.setItem(storageKeyMode, 'monthly');
+                // Rebuild controls
+                const parent = container.querySelector('.controls-container');
+                if (parent) {
+                    parent.innerHTML = '';
+                    parent.appendChild(renderControls());
+                }
+                loadData();
+            }
+        };
+
+        btnDaily.onclick = () => {
+            if (viewMode !== 'daily') {
+                viewMode = 'daily';
+                localStorage.setItem(storageKeyMode, 'daily');
+                // Rebuild controls
+                const parent = container.querySelector('.controls-container');
+                if (parent) {
+                    parent.innerHTML = '';
+                    parent.appendChild(renderControls());
+                }
+                loadData();
+            }
+        };
+
+        toggleContainer.appendChild(btnMonthly);
+        toggleContainer.appendChild(btnDaily);
+        toggleDiv.appendChild(toggleLabel);
+        toggleDiv.appendChild(toggleContainer);
+        leftSection.appendChild(toggleDiv);
+
+        // Company Filter
+        const companyDiv = document.createElement('div');
+        companyDiv.style.display = 'flex';
+        companyDiv.style.alignItems = 'center';
+        companyDiv.style.gap = '0.5rem';
+
+        const companyLabel = document.createElement('label');
+        companyLabel.textContent = 'Empresas:';
+        companyLabel.style.fontSize = '0.9rem';
+        companyLabel.style.color = '#4B5563';
+        companyLabel.style.fontWeight = '500';
+
+        const filterContainer = document.createElement('div');
+        filterContainer.id = 'previsao-filter-container';
+
+        companyDiv.appendChild(companyLabel);
+        companyDiv.appendChild(filterContainer);
+        leftSection.appendChild(companyDiv);
+
+        // Date Range (Dynamic based on viewMode)
+        const dateDiv = document.createElement('div');
+        dateDiv.style.display = 'flex';
+        dateDiv.style.alignItems = 'center';
+        dateDiv.style.gap = '0.5rem';
+
+        const startLabel = document.createElement('label');
+        startLabel.textContent = viewMode === 'monthly' ? 'De:' : 'De:';
+        startLabel.style.fontSize = '0.9rem';
+        startLabel.style.color = '#4B5563';
+
+        let startInput;
+        if (viewMode === 'monthly') {
+            // Month Picker
+            const [y, m] = startStr.split('-');
+            const monthStr = `${y}-${m}`;
+            startInput = MonthPicker(monthStr, (val) => {
+                if (val) {
+                    const [year, month] = val.split('-');
+                    const firstDay = new Date(parseInt(year), parseInt(month) - 1, 1);
+                    startStr = firstDay.toISOString().split('T')[0];
+                    localStorage.setItem('previsao_startDate', startStr);
+                    loadData();
+                }
+            });
+        } else {
+            // Date Input
+            startInput = document.createElement('input');
+            startInput.type = 'date';
+            startInput.value = startStr;
+            startInput.style.padding = '0.4rem';
+            startInput.style.border = '1px solid #d1d5db';
+            startInput.style.borderRadius = '4px';
+            startInput.style.fontFamily = 'inherit';
+            startInput.onchange = (e) => {
+                startStr = e.target.value;
+                localStorage.setItem('previsao_startDate', startStr);
+                loadData();
+            };
+        }
+
+        const endLabel = document.createElement('label');
+        endLabel.textContent = 'Até:';
+        endLabel.style.fontSize = '0.9rem';
+        endLabel.style.color = '#4B5563';
+
+        let endInput;
+        if (viewMode === 'monthly') {
+            // Month Picker
+            const [y, m] = endStr.split('-');
+            const monthStr = `${y}-${m}`;
+            endInput = MonthPicker(monthStr, (val) => {
+                if (val) {
+                    const [year, month] = val.split('-');
+                    const lastDay = new Date(parseInt(year), parseInt(month), 0);
+                    endStr = lastDay.toISOString().split('T')[0];
+                    localStorage.setItem('previsao_endDate', endStr);
+                    loadData();
+                }
+            });
+        } else {
+            // Date Input
+            endInput = document.createElement('input');
+            endInput.type = 'date';
+            endInput.value = endStr;
+            endInput.style.padding = '0.4rem';
+            endInput.style.border = '1px solid #d1d5db';
+            endInput.style.borderRadius = '4px';
+            endInput.style.fontFamily = 'inherit';
+            endInput.onchange = (e) => {
+                endStr = e.target.value;
+                localStorage.setItem('previsao_endDate', endStr);
+                loadData();
+            };
+        }
+
+        dateDiv.appendChild(startLabel);
+        dateDiv.appendChild(startInput);
+        dateDiv.appendChild(endLabel);
+        dateDiv.appendChild(endInput);
+        leftSection.appendChild(dateDiv);
+
+        // Export Buttons
+        const exportDiv = document.createElement('div');
+        exportDiv.style.display = 'flex';
+        exportDiv.style.gap = '0.5rem';
+
+        const btnExcel = document.createElement('button');
+        btnExcel.className = 'btn-outline';
+        btnExcel.textContent = '📊 Excel';
+        btnExcel.id = 'btn-excel-prev';
+
+        const btnPdf = document.createElement('button');
+        btnPdf.className = 'btn-outline';
+        btnPdf.textContent = '🖨️ PDF';
+        btnPdf.id = 'btn-pdf-prev';
+
+        exportDiv.appendChild(btnExcel);
+        exportDiv.appendChild(btnPdf);
+        leftSection.appendChild(exportDiv);
+
+        controls.appendChild(leftSection);
+        return controls;
+    };
 
     // --- Container ---
     const tableContainer = document.createElement('div');
@@ -550,66 +743,16 @@ export const PrevisaoFluxoManager = (project) => {
         </div>
     `;
 
+    // --- Container Assembly ---
+    const controlsContainer = document.createElement('div');
+    controlsContainer.className = 'controls-container';
+    controlsContainer.appendChild(renderControls());
+
     container.appendChild(header);
-    container.appendChild(controls);
+    container.appendChild(controlsContainer);
     container.appendChild(tableContainer);
     container.appendChild(loadingOverlay);
 
-    // --- Listeners ---
-    const startInput = controls.querySelector('#start-date');
-    const endInput = controls.querySelector('#end-date');
-    const btnMonthly = controls.querySelector('#btn-monthly');
-    const btnDaily = controls.querySelector('#btn-daily');
-
-    // Update toggle button styles
-    const updateToggle = () => {
-        if (viewMode === 'monthly') {
-            btnMonthly.style.backgroundColor = 'white';
-            btnMonthly.style.color = '#00425F';
-            btnMonthly.style.boxShadow = '0 1px 2px rgba(0,0,0,0.1)';
-            btnDaily.style.backgroundColor = 'transparent';
-            btnDaily.style.color = '#6b7280';
-            btnDaily.style.boxShadow = 'none';
-        } else {
-            btnDaily.style.backgroundColor = 'white';
-            btnDaily.style.color = '#00425F';
-            btnDaily.style.boxShadow = '0 1px 2px rgba(0,0,0,0.1)';
-            btnMonthly.style.backgroundColor = 'transparent';
-            btnMonthly.style.color = '#6b7280';
-            btnMonthly.style.boxShadow = 'none';
-        }
-    };
-    updateToggle();
-
-    // Toggle event handlers
-    btnMonthly.onclick = () => {
-        if (viewMode !== 'monthly') {
-            viewMode = 'monthly';
-            localStorage.setItem(storageKeyMode, 'monthly');
-            updateToggle();
-            loadData();
-        }
-    };
-
-    btnDaily.onclick = () => {
-        if (viewMode !== 'daily') {
-            viewMode = 'daily';
-            localStorage.setItem(storageKeyMode, 'daily');
-            updateToggle();
-            loadData();
-        }
-    };
-
-    const handleDateChange = () => {
-        startStr = startInput.value;
-        endStr = endInput.value;
-        localStorage.setItem('previsao_startDate', startStr);
-        localStorage.setItem('previsao_endDate', endStr);
-        loadData(); // Auto-refresh
-    };
-
-    startInput.addEventListener('change', handleDateChange);
-    endInput.addEventListener('change', handleDateChange);
 
     // Export Handlers
     setTimeout(() => {
