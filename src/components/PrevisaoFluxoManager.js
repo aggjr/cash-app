@@ -452,12 +452,7 @@ export const PrevisaoFluxoManager = (project) => {
     controls.style.borderRadius = '8px 8px 0 0';
 
     controls.innerHTML = `
-        <!-- Title on first line -->
-        <div style="font-size: 1.2rem; font-weight: bold; color: #00425F; margin-bottom: 1rem;" id="screen-title">
-            📊 Previsão ${viewMode === 'monthly' ? 'Mensal' : 'Diária'}
-        </div>
-        
-        <!-- Controls on second line -->
+        <!-- Controls line -->
         <div style="display: flex; align-items: center; gap: 1.5rem;">
              <!-- View Mode Toggle with inline label -->
              <div style="display: flex; align-items: center; gap: 0.5rem;">
@@ -500,6 +495,24 @@ export const PrevisaoFluxoManager = (project) => {
     // Style loading overlay... (omitted detailed css for brevity, assume class works or basic style)
     loadingOverlay.style.cssText = 'position:absolute;top:0;left:0;width:100%;height:100%;background:rgba(255,255,255,0.7);display:none;justify-content:center;align-items:center;z-index:50;';
 
+    // --- Render Header ---
+    const header = document.createElement('div');
+    header.style.display = 'flex';
+    header.style.justifyContent = 'space-between';
+    header.style.alignItems = 'center';
+    header.style.marginBottom = '1rem';
+    header.style.padding = '1rem 1rem 0 1rem';
+
+    header.innerHTML = `
+        <h2>📊 Previsão de Fluxo de Caixa</h2>
+        <div style="display: flex; gap: 0.5rem;">
+            <a href="#" style="font-size: 0.9rem; color: var(--color-primary);">Lar</a>
+            <span style="color: var(--color-text-muted);">/</span>
+            <span style="font-size: 0.9rem; color: var(--color-text-muted);">previsao</span>
+        </div>
+    `;
+
+    container.appendChild(header);
     container.appendChild(controls);
     container.appendChild(tableContainer);
     container.appendChild(loadingOverlay);
@@ -536,9 +549,6 @@ export const PrevisaoFluxoManager = (project) => {
             viewMode = 'monthly';
             localStorage.setItem(storageKeyMode, 'monthly');
             updateToggle();
-            // Update title
-            const title = container.querySelector('#screen-title');
-            if (title) title.textContent = '📊 Previsão Mensal';
             loadData();
         }
     };
@@ -548,9 +558,6 @@ export const PrevisaoFluxoManager = (project) => {
             viewMode = 'daily';
             localStorage.setItem(storageKeyMode, 'daily');
             updateToggle();
-            // Update title
-            const title = container.querySelector('#screen-title');
-            if (title) title.textContent = '📊 Previsão Diária';
             loadData();
         }
     };
