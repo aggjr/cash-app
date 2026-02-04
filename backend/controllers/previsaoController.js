@@ -517,7 +517,7 @@ exports.getDailyForecast = async (req, res, next) => {
 
         const entradasVirtual = createVirtualRoot('entradas_root', 'ENTRADAS', entradasRoots);
         const saidasVirtual = createVirtualRoot('saidas_root', 'SAÍDAS', saidasRoots);
-        const producaoVirtual = createVirtualRoot('producao_root', 'COMPRAS (PROD/REV)', producaoRoots);
+        const producaoVirtual = createVirtualRoot('producao_root', 'COMPRAS <span style="font-size: 0.85em;">(Produção/Revenda)</span>', producaoRoots);
 
         res.json({
             initialBalance: runningBalance,
