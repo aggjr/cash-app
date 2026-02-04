@@ -144,7 +144,20 @@ export const PrevisaoFluxoManager = (project) => {
             if (overlay) overlay.style.display = 'flex';
 
             const token = localStorage.getItem('token');
-            let query = `projectId=${project.id}&startDate=${startStr}&endDate=${endStr}`;
+
+            // For monthly view, we need to fetch data from the month BEFORE the start date
+            // to calculate the correct initial balance for the first displayed month
+            let queryStartDate = startStr;
+            if (viewMode === 'monthly') {
+                const startDate = new Date(startStr + 'T12:00:00');
+                // Go back one month
+                startDate.setMonth(startDate.getMonth() - 1);
+                // Set to first day of that month
+                startDate.setDate(1);
+                queryStartDate = startDate.toISOString().split('T')[0];
+            }
+
+            let query = `projectId=${project.id}&startDate=${queryStartDate}&endDate=${endStr}`;
             if (selectedCompanyIds.length > 0) {
                 query += `&companyIds=${selectedCompanyIds.join(',')}`;
             }
