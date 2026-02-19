@@ -310,17 +310,32 @@ exports.getDailyForecast = async (req, res, next) => {
                             hasDelay = false;
                         }
 
-                        // CHECK FOR REALIZED LATE (Paid after Due Date OR was Delayed)
-                        // Logic: If Paid Date (dateKey) > Original Due Date OR has Data Atraso (History of delay)
-                        const isPaidLate = originalPredictedDate && dateKey > originalPredictedDate;
+                        const isOriginalDatePassed = originalPredictedDate && originalPredictedDate < today;
 
-                        // Check if it was delayed (rescheduled)
-                        // Note: We only check if data_atraso exists and is different/greater than original?
-                        // Usually data_atraso implies a shift.
-                        const wasDelayed = item.data_atraso && originalPredictedDate && item.data_atraso > originalPredictedDate;
+                        if (!hasRealDate && isOriginalDatePassed) {
+                            if (hasDelay) {
+                                // Delayed: original date passed but rescheduled to future
+                                node.dailyDelayed[dateKey] = (node.dailyDelayed[dateKey] || 0) + val;
+                                node.dailyTotals[dateKey] = (node.dailyTotals[dateKey] || 0) + val;
+                                node.total += val;
+                            } else {
+                                // Overdue: original date passed, no delay, no real date
+                                node.dailyOverdue[dateKey] = (node.dailyOverdue[dateKey] || 0) + val;
+                                node.dailyTotals[dateKey] = (node.dailyTotals[dateKey] || 0) + val;
+                                node.total += val;
+                            }
+                        } else {
+                            // Normal entry: either has real date or future predicted date
+                            node.dailyTotals[dateKey] = (node.dailyTotals[dateKey] || 0) + val;
+                            node.total += val;
 
-                        if (hasRealDate && (isPaidLate || wasDelayed)) {
-                            node.dailyRealizedLate[dateKey] = (node.dailyRealizedLate[dateKey] || 0) + val;
+                            // CHECK FOR REALIZED LATE (Paid after Due Date OR was Delayed)
+                            const isPaidLate = originalPredictedDate && dateKey > originalPredictedDate;
+                            const wasDelayed = item.data_atraso && originalPredictedDate && item.data_atraso > originalPredictedDate;
+
+                            if (hasRealDate && (isPaidLate || wasDelayed)) {
+                                node.dailyRealizedLate[dateKey] = (node.dailyRealizedLate[dateKey] || 0) + val;
+                            }
                         }
                     }
                 } else {

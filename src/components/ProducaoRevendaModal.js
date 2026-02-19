@@ -336,6 +336,22 @@ export const ProducaoRevendaModal = {
                     } else {
                         accountSelect.classList.remove('input-error');
                     }
+
+                    // Validate: Data Atraso must be > Data Prevista
+                    if (dataAtrasoInput.value && dataPrevistaInput.value) {
+                        if (dataAtrasoInput.value <= dataPrevistaInput.value) {
+                            dataAtrasoInput.classList.add('input-error');
+                            dataAtrasoInput.title = "A Data de Atraso deve ser posterior à Data Prevista";
+                            isValid = false;
+                        } else {
+                            dataAtrasoInput.classList.remove('input-error');
+                            dataAtrasoInput.title = "";
+                        }
+                    } else {
+                        dataAtrasoInput.classList.remove('input-error');
+                        dataAtrasoInput.title = "";
+                    }
+
                     return isValid;
                 };
 

@@ -412,6 +412,25 @@ export const IncomeModal = {
                     } else {
                         accountSelect.classList.remove('input-error');
                     }
+
+                    // Validate: Data Atraso must be > Data Prevista
+                    if (dataAtrasoInput.value && dataPrevistaInput.value) {
+                        if (dataAtrasoInput.value <= dataPrevistaInput.value) {
+                            dataAtrasoInput.classList.add('input-error');
+                            // Optional: Add a visual hint or rely on user knowing "Delay must be after Predicted"
+                            // We could add a title attribute for tooltip
+                            dataAtrasoInput.title = "A Data de Atraso deve ser posterior à Data Prevista";
+                            isValid = false;
+                        } else {
+                            dataAtrasoInput.classList.remove('input-error');
+                            dataAtrasoInput.title = "";
+                        }
+                    } else {
+                        // If empty, remove error
+                        dataAtrasoInput.classList.remove('input-error');
+                        dataAtrasoInput.title = "";
+                    }
+
                     return isValid;
                 };
 
