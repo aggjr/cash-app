@@ -275,19 +275,12 @@ exports.getDailyForecast = async (req, res, next) => {
                     const val = parseFloat(item.valor) || 0;
 
                     // CRITICAL FIX: Use ONLY raw_date from SQL (already formatted as YYYY-MM-DD string)
-                    // The SQL query uses SUBSTRING(COALESCE(...), 1, 10) which:
-                    // 1. Handles priority: Real > Atraso > Prevista
-                    // 2. Returns as string, avoiding Date object timezone conversions
                     const rawDateVal = item.raw_date;
-
-                    // Extract YYYY-MM-DD from string (dateStrings: true ensures it's always a string)
                     const dateKey = (typeof rawDateVal === 'string' && rawDateVal.length >= 10)
                         ? rawDateVal.substring(0, 10)
                         : '';
 
                     if (dateKey) {
-                        // Differentiate between delayed (has data_atraso >= today) and truly overdue
-                        // Fix Timezone: Adjust to UTC-3 (Brazil) to avoid "future is now" issues late at night
                         const now = new Date();
                         now.setHours(now.getHours() - 3);
                         const today = now.toISOString().split('T')[0];
@@ -298,7 +291,6 @@ exports.getDailyForecast = async (req, res, next) => {
                         if (dataTable === 'entradas') {
                             originalPredictedDate = item.data_prevista_recebimento;
                             hasRealDate = !!item.data_real_recebimento;
-                            // Pending delay logic (Plan only)
                             hasDelay = item.data_atraso && item.data_atraso >= today;
                         } else if (dataTable === 'saidas') {
                             originalPredictedDate = item.data_prevista_pagamento;
@@ -314,22 +306,18 @@ exports.getDailyForecast = async (req, res, next) => {
 
                         if (!hasRealDate && isOriginalDatePassed) {
                             if (hasDelay) {
-                                // Delayed: original date passed but rescheduled to future
                                 node.dailyDelayed[dateKey] = (node.dailyDelayed[dateKey] || 0) + val;
                                 node.dailyTotals[dateKey] = (node.dailyTotals[dateKey] || 0) + val;
                                 node.total += val;
                             } else {
-                                // Overdue: original date passed, no delay, no real date
                                 node.dailyOverdue[dateKey] = (node.dailyOverdue[dateKey] || 0) + val;
                                 node.dailyTotals[dateKey] = (node.dailyTotals[dateKey] || 0) + val;
                                 node.total += val;
                             }
                         } else {
-                            // Normal entry: either has real date or future predicted date
                             node.dailyTotals[dateKey] = (node.dailyTotals[dateKey] || 0) + val;
                             node.total += val;
 
-                            // CHECK FOR REALIZED LATE (Paid after Due Date OR was Delayed)
                             const isPaidLate = originalPredictedDate && dateKey > originalPredictedDate;
                             const wasDelayed = item.data_atraso && originalPredictedDate && item.data_atraso > originalPredictedDate;
 
@@ -337,109 +325,108 @@ exports.getDailyForecast = async (req, res, next) => {
                                 node.dailyRealizedLate[dateKey] = (node.dailyRealizedLate[dateKey] || 0) + val;
                             }
                         }
+                    } else {
+                        // No valid date
+                        node.total += val;
                     }
-                } else {
-                    // No valid date, add to total anyway
-                    node.total += val;
                 }
-            }
-        });
-
-        // Hierarchy
-        const rootNodes = [];
-        types.forEach(t => {
-            const node = typeMap.get(t.id);
-            if (t.parent_id) typeMap.get(t.parent_id)?.children.push(node);
-            else rootNodes.push(node);
-        });
-
-        // Rollup
-        const calculateRollup = (node) => {
-            node.children.forEach(child => {
-                calculateRollup(child);
-
-                // Rollup normal totals
-                for (const [day, value] of Object.entries(child.dailyTotals)) {
-                    node.dailyTotals[day] = (node.dailyTotals[day] || 0) + value;
-                }
-
-                // Rollup delayed totals (included in balance, with warning)
-                for (const [day, value] of Object.entries(child.dailyDelayed || {})) {
-                    node.dailyDelayed[day] = (node.dailyDelayed[day] || 0) + value;
-                }
-
-                // Rollup overdue totals (informational)
-                for (const [day, value] of Object.entries(child.dailyOverdue)) {
-                    node.dailyOverdue[day] = (node.dailyOverdue[day] || 0) + value;
-                }
-
-                // Rollup realized late totals
-                for (const [day, value] of Object.entries(child.dailyRealizedLate || {})) {
-                    node.dailyRealizedLate[day] = (node.dailyRealizedLate[day] || 0) + value;
-                }
-
-                node.total += child.total; // Total does NOT include overdue
             });
+
+            // Hierarchy
+            const rootNodes = [];
+            types.forEach(t => {
+                const node = typeMap.get(t.id);
+                if (t.parent_id) typeMap.get(t.parent_id)?.children.push(node);
+                else rootNodes.push(node);
+            });
+
+            // Rollup
+            const calculateRollup = (node) => {
+                node.children.forEach(child => {
+                    calculateRollup(child);
+
+                    // Rollup normal totals
+                    for (const [day, value] of Object.entries(child.dailyTotals)) {
+                        node.dailyTotals[day] = (node.dailyTotals[day] || 0) + value;
+                    }
+
+                    // Rollup delayed totals (included in balance, with warning)
+                    for (const [day, value] of Object.entries(child.dailyDelayed || {})) {
+                        node.dailyDelayed[day] = (node.dailyDelayed[day] || 0) + value;
+                    }
+
+                    // Rollup overdue totals (informational)
+                    for (const [day, value] of Object.entries(child.dailyOverdue)) {
+                        node.dailyOverdue[day] = (node.dailyOverdue[day] || 0) + value;
+                    }
+
+                    // Rollup realized late totals
+                    for (const [day, value] of Object.entries(child.dailyRealizedLate || {})) {
+                        node.dailyRealizedLate[day] = (node.dailyRealizedLate[day] || 0) + value;
+                    }
+
+                    node.total += child.total; // Total does NOT include overdue
+                });
+            };
+            rootNodes.forEach(root => calculateRollup(root));
+            return rootNodes;
         };
-        rootNodes.forEach(root => calculateRollup(root));
-        return rootNodes;
-    };
 
-    const saidasRoots = await buildDailyTree('tipo_saida', 'saidas', 'tipo_saida_id');
-    const producaoRoots = await buildDailyTree('tipo_producao_revenda', 'producao_revenda', 'tipo_id');
-    const entradasRoots = await buildDailyTree('tipo_entrada', 'entradas', 'tipo_entrada_id');
+        const saidasRoots = await buildDailyTree('tipo_saida', 'saidas', 'tipo_saida_id');
+        const producaoRoots = await buildDailyTree('tipo_producao_revenda', 'producao_revenda', 'tipo_id');
+        const entradasRoots = await buildDailyTree('tipo_entrada', 'entradas', 'tipo_entrada_id');
 
-    // --- Separate LOAN PAYMENTS (SAIDAS) ---
-    let pagamentosEmprestimosVirtual = { id: 'pagamentos_emprestimos_root', name: '- PGTO. EMPRÉSTIMOS', children: [], dailyTotals: {}, dailyDelayed: {}, dailyRealizedLate: {}, dailyOverdue: {}, total: 0 };
+        // --- Separate LOAN PAYMENTS (SAIDAS) ---
+        let pagamentosEmprestimosVirtual = { id: 'pagamentos_emprestimos_root', name: '- PGTO. EMPRÉSTIMOS', children: [], dailyTotals: {}, dailyDelayed: {}, dailyRealizedLate: {}, dailyOverdue: {}, total: 0 };
 
-    const pgtoEmpIndex = saidasRoots.findIndex(n => {
-        const name = n.name.toUpperCase();
-        return (name.includes('PAGAMENTO') && name.includes('EMPRÉSTIMO')) || name.includes('AMORTIZAÇÃO');
-    });
+        const pgtoEmpIndex = saidasRoots.findIndex(n => {
+            const name = n.name.toUpperCase();
+            return (name.includes('PAGAMENTO') && name.includes('EMPRÉSTIMO')) || name.includes('AMORTIZAÇÃO');
+        });
 
-    if (pgtoEmpIndex !== -1) {
-        const node = saidasRoots[pgtoEmpIndex];
-        saidasRoots.splice(pgtoEmpIndex, 1);
-        // Copy data
-        pagamentosEmprestimosVirtual.children = node.children;
-        pagamentosEmprestimosVirtual.dailyTotals = node.dailyTotals;
-        pagamentosEmprestimosVirtual.dailyDelayed = node.dailyDelayed;
-        pagamentosEmprestimosVirtual.dailyRealizedLate = node.dailyRealizedLate;
-        pagamentosEmprestimosVirtual.dailyOverdue = node.dailyOverdue;
-        pagamentosEmprestimosVirtual.total = node.total;
-    }
-
-    // --- Separate EMPRÉSTIMOS from ENTRADAS ---
-    let emprestimosVirtual = { id: 'emprestimos_root', name: '+ EMPRÉSTIMOS', children: [], dailyTotals: {}, dailyDelayed: {}, dailyRealizedLate: {}, dailyOverdue: {}, total: 0 };
-
-    const empIndex = entradasRoots.findIndex(n => n.name.toUpperCase().includes('EMPRÉSTIMOS') || n.name.toUpperCase().includes('EMPRESTIMOS'));
-    if (empIndex !== -1) {
-        const empNode = entradasRoots[empIndex];
-        entradasRoots.splice(empIndex, 1);
-        // Copy data
-        emprestimosVirtual.children = empNode.children;
-        emprestimosVirtual.dailyTotals = empNode.dailyTotals;
-        emprestimosVirtual.dailyDelayed = empNode.dailyDelayed;
-        emprestimosVirtual.dailyRealizedLate = empNode.dailyRealizedLate;
-        emprestimosVirtual.dailyOverdue = empNode.dailyOverdue;
-        emprestimosVirtual.total = empNode.total;
-    }
-
-    // Aportes & Retiradas
-
-    const fetchFlatDaily = async (table, label, id) => {
-        const dateExpr = effectiveDateSql(table);
-        const validExpr = validitySql(table);
-
-        // Determine which columns to select based on table
-        let selectCols = 'valor, data_real';
-        if (table === 'aportes') {
-            selectCols = 'valor, data_real, data_fato';
-        } else if (table === 'retiradas') {
-            selectCols = 'valor, data_real, data_prevista';
+        if (pgtoEmpIndex !== -1) {
+            const node = saidasRoots[pgtoEmpIndex];
+            saidasRoots.splice(pgtoEmpIndex, 1);
+            // Copy data
+            pagamentosEmprestimosVirtual.children = node.children;
+            pagamentosEmprestimosVirtual.dailyTotals = node.dailyTotals;
+            pagamentosEmprestimosVirtual.dailyDelayed = node.dailyDelayed;
+            pagamentosEmprestimosVirtual.dailyRealizedLate = node.dailyRealizedLate;
+            pagamentosEmprestimosVirtual.dailyOverdue = node.dailyOverdue;
+            pagamentosEmprestimosVirtual.total = node.total;
         }
 
-        const query = `
+        // --- Separate EMPRÉSTIMOS from ENTRADAS ---
+        let emprestimosVirtual = { id: 'emprestimos_root', name: '+ EMPRÉSTIMOS', children: [], dailyTotals: {}, dailyDelayed: {}, dailyRealizedLate: {}, dailyOverdue: {}, total: 0 };
+
+        const empIndex = entradasRoots.findIndex(n => n.name.toUpperCase().includes('EMPRÉSTIMOS') || n.name.toUpperCase().includes('EMPRESTIMOS'));
+        if (empIndex !== -1) {
+            const empNode = entradasRoots[empIndex];
+            entradasRoots.splice(empIndex, 1);
+            // Copy data
+            emprestimosVirtual.children = empNode.children;
+            emprestimosVirtual.dailyTotals = empNode.dailyTotals;
+            emprestimosVirtual.dailyDelayed = empNode.dailyDelayed;
+            emprestimosVirtual.dailyRealizedLate = empNode.dailyRealizedLate;
+            emprestimosVirtual.dailyOverdue = empNode.dailyOverdue;
+            emprestimosVirtual.total = empNode.total;
+        }
+
+        // Aportes & Retiradas
+
+        const fetchFlatDaily = async (table, label, id) => {
+            const dateExpr = effectiveDateSql(table);
+            const validExpr = validitySql(table);
+
+            // Determine which columns to select based on table
+            let selectCols = 'valor, data_real';
+            if (table === 'aportes') {
+                selectCols = 'valor, data_real, data_fato';
+            } else if (table === 'retiradas') {
+                selectCols = 'valor, data_real, data_prevista';
+            }
+
+            const query = `
             SELECT
                 ${selectCols},
                 ${dateExpr} as raw_date
@@ -451,127 +438,127 @@ exports.getDailyForecast = async (req, res, next) => {
                 AND ${dateExpr} >= ? AND ${dateExpr} <= ?
                 `;
 
-        const params = [projectId, ...(companyFilter ? [companyFilter] : []), startDate, endDate];
-        const [items] = await db.query(query, params);
+            const params = [projectId, ...(companyFilter ? [companyFilter] : []), startDate, endDate];
+            const [items] = await db.query(query, params);
 
-        const dailyTotals = {};
-        const dailyOverdue = {};
-        const dailyRealizedLate = {}; // Not strictly needed for Aportes/Retiradas distinct logic but good for consistency
-        let total = 0;
-        items.forEach(item => {
-            const val = parseFloat(item.valor) || 0;
+            const dailyTotals = {};
+            const dailyOverdue = {};
+            const dailyRealizedLate = {}; // Not strictly needed for Aportes/Retiradas distinct logic but good for consistency
+            let total = 0;
+            items.forEach(item => {
+                const val = parseFloat(item.valor) || 0;
 
-            // Use raw_date from SQL (already YYYY-MM-DD string with dateStrings: true)
-            const dateKey = (typeof item.raw_date === 'string' && item.raw_date.length >= 10)
-                ? item.raw_date.substring(0, 10)
-                : '';
+                // Use raw_date from SQL (already YYYY-MM-DD string with dateStrings: true)
+                const dateKey = (typeof item.raw_date === 'string' && item.raw_date.length >= 10)
+                    ? item.raw_date.substring(0, 10)
+                    : '';
 
-            if (dateKey) {
-                // Fix Timezone: Adjust to UTC-3 (Brazil)
-                const now = new Date();
-                now.setHours(now.getHours() - 3);
-                const today = now.toISOString().split('T')[0];
+                if (dateKey) {
+                    // Fix Timezone: Adjust to UTC-3 (Brazil)
+                    const now = new Date();
+                    now.setHours(now.getHours() - 3);
+                    const today = now.toISOString().split('T')[0];
 
-                // Check original predicted date, not effective date
-                let originalPredictedDate = '';
-                if (table === 'aportes') {
-                    originalPredictedDate = item.data_fato;
-                } else if (table === 'retiradas') {
-                    originalPredictedDate = item.data_prevista;
-                }
-
-                const isOverdue = !item.data_real && originalPredictedDate && originalPredictedDate < today;
-
-                if (isOverdue) {
-                    // console.log(`[OVERDUE DETECTED] Table: ${table}, Original Predicted: ${originalPredictedDate}, Effective: ${dateKey}, Value: ${val}`);
-                    // CHANGED: Include in totals, flag as overdue
-                    dailyOverdue[dateKey] = (dailyOverdue[dateKey] || 0) + val;
-                    dailyTotals[dateKey] = (dailyTotals[dateKey] || 0) + val;
-                    total += val;
-                } else {
-                    // Check for realized late
-                    if (item.data_real && originalPredictedDate && originalPredictedDate < today) {
-                        // Wait, logic check: if data_real exists, we compare with data_real vs data_prevista is unnecessary?
-                        // No, user wants to know if "paid late".
-                        // But for Aportes/Retiradas flat tables, we have simple logic.
-                        // Let's check dates
-                        // Aportes: data_real vs data_fato
-                        // Retiradas: data_real vs data_prevista
-                        // Actually, raw_date is effectively data_real.
-                        // We need to compare raw update to original.
-                        // Logic:
-                        // If data_real exists AND data_real > originalPredictedDate -> Realized Late
-                        // But originalPredictedDate is a string YYYY-MM-DD
-                        if (dateKey > originalPredictedDate) {
-                            dailyRealizedLate[dateKey] = (dailyRealizedLate[dateKey] || 0) + val;
-                        }
+                    // Check original predicted date, not effective date
+                    let originalPredictedDate = '';
+                    if (table === 'aportes') {
+                        originalPredictedDate = item.data_fato;
+                    } else if (table === 'retiradas') {
+                        originalPredictedDate = item.data_prevista;
                     }
 
-                    dailyTotals[dateKey] = (dailyTotals[dateKey] || 0) + val;
+                    const isOverdue = !item.data_real && originalPredictedDate && originalPredictedDate < today;
+
+                    if (isOverdue) {
+                        // console.log(`[OVERDUE DETECTED] Table: ${table}, Original Predicted: ${originalPredictedDate}, Effective: ${dateKey}, Value: ${val}`);
+                        // CHANGED: Include in totals, flag as overdue
+                        dailyOverdue[dateKey] = (dailyOverdue[dateKey] || 0) + val;
+                        dailyTotals[dateKey] = (dailyTotals[dateKey] || 0) + val;
+                        total += val;
+                    } else {
+                        // Check for realized late
+                        if (item.data_real && originalPredictedDate && originalPredictedDate < today) {
+                            // Wait, logic check: if data_real exists, we compare with data_real vs data_prevista is unnecessary?
+                            // No, user wants to know if "paid late".
+                            // But for Aportes/Retiradas flat tables, we have simple logic.
+                            // Let's check dates
+                            // Aportes: data_real vs data_fato
+                            // Retiradas: data_real vs data_prevista
+                            // Actually, raw_date is effectively data_real.
+                            // We need to compare raw update to original.
+                            // Logic:
+                            // If data_real exists AND data_real > originalPredictedDate -> Realized Late
+                            // But originalPredictedDate is a string YYYY-MM-DD
+                            if (dateKey > originalPredictedDate) {
+                                dailyRealizedLate[dateKey] = (dailyRealizedLate[dateKey] || 0) + val;
+                            }
+                        }
+
+                        dailyTotals[dateKey] = (dailyTotals[dateKey] || 0) + val;
+                        total += val;
+                    }
+                } else {
                     total += val;
                 }
-            } else {
-                total += val;
-            }
-        });
+            });
 
-        return {
-            id: id,
-            name: label,
-            children: [],
-            dailyTotals,
-            dailyOverdue,
-            dailyRealizedLate,
-            total
+            return {
+                id: id,
+                name: label,
+                children: [],
+                dailyTotals,
+                dailyOverdue,
+                dailyRealizedLate,
+                total
+            };
         };
-    };
 
-    const aportesRoot = await fetchFlatDaily('aportes', '+ APORTES', 'aportes_root'); // Green
-    const retiradasRoot = await fetchFlatDaily('retiradas', '- RETIRADAS', 'retiradas_root'); // Red
+        const aportesRoot = await fetchFlatDaily('aportes', '+ APORTES', 'aportes_root'); // Green
+        const retiradasRoot = await fetchFlatDaily('retiradas', '- RETIRADAS', 'retiradas_root'); // Red
 
-    // --- Helper to Create Virtual Root ---
-    const createVirtualRoot = (id, name, children) => {
-        const node = { id, name, children, dailyTotals: {}, dailyDelayed: {}, dailyRealizedLate: {}, dailyOverdue: {}, total: 0 };
-        children.forEach(child => {
-            node.total += child.total;
-            // Rollup normal totals
-            for (const [day, val] of Object.entries(child.dailyTotals)) {
-                node.dailyTotals[day] = (node.dailyTotals[day] || 0) + val;
-            }
-            // Rollup delayed totals
-            for (const [day, val] of Object.entries(child.dailyDelayed || {})) {
-                node.dailyDelayed[day] = (node.dailyDelayed[day] || 0) + val;
-            }
-            // Rollup overdue totals (informational)
-            for (const [day, val] of Object.entries(child.dailyOverdue || {})) {
-                node.dailyOverdue[day] = (node.dailyOverdue[day] || 0) + val;
-            }
-            // Rollup realized late totals
-            for (const [day, val] of Object.entries(child.dailyRealizedLate || {})) {
-                node.dailyRealizedLate[day] = (node.dailyRealizedLate[day] || 0) + val;
-            }
+        // --- Helper to Create Virtual Root ---
+        const createVirtualRoot = (id, name, children) => {
+            const node = { id, name, children, dailyTotals: {}, dailyDelayed: {}, dailyRealizedLate: {}, dailyOverdue: {}, total: 0 };
+            children.forEach(child => {
+                node.total += child.total;
+                // Rollup normal totals
+                for (const [day, val] of Object.entries(child.dailyTotals)) {
+                    node.dailyTotals[day] = (node.dailyTotals[day] || 0) + val;
+                }
+                // Rollup delayed totals
+                for (const [day, val] of Object.entries(child.dailyDelayed || {})) {
+                    node.dailyDelayed[day] = (node.dailyDelayed[day] || 0) + val;
+                }
+                // Rollup overdue totals (informational)
+                for (const [day, val] of Object.entries(child.dailyOverdue || {})) {
+                    node.dailyOverdue[day] = (node.dailyOverdue[day] || 0) + val;
+                }
+                // Rollup realized late totals
+                for (const [day, val] of Object.entries(child.dailyRealizedLate || {})) {
+                    node.dailyRealizedLate[day] = (node.dailyRealizedLate[day] || 0) + val;
+                }
+            });
+            return node;
+        };
+
+        const entradasVirtual = createVirtualRoot('entradas_root', 'ENTRADAS', entradasRoots);
+        const saidasVirtual = createVirtualRoot('saidas_root', 'SAÍDAS', saidasRoots);
+        const producaoVirtual = createVirtualRoot('producao_root', 'COMPRAS <span style="font-size: 0.85em;">(Produção/Revenda)</span>', producaoRoots);
+
+        res.json({
+            initialBalance: runningBalance,
+            data: [
+                aportesRoot,        // Requested First
+                retiradasRoot,
+                emprestimosVirtual,
+                pagamentosEmprestimosVirtual,
+                entradasVirtual,
+                saidasVirtual,
+                producaoVirtual
+            ]
         });
-        return node;
-    };
 
-    const entradasVirtual = createVirtualRoot('entradas_root', 'ENTRADAS', entradasRoots);
-    const saidasVirtual = createVirtualRoot('saidas_root', 'SAÍDAS', saidasRoots);
-    const producaoVirtual = createVirtualRoot('producao_root', 'COMPRAS <span style="font-size: 0.85em;">(Produção/Revenda)</span>', producaoRoots);
-
-    res.json({
-        initialBalance: runningBalance,
-        data: [
-            aportesRoot,        // Requested First
-            retiradasRoot,
-            emprestimosVirtual,
-            pagamentosEmprestimosVirtual,
-            entradasVirtual,
-            saidasVirtual,
-            producaoVirtual
-        ]
-    });
-
-} catch (error) {
-    next(error);
-}
+    } catch (error) {
+        next(error);
+    }
 };
