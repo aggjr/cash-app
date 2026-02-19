@@ -437,7 +437,11 @@ export const ProducaoRevendaModal = {
                 }
 
                 // Apply Currency Mask
-                attachCurrencyMask(valorInput, validate);
+                attachCurrencyMask(valorInput, validate, {
+                    allowNegative: true,
+                    negativeColor: '#10B981', // Green for negative (refund)
+                    positiveColor: '#EF4444'  // Red for positive (expense)
+                });
 
                 // Installment Fields Toggle Logic
                 const toggleInstallmentFields = () => {

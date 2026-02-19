@@ -314,6 +314,7 @@ export const PrevisaoFluxoManager = (project) => {
                     const val = aggregateDailyTotalsByMonth(node.dailyTotals, d);
                     const delayedVal = aggregateDailyTotalsByMonth(node.dailyDelayed, d);
                     const overdueVal = aggregateDailyTotalsByMonth(node.dailyOverdue, d);
+                    const realizedLateVal = aggregateDailyTotalsByMonth(node.dailyRealizedLate, d);
 
                     let cellContent = '';
 
@@ -329,6 +330,10 @@ export const PrevisaoFluxoManager = (project) => {
                     // If there's a delayed value, we need to subtract it from val to avoid showing twice
                     const normalVal = val - delayedVal;
                     const isOverdue = Math.abs(overdueVal) > 0.001;
+                    const isRealizedLate = Math.abs(realizedLateVal) > 0.001;
+
+                    // Flag as "Late/Warning" if it's Overdue OR Realized Late
+                    const showWarning = isOverdue || isRealizedLate;
 
                     // Render normal value (green/red based on flow)
                     // NOW INCLUDES OVERDUE VALUES (as requested)
@@ -337,15 +342,19 @@ export const PrevisaoFluxoManager = (project) => {
                             ? (normalVal >= 0 ? '#10B981' : '#EF4444')
                             : (normalVal >= 0 ? '#EF4444' : '#10B981'); // Inverted for negatives
 
-                        // Add Exclamation if overdue (Triangle with Exclamation)
+                        // Add Exclamation if overdue/late (Triangle with Exclamation)
                         // User Request: "símbolo que era um triangulo com uma exclamação dentro... antes do número"
-                        const icon = isOverdue ? '<span style="font-size: 1em; color: #F59E0B; margin-right: 4px;" title="Item vencido (incluído no cálculo)">⚠</span>' : '';
+                        const icon = showWarning ? '<span style="font-size: 1em; color: #F59E0B; margin-right: 4px;" title="Movimentação em atraso">⚠</span>' : '';
 
-                        // If overdue, force Gray/Italic style for the text, but keep the value active
-                        const finalColor = isOverdue ? '#9CA3AF' : color; // Gray if overdue
-                        const fontStyle = isOverdue ? 'italic' : 'normal';
+                        // If overdue/late, force Italic style. 
+                        // Overdue items get gray color? User said "font em itálico". Didn't explicitly say check gray for realized late, but let's keep consistency if desired.
+                        // Actually, for "Realized Late", it is effective, so it should probably keep its green/red color but just be italic + icon.
+                        // Overdue pending items were Gray. Realized items are "Done", so Red/Green makes sense.
 
-                        cellContent += `<span style="color: ${finalColor}; font-weight: 600; font-size: ${fontSize}; font-style: ${fontStyle};">${icon}${formatCurrency(normalVal)}</span>`;
+                        const finalColor = isOverdue ? '#9CA3AF' : color; // Gray only if pending overdue. Realized late keeps color.
+                        const fontStyle = showWarning ? 'italic' : 'normal';
+
+                        cellContent += `<span style="color: ${finalColor}; font-weight: 600; font-size: ${fontSize}; font-style: ${fontStyle}; display: inline-flex; align-items: center;">${icon}${formatCurrency(normalVal)}</span>`;
                     }
 
                     // Render delayed value (normal colors + warning icon ⚠)
@@ -354,10 +363,12 @@ export const PrevisaoFluxoManager = (project) => {
                         const color = isPositiveFlow
                             ? (delayedVal >= 0 ? '#10B981' : '#EF4444')
                             : (delayedVal >= 0 ? '#EF4444' : '#10B981');
-                        cellContent += `<span style="color: ${color}; font-weight: 600; font-size: ${fontSize};" title="Data prevista passou, mas adiado">⚠ ${formatCurrency(delayedVal)}</span>`;
-                    }
 
-                    // Removed separate "Overdue" block (Gray/Italic) because it's now merged into normalVal
+                        // Delayed is also a form of "Late" regarding schedule, so User likely wants italic here too? 
+                        // The prompt specified "movimentação em atraso... itálico". Delayed is "adiado".
+                        // Let's apply italic to delayed as well to be safe/consistent with "Warning" vibe.
+                        cellContent += `<span style="color: ${color}; font-weight: 600; font-size: ${fontSize}; font-style: italic; display: inline-flex; align-items: center;" title="Data prevista passou, mas adiado"><span style="color: #F59E0B; margin-right: 4px;">⚠</span> ${formatCurrency(delayedVal)}</span>`;
+                    }
 
                     // Default to '-' if all are zero
                     if (!cellContent) cellContent = '-';

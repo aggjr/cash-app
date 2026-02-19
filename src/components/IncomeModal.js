@@ -381,7 +381,7 @@ export const IncomeModal = {
                     if (!dataFatoInput.value) { dataFatoInput.classList.add('input-error'); isValid = false; } else dataFatoInput.classList.remove('input-error');
                     if (!dataPrevistaInput.value) { dataPrevistaInput.classList.add('input-error'); isValid = false; } else dataPrevistaInput.classList.remove('input-error');
                     const valorParsed = parseCurrency(valorInput.value);
-                    if (!valorParsed || valorParsed <= 0) {
+                    if (!valorParsed || valorParsed === 0) {
                         if (valorWrapper) valorWrapper.classList.add('input-error');
                         valorInput.classList.remove('input-error'); // wrapper has the border
                         isValid = false;
@@ -586,6 +586,10 @@ export const IncomeModal = {
                     adjustInputWidth();
                     updateSuffix();
                     validate();
+                }, {
+                    allowNegative: true,
+                    negativeColor: '#EF4444', // Red for negative (refund/reversal)
+                    positiveColor: '#10B981'  // Green for positive (income)
                 });
                 const toggleInstallmentFields = () => {
                     const type = installmentTypeSelect.value;

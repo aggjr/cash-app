@@ -262,6 +262,7 @@ exports.getDailyForecast = async (req, res, next) => {
                     children: [],
                     dailyTotals: {}, // Key: YYYY-MM-DD - valores normais (somados)
                     dailyDelayed: {}, // Key: YYYY-MM-DD - valores adiados (somados, com aviso)
+                    dailyRealizedLate: {}, // Key: YYYY-MM-DD - valores realizados com atraso (somados, com aviso)
                     dailyOverdue: {}, // Key: YYYY-MM-DD - valores atrasados (informativos, NÃO somados)
                     total: 0
                 });
@@ -327,6 +328,12 @@ exports.getDailyForecast = async (req, res, next) => {
                             }
                         } else {
                             // Normal entry: either has real date or future predicted date
+
+                            // CHECK FOR REALIZED LATE (Paid after Due Date)
+                            if (hasRealDate && isOriginalDatePassed) {
+                                node.dailyRealizedLate[dateKey] = (node.dailyRealizedLate[dateKey] || 0) + val;
+                            }
+
                             node.dailyTotals[dateKey] = (node.dailyTotals[dateKey] || 0) + val;
                             node.total += val;
                         }
@@ -365,6 +372,11 @@ exports.getDailyForecast = async (req, res, next) => {
                         node.dailyOverdue[day] = (node.dailyOverdue[day] || 0) + value;
                     }
 
+                    // Rollup realized late totals
+                    for (const [day, value] of Object.entries(child.dailyRealizedLate || {})) {
+                        node.dailyRealizedLate[day] = (node.dailyRealizedLate[day] || 0) + value;
+                    }
+
                     node.total += child.total; // Total does NOT include overdue
                 });
             };
@@ -377,7 +389,7 @@ exports.getDailyForecast = async (req, res, next) => {
         const entradasRoots = await buildDailyTree('tipo_entrada', 'entradas', 'tipo_entrada_id');
 
         // --- Separate LOAN PAYMENTS (SAIDAS) ---
-        let pagamentosEmprestimosVirtual = { id: 'pagamentos_emprestimos_root', name: '- PGTO. EMPRÉSTIMOS', children: [], dailyTotals: {}, dailyDelayed: {}, dailyOverdue: {}, total: 0 };
+        let pagamentosEmprestimosVirtual = { id: 'pagamentos_emprestimos_root', name: '- PGTO. EMPRÉSTIMOS', children: [], dailyTotals: {}, dailyDelayed: {}, dailyRealizedLate: {}, dailyOverdue: {}, total: 0 };
 
         const pgtoEmpIndex = saidasRoots.findIndex(n => {
             const name = n.name.toUpperCase();
@@ -391,12 +403,13 @@ exports.getDailyForecast = async (req, res, next) => {
             pagamentosEmprestimosVirtual.children = node.children;
             pagamentosEmprestimosVirtual.dailyTotals = node.dailyTotals;
             pagamentosEmprestimosVirtual.dailyDelayed = node.dailyDelayed;
+            pagamentosEmprestimosVirtual.dailyRealizedLate = node.dailyRealizedLate;
             pagamentosEmprestimosVirtual.dailyOverdue = node.dailyOverdue;
             pagamentosEmprestimosVirtual.total = node.total;
         }
 
         // --- Separate EMPRÉSTIMOS from ENTRADAS ---
-        let emprestimosVirtual = { id: 'emprestimos_root', name: '+ EMPRÉSTIMOS', children: [], dailyTotals: {}, dailyDelayed: {}, dailyOverdue: {}, total: 0 };
+        let emprestimosVirtual = { id: 'emprestimos_root', name: '+ EMPRÉSTIMOS', children: [], dailyTotals: {}, dailyDelayed: {}, dailyRealizedLate: {}, dailyOverdue: {}, total: 0 };
 
         const empIndex = entradasRoots.findIndex(n => n.name.toUpperCase().includes('EMPRÉSTIMOS') || n.name.toUpperCase().includes('EMPRESTIMOS'));
         if (empIndex !== -1) {
@@ -406,6 +419,7 @@ exports.getDailyForecast = async (req, res, next) => {
             emprestimosVirtual.children = empNode.children;
             emprestimosVirtual.dailyTotals = empNode.dailyTotals;
             emprestimosVirtual.dailyDelayed = empNode.dailyDelayed;
+            emprestimosVirtual.dailyRealizedLate = empNode.dailyRealizedLate;
             emprestimosVirtual.dailyOverdue = empNode.dailyOverdue;
             emprestimosVirtual.total = empNode.total;
         }
@@ -441,6 +455,7 @@ exports.getDailyForecast = async (req, res, next) => {
 
             const dailyTotals = {};
             const dailyOverdue = {};
+            const dailyRealizedLate = {}; // Not strictly needed for Aportes/Retiradas distinct logic but good for consistency
             let total = 0;
             items.forEach(item => {
                 const val = parseFloat(item.valor) || 0;
@@ -467,12 +482,30 @@ exports.getDailyForecast = async (req, res, next) => {
                     const isOverdue = !item.data_real && originalPredictedDate && originalPredictedDate < today;
 
                     if (isOverdue) {
-                        console.log(`[OVERDUE DETECTED] Table: ${table}, Original Predicted: ${originalPredictedDate}, Effective: ${dateKey}, Value: ${val}`);
+                        // console.log(`[OVERDUE DETECTED] Table: ${table}, Original Predicted: ${originalPredictedDate}, Effective: ${dateKey}, Value: ${val}`);
                         // CHANGED: Include in totals, flag as overdue
                         dailyOverdue[dateKey] = (dailyOverdue[dateKey] || 0) + val;
                         dailyTotals[dateKey] = (dailyTotals[dateKey] || 0) + val;
                         total += val;
                     } else {
+                        // Check for realized late
+                        if (item.data_real && originalPredictedDate && originalPredictedDate < today) {
+                            // Wait, logic check: if data_real exists, we compare with data_real vs data_prevista is unnecessary?
+                            // No, user wants to know if "paid late".
+                            // But for Aportes/Retiradas flat tables, we have simple logic.
+                            // Let's check dates
+                            // Aportes: data_real vs data_fato
+                            // Retiradas: data_real vs data_prevista
+                            // Actually, raw_date is effectively data_real.
+                            // We need to compare raw update to original.
+                            // Logic:
+                            // If data_real exists AND data_real > originalPredictedDate -> Realized Late
+                            // But originalPredictedDate is a string YYYY-MM-DD
+                            if (dateKey > originalPredictedDate) {
+                                dailyRealizedLate[dateKey] = (dailyRealizedLate[dateKey] || 0) + val;
+                            }
+                        }
+
                         dailyTotals[dateKey] = (dailyTotals[dateKey] || 0) + val;
                         total += val;
                     }
@@ -487,6 +520,7 @@ exports.getDailyForecast = async (req, res, next) => {
                 children: [],
                 dailyTotals,
                 dailyOverdue,
+                dailyRealizedLate,
                 total
             };
         };
@@ -496,7 +530,7 @@ exports.getDailyForecast = async (req, res, next) => {
 
         // --- Helper to Create Virtual Root ---
         const createVirtualRoot = (id, name, children) => {
-            const node = { id, name, children, dailyTotals: {}, dailyDelayed: {}, dailyOverdue: {}, total: 0 };
+            const node = { id, name, children, dailyTotals: {}, dailyDelayed: {}, dailyRealizedLate: {}, dailyOverdue: {}, total: 0 };
             children.forEach(child => {
                 node.total += child.total;
                 // Rollup normal totals
@@ -510,6 +544,10 @@ exports.getDailyForecast = async (req, res, next) => {
                 // Rollup overdue totals (informational)
                 for (const [day, val] of Object.entries(child.dailyOverdue || {})) {
                     node.dailyOverdue[day] = (node.dailyOverdue[day] || 0) + val;
+                }
+                // Rollup realized late totals
+                for (const [day, val] of Object.entries(child.dailyRealizedLate || {})) {
+                    node.dailyRealizedLate[day] = (node.dailyRealizedLate[day] || 0) + val;
                 }
             });
             return node;

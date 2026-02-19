@@ -1,5 +1,6 @@
 import { Dialogs } from './Dialogs.js';
 import { getApiBaseUrl } from '../utils/apiConfig.js';
+import { attachCurrencyMask, formatFloatToCurrency, parseCurrency } from '../utils/currencyMask.js';
 // Refresh Sync
 
 export const TransferenciaModal = {
@@ -168,13 +169,8 @@ export const TransferenciaModal = {
                     }
 
                     // Valor é sempre obrigatório
-                    const parseCurrency = (str) => {
-                        if (!str) return 0;
-                        let clean = str.replace(/[^0-9,-]+/g, "");
-                        clean = clean.replace(',', '.');
-                        return parseFloat(clean) || 0;
-                    };
-                    if (!valorInput.value || parseCurrency(valorInput.value) <= 0) {
+                    const valParsed = parseCurrency(valorInput.value);
+                    if (!valorInput.value || valParsed === 0) { // Allow negative but not zero? Or allow zero? validating non-zero usually.
                         valorInput.classList.add('input-error');
                         isValid = false;
                     } else {
@@ -204,48 +200,13 @@ export const TransferenciaModal = {
                     return isValid;
                 };
 
-                // Currency formatting functions
-                const formatFloat = (num) => {
-                    let str = Number(num).toFixed(2).replace('.', ',');
-                    str = str.replace(/(\d)(?=(\d{3})+(?!\d))/g, '$1.');
-                    return 'R$ ' + str;
-                };
-
-                const parseCurrency = (str) => {
-                    if (!str) return 0;
-                    let clean = str.replace(/[^0-9,-]+/g, "");
-                    clean = clean.replace(',', '.');
-                    return parseFloat(clean) || 0;
-                };
-
                 // Initialize valor if editing
                 if (transferencia?.valor !== undefined && transferencia?.valor !== null) {
-                    valorInput.value = formatFloat(Number(transferencia.valor));
+                    valorInput.value = formatFloatToCurrency(Number(transferencia.valor));
                 }
 
-                // Valor input handlers
-                valorInput.addEventListener('focus', (e) => {
-                    let val = e.target.value;
-                    val = val.replace('R$', '').trim();
-                    val = val.replace(/\./g, '');
-                    e.target.value = val;
-                });
-
-                valorInput.addEventListener('blur', (e) => {
-                    let val = e.target.value;
-                    if (val === '' || val === '-') {
-                        e.target.value = '';
-                    } else {
-                        let num = parseCurrency(val);
-                        e.target.value = formatFloat(num);
-                    }
-                });
-
-                valorInput.addEventListener('input', (e) => {
-                    let val = e.target.value;
-                    let clean = val.replace(/[^0-9,-]/g, '');
-                    if (clean !== val) e.target.value = clean;
-                });
+                // Apply Currency Mask
+                attachCurrencyMask(valorInput, validate, { allowNegative: true });
 
                 // Toggle account state based on Data Real
                 const toggleAccountState = () => {

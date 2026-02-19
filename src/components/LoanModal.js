@@ -1,4 +1,4 @@
-import { formatCurrency, parseCurrency } from '../utils/formatters.js';
+import { formatFloatToCurrency, parseCurrency, attachCurrencyMask } from '../utils/currencyMask.js';
 import { getApiBaseUrl } from '../utils/apiConfig.js';
 
 export const LoanModal = {
@@ -6,6 +6,7 @@ export const LoanModal = {
         return new Promise(async (resolve) => {
             try {
                 const API_BASE_URL = getApiBaseUrl();
+                // ... (rest of setup)
                 let container = document.getElementById('custom-dialog-container');
                 if (!container) {
                     container = document.createElement('div');
@@ -202,19 +203,7 @@ export const LoanModal = {
                 gracePeriodInput.addEventListener('input', updateFirstDueDate);
 
 
-                // Currency formatting
-                const formatFloat = (num) => {
-                    let str = Number(num).toFixed(2).replace('.', ',');
-                    str = str.replace(/(\d)(?=(\d{3})+(?!\d))/g, '$1.');
-                    return 'R$ ' + str;
-                };
 
-                const parseCurrencyValue = (str) => {
-                    if (!str) return 0;
-                    let clean = str.replace(/[^0-9,-]+/g, "");
-                    clean = clean.replace(',', '.');
-                    return parseFloat(clean) || 0;
-                };
 
                 // Calculate real monthly interest rate using Newton-Raphson method
                 // INCLUDING grace period capitalization effect
@@ -270,25 +259,11 @@ export const LoanModal = {
 
                 // Currency masks
                 [nominalInput, feesInput, installmentValueInput].forEach(input => {
-                    input.addEventListener('focus', (e) => {
-                        let val = e.target.value;
-                        val = val.replace('R$', '').trim();
-                        val = val.replace(/\./g, '');
-                        e.target.value = val;
+                    attachCurrencyMask(input, updateCalculations, {
+                        allowNegative: true,
+                        // Loans: Nominal is positive. Fees usually positive (cost).
+                        // If negative input, it works.
                     });
-
-                    input.addEventListener('blur', (e) => {
-                        let val = e.target.value;
-                        if (val === '' || val === '-') {
-                            e.target.value = '';
-                        } else {
-                            let num = parseCurrencyValue(val);
-                            e.target.value = formatFloat(num);
-                        }
-                        updateCalculations();
-                    });
-
-                    input.addEventListener('input', updateCalculations);
                 });
 
                 // Also recalculate when installments or grace period changes
@@ -297,18 +272,18 @@ export const LoanModal = {
 
                 // Auto-calculate net value, total, and real rate
                 function updateCalculations() {
-                    const nominal = parseCurrencyValue(nominalInput.value);
-                    const fees = parseCurrencyValue(feesInput.value);
+                    const nominal = parseCurrency(nominalInput.value);
+                    const fees = parseCurrency(feesInput.value);
                     const net = nominal - fees;
 
-                    netInput.value = formatFloat(net);
+                    netInput.value = formatFloatToCurrency(net);
 
                     const parcels = parseInt(installmentsInput.value) || 0;
-                    const parcelVal = parseCurrencyValue(installmentValueInput.value);
+                    const parcelVal = parseCurrency(installmentValueInput.value);
                     const gracePeriod = parseInt(gracePeriodInput.value) || 0;
                     const total = parcels * parcelVal;
 
-                    totalInput.value = formatFloat(total);
+                    totalInput.value = formatFloatToCurrency(total);
 
                     // Calculate real monthly rate WITH grace period
                     const monthlyRate = calculateRealRate(net, parcelVal, parcels, gracePeriod);
@@ -384,14 +359,14 @@ export const LoanModal = {
                     });
 
                     // Nominal Check
-                    const nominalVal = parseCurrencyValue(nominalInput.value);
+                    const nominalVal = parseCurrency(nominalInput.value);
                     if (nominalVal <= 0) {
                         nominalInput.classList.add('input-error');
                         isValid = false;
                     }
 
                     // Installment Value Check
-                    const installmentVal = parseCurrencyValue(installmentValueInput.value);
+                    const installmentVal = parseCurrency(installmentValueInput.value);
                     if (installmentVal <= 0) {
                         installmentValueInput.classList.add('input-error');
                         isValid = false;
@@ -446,11 +421,11 @@ export const LoanModal = {
                         return;
                     }
 
-                    const nominal = parseCurrencyValue(nominalInput.value);
-                    const fees = parseCurrencyValue(feesInput.value);
+                    const nominal = parseCurrency(nominalInput.value);
+                    const fees = parseCurrency(feesInput.value);
                     const net = nominal - fees;
                     const parcels = parseInt(installmentsInput.value);
-                    const parcelVal = parseCurrencyValue(installmentValueInput.value);
+                    const parcelVal = parseCurrency(installmentValueInput.value);
                     const gracePeriod = parseInt(gracePeriodInput.value) || 0;
                     const realMonthlyRate = calculateRealRate(net, parcelVal, parcels, gracePeriod);
 
