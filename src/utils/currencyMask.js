@@ -144,9 +144,11 @@ export const attachCurrencyMask = (inputElement, onValidate = null, options = {}
         if (onValidate) onValidate();
     };
 
-    // Handle keydown for '-' toggle if appropriate (better UX than input sometimes)
+    // Handle keydown for '-' toggle and Backspace convenience
     const handleKeyDown = (e) => {
-        if (allowNegative && e.key === '-') {
+        if (!allowNegative) return;
+
+        if (e.key === '-') {
             e.preventDefault();
             let val = e.target.value;
             if (val.includes('-')) {
@@ -156,6 +158,30 @@ export const attachCurrencyMask = (inputElement, onValidate = null, options = {}
             }
             // Trigger input event to reformat
             e.target.dispatchEvent(new Event('input'));
+            return;
+        }
+
+        if (e.key === 'Backspace') {
+            const val = e.target.value;
+            if (val && val.includes('-')) {
+                const digits = val.replace(/\D/g, '');
+                const intVal = parseInt(digits, 10);
+
+                // If 0 or NaN (empty), remove negative sign
+                if (!intVal) {
+                    // Start or End of input? 
+                    // If cursor is at start, default backspace might do nothing.
+                    // If we just force remove '-', it works.
+                    // But we should only do this if the result would be zero.
+                    // Actually, let's just allow it if it is 0,00.
+                    // But wait, standard backspace on -0,00 removes last digit.
+                    // The user wants to remove the SIGN.
+                    // So we force remove sign.
+                    e.preventDefault();
+                    e.target.value = val.replace('-', '');
+                    e.target.dispatchEvent(new Event('input'));
+                }
+            }
         }
     };
 
