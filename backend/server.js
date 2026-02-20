@@ -177,6 +177,7 @@ const migrateAccountCompanyRequired = require('./migrate_account_company_require
 const migrateRemoveAccountType = require('./migrate_remove_account_type');
 const migrateAddUserCompany = require('./migrate_add_user_company');
 const migrateMarketingTables = require('./migrations/create_marketing_tables');
+const migrateFixDataAtraso = require('./migrate-fix-data-atraso');
 
 
 loadErrorCatalog()
@@ -212,6 +213,7 @@ loadErrorCatalog()
     .then(() => require('./migrations/create_caracteristica_values')()) // NEW: Characteristic values support
     .then(() => require('./migrations/update_leads_chars_values')()) // NEW: Lead characteristic selected values
     .then(() => require('./migrate_add_campaign_messages')()) // NEW: Campaign Message columns
+    .then(() => migrateFixDataAtraso()) // NEW: Fix data_atraso based on business rules
     .then(() => startServer())
 
     .catch(err => {
