@@ -404,6 +404,17 @@ exports.createIncome = async (req, res, next) => {
             }
         }
 
+        // Regra de negócio: data_atraso
+        // 1. Se data_atraso <= data_prevista → ignorar (não houve atraso)
+        // 2. Se data_real > data_prevista e data_atraso não foi informada → registrar data_real como atraso
+        let dataAtrasoFinal = dataAtraso || null;
+        if (dataAtrasoFinal && dataPrevistaRecebimento && dataAtrasoFinal <= dataPrevistaRecebimento) {
+            dataAtrasoFinal = null;
+        }
+        if (!dataAtrasoFinal && dataRealRecebimento && dataPrevistaRecebimento && dataRealRecebimento > dataPrevistaRecebimento) {
+            dataAtrasoFinal = dataRealRecebimento;
+        }
+
         connection = await db.getConnection();
         await connection.beginTransaction();
 
@@ -444,7 +455,7 @@ exports.createIncome = async (req, res, next) => {
                     factDates[i],
                     installmentDates[i],
                     dataRealRecebimento || null,
-                    dataAtraso || null,
+                    dataAtrasoFinal,
                     installmentValues[i],
                     installmentDesc,
                     tipoEntradaId,
@@ -584,9 +595,19 @@ exports.updateIncome = async (req, res, next) => {
             updates.push('data_real_recebimento = ?');
             values.push(dataRealRecebimento || null);
         }
+        // Regra de negócio: data_atraso
+        // Usa data_prevista do banco (ou do request se presente) para validar
+        const effectivePrevista = dataPrevistaRecebimento !== undefined ? dataPrevistaRecebimento : (oldData.data_prevista_recebimento ? String(oldData.data_prevista_recebimento).substring(0, 10) : null);
+        const effectiveReal = dataRealRecebimento !== undefined ? (dataRealRecebimento || null) : null;
+        let dataAtrasoFinalUpdate = dataAtraso !== undefined ? (dataAtraso || null) : undefined;
+        if (dataAtrasoFinalUpdate !== undefined) {
+            if (dataAtrasoFinalUpdate && effectivePrevista && dataAtrasoFinalUpdate <= effectivePrevista) {
+                dataAtrasoFinalUpdate = null;
+            }
+        }
         if (dataAtraso !== undefined) {
             updates.push('data_atraso = ?');
-            values.push(dataAtraso || null);
+            values.push(dataAtrasoFinalUpdate);
         }
 
         let newValor = oldIncome[0].valor;

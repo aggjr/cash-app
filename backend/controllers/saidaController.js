@@ -347,6 +347,17 @@ exports.createSaida = async (req, res, next) => {
             }
         }
 
+        // Regra de negócio: data_atraso
+        // 1. Se data_atraso <= data_prevista → ignorar (não houve atraso)
+        // 2. Se data_real > data_prevista e data_atraso não foi informada → registrar data_real como atraso
+        let dataAtrasoFinal = dataAtraso || null;
+        if (dataAtrasoFinal && dataPrevistaPagamento && dataAtrasoFinal <= dataPrevistaPagamento) {
+            dataAtrasoFinal = null;
+        }
+        if (!dataAtrasoFinal && dataRealPagamento && dataPrevistaPagamento && dataRealPagamento > dataPrevistaPagamento) {
+            dataAtrasoFinal = dataRealPagamento;
+        }
+
         connection = await db.getConnection();
         await connection.beginTransaction();
 
@@ -389,7 +400,7 @@ exports.createSaida = async (req, res, next) => {
                     factDates[i],
                     installmentDates[i],
                     dataRealPagamento || null,
-                    dataAtraso || null,
+                    dataAtrasoFinal,
                     installmentValues[i],
                     installmentDesc,
                     tipoSaidaId,
@@ -441,6 +452,7 @@ exports.updateSaida = async (req, res, next) => {
             dataFato,
             dataPrevistaPagamento,
             dataRealPagamento,
+            dataAtraso,
             valor,
             descricao,
             tipoSaidaId,
@@ -543,6 +555,19 @@ exports.updateSaida = async (req, res, next) => {
         if (formaPagamento !== undefined) {
             updates.push('forma_pagamento = ?');
             values.push(formaPagamento || null);
+        }
+
+        // Regra de negócio: data_atraso
+        if (dataAtraso !== undefined) {
+            const effectivePrevista = dataPrevistaPagamento !== undefined
+                ? dataPrevistaPagamento
+                : (oldData.data_prevista_pagamento ? String(oldData.data_prevista_pagamento).substring(0, 10) : null);
+            let finalDataAtraso = dataAtraso || null;
+            if (finalDataAtraso && effectivePrevista && finalDataAtraso <= effectivePrevista) {
+                finalDataAtraso = null;
+            }
+            updates.push('data_atraso = ?');
+            values.push(finalDataAtraso);
         }
 
         if (updates.length > 0) {

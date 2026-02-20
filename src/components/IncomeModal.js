@@ -896,6 +896,10 @@ export const IncomeModal = {
                 dataRealInput.addEventListener('change', () => {
                     toggleAccountState();
                     markAsDirty();
+                    // Auto-preenchimento: se data_real > data_prevista → registra atraso
+                    if (dataRealInput.value && dataPrevistaInput.value && dataRealInput.value > dataPrevistaInput.value) {
+                        dataAtrasoInput.value = dataRealInput.value;
+                    }
                 });
                 dataRealInput.addEventListener('input', () => {
                     toggleAccountState(); // Immediate feedback
@@ -1063,6 +1067,10 @@ export const IncomeModal = {
                 saveBtn.addEventListener('click', async (e) => {
                     e.preventDefault();
                     try {
+                        // Limpeza de data_atraso inválida antes de validar
+                        if (dataAtrasoInput.value && dataPrevistaInput.value && dataAtrasoInput.value <= dataPrevistaInput.value) {
+                            dataAtrasoInput.value = '';
+                        }
                         if (!validate()) {
                             await showCustomAlert('Existem campos obrigatórios não preenchidos (marcados em vermelho).');
                             return;

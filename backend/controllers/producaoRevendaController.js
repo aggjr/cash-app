@@ -352,6 +352,17 @@ exports.createProducaoRevenda = async (req, res, next) => {
             }
         }
 
+        // Regra de negócio: data_prevista_atraso
+        // 1. Se data_prevista_atraso <= data_prevista_pagamento → ignorar
+        // 2. Se data_real > data_prevista e data_atraso não foi informada → registrar data_real como atraso
+        let dataPrevistaAtrasoFinal = dataPrevistaAtraso || null;
+        if (dataPrevistaAtrasoFinal && dataPrevistaPagamento && dataPrevistaAtrasoFinal <= dataPrevistaPagamento) {
+            dataPrevistaAtrasoFinal = null;
+        }
+        if (!dataPrevistaAtrasoFinal && dataRealPagamento && dataPrevistaPagamento && dataRealPagamento > dataPrevistaPagamento) {
+            dataPrevistaAtrasoFinal = dataRealPagamento;
+        }
+
         connection = await db.getConnection();
         const audited = wrapConnectionWithAudit(connection, req);
         await audited.beginTransaction();
@@ -394,7 +405,7 @@ exports.createProducaoRevenda = async (req, res, next) => {
                 [
                     factDates[i],
                     installmentDates[i],
-                    dataPrevistaAtraso || null,
+                    dataPrevistaAtrasoFinal,
                     dataRealPagamento || null,
                     installmentValues[i],
                     installmentDesc,
@@ -507,6 +518,20 @@ exports.updateProducaoRevenda = async (req, res, next) => {
             if (map[key] && val !== undefined) {
                 // Skip data_real_pagamento here, handle it based on shouldUpdateRealDate
                 if (key === 'dataRealPagamento') continue;
+
+                // Regra de negócio: data_prevista_atraso
+                if (key === 'dataPrevistaAtraso') {
+                    const effectivePrevista = updates.dataPrevistaPagamento !== undefined
+                        ? updates.dataPrevistaPagamento
+                        : (oldData.data_prevista_pagamento ? String(oldData.data_prevista_pagamento).substring(0, 10) : null);
+                    let finalAtraso = val || null;
+                    if (finalAtraso && effectivePrevista && finalAtraso <= effectivePrevista) {
+                        finalAtraso = null;
+                    }
+                    fields.push(`${map[key]} = ?`);
+                    values.push(finalAtraso);
+                    continue;
+                }
 
                 fields.push(`${map[key]} = ?`);
                 values.push(val);
