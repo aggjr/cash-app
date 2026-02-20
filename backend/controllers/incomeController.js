@@ -376,6 +376,7 @@ exports.createIncome = async (req, res, next) => {
             projectId,
             formaPagamento,
             comprovanteUrl,
+            boletoUrl,
             installmentType,
             installmentCount,
             installmentInterval,
@@ -449,8 +450,8 @@ exports.createIncome = async (req, res, next) => {
 
             const [result] = await connection.query(
                 `INSERT INTO entradas 
-                (data_fato, data_prevista_recebimento, data_real_recebimento, data_atraso, valor, descricao, tipo_entrada_id, company_id, account_id, project_id, comprovante_url, forma_pagamento, installment_group_id, installment_number, installment_total, installment_interval, installment_custom_days) 
-                VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+                (data_fato, data_prevista_recebimento, data_real_recebimento, data_atraso, valor, descricao, tipo_entrada_id, company_id, account_id, project_id, comprovante_url, boleto_url, forma_pagamento, installment_group_id, installment_number, installment_total, installment_interval, installment_custom_days) 
+                VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
                 [
                     factDates[i],
                     installmentDates[i],
@@ -463,6 +464,7 @@ exports.createIncome = async (req, res, next) => {
                     accountId,
                     projectId,
                     comprovanteUrl || null,
+                    boletoUrl || null,
                     formaPagamento || null,
                     groupId,
                     count > 1 ? i + 1 : null,
@@ -518,6 +520,7 @@ exports.updateIncome = async (req, res, next) => {
             companyId,
             accountId,
             comprovanteUrl,
+            boletoUrl,
             active
         } = req.body;
 
@@ -650,6 +653,12 @@ exports.updateIncome = async (req, res, next) => {
             updates.push('comprovante_url = ?');
             values.push(comprovanteUrl);
         }
+
+        if (boletoUrl !== undefined) {
+            updates.push('boleto_url = ?');
+            values.push(boletoUrl || null);
+        }
+
         if (req.body.formaPagamento !== undefined) {
             updates.push('forma_pagamento = ?');
             values.push(req.body.formaPagamento || null);
@@ -1172,9 +1181,13 @@ exports.batchUpdateIncome = async (req, res, next) => {
                     newAccountId = updateData.accountId;
                 }
 
-                if (updateData.comprovanteUrl !== undefined) {
+                if (updateData.comprovanteUrl !== undefined && installmentId === parseInt(id)) {
                     updates.push('comprovante_url = ?');
-                    values.push(updateData.comprovanteUrl);
+                    values.push(updateData.comprovanteUrl || null);
+                }
+                if (updateData.boletoUrl !== undefined && installmentId === parseInt(id)) {
+                    updates.push('boleto_url = ?');
+                    values.push(updateData.boletoUrl || null);
                 }
                 if (updateData.formaPagamento !== undefined) {
                     updates.push('forma_pagamento = ?');
@@ -1312,7 +1325,11 @@ async function executeSingleUpdate(connection, id, updateData, projectId) {
 
     if (updateData.comprovanteUrl !== undefined) {
         updates.push('comprovante_url = ?');
-        values.push(updateData.comprovanteUrl);
+        values.push(updateData.comprovanteUrl || null);
+    }
+    if (updateData.boletoUrl !== undefined) {
+        updates.push('boleto_url = ?');
+        values.push(updateData.boletoUrl || null);
     }
     if (updateData.formaPagamento !== undefined) {
         updates.push('forma_pagamento = ?');

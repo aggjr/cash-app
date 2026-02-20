@@ -337,7 +337,7 @@ exports.updateRetirada = async (req, res, next) => {
         if (companyId !== undefined) { updates.push('company_id = ?'); values.push(companyId); }
         if (accountId !== undefined) { updates.push('account_id = ?'); values.push(accountId); }
         if (active !== undefined) { updates.push('active = ?'); values.push(active); }
-        if (comprovanteUrl !== undefined) { updates.push('comprovante_url = ?'); values.push(comprovanteUrl); }
+        if (comprovanteUrl !== undefined) { updates.push('comprovante_url = ?'); values.push(comprovanteUrl || null); }
         if (req.body.formaPagamento !== undefined) { updates.push('forma_pagamento = ?'); values.push(req.body.formaPagamento || null); }
 
         if (updates.length > 0) {

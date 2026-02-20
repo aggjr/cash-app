@@ -319,7 +319,7 @@ exports.updateAporte = async (req, res, next) => {
 
         if (comprovante_url !== undefined) {
             updates.push('comprovante_url = ?');
-            values.push(comprovante_url);
+            values.push(comprovante_url || null);
         }
 
         if (formaPagamento !== undefined) {

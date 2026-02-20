@@ -306,7 +306,7 @@ exports.updateTransferencia = async (req, res, next) => {
         if (descricao !== undefined) { updates.push('descricao = ?'); values.push(descricao); }
         if (sourceAccountId !== undefined) { updates.push('source_account_id = ?'); values.push(sourceAccountId); }
         if (destinationAccountId !== undefined) { updates.push('destination_account_id = ?'); values.push(destinationAccountId); }
-        if (comprovanteUrl !== undefined) { updates.push('comprovante_url = ?'); values.push(comprovanteUrl); }
+        if (comprovanteUrl !== undefined) { updates.push('comprovante_url = ?'); values.push(comprovanteUrl || null); }
         if (req.body.formaPagamento !== undefined) { updates.push('forma_pagamento = ?'); values.push(req.body.formaPagamento || null); }
         if (active !== undefined) { updates.push('active = ?'); values.push(active); }
 

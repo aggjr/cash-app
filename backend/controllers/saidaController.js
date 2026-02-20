@@ -738,6 +738,10 @@ async function executeSingleUpdate(connection, id, updateData, projectId) {
         updates.push('comprovante_url = ?');
         values.push(updateData.comprovanteUrl);
     }
+    if (updateData.boletoUrl !== undefined) {
+        updates.push('boleto_url = ?');
+        values.push(updateData.boletoUrl || null);
+    }
     if (updateData.formaPagamento !== undefined) {
         updates.push('forma_pagamento = ?');
         values.push(updateData.formaPagamento || null);
@@ -994,9 +998,13 @@ exports.batchUpdateSaida = async (req, res, next) => {
                     values.push(updateData.active);
                 }
 
-                if (updateData.comprovanteUrl !== undefined) {
+                if (updateData.comprovanteUrl !== undefined && installmentId === parseInt(id)) {
                     updates.push('comprovante_url = ?');
-                    values.push(updateData.comprovanteUrl);
+                    values.push(updateData.comprovanteUrl || null);
+                }
+                if (updateData.boletoUrl !== undefined && installmentId === parseInt(id)) {
+                    updates.push('boleto_url = ?');
+                    values.push(updateData.boletoUrl || null);
                 }
                 if (updateData.formaPagamento !== undefined) {
                     updates.push('forma_pagamento = ?');
