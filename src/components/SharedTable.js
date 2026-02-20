@@ -240,9 +240,9 @@ export class SharedTable {
                         const isEmpty = isNaN(cellNum) || cellVal === null || cellVal === '';
 
                         if (isEmpty) {
-                            // If filtering explicitly includes Empty (-999999), keep it
-                            if (filter.numIn && filter.numIn.includes(-999999)) return true;
-                            // If filtering active but Empty not selected -> Exclude
+                            // Se filtro inclui Empty por token numérico (-999999) ou texto (__EMPTY__), inclui a linha
+                            if (filter.numIn && (filter.numIn.includes(-999999) || filter.numIn.includes('__EMPTY__'))) return true;
+                            // Filtro ativo mas (Vazias) não selecionado -> Exclui
                             if ((filter.numIn && filter.numIn.length > 0) || filter.operator) return false;
                             return false;
                         }
@@ -282,6 +282,8 @@ export class SharedTable {
 
                         if (isEmpty) {
                             if (filter.textIn && filter.textIn.includes('__NONE__')) return true;
+                            // CORREÇÃO: Inclui linhas vazias quando o usuário filtra por (Vazias)
+                            if (filter.textIn && filter.textIn.includes('__EMPTY__')) return true;
                             if ((filter.textIn && filter.textIn.length > 0) || filter.operator) return false;
                             return false;
                         }
@@ -309,16 +311,16 @@ export class SharedTable {
 
                     // --- Date ---
                     if (type === 'date') {
-                        // CRITICAL FIX: Handle Empty Dates in Client-Side Filter
+                        // Trata datas vazias no filtro client-side
                         const isEmpty = !cellVal || cellVal === '0000-00-00' || cellVal === '';
                         if (isEmpty) {
-                            // If filtering explicitly includes __EMPTY__, keep this row
+                            // CORREÇÃO: Inclui linhas com data vazia quando __EMPTY__ está selecionado
                             if (filter.dateIn && filter.dateIn.includes('__EMPTY__')) return true;
-                            // If filtering by dates but __EMPTY__ is NOT included -> Exclude
+                            // Se filtro de datas está ativo mas __EMPTY__ NÃO está selecionado -> Exclui
                             if (filter.dateIn && filter.dateIn.length > 0) return false;
-                            // If using operators (eq, before, after) -> Exclude empty dates
+                            // Se operadores (eq, before, after) -> Exclui datas vazias
                             if (filter.operator) return false;
-                            return false; // Default exclude if filter is active but doesn't match empty
+                            return false;
                         }
 
                         let dateStr = '';
