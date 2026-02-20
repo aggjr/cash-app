@@ -318,6 +318,7 @@ exports.createSaida = async (req, res, next) => {
             accountId,
             projectId,
             comprovanteUrl,
+            boletoUrl,
             formaPagamento,
             installmentType,
             installmentCount,
@@ -394,8 +395,8 @@ exports.createSaida = async (req, res, next) => {
 
             const [result] = await connection.query(
                 `INSERT INTO saidas 
-                (data_fato, data_prevista_pagamento, data_real_pagamento, data_atraso, valor, descricao, tipo_saida_id, company_id, account_id, project_id, comprovante_url, forma_pagamento, installment_group_id, installment_number, installment_total, installment_interval, installment_custom_days) 
-                VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+                (data_fato, data_prevista_pagamento, data_real_pagamento, data_atraso, valor, descricao, tipo_saida_id, company_id, account_id, project_id, comprovante_url, boleto_url, forma_pagamento, installment_group_id, installment_number, installment_total, installment_interval, installment_custom_days) 
+                VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
                 [
                     factDates[i],
                     installmentDates[i],
@@ -408,6 +409,7 @@ exports.createSaida = async (req, res, next) => {
                     accountId,
                     projectId,
                     comprovanteUrl || null,
+                    boletoUrl || null,
                     formaPagamento || null,
                     groupId,
                     count > 1 ? i + 1 : null,
@@ -460,6 +462,7 @@ exports.updateSaida = async (req, res, next) => {
             accountId,
             active,
             comprovanteUrl,
+            boletoUrl,
             formaPagamento
         } = req.body;
 
@@ -550,6 +553,11 @@ exports.updateSaida = async (req, res, next) => {
         if (comprovanteUrl !== undefined) {
             updates.push('comprovante_url = ?');
             values.push(comprovanteUrl || null);
+        }
+
+        if (boletoUrl !== undefined) {
+            updates.push('boleto_url = ?');
+            values.push(boletoUrl || null);
         }
 
         if (formaPagamento !== undefined) {
