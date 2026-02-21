@@ -214,6 +214,7 @@ loadErrorCatalog()
     .then(() => require('./migrations/update_leads_chars_values')()) // NEW: Lead characteristic selected values
     .then(() => require('./migrate_add_campaign_messages')()) // NEW: Campaign Message columns
     .then(() => migrateFixDataAtraso()) // NEW: Fix data_atraso based on business rules
+    .then(() => require('./migrate_add_boleto_url')()) // FIX: Add boleto_url column to entradas
     .then(() => startServer())
 
     .catch(err => {

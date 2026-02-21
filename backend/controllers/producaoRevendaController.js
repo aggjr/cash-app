@@ -306,6 +306,7 @@ exports.createProducaoRevenda = async (req, res, next) => {
             companyId,
             accountId,
             comprovanteUrl,
+            boletoUrl,
             projectId,
             formaPagamento,
             installmentType,
@@ -400,8 +401,8 @@ exports.createProducaoRevenda = async (req, res, next) => {
 
             const [result] = await audited.query(
                 `INSERT INTO producao_revenda 
-                (data_fato, data_prevista_pagamento, data_prevista_atraso, data_real_pagamento, valor, descricao, tipo_id, company_id, account_id, comprovante_url, project_id, forma_pagamento, installment_group_id, installment_number, installment_total, installment_interval, installment_custom_days) 
-                VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+                (data_fato, data_prevista_pagamento, data_prevista_atraso, data_real_pagamento, valor, descricao, tipo_id, company_id, account_id, comprovante_url, boleto_url, project_id, forma_pagamento, installment_group_id, installment_number, installment_total, installment_interval, installment_custom_days) 
+                VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
                 [
                     factDates[i],
                     installmentDates[i],
@@ -413,6 +414,7 @@ exports.createProducaoRevenda = async (req, res, next) => {
                     companyId,
                     accountId || null,
                     comprovanteUrl || null,
+                    boletoUrl || null,
                     projectId,
                     formaPagamento || null,
                     groupId,
@@ -510,6 +512,7 @@ exports.updateProducaoRevenda = async (req, res, next) => {
             companyId: 'company_id',
             accountId: 'account_id',
             comprovanteUrl: 'comprovante_url',
+            boletoUrl: 'boleto_url',
             active: 'active',
             formaPagamento: 'forma_pagamento'
         };
