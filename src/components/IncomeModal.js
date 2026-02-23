@@ -1067,12 +1067,12 @@ export const IncomeModal = {
                 saveBtn.addEventListener('click', async (e) => {
                     e.preventDefault();
                     try {
-                        // Limpeza de data_atraso inválida antes de validar
-                        if (dataAtrasoInput.value && dataPrevistaInput.value && dataAtrasoInput.value <= dataPrevistaInput.value) {
-                            dataAtrasoInput.value = '';
-                        }
                         if (!validate()) {
-                            await showCustomAlert('Existem campos obrigatórios não preenchidos (marcados em vermelho).');
+                            if (dataAtrasoInput.classList.contains('input-error')) {
+                                await showCustomAlert('Por favor, verifique os campos em vermelho. A Data de Atraso deve ser posterior à Data Prevista.');
+                            } else {
+                                await showCustomAlert('Existem campos obrigatórios não preenchidos (marcados em vermelho).');
+                            }
                             return;
                         }
 
