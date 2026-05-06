@@ -363,25 +363,21 @@ export const ProducaoRevendaManager = (project) => {
             producaoRevenda: null,
             projectId: project.id,
             onSave: async (itemData) => {
-                try {
-                    const response = await fetch(`${API_BASE_URL}/producao-revenda`, {
-                        method: 'POST',
-                        headers: getHeaders(),
-                        body: JSON.stringify({
-                            ...itemData,
-                            projectId: project.id
-                        })
-                    });
+                const response = await fetch(`${API_BASE_URL}/producao-revenda`, {
+                    method: 'POST',
+                    headers: getHeaders(),
+                    body: JSON.stringify({
+                        ...itemData,
+                        projectId: project.id
+                    })
+                });
 
-                    if (response.ok) {
-                        showToast('Item criado com sucesso!', 'success');
-                        loadItems();
-                    } else {
-                        const error = await response.json();
-                        showToast(error.error || 'Erro ao criar item', 'error');
-                    }
-                } catch (error) {
-                    showToast('Erro de conexão', 'error');
+                if (response.ok) {
+                    showToast('Item criado com sucesso!', 'success');
+                    loadItems();
+                } else {
+                    const error = await response.json();
+                    throw new Error(error.error || 'Erro ao criar item');
                 }
             }
         });
@@ -392,22 +388,18 @@ export const ProducaoRevendaManager = (project) => {
             producaoRevenda: item,
             projectId: project.id,
             onSave: async (itemData) => {
-                try {
-                    const response = await fetch(`${API_BASE_URL}/producao-revenda/${item.id}`, {
-                        method: 'PUT',
-                        headers: getHeaders(),
-                        body: JSON.stringify(itemData)
-                    });
+                const response = await fetch(`${API_BASE_URL}/producao-revenda/${item.id}`, {
+                    method: 'PUT',
+                    headers: getHeaders(),
+                    body: JSON.stringify(itemData)
+                });
 
-                    if (response.ok) {
-                        showToast('Item atualizado com sucesso!', 'success');
-                        loadItems();
-                    } else {
-                        const error = await response.json();
-                        showToast(error.error || 'Erro ao atualizar item', 'error');
-                    }
-                } catch (error) {
-                    showToast('Erro de conexão', 'error');
+                if (response.ok) {
+                    showToast('Item atualizado com sucesso!', 'success');
+                    loadItems();
+                } else {
+                    const error = await response.json();
+                    throw new Error(error.error || 'Erro ao atualizar item');
                 }
             }
         });

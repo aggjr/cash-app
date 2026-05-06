@@ -388,6 +388,9 @@ exports.createProducaoRevenda = async (req, res, next) => {
             factDates = Array(count).fill(dataFato);
         }
 
+        try { await audited.query(`ALTER TABLE producao_revenda ADD COLUMN boleto_url VARCHAR(255) DEFAULT NULL`); } catch(e) {}
+        try { await audited.query(`ALTER TABLE producao_revenda ADD COLUMN comprovante_url VARCHAR(255) DEFAULT NULL`); } catch(e) {}
+
         const createdIds = [];
 
         // Generate group ID for installments if count > 1
@@ -467,6 +470,9 @@ exports.updateProducaoRevenda = async (req, res, next) => {
         connection = await db.getConnection();
         const audited = wrapConnectionWithAudit(connection, req);
         await audited.beginTransaction();
+
+        try { await audited.query(`ALTER TABLE producao_revenda ADD COLUMN boleto_url VARCHAR(255) DEFAULT NULL`); } catch(e) {}
+        try { await audited.query(`ALTER TABLE producao_revenda ADD COLUMN comprovante_url VARCHAR(255) DEFAULT NULL`); } catch(e) {}
 
         const [oldItem] = await audited.query(
             'SELECT valor, account_id, data_real_pagamento FROM producao_revenda WHERE id = ?',

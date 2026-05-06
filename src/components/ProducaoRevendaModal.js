@@ -1,7 +1,8 @@
-﻿import { TreeSelector } from './TreeSelector.js';
+import { TreeSelector } from './TreeSelector.js';
 import { getApiBaseUrl } from '../utils/apiConfig.js';
 import { createTreeManager } from './GenericTreeManager.js';
 import { attachCurrencyMask, formatFloatToCurrency, parseCurrency } from '../utils/currencyMask.js';
+import { validateTransactionDate, showDateError, clearDateError } from '../utils/dateValidation.js';
 
 export const ProducaoRevendaModal = {
     show({ producaoRevenda = null, projectId, onSave, onCancel }) {
@@ -308,7 +309,7 @@ export const ProducaoRevendaModal = {
                 const saveBtn = modal.querySelector('#modal-save');
                 const cancelBtn = modal.querySelector('#modal-cancel');
 
-                const validate = () => {
+                const validate = async () => {
                     let isValid = true;
                     if (!dataFatoInput.value) { dataFatoInput.classList.add('input-error'); isValid = false; } else dataFatoInput.classList.remove('input-error');
                     if (!dataPrevistaInput.value) { dataPrevistaInput.classList.add('input-error'); isValid = false; } else dataPrevistaInput.classList.remove('input-error');
@@ -350,6 +351,18 @@ export const ProducaoRevendaModal = {
                     } else {
                         dataAtrasoInput.classList.remove('input-error');
                         dataAtrasoInput.title = "";
+                    }
+
+                    if (dataRealInput.value) {
+                        const dateValidation = await validateTransactionDate(dataRealInput.value);
+                        if (!dateValidation.isValid) {
+                            showDateError(dataRealInput, dateValidation.error);
+                            isValid = false;
+                        } else {
+                            clearDateError(dataRealInput);
+                        }
+                    } else {
+                        clearDateError(dataRealInput);
                     }
 
                     return isValid;
@@ -724,17 +737,32 @@ export const ProducaoRevendaModal = {
                     markAsDirty();
                 });
 
+                // Helper para validar dataRealInput e pintar de vermelho se erro
+                const validateRealDateInput = async () => {
+                    if (dataRealInput.value) {
+                        const validation = await validateTransactionDate(dataRealInput.value);
+                        if (!validation.isValid) {
+                            showDateError(dataRealInput, validation.error);
+                            return false;
+                        }
+                    }
+                    clearDateError(dataRealInput);
+                    return true;
+                };
+
                 // Listen for Data Real changes
-                dataRealInput.addEventListener('change', () => {
+                dataRealInput.addEventListener('change', async () => {
                     toggleAccountState();
                     markAsDirty();
                     // Auto-preenchimento: se data_real > data_prevista → registra atraso
                     if (dataRealInput.value && dataPrevistaInput.value && dataRealInput.value > dataPrevistaInput.value) {
                         dataAtrasoInput.value = dataRealInput.value;
                     }
+                    await validateRealDateInput();
                 });
                 dataRealInput.addEventListener('input', () => {
                     toggleAccountState(); // Immediate feedback
+                    clearDateError(dataRealInput); // Remove visual feedback on input
                 });
 
                 // Change Tracking
@@ -899,7 +927,7 @@ export const ProducaoRevendaModal = {
                 saveBtn.addEventListener('click', async (e) => {
                     e.preventDefault();
                     try {
-                        if (!validate()) {
+                        if (!(await validate())) {
                             if (dataAtrasoInput.classList.contains('input-error')) {
                                 await showCustomAlert('Por favor, verifique os campos em vermelho. A Data de Atraso deve ser posterior à Data Prevista.');
                             } else {
@@ -931,8 +959,22 @@ export const ProducaoRevendaModal = {
                             data.id = income.id;
                             data.active = income.active !== undefined ? income.active : true;
                         }
-                        close(data);
-                        if (onSave) onSave(data);
+                        if (onSave) {
+                            try {
+                                saveBtn.disabled = true;
+                                saveBtn.innerHTML = '<span class="spinner-border spinner-border-sm" role="status" aria-hidden="true"></span> Salvando...';
+                                
+                                await onSave(data);
+                                close(data);
+                            } catch (e) {
+                                await showCustomAlert(e.message || 'Erro ao salvar. Verifique os dados.');
+                            } finally {
+                                saveBtn.disabled = false;
+                                saveBtn.innerHTML = '<i class="fas fa-save me-2"></i>Salvar';
+                            }
+                        } else {
+                            close(data);
+                        }
                     } catch (e) {
                         await showCustomAlert('Erro ao salvar: ' + e.message);
                     }

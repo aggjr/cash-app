@@ -1,5 +1,11 @@
 import { getApiBaseUrl } from './apiConfig.js';
-import { getHeaders } from '../main.js';
+const getHeaders = () => {
+    const token = localStorage.getItem('token');
+    return {
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${token}`
+    };
+};
 
 /**
  * Validates if a date is within the allowed range based on system settings
