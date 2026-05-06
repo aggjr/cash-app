@@ -598,25 +598,23 @@ export const IncomeManager = (project) => {
             income: null,
             projectId: project.id,
             onSave: async (incomeData) => {
-                try {
-                    const response = await fetch(`${API_BASE_URL}/incomes`, {
-                        method: 'POST',
-                        headers: getHeaders(),
-                        body: JSON.stringify({
-                            ...incomeData,
-                            projectId: project.id
-                        })
-                    });
+                const response = await fetch(`${API_BASE_URL}/incomes`, {
+                    method: 'POST',
+                    headers: getHeaders(),
+                    body: JSON.stringify({
+                        ...incomeData,
+                        projectId: project.id
+                    })
+                });
 
-                    if (response.ok) {
-                        showToast('Entrada criada com sucesso!', 'success');
-                        loadIncomes();
-                    } else {
-                        const error = await response.json();
-                        showToast(error.error || 'Erro ao criar entrada', 'error');
-                    }
-                } catch (error) {
-                    showToast('Erro de conexão', 'error');
+                if (response.ok) {
+                    showToast('Entrada criada com sucesso!', 'success');
+                    loadIncomes();
+                } else {
+                    const error = await response.json();
+                    const msg = error.error || 'Erro ao criar entrada';
+                    showToast(msg, 'error');
+                    throw new Error(msg); // Keep modal open
                 }
             }
         });
@@ -640,41 +638,37 @@ export const IncomeManager = (project) => {
             income: income,
             projectId: project.id,
             onSave: async (incomeData) => {
-                try {
-                    // Use batch endpoint if scope is not 'single'
-                    const url = scope === 'single'
-                        ? `${API_BASE_URL}/incomes/${income.id}`
-                        : `${API_BASE_URL}/incomes/${income.id}/batch`;
+                const url = scope === 'single'
+                    ? `${API_BASE_URL}/incomes/${income.id}`
+                    : `${API_BASE_URL}/incomes/${income.id}/batch`;
 
-                    const body = scope === 'single'
-                        ? incomeData
-                        : { ...incomeData, scope };
+                const body = scope === 'single'
+                    ? incomeData
+                    : { ...incomeData, scope };
 
-                    const response = await fetch(url, {
-                        method: 'PUT',
-                        headers: getHeaders(),
-                        body: JSON.stringify(body)
-                    });
+                const response = await fetch(url, {
+                    method: 'PUT',
+                    headers: getHeaders(),
+                    body: JSON.stringify(body)
+                });
 
-                    if (response.ok) {
-                        const result = await response.json();
-                        const message = result.message || 'Entrada atualizada com sucesso!';
-                        showToast(message, 'success');
+                if (response.ok) {
+                    const result = await response.json();
+                    const message = result.message || 'Entrada atualizada com sucesso!';
+                    showToast(message, 'success');
 
-                        // Show warning if some were skipped
-                        if (result.skipped && result.skipped > 0) {
-                            setTimeout(() => {
-                                showToast(`⚠️ ${result.skipped} parcela(s) não puderam ser atualizadas (restrição de data)`, 'warning');
-                            }, 2000);
-                        }
-
-                        loadIncomes();
-                    } else {
-                        const error = await response.json();
-                        showToast(error.error || 'Erro ao atualizar entrada', 'error');
+                    if (result.skipped && result.skipped > 0) {
+                        setTimeout(() => {
+                            showToast(`⚠️ ${result.skipped} parcela(s) não puderam ser atualizadas (restrição de data)`, 'warning');
+                        }, 2000);
                     }
-                } catch (error) {
-                    showToast('Erro de conexão', 'error');
+
+                    loadIncomes();
+                } else {
+                    const error = await response.json();
+                    const msg = error.error || 'Erro ao atualizar entrada';
+                    showToast(msg, 'error');
+                    throw new Error(msg); // Keep modal open
                 }
             }
         });

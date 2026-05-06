@@ -279,8 +279,15 @@ export const RetiradaManager = (project) => {
                     method: 'POST', headers: getHeaders(),
                     body: JSON.stringify({ ...data, projectId: project.id })
                 });
-                if (res.ok) { showToast('Criado com sucesso!', 'success'); loadRetiradas(); }
-                else { const err = await res.json(); showToast(err.error || 'Erro', 'error'); }
+                if (res.ok) {
+                    showToast('Criado com sucesso!', 'success');
+                    loadRetiradas();
+                } else {
+                    const err = await res.json();
+                    const msg = err.error || 'Erro ao criar';
+                    showToast(msg, 'error');
+                    throw new Error(msg); // Keep modal open
+                }
             }
         });
     };
@@ -293,8 +300,15 @@ export const RetiradaManager = (project) => {
                     method: 'PUT', headers: getHeaders(),
                     body: JSON.stringify(data)
                 });
-                if (res.ok) { showToast('Atualizado com sucesso!', 'success'); loadRetiradas(); }
-                else { const err = await res.json(); showToast(err.error || 'Erro', 'error'); }
+                if (res.ok) {
+                    showToast('Atualizado com sucesso!', 'success');
+                    loadRetiradas();
+                } else {
+                    const err = await res.json();
+                    const msg = err.error || 'Erro ao atualizar';
+                    showToast(msg, 'error');
+                    throw new Error(msg); // Keep modal open
+                }
             }
         });
     };

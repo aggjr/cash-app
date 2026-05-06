@@ -1,6 +1,7 @@
 import { Dialogs } from './Dialogs.js';
 import { getApiBaseUrl } from '../utils/apiConfig.js';
 import { attachCurrencyMask, formatFloatToCurrency, parseCurrency } from '../utils/currencyMask.js';
+import { validateTransactionDate } from '../utils/dateValidation.js';
 // Refresh Sync
 
 export const TransferenciaModal = {
@@ -157,7 +158,7 @@ export const TransferenciaModal = {
                 const destAsterisk = modal.querySelector('#dest-required-asterisk');
 
                 // Validation function
-                const validate = () => {
+                const validate = async () => {
                     let isValid = true;
 
                     // Data Prevista é sempre obrigatória
@@ -170,7 +171,7 @@ export const TransferenciaModal = {
 
                     // Valor é sempre obrigatório
                     const valParsed = parseCurrency(valorInput.value);
-                    if (!valorInput.value || valParsed === 0) { // Allow negative but not zero? Or allow zero? validating non-zero usually.
+                    if (!valorInput.value || valParsed === 0) {
                         valorInput.classList.add('input-error');
                         isValid = false;
                     } else {
@@ -195,6 +196,41 @@ export const TransferenciaModal = {
                     } else {
                         sourceSelect.classList.remove('input-error');
                         destSelect.classList.remove('input-error');
+                    }
+
+                    // Validate Data Real against system settings
+                    if (dataRealInput.value) {
+                        try {
+                            const result = await validateTransactionDate(dataRealInput.value);
+                            if (!result.isValid && !result.isUnlocked) {
+                                dataRealInput.style.borderColor = '#EF4444';
+                                dataRealInput.style.boxShadow = '0 0 0 2px rgba(239,68,68,0.2)';
+                                let errEl = modal.querySelector('#transf-real-error');
+                                if (!errEl) {
+                                    errEl = document.createElement('span');
+                                    errEl.id = 'transf-real-error';
+                                    errEl.style.cssText = 'color:#EF4444;font-size:0.78rem;margin-top:2px;display:block;';
+                                    dataRealInput.parentNode.appendChild(errEl);
+                                }
+                                errEl.textContent = result.error || 'Data Real fora do limite permitido.';
+                                isValid = false;
+                            } else {
+                                dataRealInput.style.borderColor = '';
+                                dataRealInput.style.boxShadow = '';
+                                const errEl = modal.querySelector('#transf-real-error');
+                                if (errEl) errEl.textContent = '';
+                            }
+                        } catch (e) {
+                            console.warn('Date validation error:', e);
+                            dataRealInput.style.borderColor = '';
+                            const errEl = modal.querySelector('#transf-real-error');
+                            if (errEl) errEl.textContent = '';
+                        }
+                    } else {
+                        dataRealInput.style.borderColor = '';
+                        dataRealInput.style.boxShadow = '';
+                        const errEl = modal.querySelector('#transf-real-error');
+                        if (errEl) errEl.textContent = '';
                     }
 
                     return isValid;
@@ -231,9 +267,37 @@ export const TransferenciaModal = {
                 toggleAccountState();
 
                 // Listen to Data Real changes
-                dataRealInput.addEventListener('change', () => {
+                dataRealInput.addEventListener('change', async () => {
                     toggleAccountState();
                     markAsDirty();
+                    // Real-time date validation
+                    if (dataRealInput.value) {
+                        try {
+                            const result = await validateTransactionDate(dataRealInput.value);
+                            if (!result.isValid && !result.isUnlocked) {
+                                dataRealInput.style.borderColor = '#EF4444';
+                                dataRealInput.style.boxShadow = '0 0 0 2px rgba(239,68,68,0.2)';
+                                let errEl = modal.querySelector('#transf-real-error');
+                                if (!errEl) {
+                                    errEl = document.createElement('span');
+                                    errEl.id = 'transf-real-error';
+                                    errEl.style.cssText = 'color:#EF4444;font-size:0.78rem;margin-top:2px;display:block;';
+                                    dataRealInput.parentNode.appendChild(errEl);
+                                }
+                                errEl.textContent = result.error || 'Data Real fora do limite permitido.';
+                            } else {
+                                dataRealInput.style.borderColor = '';
+                                dataRealInput.style.boxShadow = '';
+                                const errEl = modal.querySelector('#transf-real-error');
+                                if (errEl) errEl.textContent = '';
+                            }
+                        } catch (e) { /* silent */ }
+                    } else {
+                        dataRealInput.style.borderColor = '';
+                        dataRealInput.style.boxShadow = '';
+                        const errEl = modal.querySelector('#transf-real-error');
+                        if (errEl) errEl.textContent = '';
+                    }
                 });
 
                 // Track changes on all inputs
@@ -478,8 +542,13 @@ export const TransferenciaModal = {
 
                 btnSave.onclick = async () => {
                     // Validate first
-                    if (!validate()) {
-                        await showCustomAlert('Por favor, preencha todos os campos obrigatórios destacados em vermelho.');
+                    if (!await validate()) {
+                        const realErrEl = modal.querySelector('#transf-real-error');
+                        if (realErrEl?.textContent) {
+                            await showCustomAlert('A Data Real está fora do período permitido pelo sistema. Corrija o campo em vermelho.');
+                        } else {
+                            await showCustomAlert('Por favor, preencha todos os campos obrigatórios destacados em vermelho.');
+                        }
                         return;
                     }
 
@@ -512,8 +581,12 @@ export const TransferenciaModal = {
                         formaPagamento: modal.querySelector('input[name="forma_pagamento"]:checked')?.value || null
                     };
 
-                    if (onSave) await onSave(data);
-                    close(data);
+                    try {
+                        if (onSave) await onSave(data);
+                        close(data);
+                    } catch (saveErr) {
+                        await showCustomAlert('Erro ao salvar: ' + (saveErr.message || saveErr));
+                    }
                 };
 
             } catch (err) {

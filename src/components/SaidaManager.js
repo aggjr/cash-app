@@ -461,25 +461,23 @@ export const SaidaManager = (project) => {
             saida: null,
             projectId: project.id,
             onSave: async (saidaData) => {
-                try {
-                    const response = await fetch(`${API_BASE_URL}/saidas`, {
-                        method: 'POST',
-                        headers: getHeaders(),
-                        body: JSON.stringify({
-                            ...saidaData,
-                            projectId: project.id
-                        })
-                    });
+                const response = await fetch(`${API_BASE_URL}/saidas`, {
+                    method: 'POST',
+                    headers: getHeaders(),
+                    body: JSON.stringify({
+                        ...saidaData,
+                        projectId: project.id
+                    })
+                });
 
-                    if (response.ok) {
-                        showToast('Saída criada com sucesso!', 'success');
-                        loadSaidas();
-                    } else {
-                        const error = await response.json();
-                        showToast(error.error || 'Erro ao criar saída', 'error');
-                    }
-                } catch (error) {
-                    showToast('Erro de conexão', 'error');
+                if (response.ok) {
+                    showToast('Saída criada com sucesso!', 'success');
+                    loadSaidas();
+                } else {
+                    const error = await response.json();
+                    const msg = error.error || 'Erro ao criar saída';
+                    showToast(msg, 'error');
+                    throw new Error(msg); // Keep modal open
                 }
             }
         });
@@ -501,39 +499,37 @@ export const SaidaManager = (project) => {
             saida: saida,
             projectId: project.id,
             onSave: async (saidaData) => {
-                try {
-                    const url = scope === 'single'
-                        ? `${API_BASE_URL}/saidas/${saida.id}`
-                        : `${API_BASE_URL}/saidas/${saida.id}/batch`;
+                const url = scope === 'single'
+                    ? `${API_BASE_URL}/saidas/${saida.id}`
+                    : `${API_BASE_URL}/saidas/${saida.id}/batch`;
 
-                    const body = scope === 'single'
-                        ? saidaData
-                        : { ...saidaData, scope };
+                const body = scope === 'single'
+                    ? saidaData
+                    : { ...saidaData, scope };
 
-                    const response = await fetch(url, {
-                        method: 'PUT',
-                        headers: getHeaders(),
-                        body: JSON.stringify(body)
-                    });
+                const response = await fetch(url, {
+                    method: 'PUT',
+                    headers: getHeaders(),
+                    body: JSON.stringify(body)
+                });
 
-                    if (response.ok) {
-                        const result = await response.json();
-                        const message = result.message || 'Saída atualizada com sucesso!';
-                        showToast(message, 'success');
+                if (response.ok) {
+                    const result = await response.json();
+                    const message = result.message || 'Saída atualizada com sucesso!';
+                    showToast(message, 'success');
 
-                        if (result.skipped && result.skipped > 0) {
-                            setTimeout(() => {
-                                showToast(`⚠️ ${result.skipped} parcela(s) não puderam ser atualizadas (restrição de data)`, 'warning');
-                            }, 2000);
-                        }
-
-                        loadSaidas();
-                    } else {
-                        const error = await response.json();
-                        showToast(error.error || 'Erro ao atualizar saída', 'error');
+                    if (result.skipped && result.skipped > 0) {
+                        setTimeout(() => {
+                            showToast(`⚠️ ${result.skipped} parcela(s) não puderam ser atualizadas (restrição de data)`, 'warning');
+                        }, 2000);
                     }
-                } catch (error) {
-                    showToast('Erro de conexão', 'error');
+
+                    loadSaidas();
+                } else {
+                    const error = await response.json();
+                    const msg = error.error || 'Erro ao atualizar saída';
+                    showToast(msg, 'error');
+                    throw new Error(msg); // Keep modal open
                 }
             }
         });

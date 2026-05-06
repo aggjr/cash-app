@@ -312,25 +312,23 @@ export const AporteManager = (project) => {
             aporte: null,
             projectId: project.id,
             onSave: async (aporteData) => {
-                try {
-                    const response = await fetch(`${API_BASE_URL}/aportes`, {
-                        method: 'POST',
-                        headers: getHeaders(),
-                        body: JSON.stringify({
-                            ...aporteData,
-                            projectId: project.id
-                        })
-                    });
+                const response = await fetch(`${API_BASE_URL}/aportes`, {
+                    method: 'POST',
+                    headers: getHeaders(),
+                    body: JSON.stringify({
+                        ...aporteData,
+                        projectId: project.id
+                    })
+                });
 
-                    if (response.ok) {
-                        showToast('Aporte criado com sucesso!', 'success');
-                        loadAportes();
-                    } else {
-                        const error = await response.json();
-                        showToast(error.error || 'Erro ao criar aporte', 'error');
-                    }
-                } catch (error) {
-                    showToast('Erro de conexão', 'error');
+                if (response.ok) {
+                    showToast('Aporte criado com sucesso!', 'success');
+                    loadAportes();
+                } else {
+                    const error = await response.json();
+                    const msg = error.error || 'Erro ao criar aporte';
+                    showToast(msg, 'error');
+                    throw new Error(msg); // Keep modal open
                 }
             }
         });
@@ -341,22 +339,20 @@ export const AporteManager = (project) => {
             aporte: aporte,
             projectId: project.id,
             onSave: async (aporteData) => {
-                try {
-                    const response = await fetch(`${API_BASE_URL}/aportes/${aporte.id}`, {
-                        method: 'PUT',
-                        headers: getHeaders(),
-                        body: JSON.stringify(aporteData)
-                    });
+                const response = await fetch(`${API_BASE_URL}/aportes/${aporte.id}`, {
+                    method: 'PUT',
+                    headers: getHeaders(),
+                    body: JSON.stringify(aporteData)
+                });
 
-                    if (response.ok) {
-                        showToast('Aporte atualizado com sucesso!', 'success');
-                        loadAportes();
-                    } else {
-                        const error = await response.json();
-                        showToast(error.error || 'Erro ao atualizar aporte', 'error');
-                    }
-                } catch (error) {
-                    showToast('Erro de conexão', 'error');
+                if (response.ok) {
+                    showToast('Aporte atualizado com sucesso!', 'success');
+                    loadAportes();
+                } else {
+                    const error = await response.json();
+                    const msg = error.error || 'Erro ao atualizar aporte';
+                    showToast(msg, 'error');
+                    throw new Error(msg); // Keep modal open
                 }
             }
         });

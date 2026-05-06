@@ -2,6 +2,7 @@ import { TreeSelector } from './TreeSelector.js';
 import { getApiBaseUrl } from '../utils/apiConfig.js';
 import { createTreeManager } from './GenericTreeManager.js';
 import { attachCurrencyMask, formatFloatToCurrency, parseCurrency } from '../utils/currencyMask.js';
+import { validateTransactionDate } from '../utils/dateValidation.js';
 
 export const IncomeModal = {
     show({ income = null, projectId, onSave, onCancel }) {
@@ -373,7 +374,27 @@ export const IncomeModal = {
                 const saveBtn = modal.querySelector('#modal-save');
                 const cancelBtn = modal.querySelector('#modal-cancel');
 
-                const validate = () => {
+                // --- Real Date Error Helpers ---
+                const showDateError = (msg) => {
+                    dataRealInput.style.borderColor = '#EF4444';
+                    dataRealInput.style.boxShadow = '0 0 0 2px rgba(239,68,68,0.2)';
+                    let errEl = modal.querySelector('#income-data-real-error');
+                    if (!errEl) {
+                        errEl = document.createElement('span');
+                        errEl.id = 'income-data-real-error';
+                        errEl.style.cssText = 'color:#EF4444;font-size:0.78rem;margin-top:2px;display:block;';
+                        dataRealInput.parentNode.appendChild(errEl);
+                    }
+                    errEl.textContent = msg;
+                };
+                const clearDateError = () => {
+                    dataRealInput.style.borderColor = '';
+                    dataRealInput.style.boxShadow = '';
+                    const errEl = modal.querySelector('#income-data-real-error');
+                    if (errEl) errEl.textContent = '';
+                };
+
+                const validate = async () => {
                     // In bulk edit mode, no fields are required
                     if (isBulkEdit) return true;
 
@@ -417,8 +438,6 @@ export const IncomeModal = {
                     if (dataAtrasoInput.value && dataPrevistaInput.value) {
                         if (dataAtrasoInput.value <= dataPrevistaInput.value) {
                             dataAtrasoInput.classList.add('input-error');
-                            // Optional: Add a visual hint or rely on user knowing "Delay must be after Predicted"
-                            // We could add a title attribute for tooltip
                             dataAtrasoInput.title = "A Data de Atraso deve ser posterior à Data Prevista";
                             isValid = false;
                         } else {
@@ -429,6 +448,24 @@ export const IncomeModal = {
                         // If empty, remove error
                         dataAtrasoInput.classList.remove('input-error');
                         dataAtrasoInput.title = "";
+                    }
+
+                    // Validate Data Real against system settings
+                    if (dataRealInput.value) {
+                        try {
+                            const result = await validateTransactionDate(dataRealInput.value);
+                            if (!result.isValid && !result.isUnlocked) {
+                                showDateError(result.error || 'Data Real fora do limite permitido.');
+                                isValid = false;
+                            } else {
+                                clearDateError();
+                            }
+                        } catch (e) {
+                            console.warn('Date validation error:', e);
+                            clearDateError();
+                        }
+                    } else {
+                        clearDateError();
                     }
 
                     return isValid;
@@ -893,12 +930,25 @@ export const IncomeModal = {
                 });
 
                 // Listen for Data Real changes
-                dataRealInput.addEventListener('change', () => {
+                dataRealInput.addEventListener('change', async () => {
                     toggleAccountState();
                     markAsDirty();
                     // Auto-preenchimento: se data_real > data_prevista → registra atraso
                     if (dataRealInput.value && dataPrevistaInput.value && dataRealInput.value > dataPrevistaInput.value) {
                         dataAtrasoInput.value = dataRealInput.value;
+                    }
+                    // Real-time date validation
+                    if (dataRealInput.value) {
+                        try {
+                            const result = await validateTransactionDate(dataRealInput.value);
+                            if (!result.isValid && !result.isUnlocked) {
+                                showDateError(result.error || 'Data Real fora do limite permitido.');
+                            } else {
+                                clearDateError();
+                            }
+                        } catch (e) { clearDateError(); }
+                    } else {
+                        clearDateError();
                     }
                 });
                 dataRealInput.addEventListener('input', () => {
@@ -1066,10 +1116,14 @@ export const IncomeModal = {
 
                 saveBtn.addEventListener('click', async (e) => {
                     e.preventDefault();
+                    saveBtn.disabled = true;
                     try {
-                        if (!validate()) {
+                        const isValid = await validate();
+                        if (!isValid) {
                             if (dataAtrasoInput.classList.contains('input-error')) {
                                 await showCustomAlert('Por favor, verifique os campos em vermelho. A Data de Atraso deve ser posterior à Data Prevista.');
+                            } else if (modal.querySelector('#income-data-real-error')?.textContent) {
+                                await showCustomAlert('A Data Real está fora do período permitido pelo sistema. Corrija o campo em vermelho.');
                             } else {
                                 await showCustomAlert('Existem campos obrigatórios não preenchidos (marcados em vermelho).');
                             }
@@ -1099,10 +1153,16 @@ export const IncomeModal = {
                             data.id = income.id;
                             data.active = income.active !== undefined ? income.active : true;
                         }
-                        close(data);
-                        if (onSave) onSave(data);
+                        try {
+                            if (onSave) await onSave(data);
+                            close(data);
+                        } catch (saveErr) {
+                            await showCustomAlert('Erro ao salvar: ' + (saveErr.message || saveErr));
+                        }
                     } catch (e) {
                         await showCustomAlert('Erro ao salvar: ' + e.message);
+                    } finally {
+                        saveBtn.disabled = false;
                     }
                 });
 

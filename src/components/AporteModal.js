@@ -1,6 +1,7 @@
 import { Dialogs } from './Dialogs.js';
 import { getApiBaseUrl } from '../utils/apiConfig.js';
 import { attachCurrencyMask, formatFloatToCurrency, parseCurrency } from '../utils/currencyMask.js';
+import { validateTransactionDate } from '../utils/dateValidation.js';
 // Refresh Sync
 
 export const AporteModal = {
@@ -218,7 +219,41 @@ export const AporteModal = {
                     accountSelect.value = aporte.account_id;
                 }
 
-                dataRealInput.addEventListener('change', toggleAccountState);
+                dataRealInput.addEventListener('change', async () => {
+                    toggleAccountState();
+                    // Real-time date validation
+                    if (dataRealInput.value) {
+                        try {
+                            const result = await validateTransactionDate(dataRealInput.value);
+                            if (!result.isValid && !result.isUnlocked) {
+                                dataRealInput.style.borderColor = '#EF4444';
+                                dataRealInput.style.boxShadow = '0 0 0 2px rgba(239,68,68,0.2)';
+                                let errEl = modal.querySelector('#aporte-real-error');
+                                if (!errEl) {
+                                    errEl = document.createElement('span');
+                                    errEl.id = 'aporte-real-error';
+                                    errEl.style.cssText = 'color:#EF4444;font-size:0.78rem;margin-top:2px;display:block;';
+                                    dataRealInput.parentNode.appendChild(errEl);
+                                }
+                                errEl.textContent = result.error || 'Data Real fora do limite permitido.';
+                            } else {
+                                dataRealInput.style.borderColor = '';
+                                dataRealInput.style.boxShadow = '';
+                                const errEl = modal.querySelector('#aporte-real-error');
+                                if (errEl) errEl.textContent = '';
+                            }
+                        } catch (e) {
+                            dataRealInput.style.borderColor = '';
+                            const errEl = modal.querySelector('#aporte-real-error');
+                            if (errEl) errEl.textContent = '';
+                        }
+                    } else {
+                        dataRealInput.style.borderColor = '';
+                        dataRealInput.style.boxShadow = '';
+                        const errEl = modal.querySelector('#aporte-real-error');
+                        if (errEl) errEl.textContent = '';
+                    }
+                });
                 dataRealInput.addEventListener('input', toggleAccountState);
 
                 // File Upload Handlers
@@ -318,11 +353,29 @@ export const AporteModal = {
                     }
 
                     if (!isValid) {
-                        // showToast is imported in Manager, but Dialogs usually handles alerts. 
-                        // We can use a simple alert here or rely on the visual cues
-                        // Adding a shake animation or toast is nice, but visual red borders are robust.
                         Dialogs.alert('Preencha os campos obrigatórios (*)', 'Erro de Validação');
                         return;
+                    }
+
+                    // Validate Data Real date if filled
+                    if (dataReal) {
+                        try {
+                            const dateResult = await validateTransactionDate(dataReal);
+                            if (!dateResult.isValid && !dateResult.isUnlocked) {
+                                dataRealInput.style.borderColor = '#EF4444';
+                                dataRealInput.style.boxShadow = '0 0 0 2px rgba(239,68,68,0.2)';
+                                let errEl = modal.querySelector('#aporte-real-error');
+                                if (!errEl) {
+                                    errEl = document.createElement('span');
+                                    errEl.id = 'aporte-real-error';
+                                    errEl.style.cssText = 'color:#EF4444;font-size:0.78rem;margin-top:2px;display:block;';
+                                    dataRealInput.parentNode.appendChild(errEl);
+                                }
+                                errEl.textContent = dateResult.error || 'Data Real fora do limite permitido.';
+                                Dialogs.alert('A Data Real está fora do período permitido pelo sistema.', 'Erro de Validação');
+                                return;
+                            }
+                        } catch (e) { /* ignore validation errors silently */ }
                     }
 
                     const data = {
@@ -337,8 +390,12 @@ export const AporteModal = {
                         formaPagamento: modal.querySelector('input[name="forma_pagamento"]:checked')?.value || null
                     };
 
-                    if (onSave) await onSave(data);
-                    close(data);
+                    try {
+                        if (onSave) await onSave(data);
+                        close(data);
+                    } catch (saveErr) {
+                        Dialogs.alert('Erro ao salvar: ' + (saveErr.message || saveErr), 'Erro');
+                    }
                 };
 
             }).catch(err => {

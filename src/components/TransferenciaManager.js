@@ -294,25 +294,23 @@ export const TransferenciaManager = (project) => {
             transferencia: null,
             projectId: project.id,
             onSave: async (data) => {
-                try {
-                    const response = await fetch(`${API_BASE_URL}/transferencias`, {
-                        method: 'POST',
-                        headers: getHeaders(),
-                        body: JSON.stringify({
-                            ...data,
-                            projectId: project.id
-                        })
-                    });
+                const response = await fetch(`${API_BASE_URL}/transferencias`, {
+                    method: 'POST',
+                    headers: getHeaders(),
+                    body: JSON.stringify({
+                        ...data,
+                        projectId: project.id
+                    })
+                });
 
-                    if (response.ok) {
-                        showToast('Transferência criada com sucesso!', 'success');
-                        loadTransferencias();
-                    } else {
-                        const error = await response.json();
-                        showToast(error.error || 'Erro ao criar transferência', 'error');
-                    }
-                } catch (error) {
-                    showToast('Erro de conexão', 'error');
+                if (response.ok) {
+                    showToast('Transferência criada com sucesso!', 'success');
+                    loadTransferencias();
+                } else {
+                    const error = await response.json();
+                    const msg = error.error || 'Erro ao criar transferência';
+                    showToast(msg, 'error');
+                    throw new Error(msg); // Keep modal open
                 }
             }
         });
@@ -323,22 +321,20 @@ export const TransferenciaManager = (project) => {
             transferencia: transferencia,
             projectId: project.id,
             onSave: async (data) => {
-                try {
-                    const response = await fetch(`${API_BASE_URL}/transferencias/${transferencia.id}`, {
-                        method: 'PUT',
-                        headers: getHeaders(),
-                        body: JSON.stringify(data)
-                    });
+                const response = await fetch(`${API_BASE_URL}/transferencias/${transferencia.id}`, {
+                    method: 'PUT',
+                    headers: getHeaders(),
+                    body: JSON.stringify(data)
+                });
 
-                    if (response.ok) {
-                        showToast('Transferência atualizada com sucesso!', 'success');
-                        loadTransferencias();
-                    } else {
-                        const error = await response.json();
-                        showToast(error.error || 'Erro ao atualizar transferência', 'error');
-                    }
-                } catch (error) {
-                    showToast('Erro de conexão', 'error');
+                if (response.ok) {
+                    showToast('Transferência atualizada com sucesso!', 'success');
+                    loadTransferencias();
+                } else {
+                    const error = await response.json();
+                    const msg = error.error || 'Erro ao atualizar transferência';
+                    showToast(msg, 'error');
+                    throw new Error(msg); // Keep modal open
                 }
             }
         });

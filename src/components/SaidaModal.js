@@ -1,7 +1,8 @@
-﻿import { TreeSelector } from './TreeSelector.js';
+import { TreeSelector } from './TreeSelector.js';
 import { getApiBaseUrl } from '../utils/apiConfig.js';
 import { createTreeManager } from './GenericTreeManager.js';
 import { attachCurrencyMask, formatFloatToCurrency, parseCurrency } from '../utils/currencyMask.js';
+import { validateTransactionDate } from '../utils/dateValidation.js';
 
 export const SaidaModal = {
     show({ saida = null, projectId, onSave, onCancel }) {
@@ -308,7 +309,27 @@ export const SaidaModal = {
                 const saveBtn = modal.querySelector('#modal-save');
                 const cancelBtn = modal.querySelector('#modal-cancel');
 
-                const validate = () => {
+                // --- Real Date Error Helpers ---
+                const showDateError = (msg) => {
+                    dataRealInput.style.borderColor = '#EF4444';
+                    dataRealInput.style.boxShadow = '0 0 0 2px rgba(239,68,68,0.2)';
+                    let errEl = modal.querySelector('#saida-data-real-error');
+                    if (!errEl) {
+                        errEl = document.createElement('span');
+                        errEl.id = 'saida-data-real-error';
+                        errEl.style.cssText = 'color:#EF4444;font-size:0.78rem;margin-top:2px;display:block;';
+                        dataRealInput.parentNode.appendChild(errEl);
+                    }
+                    errEl.textContent = msg;
+                };
+                const clearDateError = () => {
+                    dataRealInput.style.borderColor = '';
+                    dataRealInput.style.boxShadow = '';
+                    const errEl = modal.querySelector('#saida-data-real-error');
+                    if (errEl) errEl.textContent = '';
+                };
+
+                const validate = async () => {
                     let isValid = true;
                     if (!dataFatoInput.value) { dataFatoInput.classList.add('input-error'); isValid = false; } else dataFatoInput.classList.remove('input-error');
                     if (!dataPrevistaInput.value) { dataPrevistaInput.classList.add('input-error'); isValid = false; } else dataPrevistaInput.classList.remove('input-error');
@@ -350,6 +371,24 @@ export const SaidaModal = {
                     } else {
                         dataAtrasoInput.classList.remove('input-error');
                         dataAtrasoInput.title = "";
+                    }
+
+                    // Validate Data Real against system settings
+                    if (dataRealInput.value) {
+                        try {
+                            const result = await validateTransactionDate(dataRealInput.value);
+                            if (!result.isValid && !result.isUnlocked) {
+                                showDateError(result.error || 'Data Real fora do limite permitido.');
+                                isValid = false;
+                            } else {
+                                clearDateError();
+                            }
+                        } catch (e) {
+                            console.warn('Date validation error:', e);
+                            clearDateError();
+                        }
+                    } else {
+                        clearDateError();
                     }
 
                     return isValid;
@@ -725,12 +764,25 @@ export const SaidaModal = {
                 });
 
                 // Listen for Data Real changes
-                dataRealInput.addEventListener('change', () => {
+                dataRealInput.addEventListener('change', async () => {
                     toggleAccountState();
                     markAsDirty();
                     // Auto-preenchimento: se data_real > data_prevista → registra atraso
                     if (dataRealInput.value && dataPrevistaInput.value && dataRealInput.value > dataPrevistaInput.value) {
                         dataAtrasoInput.value = dataRealInput.value;
+                    }
+                    // Real-time date validation
+                    if (dataRealInput.value) {
+                        try {
+                            const result = await validateTransactionDate(dataRealInput.value);
+                            if (!result.isValid && !result.isUnlocked) {
+                                showDateError(result.error || 'Data Real fora do limite permitido.');
+                            } else {
+                                clearDateError();
+                            }
+                        } catch (e) { clearDateError(); }
+                    } else {
+                        clearDateError();
                     }
                 });
                 dataRealInput.addEventListener('input', () => {
@@ -898,10 +950,14 @@ export const SaidaModal = {
 
                 saveBtn.addEventListener('click', async (e) => {
                     e.preventDefault();
+                    saveBtn.disabled = true;
                     try {
-                        if (!validate()) {
+                        const isValid = await validate();
+                        if (!isValid) {
                             if (dataAtrasoInput.classList.contains('input-error')) {
                                 await showCustomAlert('Por favor, verifique os campos em vermelho. A Data de Atraso deve ser posterior à Data Prevista.');
+                            } else if (modal.querySelector('#saida-data-real-error')?.textContent) {
+                                await showCustomAlert('A Data Real está fora do período permitido pelo sistema. Corrija o campo em vermelho.');
                             } else {
                                 await showCustomAlert('Existem campos obrigatórios não preenchidos (marcados em vermelho).');
                             }
@@ -931,10 +987,17 @@ export const SaidaModal = {
                             data.id = saida.id;
                             data.active = saida.active !== undefined ? saida.active : true;
                         }
-                        close(data);
-                        if (onSave) onSave(data);
+                        try {
+                            if (onSave) await onSave(data);
+                            close(data);
+                        } catch (saveErr) {
+                            // Keep modal open, show error
+                            await showCustomAlert('Erro ao salvar: ' + (saveErr.message || saveErr));
+                        }
                     } catch (e) {
                         await showCustomAlert('Erro ao salvar: ' + e.message);
+                    } finally {
+                        saveBtn.disabled = false;
                     }
                 });
 
