@@ -487,8 +487,17 @@ export const LoanModal = {
                         interestCategoryId: interestCatId
                     };
 
-                    await onSave(data);
-                    close(data);
+                    try {
+                        saveBtn.disabled = true;
+                        saveBtn.textContent = 'Salvando...';
+                        await onSave(data);
+                        close(data);
+                    } catch (saveErr) {
+                        await showCustomAlert(saveErr.message || 'Erro ao salvar. Verifique os dados e tente novamente.');
+                    } finally {
+                        saveBtn.disabled = false;
+                        saveBtn.textContent = 'Contratar';
+                    }
                 };
 
                 setTimeout(() => descriptionInput.focus(), 100);

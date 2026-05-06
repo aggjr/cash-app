@@ -207,23 +207,20 @@ export const DividasEmprestimosManager = (project) => {
             await LoanModal.show({
                 projectId: project.id,
                 onSave: async (loanData) => {
-                    try {
-                        const response = await fetch(`${API_BASE_URL}/loans`, {
-                            method: 'POST',
-                            headers: getHeaders(),
-                            body: JSON.stringify(loanData)
-                        });
+                    const response = await fetch(`${API_BASE_URL}/loans`, {
+                        method: 'POST',
+                        headers: getHeaders(),
+                        body: JSON.stringify(loanData)
+                    });
 
-                        if (response.ok) {
-                            showToast('Empréstimo contratado com sucesso!', 'success');
-                            loadData();
-                        } else {
-                            const err = await response.json();
-                            showToast(err.message || 'Erro ao contratar empréstimo', 'error');
-                        }
-                    } catch (error) {
-                        console.error('[DividasEmprestimosManager] Network error:', error);
-                        showToast('Erro de conexão', 'error');
+                    if (response.ok) {
+                        showToast('Empréstimo contratado com sucesso!', 'success');
+                        loadData();
+                    } else {
+                        const err = await response.json();
+                        const msg = err.message || err.error || 'Erro ao contratar empréstimo';
+                        showToast(msg, 'error');
+                        throw new Error(msg); // Keep modal open
                     }
                 }
             });
@@ -241,21 +238,19 @@ export const DividasEmprestimosManager = (project) => {
             saida: item,
             projectId: project.id,
             onSave: async (data) => {
-                // Update implementation (PUT /api/saidas/:id)
-                try {
-                    const response = await fetch(`${API_BASE_URL}/saidas/${item.id}`, {
-                        method: 'PUT',
-                        headers: getHeaders(),
-                        body: JSON.stringify(data)
-                    });
-                    if (response.ok) {
-                        showToast('Parcela atualizada!', 'success');
-                        loadData();
-                    } else {
-                        showToast('Erro ao atualizar', 'error');
-                    }
-                } catch (e) {
-                    showToast('Erro conexão', 'error');
+                const response = await fetch(`${API_BASE_URL}/saidas/${item.id}`, {
+                    method: 'PUT',
+                    headers: getHeaders(),
+                    body: JSON.stringify(data)
+                });
+                if (response.ok) {
+                    showToast('Parcela atualizada!', 'success');
+                    loadData();
+                } else {
+                    const err = await response.json();
+                    const msg = err.error || 'Erro ao atualizar parcela';
+                    showToast(msg, 'error');
+                    throw new Error(msg); // Keep modal open
                 }
             }
         });
