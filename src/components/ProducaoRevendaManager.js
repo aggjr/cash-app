@@ -5,6 +5,7 @@ import { showToast } from '../utils/toast.js';
 import { getApiBaseUrl } from '../utils/apiConfig.js';
 import { ProducaoRevendaModal } from './ProducaoRevendaModal.js';
 import { Dialogs } from './Dialogs.js';
+import { createPagedData } from '../utils/pagedData.js';
 
 export const ProducaoRevendaManager = (project) => {
     const container = document.createElement('div');
@@ -189,14 +190,11 @@ export const ProducaoRevendaManager = (project) => {
     // SharedTable Instance
     let sharedTable = null;
 
-    const loadItems = async (page = 1) => {
-        try {
-            container.querySelector('#table-container')?.classList.add('loading');
-
+    const buildListParams = (page, limit) => {
             const params = new URLSearchParams({
                 projectId: project.id,
                 page: page,
-                limit: pagination.limit
+                limit: limit
             });
 
             // Handle Filters
@@ -301,6 +299,14 @@ export const ProducaoRevendaManager = (project) => {
                 }
             });
 
+        return params;
+    };
+
+    const pagedItems = createPagedData({
+        pageSize: 50,
+        fetchRange: async (offset, limit) => {
+            const params = buildListParams(Math.floor(offset / limit) + 1, limit);
+
             const response = await fetch(`${API_BASE_URL}/producao-revenda?${params}`, {
                 headers: getHeaders()
             });
@@ -313,15 +319,31 @@ export const ProducaoRevendaManager = (project) => {
             const result = await response.json();
 
             if (result.meta) {
-                items = result.data;
-                pagination = result.meta;
-            } else {
-                items = Array.isArray(result) ? result : [];
-                pagination = { page: 1, limit: items.length, total: items.length, pages: 1 };
+                return { rows: result.data, total: result.meta.total };
             }
+
+            const all = Array.isArray(result) ? result : [];
+            return { rows: all, total: all.length, complete: true };
+        }
+    });
+
+    pagedItems.onProgress(() => renderPagination());
+
+    const loadItems = async (page = 1, { useCache = false } = {}) => {
+        try {
+            container.querySelector('#table-container')?.classList.add('loading');
+
+            if (!useCache) pagedItems.reset();
+
+            const { rows, meta } = await pagedItems.getPage(page);
+            items = rows;
+            pagination = meta;
 
             renderItems();
             renderPagination();
+
+            // Keeps downloading the rest of the filter in the background.
+            pagedItems.prefetchRest();
 
         } catch (error) {
             console.error('Error loading items:', error);
@@ -341,7 +363,7 @@ export const ProducaoRevendaManager = (project) => {
         btnPrev.className = 'btn-sm';
         btnPrev.textContent = '◀ Anterior';
         btnPrev.disabled = pagination.page <= 1;
-        btnPrev.onclick = () => loadItems(pagination.page - 1);
+        btnPrev.onclick = () => loadItems(pagination.page - 1, { useCache: true });
 
         const label = document.createElement('span');
         label.textContent = `Página ${pagination.page} de ${pagination.pages} (${pagination.total} registros)`;
@@ -351,7 +373,7 @@ export const ProducaoRevendaManager = (project) => {
         btnNext.className = 'btn-sm';
         btnNext.textContent = 'Próxima ▶';
         btnNext.disabled = pagination.page >= pagination.pages;
-        btnNext.onclick = () => loadItems(pagination.page + 1);
+        btnNext.onclick = () => loadItems(pagination.page + 1, { useCache: true });
 
         pagContainer.appendChild(btnPrev);
         pagContainer.appendChild(label);
@@ -520,7 +542,8 @@ export const ProducaoRevendaManager = (project) => {
             }
 
             console.log('Step 6: Preparing export data...');
-            const exportData = items.map(item => ({ ...item }));
+            // Exports the whole filter, not only the page on screen.
+            const exportData = (await pagedItems.getAllRows()).map(item => ({ ...item }));
             console.log('Step 7: Data prepared -', exportData.length, 'items');
             console.log('Step 8: Sample item =', exportData[0]);
 
@@ -569,8 +592,9 @@ export const ProducaoRevendaManager = (project) => {
     container.querySelector('#btn-pdf').onclick = () => {
         PrintHelper.printWithChoice({
             getState: () => pagination,
-            setLimit: (n) => { pagination.limit = n; },
-            load: loadItems,
+            loadAllRows: () => pagedItems.getAllRows(),
+            renderRows: (rows) => sharedTable.render(rows),
+            restore: () => renderItems(),
             selector: '#table-container table'
         });
     };

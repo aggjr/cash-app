@@ -29,7 +29,10 @@ exports.listProducaoRevenda = async (req, res, next) => {
         console.log('=== DEBUG: listProducaoRevenda ===');
         console.log('Query Params:', JSON.stringify(req.query, null, 2));
 
-        const { projectId, search, minValue, maxValue, sortBy, order } = req.query;
+        const { projectId, page = 1, limit = 50, search, minValue, maxValue, sortBy, order } = req.query;
+        const pageNum = Math.max(1, parseInt(page) || 1);
+        const limitNum = Math.min(1000, Math.max(1, parseInt(limit) || 50));
+        const offset = (pageNum - 1) * limitNum;
 
         if (!projectId) {
             throw new AppError('VAL-002', 'Project ID required');
@@ -190,11 +193,20 @@ exports.listProducaoRevenda = async (req, res, next) => {
              LEFT JOIN contas c ON p.account_id = c.id
              ${whereSQL}
              ORDER BY 
-             ${getOrderByClause(sortBy, order)}`;
+             ${getOrderByClause(sortBy, order)}
+             LIMIT ? OFFSET ?`;
 
-        const [items] = await db.query(dataQuery, params);
+        const [items] = await db.query(dataQuery, [...params, limitNum, offset]);
 
-        res.json(items);
+        res.json({
+            data: items,
+            meta: {
+                total: totalItems,
+                page: pageNum,
+                pages: Math.ceil(totalItems / limitNum),
+                limit: limitNum
+            }
+        });
     } catch (error) {
         next(error);
     }

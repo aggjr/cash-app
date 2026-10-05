@@ -6,6 +6,7 @@ import { ExcelExporter } from '../utils/ExcelExporter.js';
 import { BatchOperationDialog } from './BatchOperationDialog.js';
 import BulkEditModal from './BulkEditModal.js';
 import { PrintHelper } from '../utils/printHelper.js';
+import { createPagedData } from '../utils/pagedData.js';
 
 export const SaidaManager = (project) => {
     const container = document.createElement('div');
@@ -190,14 +191,11 @@ export const SaidaManager = (project) => {
     // SharedTable Instance
     let sharedTable = null;
 
-    const loadSaidas = async (page = 1) => {
-        try {
-            container.querySelector('#table-container')?.classList.add('loading');
-
+    const buildListParams = (page, limit) => {
             const params = new URLSearchParams({
                 projectId: project.id,
                 page: page,
-                limit: pagination.limit
+                limit: limit
             });
 
             // Handle Filters
@@ -310,6 +308,14 @@ export const SaidaManager = (project) => {
                 }
             });
 
+        return params;
+    };
+
+    const pagedSaidas = createPagedData({
+        pageSize: 50,
+        fetchRange: async (offset, limit) => {
+            const params = buildListParams(Math.floor(offset / limit) + 1, limit);
+
             const response = await fetch(`${API_BASE_URL}/saidas?${params}`, {
                 headers: getHeaders()
             });
@@ -322,15 +328,31 @@ export const SaidaManager = (project) => {
             const result = await response.json();
 
             if (result.meta) {
-                saidas = result.data;
-                pagination = result.meta;
-            } else {
-                saidas = Array.isArray(result) ? result : [];
-                pagination = { page: 1, limit: saidas.length, total: saidas.length, pages: 1 };
+                return { rows: result.data, total: result.meta.total };
             }
+
+            const all = Array.isArray(result) ? result : [];
+            return { rows: all, total: all.length, complete: true };
+        }
+    });
+
+    pagedSaidas.onProgress(() => renderPagination());
+
+    const loadSaidas = async (page = 1, { useCache = false } = {}) => {
+        try {
+            container.querySelector('#table-container')?.classList.add('loading');
+
+            if (!useCache) pagedSaidas.reset();
+
+            const { rows, meta } = await pagedSaidas.getPage(page);
+            saidas = rows;
+            pagination = meta;
 
             renderSaidas();
             renderPagination();
+
+            // Keeps downloading the rest of the filter in the background.
+            pagedSaidas.prefetchRest();
 
             // --- IVA Context Broadcast (The Eyes) ---
             if (window.IVA && window.IVA.updateScreenContext) {
@@ -439,7 +461,7 @@ export const SaidaManager = (project) => {
         btnPrev.className = 'btn-sm';
         btnPrev.textContent = '◀ Anterior';
         btnPrev.disabled = pagination.page <= 1;
-        btnPrev.onclick = () => loadSaidas(pagination.page - 1);
+        btnPrev.onclick = () => loadSaidas(pagination.page - 1, { useCache: true });
 
         const label = document.createElement('span');
         label.textContent = `Página ${pagination.page} de ${pagination.pages} (${pagination.total} registros)`;
@@ -449,7 +471,7 @@ export const SaidaManager = (project) => {
         btnNext.className = 'btn-sm';
         btnNext.textContent = 'Próxima ▶';
         btnNext.disabled = pagination.page >= pagination.pages;
-        btnNext.onclick = () => loadSaidas(pagination.page + 1);
+        btnNext.onclick = () => loadSaidas(pagination.page + 1, { useCache: true });
 
         pagContainer.appendChild(btnPrev);
         pagContainer.appendChild(label);
@@ -672,35 +694,41 @@ export const SaidaManager = (project) => {
     container.querySelector('#btn-new-saida').addEventListener('click', createSaida);
 
     // Export Handlers
-    container.querySelector('#btn-excel').onclick = () => {
+    container.querySelector('#btn-excel').onclick = async () => {
         if (!saidas || saidas.length === 0) {
             showToast('Sem dados para exportar', 'warning');
             return;
         }
 
-        // Prepare data
-        const exportData = saidas.map(item => ({
-            ...item
-        }));
+        try {
+            // Exports the whole filter, not only the page on screen.
+            const exportData = (await pagedSaidas.getAllRows()).map(item => ({
+                ...item
+            }));
 
-        ExcelExporter.exportTable(
-            exportData,
-            columns.filter(c => c.key !== 'actions' && c.key !== 'link').map(c => ({
-                header: c.label,
-                key: c.key,
-                width: parseInt(c.width) / 7 || 15,
-                type: c.type
-            })),
-            'Relatório de Saídas',
-            'saidas'
-        );
+            ExcelExporter.exportTable(
+                exportData,
+                columns.filter(c => c.key !== 'actions' && c.key !== 'link').map(c => ({
+                    header: c.label,
+                    key: c.key,
+                    width: parseInt(c.width) / 7 || 15,
+                    type: c.type
+                })),
+                'Relatório de Saídas',
+                'saidas'
+            );
+        } catch (error) {
+            console.error(error);
+            showToast('Erro ao exportar todos os registros do filtro', 'error');
+        }
     };
 
     container.querySelector('#btn-pdf').onclick = () => {
         PrintHelper.printWithChoice({
             getState: () => pagination,
-            setLimit: (n) => { pagination.limit = n; },
-            load: loadSaidas,
+            loadAllRows: () => pagedSaidas.getAllRows(),
+            renderRows: (rows) => sharedTable.render(rows),
+            restore: () => renderSaidas(),
             selector: '#table-container table'
         });
     };

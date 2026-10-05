@@ -7,6 +7,7 @@ import { getApiBaseUrl } from '../utils/apiConfig.js';
 import { ExcelExporter } from '../utils/ExcelExporter.js';
 import { BatchOperationDialog } from './BatchOperationDialog.js';
 import { PrintHelper } from '../utils/printHelper.js';
+import { createPagedData } from '../utils/pagedData.js';
 
 
 export const IncomeManager = (project) => {
@@ -217,14 +218,11 @@ export const IncomeManager = (project) => {
     // SharedTable Instance
     let sharedTable = null;
 
-    const loadIncomes = async (page = 1) => {
-        try {
-            container.querySelector('#table-container')?.classList.add('loading');
-
+    const buildListParams = (page, limit) => {
             const params = new URLSearchParams({
                 projectId: project.id,
                 page: page,
-                limit: pagination.limit
+                limit: limit
             });
 
             // Handle Filters
@@ -343,6 +341,14 @@ export const IncomeManager = (project) => {
                 }
             });
 
+        return params;
+    };
+
+    const pagedIncomes = createPagedData({
+        pageSize: 50,
+        fetchRange: async (offset, limit) => {
+            const params = buildListParams(Math.floor(offset / limit) + 1, limit);
+
             const response = await fetch(`${API_BASE_URL}/incomes?${params.toString()}`, {
                 headers: getHeaders()
             });
@@ -352,15 +358,31 @@ export const IncomeManager = (project) => {
             const result = await response.json();
 
             if (result.meta) {
-                incomes = result.data;
-                pagination = result.meta;
-            } else {
-                incomes = Array.isArray(result) ? result : [];
-                pagination = { page: 1, limit: incomes.length, total: incomes.length, pages: 1 };
+                return { rows: result.data, total: result.meta.total };
             }
+
+            const all = Array.isArray(result) ? result : [];
+            return { rows: all, total: all.length, complete: true };
+        }
+    });
+
+    pagedIncomes.onProgress(() => renderPagination());
+
+    const loadIncomes = async (page = 1, { useCache = false } = {}) => {
+        try {
+            container.querySelector('#table-container')?.classList.add('loading');
+
+            if (!useCache) pagedIncomes.reset();
+
+            const { rows, meta } = await pagedIncomes.getPage(page);
+            incomes = rows;
+            pagination = meta;
 
             renderIncomes(); // Now calls SharedTable render
             renderPagination();
+
+            // Keeps downloading the rest of the filter in the background.
+            pagedIncomes.prefetchRest();
 
             // --- IVA Context Broadcast (The Eyes) ---
             if (window.IVA && window.IVA.updateScreenContext) {
@@ -551,7 +573,7 @@ export const IncomeManager = (project) => {
         btnPrev.className = 'btn-sm';
         btnPrev.textContent = '◀ Anterior';
         btnPrev.disabled = pagination.page <= 1;
-        btnPrev.onclick = () => loadIncomes(pagination.page - 1);
+        btnPrev.onclick = () => loadIncomes(pagination.page - 1, { useCache: true });
 
         const label = document.createElement('span');
         label.textContent = `Página ${pagination.page} de ${pagination.pages}`;
@@ -561,7 +583,7 @@ export const IncomeManager = (project) => {
         btnNext.className = 'btn-sm';
         btnNext.textContent = 'Próxima ▶';
         btnNext.disabled = pagination.page >= pagination.pages;
-        btnNext.onclick = () => loadIncomes(pagination.page + 1);
+        btnNext.onclick = () => loadIncomes(pagination.page + 1, { useCache: true });
 
         pagContainer.appendChild(btnPrev);
         pagContainer.appendChild(label);
@@ -873,36 +895,42 @@ export const IncomeManager = (project) => {
     container.querySelector('#btn-new-income').addEventListener('click', createIncome);
 
     // Export Handlers
-    container.querySelector('#btn-excel').onclick = () => {
+    container.querySelector('#btn-excel').onclick = async () => {
         if (!incomes || incomes.length === 0) {
             showToast('Sem dados para exportar', 'warning');
             return;
         }
 
-        // Prepare data for export
-        const exportData = incomes.map(item => ({
-            ...item,
-            active: item.active ? 'Ativo' : 'Inativo'
-        }));
+        try {
+            // Exports the whole filter, not only the page on screen.
+            const exportData = (await pagedIncomes.getAllRows()).map(item => ({
+                ...item,
+                active: item.active ? 'Ativo' : 'Inativo'
+            }));
 
-        ExcelExporter.exportTable(
-            exportData,
-            columns.filter(c => c.key !== 'actions' && c.key !== 'link').map(c => ({
-                header: c.label,
-                key: c.key,
-                width: parseInt(c.width) / 7 || 15, // Approx px to char width
-                type: c.type
-            })),
-            'Relatório de Entradas',
-            'entradas'
-        );
+            ExcelExporter.exportTable(
+                exportData,
+                columns.filter(c => c.key !== 'actions' && c.key !== 'link').map(c => ({
+                    header: c.label,
+                    key: c.key,
+                    width: parseInt(c.width) / 7 || 15, // Approx px to char width
+                    type: c.type
+                })),
+                'Relatório de Entradas',
+                'entradas'
+            );
+        } catch (error) {
+            console.error(error);
+            showToast('Erro ao exportar todos os registros do filtro', 'error');
+        }
     };
 
     container.querySelector('#btn-pdf').onclick = () => {
         PrintHelper.printWithChoice({
             getState: () => pagination,
-            setLimit: (n) => { pagination.limit = n; },
-            load: loadIncomes,
+            loadAllRows: () => pagedIncomes.getAllRows(),
+            renderRows: (rows) => sharedTable.render(rows),
+            restore: () => renderIncomes(),
             selector: '#table-container table'
         });
     };

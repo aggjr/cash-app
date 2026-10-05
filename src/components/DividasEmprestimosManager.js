@@ -5,6 +5,7 @@ import { showToast } from '../utils/toast.js';
 import { getApiBaseUrl } from '../utils/apiConfig.js';
 import { ExcelExporter } from '../utils/ExcelExporter.js';
 import { PrintHelper } from '../utils/printHelper.js';
+import { createPagedData } from '../utils/pagedData.js';
 
 export const DividasEmprestimosManager = (project) => {
     const container = document.createElement('div');
@@ -116,40 +117,36 @@ export const DividasEmprestimosManager = (project) => {
 
     let sharedTable = null;
 
-    const loadData = async (page = 1) => {
-        try {
-            container.querySelector('#table-container')?.classList.add('loading');
+    const buildListParams = (page, limit) => {
+        const params = new URLSearchParams({
+            projectId: project.id,
+            page: page,
+            limit: limit
+        });
 
-            if (!project || !project.id) {
-                console.error('Project ID invalid:', project);
-                showToast('Erro interno: Projeto não identificado', 'error');
-                return;
-            }
+        if (sortConfig.key) {
+            params.append('sortBy', sortConfig.key);
+            params.append('order', sortConfig.direction);
+        }
 
-            const params = new URLSearchParams({
-                projectId: project.id,
-                page: page,
-                limit: pagination.limit
-            });
+        // Map filters
+        Object.keys(activeFilters).forEach(key => {
+            const filter = activeFilters[key];
+            if (!filter) return;
 
-            if (sortConfig.key) {
-                params.append('sortBy', sortConfig.key);
-                params.append('order', sortConfig.direction);
-            }
+            if (key === 'valor' && filter.min) params.append('minValue', filter.min);
+            else if (key === 'company_name' && filter.text) params.append('search', filter.text);
+        });
 
-            // Map filters
-            Object.keys(activeFilters).forEach(key => {
-                const filter = activeFilters[key];
-                if (!filter) return;
+        return params;
+    };
 
-                if (key === 'valor' && filter.min) params.append('minValue', filter.min);
-                else if (key === 'company_name' && filter.text) params.append('search', filter.text);
-            });
+    const pagedInstallments = createPagedData({
+        pageSize: 50,
+        fetchRange: async (offset, limit) => {
+            const params = buildListParams(Math.floor(offset / limit) + 1, limit);
 
-            const url = `${API_BASE_URL}/loans/installments?${params.toString()}`;
-            console.log('[DividasEmprestimosManager] Fetching:', url);
-
-            const response = await fetch(url, {
+            const response = await fetch(`${API_BASE_URL}/loans/installments?${params.toString()}`, {
                 headers: getHeaders()
             });
 
@@ -160,11 +157,43 @@ export const DividasEmprestimosManager = (project) => {
             }
 
             const result = await response.json();
-            installments = result.data;
-            pagination = result.meta;
+
+            if (result.meta) {
+                return { rows: result.data, total: result.meta.total };
+            }
+
+            const all = Array.isArray(result) ? result : [];
+            return { rows: all, total: all.length, complete: true };
+        }
+    });
+
+    pagedInstallments.onProgress(() => renderPagination());
+
+    const renderInstallments = () => {
+        if (sharedTable) sharedTable.render(installments);
+    };
+
+    const loadData = async (page = 1, { useCache = false } = {}) => {
+        try {
+            container.querySelector('#table-container')?.classList.add('loading');
+
+            if (!project || !project.id) {
+                console.error('Project ID invalid:', project);
+                showToast('Erro interno: Projeto não identificado', 'error');
+                return;
+            }
+
+            if (!useCache) pagedInstallments.reset();
+
+            const { rows, meta } = await pagedInstallments.getPage(page);
+            installments = rows;
+            pagination = meta;
 
             renderPagination();
-            sharedTable.render(installments);
+            renderInstallments();
+
+            // Keeps downloading the rest of the filter in the background.
+            pagedInstallments.prefetchRest();
 
         } catch (error) {
             console.error(error);
@@ -184,7 +213,7 @@ export const DividasEmprestimosManager = (project) => {
         btnPrev.className = 'btn-sm';
         btnPrev.textContent = '◀';
         btnPrev.disabled = pagination.page <= 1;
-        btnPrev.onclick = () => loadData(pagination.page - 1);
+        btnPrev.onclick = () => loadData(pagination.page - 1, { useCache: true });
 
         const label = document.createElement('span');
         label.textContent = `${pagination.page} / ${pagination.pages} (${pagination.total || 0})`;
@@ -193,7 +222,7 @@ export const DividasEmprestimosManager = (project) => {
         btnNext.className = 'btn-sm';
         btnNext.textContent = '▶';
         btnNext.disabled = pagination.page >= pagination.pages;
-        btnNext.onclick = () => loadData(pagination.page + 1);
+        btnNext.onclick = () => loadData(pagination.page + 1, { useCache: true });
 
         pagContainer.append(btnPrev, label, btnNext);
     };
@@ -284,14 +313,21 @@ export const DividasEmprestimosManager = (project) => {
     container.querySelector('#btn-pdf').onclick = () => {
         PrintHelper.printWithChoice({
             getState: () => pagination,
-            setLimit: (n) => { pagination.limit = n; },
-            load: loadData,
+            loadAllRows: () => pagedInstallments.getAllRows(),
+            renderRows: (rows) => sharedTable.render(rows),
+            restore: () => renderInstallments(),
             selector: '#table-container table'
         });
     };
     // Excel export logic (simplified)
-    container.querySelector('#btn-excel').onclick = () => {
-        ExcelExporter.exportTable(installments, columns, 'Relatório Dívidas', 'dividas');
+    container.querySelector('#btn-excel').onclick = async () => {
+        try {
+            // Exports the whole filter, not only the page on screen.
+            ExcelExporter.exportTable(await pagedInstallments.getAllRows(), columns, 'Relatório Dívidas', 'dividas');
+        } catch (error) {
+            console.error(error);
+            showToast('Erro ao exportar todos os registros do filtro', 'error');
+        }
     };
 
     const tableContainer = container.querySelector('#table-container');

@@ -4,6 +4,7 @@ import { showToast } from '../utils/toast.js';
 import { getApiBaseUrl } from '../utils/apiConfig.js';
 import { ExcelExporter } from '../utils/ExcelExporter.js';
 import { PrintHelper } from '../utils/printHelper.js';
+import { createPagedData } from '../utils/pagedData.js';
 
 export const TransferenciaManager = (project) => {
     const container = document.createElement('div');
@@ -115,14 +116,11 @@ export const TransferenciaManager = (project) => {
     // SharedTable Instance
     let sharedTable = null;
 
-    const loadTransferencias = async (page = 1) => {
-        try {
-            container.querySelector('#table-container')?.classList.add('loading');
-
+    const buildListParams = (page, limit) => {
             const params = new URLSearchParams({
                 projectId: project.id,
                 page: page,
-                limit: pagination.limit
+                limit: limit
             });
 
             // Handle Sorting
@@ -232,10 +230,15 @@ export const TransferenciaManager = (project) => {
                 }
             });
 
-            const fullUrl = `${API_BASE_URL}/transferencias?${params.toString()}`;
-            console.log('🌐 FETCHING URL:', fullUrl);
+        return params;
+    };
 
-            const response = await fetch(fullUrl, {
+    const pagedTransferencias = createPagedData({
+        pageSize: 50,
+        fetchRange: async (offset, limit) => {
+            const params = buildListParams(Math.floor(offset / limit) + 1, limit);
+
+            const response = await fetch(`${API_BASE_URL}/transferencias?${params.toString()}`, {
                 headers: getHeaders()
             });
 
@@ -244,15 +247,31 @@ export const TransferenciaManager = (project) => {
             const result = await response.json();
 
             if (result.meta) {
-                transferencias = result.data;
-                pagination = result.meta;
-            } else {
-                transferencias = Array.isArray(result) ? result : [];
-                pagination = { page: 1, limit: transferencias.length, total: transferencias.length, pages: 1 };
+                return { rows: result.data, total: result.meta.total };
             }
+
+            const all = Array.isArray(result) ? result : [];
+            return { rows: all, total: all.length, complete: true };
+        }
+    });
+
+    pagedTransferencias.onProgress(() => renderPagination());
+
+    const loadTransferencias = async (page = 1, { useCache = false } = {}) => {
+        try {
+            container.querySelector('#table-container')?.classList.add('loading');
+
+            if (!useCache) pagedTransferencias.reset();
+
+            const { rows, meta } = await pagedTransferencias.getPage(page);
+            transferencias = rows;
+            pagination = meta;
 
             renderTransferencias();
             renderPagination();
+
+            // Keeps downloading the rest of the filter in the background.
+            pagedTransferencias.prefetchRest();
 
         } catch (error) {
             console.error('Error loading transferências:', error);
@@ -272,7 +291,7 @@ export const TransferenciaManager = (project) => {
         btnPrev.className = 'btn-sm';
         btnPrev.textContent = '◀ Anterior';
         btnPrev.disabled = pagination.page <= 1;
-        btnPrev.onclick = () => loadTransferencias(pagination.page - 1);
+        btnPrev.onclick = () => loadTransferencias(pagination.page - 1, { useCache: true });
 
         const label = document.createElement('span');
         label.textContent = `Página ${pagination.page} de ${pagination.pages} (${pagination.total} registros)`;
@@ -282,7 +301,7 @@ export const TransferenciaManager = (project) => {
         btnNext.className = 'btn-sm';
         btnNext.textContent = 'Próxima ▶';
         btnNext.disabled = pagination.page >= pagination.pages;
-        btnNext.onclick = () => loadTransferencias(pagination.page + 1);
+        btnNext.onclick = () => loadTransferencias(pagination.page + 1, { useCache: true });
 
         pagContainer.appendChild(btnPrev);
         pagContainer.appendChild(label);
@@ -424,34 +443,41 @@ export const TransferenciaManager = (project) => {
     container.querySelector('#btn-new-transf').addEventListener('click', createTransferencia);
 
     // Export Handlers
-    container.querySelector('#btn-excel').onclick = () => {
+    container.querySelector('#btn-excel').onclick = async () => {
         if (!transferencias || transferencias.length === 0) {
             showToast('Sem dados para exportar', 'warning');
             return;
         }
 
-        const exportData = transferencias.map(item => ({
-            ...item
-        }));
+        try {
+            // Exports the whole filter, not only the page on screen.
+            const exportData = (await pagedTransferencias.getAllRows()).map(item => ({
+                ...item
+            }));
 
-        ExcelExporter.exportTable(
-            exportData,
-            columns.filter(c => c.key !== 'actions' && c.key !== 'link').map(c => ({
-                header: c.label,
-                key: c.key,
-                width: parseInt(c.width) / 7 || 15,
-                type: c.type
-            })),
-            'Relatório de Transferências',
-            'transferencias'
-        );
+            ExcelExporter.exportTable(
+                exportData,
+                columns.filter(c => c.key !== 'actions' && c.key !== 'link').map(c => ({
+                    header: c.label,
+                    key: c.key,
+                    width: parseInt(c.width) / 7 || 15,
+                    type: c.type
+                })),
+                'Relatório de Transferências',
+                'transferencias'
+            );
+        } catch (error) {
+            console.error(error);
+            showToast('Erro ao exportar todos os registros do filtro', 'error');
+        }
     };
 
     container.querySelector('#btn-pdf').onclick = () => {
         PrintHelper.printWithChoice({
             getState: () => pagination,
-            setLimit: (n) => { pagination.limit = n; },
-            load: loadTransferencias,
+            loadAllRows: () => pagedTransferencias.getAllRows(),
+            renderRows: (rows) => sharedTable.render(rows),
+            restore: () => renderTransferencias(),
             selector: '#table-container table'
         });
     };

@@ -4,6 +4,7 @@ import { showToast } from '../utils/toast.js';
 import { getApiBaseUrl } from '../utils/apiConfig.js';
 import { ExcelExporter } from '../utils/ExcelExporter.js';
 import { PrintHelper } from '../utils/printHelper.js';
+import { createPagedData } from '../utils/pagedData.js';
 
 export const AporteManager = (project) => {
     const container = document.createElement('div');
@@ -122,18 +123,11 @@ export const AporteManager = (project) => {
     // SharedTable Instance
     let sharedTable = null;
 
-    const loadAportes = async (page = 1) => {
-        try {
-            console.log('=== LOAD APORTES DEBUG START ===');
-            console.log('Step 1: Starting loadAportes, page:', page);
-            console.log('Step 2: Project ID:', project.id);
-
-            container.querySelector('#table-container')?.classList.add('loading');
-
+    const buildListParams = (page, limit) => {
             const params = new URLSearchParams({
                 projectId: project.id,
                 page: page,
-                limit: pagination.limit
+                limit: limit
             });
 
             // Handle Sorting
@@ -227,48 +221,51 @@ export const AporteManager = (project) => {
             });
 
 
-            console.group('🔍 AporteManager Filter Debug');
-            console.log('Active Filters:', JSON.stringify(activeFilters, null, 2));
-            console.log('Sort Config:', JSON.stringify(sortConfig, null, 2));
-            console.log('Generated Params:', params.toString());
-            console.groupEnd();
+        return params;
+    };
 
-            console.log('Step 3: Calling API...');
-            const url = `${API_BASE_URL}/aportes?${params.toString()}`;
-            console.log('Step 4: URL:', url);
+    const pagedAportes = createPagedData({
+        pageSize: 50,
+        fetchRange: async (offset, limit) => {
+            const params = buildListParams(Math.floor(offset / limit) + 1, limit);
 
-            const response = await fetch(url, {
+            const response = await fetch(`${API_BASE_URL}/aportes?${params.toString()}`, {
                 headers: getHeaders()
             });
 
-            console.log('Step 5: Response status:', response.status);
-
             if (!response.ok) {
                 const errorText = await response.text();
-                console.error('Step 6 ERROR: Response not ok');
-                console.error('Error response:', errorText);
                 throw new Error(`HTTP ${response.status}: ${errorText}`);
             }
 
             const result = await response.json();
-            console.log('Step 7: Result received:', result);
 
             if (result.meta) {
-                aportes = result.data;
-                pagination = result.meta;
-            } else {
-                aportes = Array.isArray(result) ? result : [];
-                pagination = { page: 1, limit: aportes.length, total: aportes.length, pages: 1 };
+                return { rows: result.data, total: result.meta.total };
             }
 
-            console.log('Step 8: Aportes count:', aportes.length);
-            console.log('Step 9: Pagination:', pagination);
+            const all = Array.isArray(result) ? result : [];
+            return { rows: all, total: all.length, complete: true };
+        }
+    });
+
+    pagedAportes.onProgress(() => renderPagination());
+
+    const loadAportes = async (page = 1, { useCache = false } = {}) => {
+        try {
+            container.querySelector('#table-container')?.classList.add('loading');
+
+            if (!useCache) pagedAportes.reset();
+
+            const { rows, meta } = await pagedAportes.getPage(page);
+            aportes = rows;
+            pagination = meta;
 
             renderAportes();
             renderPagination();
 
-            console.log('Step 10: SUCCESS - Render complete');
-            console.log('=== LOAD APORTES DEBUG END ===');
+            // Keeps downloading the rest of the filter in the background.
+            pagedAportes.prefetchRest();
         } catch (error) {
             console.error('=== LOAD APORTES ERROR ===');
             console.error('Error:', error);
@@ -290,7 +287,7 @@ export const AporteManager = (project) => {
         btnPrev.className = 'btn-sm';
         btnPrev.textContent = '◀ Anterior';
         btnPrev.disabled = pagination.page <= 1;
-        btnPrev.onclick = () => loadAportes(pagination.page - 1);
+        btnPrev.onclick = () => loadAportes(pagination.page - 1, { useCache: true });
 
         const label = document.createElement('span');
         label.textContent = `Página ${pagination.page} de ${pagination.pages} (${pagination.total} registros)`;
@@ -300,7 +297,7 @@ export const AporteManager = (project) => {
         btnNext.className = 'btn-sm';
         btnNext.textContent = 'Próxima ▶';
         btnNext.disabled = pagination.page >= pagination.pages;
-        btnNext.onclick = () => loadAportes(pagination.page + 1);
+        btnNext.onclick = () => loadAportes(pagination.page + 1, { useCache: true });
 
         pagContainer.appendChild(btnPrev);
         pagContainer.appendChild(label);
@@ -450,7 +447,8 @@ export const AporteManager = (project) => {
                 return;
             }
 
-            const exportData = aportes.map(item => ({ ...item }));
+            // Exports the whole filter, not only the page on screen.
+            const exportData = (await pagedAportes.getAllRows()).map(item => ({ ...item }));
 
             await ExcelExporter.exportTable(
                 exportData,
@@ -472,8 +470,9 @@ export const AporteManager = (project) => {
     container.querySelector('#btn-pdf').onclick = () => {
         PrintHelper.printWithChoice({
             getState: () => pagination,
-            setLimit: (n) => { pagination.limit = n; },
-            load: loadAportes,
+            loadAllRows: () => pagedAportes.getAllRows(),
+            renderRows: (rows) => sharedTable.render(rows),
+            restore: () => renderAportes(),
             selector: '#table-container table'
         });
     };

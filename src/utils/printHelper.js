@@ -148,80 +148,63 @@ export const PrintHelper = {
         });
     },
 
+    /** Sends the already rendered table to the printer. */
+    printCurrentView: (selector = 'table') => {
+        return new Promise((resolve) => {
+            PrintHelper.autoConfigureOrientation(selector);
+
+            let settled = false;
+            const finish = () => {
+                if (settled) return;
+                settled = true;
+                window.removeEventListener('afterprint', finish);
+                resolve();
+            };
+            window.addEventListener('afterprint', finish);
+            requestAnimationFrame(() => window.print());
+            setTimeout(finish, 180000);
+        });
+    },
+
     /**
      * Prints the current page, or asks and prints every filtered page when the list is paginated.
+     * The full set comes from the background cache, so printing everything never fires one
+     * huge request.
      */
     printWithChoice: async (options = {}) => {
         const state = typeof options.getState === 'function' ? options.getState() : null;
         const total = Number(state?.total) || 0;
         const limit = Number(state?.limit) || 0;
-        const canExpand = state
-            && total > limit
-            && typeof options.load === 'function'
-            && typeof options.setLimit === 'function';
+        const selector = options.selector || 'table';
+
+        const canExpand = state && total > limit
+            && typeof options.loadAllRows === 'function'
+            && typeof options.renderRows === 'function'
+            && typeof options.restore === 'function';
 
         if (!canExpand) {
-            PrintHelper.autoConfigureOrientation(options.selector || 'table');
-            window.print();
+            await PrintHelper.printCurrentView(selector);
             return;
         }
 
         const scope = await PrintHelper.askPrintScope({ total, shown: Math.min(limit, total) });
         if (!scope) return;
-        if (scope === 'all') {
-            await PrintHelper.printFilteredPages(options);
+
+        if (scope !== 'all') {
+            await PrintHelper.printCurrentView(selector);
             return;
         }
 
-        PrintHelper.autoConfigureOrientation(options.selector || 'table');
-        window.print();
-    },
-
-    /**
-     * Prints every row that matches the current filter, across all pages.
-     * Screen lists stay at 50 rows; this temporarily loads the full filtered set.
-     * getState/setLimit must close over the screen's pagination binding, because load() replaces that object.
-     * @param {{ getState: () => { page?: number, limit?: number, total?: number }, setLimit: (n: number) => void, load: (page?: number) => Promise<void>, selector?: string }} options
-     */
-    printFilteredPages: async ({ getState, setLimit, load, selector = 'table' }) => {
-        const state = typeof getState === 'function' ? getState() : {};
-        const savedPage = Number(state?.page) || 1;
-        const savedLimit = Number(state?.limit) || 50;
-        const total = Number(state?.total) || 0;
-        const expanded = total > savedLimit && typeof load === 'function' && typeof setLimit === 'function';
-
-        const restore = async () => {
-            if (!expanded) return;
-            setLimit(savedLimit);
-            await load(savedPage);
-        };
-
         try {
-            if (expanded) {
-                setLimit(total);
-                await load(1);
-            }
-
-            PrintHelper.autoConfigureOrientation(selector);
-
-            await new Promise((resolve) => {
-                let settled = false;
-                const finish = () => {
-                    if (settled) return;
-                    settled = true;
-                    window.removeEventListener('afterprint', finish);
-                    resolve();
-                };
-                window.addEventListener('afterprint', finish);
-                requestAnimationFrame(() => window.print());
-                setTimeout(finish, 180000);
-            });
+            const rows = await options.loadAllRows();
+            options.renderRows(rows);
+            await PrintHelper.printCurrentView(selector);
         } catch (error) {
             console.error('[PrintHelper] Falha ao imprimir o filtro completo:', error);
             window.alert('Não foi possível preparar a impressão de todos os registros filtrados.');
         } finally {
             try {
-                await restore();
+                await options.restore();
             } catch (error) {
                 console.error('[PrintHelper] Falha ao restaurar a página após imprimir:', error);
             }
