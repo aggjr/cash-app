@@ -697,8 +697,12 @@ export const SaidaManager = (project) => {
     };
 
     container.querySelector('#btn-pdf').onclick = () => {
-        PrintHelper.autoConfigureOrientation('#table-container table');
-        window.print();
+        PrintHelper.printWithChoice({
+            getState: () => pagination,
+            setLimit: (n) => { pagination.limit = n; },
+            load: loadSaidas,
+            selector: '#table-container table'
+        });
     };
 
     // Initialize SharedTable

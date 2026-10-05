@@ -282,8 +282,12 @@ export const DividasEmprestimosManager = (project) => {
 
     container.querySelector('#btn-new-loan').onclick = createLoan;
     container.querySelector('#btn-pdf').onclick = () => {
-        PrintHelper.autoConfigureOrientation('#table-container table');
-        window.print();
+        PrintHelper.printWithChoice({
+            getState: () => pagination,
+            setLimit: (n) => { pagination.limit = n; },
+            load: loadData,
+            selector: '#table-container table'
+        });
     };
     // Excel export logic (simplified)
     container.querySelector('#btn-excel').onclick = () => {

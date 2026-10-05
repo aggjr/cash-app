@@ -439,8 +439,12 @@ export const RetiradaManager = (project) => {
     };
 
     container.querySelector('#btn-pdf').onclick = () => {
-        PrintHelper.autoConfigureOrientation('#table-container table');
-        window.print();
+        PrintHelper.printWithChoice({
+            getState: () => pagination,
+            setLimit: (n) => { pagination.limit = n; },
+            load: loadRetiradas,
+            selector: '#table-container table'
+        });
     };
 
     // Init SharedTable

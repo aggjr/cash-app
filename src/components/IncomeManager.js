@@ -899,8 +899,12 @@ export const IncomeManager = (project) => {
     };
 
     container.querySelector('#btn-pdf').onclick = () => {
-        PrintHelper.autoConfigureOrientation('#table-container table');
-        window.print();
+        PrintHelper.printWithChoice({
+            getState: () => pagination,
+            setLimit: (n) => { pagination.limit = n; },
+            load: loadIncomes,
+            selector: '#table-container table'
+        });
     };
 
     // Initialize SharedTable

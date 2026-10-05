@@ -442,6 +442,7 @@ button {
   }
 
   /* Hide Navigation & UI Chrome */
+  .dialog-overlay,
   .sidebar,
   .sidebar-toggle-btn,
   #theme-toggle,
