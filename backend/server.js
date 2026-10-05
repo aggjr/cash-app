@@ -12,6 +12,7 @@ const { errorHandler, loadErrorCatalog } = require('./middleware/errorMiddleware
 const incomesRoutes = require('./routes/incomes');
 const accountsRoutes = require('./routes/accounts');
 const companiesRoutes = require('./routes/companies');
+const fornecedoresRoutes = require('./routes/fornecedores');
 const saidasRoutes = require('./routes/saidas');
 const aportesRoutes = require('./routes/aportes');
 const auditRoutes = require('./routes/auditLogs');
@@ -79,6 +80,7 @@ apiRouter.use((req, res, next) => {
 apiRouter.use('/auth', authRoutes);
 apiRouter.use('/accounts', accountsRoutes);
 apiRouter.use('/companies', companiesRoutes);
+apiRouter.use('/fornecedores', fornecedoresRoutes);
 apiRouter.use('/incomes', incomesRoutes);
 apiRouter.use('/saidas', saidasRoutes);
 apiRouter.use('/users', userManagementRoutes); // New global user mgt
@@ -215,6 +217,7 @@ loadErrorCatalog()
     .then(() => require('./migrate_add_campaign_messages')()) // NEW: Campaign Message columns
     .then(() => migrateFixDataAtraso()) // NEW: Fix data_atraso based on business rules
     .then(() => require('./migrate_add_boleto_url')()) // FIX: Add boleto_url column to entradas
+    .then(() => require('./migrate_add_fornecedores')()) // NEW: Suppliers registry + product/purchase links
     .then(() => startServer())
 
     .catch(err => {

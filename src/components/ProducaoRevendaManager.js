@@ -117,6 +117,7 @@ export const ProducaoRevendaManager = (project) => {
         { key: 'tipo_name', label: 'Tipo', width: 'var(--col-medium)', align: 'left', type: 'text' },
         { key: 'descricao', label: 'Descrição', width: 'auto', align: 'left', type: 'text' },
         { key: 'company_name', label: 'Empresa', width: 'var(--col-small)', align: 'left', type: 'text' },
+        { key: 'fornecedor_name', label: 'Fornecedor', width: 'var(--col-small)', align: 'left', type: 'text' },
         { key: 'account_name', label: 'Conta', width: 'var(--col-small)', align: 'center', type: 'text' },
         { key: 'valor', label: 'Valor', width: 'var(--col-value)', align: 'right', type: 'currency', colorLogic: 'outflow' },
         {
@@ -285,6 +286,12 @@ export const ProducaoRevendaManager = (project) => {
                     if (key === 'account_name' && filter.text) params.append('account', filter.text);
                     if (key === 'company_name' && filter.text) params.append('company', filter.text);
                     if (key === 'tipo_name' && filter.text) params.append('tipo', filter.text);
+                    if (key === 'fornecedor_name' && filter.text) params.append('fornecedor', filter.text);
+
+                    // Checkbox selection of suppliers
+                    if (key === 'fornecedor_name' && Array.isArray(filter.textIn) && filter.textIn.length > 0) {
+                        filter.textIn.forEach(value => params.append('fornecedorList', value === '' || value === null ? '__EMPTY__' : value));
+                    }
 
                     // Fallback or "Contains" generic operator if matched
                     if (filter.val1 && filter.operator === 'contains') {
@@ -292,8 +299,9 @@ export const ProducaoRevendaManager = (project) => {
                         else if (key === 'account_name') params.append('account', filter.val1);
                         else if (key === 'company_name') params.append('company', filter.val1);
                         else if (key === 'tipo_name') params.append('tipo', filter.val1);
+                        else if (key === 'fornecedor_name') params.append('fornecedor', filter.val1);
                         else params.append('search', filter.val1);
-                    } else if (filter.text && !['descricao', 'account_name', 'company_name', 'tipo_name'].includes(key)) {
+                    } else if (filter.text && !['descricao', 'account_name', 'company_name', 'tipo_name', 'fornecedor_name'].includes(key)) {
                         params.append('search', filter.text);
                     }
                 }
@@ -606,6 +614,7 @@ export const ProducaoRevendaManager = (project) => {
         columns: columns,
         projectId: project.id,
         endpointPrefix: null, // Client-side distinct values for now
+        getDistinctSource: () => pagedItems.getAllRows(),
         onFilterChange: (filters) => {
             activeFilters = filters;
             loadItems(1);

@@ -27,12 +27,14 @@ export const ProducaoRevendaModal = {
                 let tipoProducaoRevenda = [];
                 let companies = [];
                 let accounts = [];
+                let fornecedores = [];
 
                 try {
-                    const [tipoResponse, companyResponse, accountResponse] = await Promise.all([
+                    const [tipoResponse, companyResponse, accountResponse, fornecedorResponse] = await Promise.all([
                         fetch(`${API_BASE_URL}/tipo_producao_revenda?projectId=${projectId}`, { headers: { 'Authorization': `Bearer ${token}` } }),
                         fetch(`${API_BASE_URL}/companies?projectId=${projectId}`, { headers: { 'Authorization': `Bearer ${token}` } }),
-                        fetch(`${API_BASE_URL}/accounts?projectId=${projectId}`, { headers: { 'Authorization': `Bearer ${token}` } })
+                        fetch(`${API_BASE_URL}/accounts?projectId=${projectId}`, { headers: { 'Authorization': `Bearer ${token}` } }),
+                        fetch(`${API_BASE_URL}/fornecedores?projectId=${projectId}&onlyActive=1`, { headers: { 'Authorization': `Bearer ${token}` } })
                     ]);
 
                     if (tipoResponse.ok) {
@@ -46,6 +48,10 @@ export const ProducaoRevendaModal = {
                     if (accountResponse.ok) {
                         const json = await accountResponse.json();
                         accounts = Array.isArray(json) ? json : [];
+                    }
+                    if (fornecedorResponse.ok) {
+                        const json = await fornecedorResponse.json();
+                        fornecedores = Array.isArray(json) ? json : [];
                     }
                 } catch (error) {
                     console.error('Error loading data:', error);
@@ -107,6 +113,13 @@ export const ProducaoRevendaModal = {
                                     ${companies.map(c => `
                                         <option value="${c.id}" ${producaoRevenda?.company_id === c.id ? 'selected' : ''}>${c.name}</option>
                                     `).join('')}
+                                </select>
+                            </div>
+
+                            <div class="form-group" style="grid-column: span 2;">
+                                <label for="producao-revenda-fornecedor">Fornecedor</label>
+                                <select id="producao-revenda-fornecedor" class="form-input">
+                                    <option value="">Selecione...</option>
                                 </select>
                             </div>
 
@@ -262,7 +275,7 @@ export const ProducaoRevendaModal = {
                                     </button>
                                 </div>
                                 <div id="tree-selector-container" style="flex: 1;"></div>
-                                <input type="hidden" id="producao-revenda-tipo-entrada-id" value="${producaoRevenda?.tipo_entrada_id || ''}" />
+                                <input type="hidden" id="producao-revenda-tipo-entrada-id" value="${producaoRevenda?.tipo_id || producaoRevenda?.tipo_entrada_id || ''}" />
                             </div>
 
                         </div>
@@ -304,7 +317,58 @@ export const ProducaoRevendaModal = {
                 const tipoProducaoRevendaIdInput = modal.querySelector('#producao-revenda-tipo-entrada-id');
                 const treeContainer = modal.querySelector('#tree-selector-container');
                 const companySelect = modal.querySelector('#producao-revenda-company');
+                const fornecedorSelect = modal.querySelector('#producao-revenda-fornecedor');
                 const accountSelect = modal.querySelector('#producao-revenda-account');
+
+                const renderFornecedorOptions = (vinculados, selectedId) => {
+                    const vinculadoIds = new Set(vinculados.map(v => Number(v.fornecedor_id)));
+                    const outros = fornecedores.filter(f => !vinculadoIds.has(Number(f.id)));
+                    const option = (id, label) =>
+                        `<option value="${id}" ${String(selectedId) === String(id) ? 'selected' : ''}>${label}</option>`;
+
+                    let html = '<option value="">Selecione...</option>';
+                    if (vinculados.length > 0) {
+                        html += '<optgroup label="Fornecedores do produto">'
+                            + vinculados.map(v => option(v.fornecedor_id, v.principal ? `${v.name} (principal)` : v.name)).join('')
+                            + '</optgroup>';
+                    }
+                    if (outros.length > 0) {
+                        html += `<optgroup label="${vinculados.length > 0 ? 'Outros fornecedores' : 'Fornecedores'}">`
+                            + outros.map(f => option(f.id, f.name)).join('')
+                            + '</optgroup>';
+                    }
+                    fornecedorSelect.innerHTML = html;
+                };
+
+                /**
+                 * The product's main supplier comes preselected, but every supplier stays
+                 * available: the real one is only known when the purchase happens, and the
+                 * main supplier may not have the item.
+                 */
+                const loadFornecedoresDoProduto = async (tipoId, { fornecedorId = null } = {}) => {
+                    const current = fornecedorId !== null ? fornecedorId : fornecedorSelect.value;
+                    if (!tipoId) {
+                        renderFornecedorOptions([], current);
+                        return;
+                    }
+
+                    try {
+                        const response = await fetch(`${API_BASE_URL}/fornecedores/produto/${tipoId}`, {
+                            headers: { 'Authorization': `Bearer ${token}` }
+                        });
+                        const vinculados = response.ok ? await response.json() : [];
+                        const principal = vinculados.find(v => v.principal);
+                        renderFornecedorOptions(
+                            vinculados,
+                            current || (principal ? principal.fornecedor_id : '')
+                        );
+                    } catch (error) {
+                        console.error('Erro ao carregar fornecedores do produto:', error);
+                        renderFornecedorOptions([], current);
+                    }
+                };
+
+                fornecedorSelect.addEventListener('change', markAsDirty);
                 const descricaoInput = modal.querySelector('#producao-revenda-descricao');
                 const saveBtn = modal.querySelector('#modal-save');
                 const cancelBtn = modal.querySelector('#modal-cancel');
@@ -451,12 +515,18 @@ export const ProducaoRevendaModal = {
                             hasChanges = true;
                         }
                         tipoProducaoRevendaIdInput.value = selectedId;
+                        // Another product means another supplier list, so let its main supplier win.
+                        loadFornecedoresDoProduto(selectedId, { fornecedorId: '' });
                         validate();
                     }, allowedIds);
                 };
 
                 // Initialize Tree Selector
                 renderTree();
+
+                loadFornecedoresDoProduto(parseInt(tipoProducaoRevendaIdInput.value), {
+                    fornecedorId: producaoRevenda?.fornecedor_id || ''
+                });
 
                 // Currency formatting strategies
 
@@ -945,6 +1015,7 @@ export const ProducaoRevendaModal = {
                             descricao: descricaoInput.value.trim(),
                             tipoId: parseInt(tipoProducaoRevendaIdInput.value),
                             companyId: parseInt(companySelect.value),
+                            fornecedorId: fornecedorSelect.value ? parseInt(fornecedorSelect.value) : null,
                             accountId: parseInt(accountSelect.value),
                             comprovanteUrl: comprovanteUrlInput.value || null,
                             boletoUrl: boletoUrlInput.value || null,

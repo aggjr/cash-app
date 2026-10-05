@@ -2,11 +2,14 @@ import { getApiBaseUrl } from '../utils/apiConfig.js';
 import { attachCurrencyMask } from '../utils/currencyMask.js';
 
 export class SharedTable {
-    constructor({ container, columns, projectId, endpointPrefix, onFilterChange, onSortChange, enableSelection, onSelectionChange, headerRow, footerRow, summaryLabels, onBulkEdit, onBulkDelete, enabled = true }) {
+    constructor({ container, columns, projectId, endpointPrefix, getDistinctSource, onFilterChange, onSortChange, enableSelection, onSelectionChange, headerRow, footerRow, summaryLabels, onBulkEdit, onBulkDelete, enabled = true }) {
         this.container = container;
         this.columns = columns;
         this.projectId = projectId;
         this.endpointPrefix = endpointPrefix; // If null, assumes client-side distinct values from passed data
+        // On paginated screens currentData is just the visible page, which would hide most
+        // options from the filter lists. This supplies the full filtered set instead.
+        this.getDistinctSource = getDistinctSource || null;
         this.onFilterChange = onFilterChange;
         this.onSortChange = onSortChange;
         this.enableSelection = enableSelection !== false; // Enable by default unless explicitly disabled
@@ -27,6 +30,18 @@ export class SharedTable {
         this.selection = new Set();
         this.activeFilters = {};
         this.sortConfig = { key: null, direction: 'asc' };
+    }
+
+    async getDistinctRows() {
+        if (typeof this.getDistinctSource === 'function') {
+            try {
+                const rows = await this.getDistinctSource();
+                if (Array.isArray(rows) && rows.length > 0) return rows;
+            } catch (error) {
+                console.error('[SharedTable] Falha ao obter todos os registros para o filtro:', error);
+            }
+        }
+        return this.currentData;
     }
 
     // Allow updating options dynamically
@@ -1154,7 +1169,8 @@ export class SharedTable {
                         values = await r.json();
                     } else {
                         // Client Side Distinct
-                        values = [...new Set(this.currentData.map(item => item[colKey]))].sort((a, b) => a - b);
+                        const source = await this.getDistinctRows();
+                        values = [...new Set(source.map(item => item[colKey]))].sort((a, b) => a - b);
                     }
 
                     listContainer.innerHTML = '';
@@ -1505,7 +1521,8 @@ export class SharedTable {
                         const r = await fetch(`${this.API_BASE_URL}${this.endpointPrefix}/distinct-values?projectId=${this.projectId}&field=${colKey}`, { headers: this.getHeaders() });
                         values = await r.json();
                     } else {
-                        values = [...new Set(this.currentData.map(item => item[colKey]))].sort();
+                        const source = await this.getDistinctRows();
+                        values = [...new Set(source.map(item => item[colKey]))].sort();
                     }
 
                     listContainer.innerHTML = '';
@@ -1682,7 +1699,8 @@ export class SharedTable {
                             const r = await fetch(`${this.API_BASE_URL}${this.endpointPrefix}/distinct-values?projectId=${this.projectId}&field=${colKey}`, { headers: this.getHeaders() });
                             values = await r.json();
                         } else {
-                            values = [...new Set(this.currentData.map(item => item[colKey]))].filter(d => d).sort();
+                            const source = await this.getDistinctRows();
+                            values = [...new Set(source.map(item => item[colKey]))].filter(d => d).sort();
                         }
 
                         // Normalize all values to YYYY-MM-DD immediately

@@ -3,6 +3,7 @@ import { Dialogs } from './Dialogs.js';
 import { getApiBaseUrl } from '../utils/apiConfig.js';
 import { ExcelExporter } from '../utils/ExcelExporter.js';
 import { PrintHelper } from '../utils/printHelper.js';
+import { ProdutoFornecedoresModal } from './ProdutoFornecedoresModal.js';
 
 
 /**
@@ -15,6 +16,8 @@ import { PrintHelper } from '../utils/printHelper.js';
 export const createTreeManager = (tableName, title, term = 'Categoria', onClose = null) => {
     const api = new GenericTreeApi(tableName);
     const API_BASE_URL = getApiBaseUrl();
+    // Only products have suppliers.
+    const isProdutoTree = tableName === 'tipo_producao_revenda';
     let treeData = [];
     let draggedNodeId = null;
 
@@ -691,6 +694,7 @@ export const createTreeManager = (tableName, title, term = 'Categoria', onClose 
                 <button onclick="window.treeActions_${tableName}.outdent(${node.id})" title="Outdent (Left)" class="btn-arrow">⬅️</button>
                 <button onclick="window.treeActions_${tableName}.indent(${node.id})" title="Indent (Right)" class="btn-arrow">➡️</button>
                 <button onclick="window.treeActions_${tableName}.addChild(${node.id})" title="Add Sub-item">➕</button>
+                ${isProdutoTree ? `<button onclick="window.treeActions_${tableName}.fornecedores(${node.id})" title="Fornecedores deste produto">🚚</button>` : ''}
                 <button onclick="window.treeActions_${tableName}.edit(${node.id})" title="Edit">✏️</button>
                 <button onclick="window.treeActions_${tableName}.delete(${node.id})" title="Delete" class="btn-delete">🗑️</button>
               ` : `
@@ -916,6 +920,14 @@ export const createTreeManager = (tableName, title, term = 'Categoria', onClose 
                 delete: (id) => {
                     // No confirmation for delete as requested
                     deleteNodeAPI(id);
+                },
+                fornecedores: async (id) => {
+                    const node = findNode(treeData, id);
+                    await ProdutoFornecedoresModal.show({
+                        tipoId: id,
+                        label: node ? node.label : '',
+                        projectId: getProjectId()
+                    });
                 },
                 reactivate: async (id) => {
                     if (await Dialogs.confirm('Deseja reativar este item?', 'Reativar')) {

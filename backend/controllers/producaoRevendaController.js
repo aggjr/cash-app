@@ -18,6 +18,7 @@ const getOrderByClause = (sortBy, order = 'desc') => {
         'descricao': `p.descricao ${orderDirection}`,
         'tipo_name': `th.full_path ${orderDirection}`,
         'company_name': `emp.name ${orderDirection}`,
+        'fornecedor_name': `forn.name ${orderDirection}`,
         'account_name': `c.name ${orderDirection}`
     };
 
@@ -117,9 +118,9 @@ exports.listProducaoRevenda = async (req, res, next) => {
             whereClauses.push('p.valor IS NULL');
         }
         if (search) {
-            whereClauses.push('(p.descricao LIKE ? OR emp.name LIKE ? OR c.name LIKE ?)');
+            whereClauses.push('(p.descricao LIKE ? OR emp.name LIKE ? OR c.name LIKE ? OR forn.name LIKE ?)');
             const searchParam = `%${search}%`;
-            params.push(searchParam, searchParam, searchParam);
+            params.push(searchParam, searchParam, searchParam, searchParam);
         }
 
         // Specific Text Filters
@@ -139,6 +140,29 @@ exports.listProducaoRevenda = async (req, res, next) => {
         if (req.query.tipo) {
             whereClauses.push('th.full_path LIKE ?');
             params.push(`%${req.query.tipo}%`);
+        }
+
+        if (req.query.fornecedor) {
+            whereClauses.push('forn.name LIKE ?');
+            params.push(`%${req.query.fornecedor}%`);
+        }
+
+        if (req.query.fornecedorList) {
+            let names = Array.isArray(req.query.fornecedorList)
+                ? req.query.fornecedorList
+                : [req.query.fornecedorList];
+            const hasEmpty = names.includes('__EMPTY__');
+            names = names.filter(n => n !== '__EMPTY__');
+
+            if (names.length > 0 && hasEmpty) {
+                whereClauses.push('(forn.name IN (?) OR p.fornecedor_id IS NULL)');
+                params.push(names);
+            } else if (names.length > 0) {
+                whereClauses.push('forn.name IN (?)');
+                params.push(names);
+            } else if (hasEmpty) {
+                whereClauses.push('p.fornecedor_id IS NULL');
+            }
         }
 
         // Attachment Filter
@@ -166,6 +190,7 @@ exports.listProducaoRevenda = async (req, res, next) => {
             LEFT JOIN TypeHierarchy th ON p.tipo_id = th.id
             INNER JOIN empresas emp ON p.company_id = emp.id
             LEFT JOIN contas c ON p.account_id = c.id
+            LEFT JOIN fornecedores forn ON p.fornecedor_id = forn.id
             ${whereSQL}`;
 
         const [countResult] = await db.query(countQuery, params);
@@ -186,11 +211,13 @@ exports.listProducaoRevenda = async (req, res, next) => {
                 p.*,
                 th.full_path as tipo_name,
                 emp.name as company_name,
+                forn.name as fornecedor_name,
                 c.name as account_name
              FROM producao_revenda p
              LEFT JOIN TypeHierarchy th ON p.tipo_id = th.id
              INNER JOIN empresas emp ON p.company_id = emp.id
              LEFT JOIN contas c ON p.account_id = c.id
+             LEFT JOIN fornecedores forn ON p.fornecedor_id = forn.id
              ${whereSQL}
              ORDER BY 
              ${getOrderByClause(sortBy, order)}
@@ -316,6 +343,7 @@ exports.createProducaoRevenda = async (req, res, next) => {
             descricao,
             tipoId,
             companyId,
+            fornecedorId,
             accountId,
             comprovanteUrl,
             boletoUrl,
@@ -416,8 +444,8 @@ exports.createProducaoRevenda = async (req, res, next) => {
 
             const [result] = await audited.query(
                 `INSERT INTO producao_revenda 
-                (data_fato, data_prevista_pagamento, data_prevista_atraso, data_real_pagamento, valor, descricao, tipo_id, company_id, account_id, comprovante_url, boleto_url, project_id, forma_pagamento, installment_group_id, installment_number, installment_total, installment_interval, installment_custom_days) 
-                VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+                (data_fato, data_prevista_pagamento, data_prevista_atraso, data_real_pagamento, valor, descricao, tipo_id, company_id, fornecedor_id, account_id, comprovante_url, boleto_url, project_id, forma_pagamento, installment_group_id, installment_number, installment_total, installment_interval, installment_custom_days) 
+                VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
                 [
                     factDates[i],
                     installmentDates[i],
@@ -427,6 +455,7 @@ exports.createProducaoRevenda = async (req, res, next) => {
                     installmentDesc,
                     tipoId,
                     companyId,
+                    fornecedorId || null,
                     accountId || null,
                     comprovanteUrl || null,
                     boletoUrl || null,
@@ -528,6 +557,7 @@ exports.updateProducaoRevenda = async (req, res, next) => {
             descricao: 'descricao',
             tipoId: 'tipo_id',
             companyId: 'company_id',
+            fornecedorId: 'fornecedor_id',
             accountId: 'account_id',
             comprovanteUrl: 'comprovante_url',
             boletoUrl: 'boleto_url',

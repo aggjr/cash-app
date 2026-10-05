@@ -830,8 +830,8 @@ export const CampanhaWizard = {
 
                 formDiv.innerHTML = `
                      <div class="form-group" style="flex: 1 1 40%; min-width:220px; max-width:600px;">
-                         <label style="font-size:0.85rem; color:#666; display:block; margin-bottom:4px;">Nome da Campanha (v0.9.19) <span style="color:#EF4444; margin-left:2px; font-weight:bold;">*</span></label>
-                         <input type="text" id="campaign-name" class="form-input required-field" value="${state.config.nome}" placeholder="Ex: Promoção de Natal (v0.9.19)" required style="width:100%; padding:8px; border:2px solid #ddd; border-radius:6px;" />
+                         <label style="font-size:0.85rem; color:#666; display:block; margin-bottom:4px;">Nome da Campanha (v0.9.20) <span style="color:#EF4444; margin-left:2px; font-weight:bold;">*</span></label>
+                         <input type="text" id="campaign-name" class="form-input required-field" value="${state.config.nome}" placeholder="Ex: Promoção de Natal (v0.9.20)" required style="width:100%; padding:8px; border:2px solid #ddd; border-radius:6px;" />
                      </div>
                      <div class="form-group" style="width: 140px;">
                          <label style="font-size:0.85rem; color:#666; display:block; margin-bottom:4px;">Início <span style="color:#EF4444; margin-left:2px; font-weight:bold;">*</span></label>
@@ -1222,7 +1222,7 @@ export const CampanhaWizard = {
             });
 
             const versionSpan = document.createElement('span');
-            versionSpan.textContent = 'v0.9.19';
+            versionSpan.textContent = 'v0.9.20';
             versionSpan.style.marginRight = 'auto';
             versionSpan.style.color = '#ccc';
             versionSpan.style.fontSize = '0.8rem';

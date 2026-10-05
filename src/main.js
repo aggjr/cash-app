@@ -11,6 +11,7 @@ import { ProjectList } from './components/ProjectList.js'
 import { UserManager } from './components/UserManager.js'
 import { AccountManager } from './components/AccountManager.js'
 import { CompanyManager } from './components/CompanyManager.js'
+import { FornecedorManager } from './components/FornecedorManager.js'
 import { IncomeManager } from './components/IncomeManager.js'
 import { SaidaManager } from './components/SaidaManager.js'
 import { ProducaoRevendaManager } from './components/ProducaoRevendaManager.js'
@@ -299,6 +300,7 @@ function initAppLogic() {
 
     if (itemId === 'contas') return routeHandler(AccountManager);
     if (itemId === 'empresa') return routeHandler(CompanyManager);
+    if (itemId === 'fornecedores') return routeHandler(FornecedorManager);
     if (itemId === 'entrada') return routeHandler(IncomeManager);
     if (itemId === 'saida') return routeHandler(SaidaManager);
     if (itemId === 'producao-revenda') return routeHandler(ProducaoRevendaManager);
@@ -372,7 +374,7 @@ function initAppLogic() {
 
   const versionEl = document.createElement('div');
   versionEl.id = versionId;
-  versionEl.textContent = 'v0.9.19';
+  versionEl.textContent = 'v0.9.20';
   versionEl.style.cssText = `
     position: fixed;
     bottom: 5px;

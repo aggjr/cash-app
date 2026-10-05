@@ -20,6 +20,7 @@ export const Sidebar = () => {
       icon: '📋',
       children: [
         { id: 'empresa', label: 'Empresa', icon: '🏢' },
+        { id: 'fornecedores', label: 'Fornecedores', icon: '🚚' },
         { id: 'contas', label: 'Contas', icon: '💳' },
         { id: 'usuarios', label: 'Usuários', icon: '👥' },
         { id: 'tipo-entrada', label: 'Tipo de Entrada', icon: '📥' },
@@ -154,7 +155,7 @@ export const Sidebar = () => {
         </a>
       </div>
       <div style="padding: 0.5rem; text-align: center; font-size: 0.7rem; color: #64748b; opacity: 0.8;">
-        v0.9.19
+        v0.9.20
       </div>
     </aside>
   `;
