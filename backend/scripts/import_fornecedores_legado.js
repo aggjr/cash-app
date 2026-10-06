@@ -1,42 +1,32 @@
 /**
- * Imports suppliers from the legacy system's database.
+ * Imports the supplier registry from the legacy ERP (FOCCUS) staging database into CASH.
  *
- * The legacy system has no supplier registry: each product row carries its main supplier
- * and the secondary ones in their own columns. This script therefore does two things:
+ * The staging database already holds a proper supplier registry in `saron_stg_suppliers`,
+ * so this script only reads names and CNPJs from there and creates the missing ones in CASH.
  *
- *   1. Collects the distinct supplier names across those columns into `fornecedores`.
- *   2. Links each product to its suppliers in `produto_fornecedores`, keeping which one
- *      is the main supplier.
+ * It writes through the CASH API rather than connecting to the production database, because
+ * the production host only exposes HTTP. The account used must be a master of the project.
  *
- * It is idempotent. Suppliers already in CASH are matched by normalized name and left
- * untouched, so CNPJ, contact and notes typed in CASH are never overwritten. Links are
- * replaced only for the products that came in this import.
+ * It is idempotent: suppliers already present in CASH are matched by normalized name and left
+ * untouched, so CNPJ, contact and notes typed in CASH are never overwritten.
  *
  * Nothing is written unless you pass --commit.
  *
  * Usage:
- *   node backend/scripts/import_fornecedores_legado.js --project 1
- *   node backend/scripts/import_fornecedores_legado.js --project 1 --commit
+ *   node backend/scripts/import_fornecedores_legado.js --project 14
+ *   node backend/scripts/import_fornecedores_legado.js --project 14 --commit
  *
- * Connection (always required):
+ * Legacy staging connection (required):
  *   LEGACY_DB_HOST, LEGACY_DB_USER, LEGACY_DB_PASSWORD, LEGACY_DB_DATABASE
- *   LEGACY_DB_PORT                          optional, default 3306
+ *   LEGACY_DB_PORT              optional, default 3306
+ *   LEGACY_FORNECEDORES_TABLE   optional, default saron_stg_suppliers
  *
- * Source — names AND product links (what the legacy system looks like):
- *   LEGACY_PRODUTOS_TABLE=produtos
- *   LEGACY_PRODUTO_NOME_COLUNA=descricao
- *   LEGACY_FORNECEDOR_PRINCIPAL_COLUNA=fornecedor_principal
- *   LEGACY_FORNECEDOR_SECUNDARIOS_COLUNAS=fornecedor_sec1,fornecedor_sec2
- *
- * Source — only the list of names, without linking to products:
- *   LEGACY_PRODUTOS_TABLE=produtos
- *   LEGACY_FORNECEDOR_COLUNAS=fornecedor_principal,fornecedor_sec1,fornecedor_sec2
- *   ...or a free SELECT whose rows expose a `name` column:
- *   LEGACY_FORNECEDORES_QUERY="SELECT DISTINCT razao_social AS name FROM cad_fornecedor"
+ * CASH target (required):
+ *   CASH_API_URL                e.g. https://cash.gutoapps.site/api
+ *   CASH_EMAIL, CASH_PASSWORD   master account of the project
  */
 require('dotenv').config();
 const mysql = require('mysql2/promise');
-const db = require('../config/database');
 
 const parseArgs = () => {
     const args = process.argv.slice(2);
@@ -58,70 +48,49 @@ const normalize = (value) => String(value ?? '')
     .trim()
     .toUpperCase();
 
-const clean = (value) => {
-    const text = String(value ?? '').trim();
-    return text.length > 0 ? text : null;
-};
-
-/** Rejects anything that is not a plain identifier, since these go straight into SQL. */
+/** Rejects anything that is not a plain identifier, since it goes straight into SQL. */
 const safeIdentifier = (value) => {
     const name = String(value ?? '').trim();
     if (!/^[A-Za-z_][A-Za-z0-9_$]*$/.test(name)) {
-        console.error(`❌ Nome de tabela/coluna inválido: "${name}"`);
+        console.error(`❌ Nome de tabela inválido: "${name}"`);
         process.exit(1);
     }
     return `\`${name}\``;
 };
 
-const splitColumns = (value) => String(value ?? '')
-    .split(',')
-    .map(c => c.trim())
-    .filter(Boolean);
-
-/** Decides what to read from the legacy database based on the environment. */
-const resolveSource = () => {
-    const table = process.env.LEGACY_PRODUTOS_TABLE;
-    const nomeColuna = process.env.LEGACY_PRODUTO_NOME_COLUNA;
-    const principalColuna = process.env.LEGACY_FORNECEDOR_PRINCIPAL_COLUNA;
-    const secundariasColunas = splitColumns(process.env.LEGACY_FORNECEDOR_SECUNDARIOS_COLUNAS);
-
-    if (table && nomeColuna && principalColuna) {
-        const colunas = [principalColuna, ...secundariasColunas];
-        const selects = [
-            `${safeIdentifier(nomeColuna)} AS produto`,
-            `${safeIdentifier(principalColuna)} AS principal`,
-            ...secundariasColunas.map((c, i) => `${safeIdentifier(c)} AS secundario_${i}`)
-        ];
-
-        return {
-            mode: 'links',
-            colunas,
-            secundariasCount: secundariasColunas.length,
-            query: `SELECT ${selects.join(', ')} FROM ${safeIdentifier(table)}`
-        };
-    }
-
-    if (process.env.LEGACY_FORNECEDORES_QUERY) {
-        return { mode: 'names', query: process.env.LEGACY_FORNECEDORES_QUERY };
-    }
-
-    const colunas = splitColumns(process.env.LEGACY_FORNECEDOR_COLUNAS);
-    if (table && colunas.length > 0) {
-        const safeTable = safeIdentifier(table);
-        // UNION already removes the duplicates across columns.
-        const query = colunas.map(coluna => {
-            const safeColuna = safeIdentifier(coluna);
-            return `SELECT DISTINCT TRIM(${safeColuna}) AS name FROM ${safeTable}
-                    WHERE ${safeColuna} IS NOT NULL AND TRIM(${safeColuna}) <> ''`;
-        }).join('\nUNION\n');
-
-        return { mode: 'names', query };
-    }
-
-    return null;
+/** The legacy CNPJ column is free text ("0", "x", dots, commas). Keep only real ones. */
+const cleanCnpj = (value) => {
+    const digits = String(value ?? '').replace(/\D/g, '');
+    return digits.length === 14 ? digits : null;
 };
 
-async function main() {
+const requireEnv = (names) => {
+    const missing = names.filter((n) => !process.env[n]);
+    if (missing.length > 0) {
+        console.error(`❌ Variáveis de ambiente faltando: ${missing.join(', ')}`);
+        process.exit(1);
+    }
+};
+
+const api = async (path, { method = 'GET', token, body } = {}) => {
+    const base = process.env.CASH_API_URL.replace(/\/$/, '');
+    const headers = { 'Content-Type': 'application/json' };
+    if (token) headers.Authorization = `Bearer ${token}`;
+
+    const response = await fetch(`${base}${path}`, {
+        method,
+        headers,
+        body: body ? JSON.stringify(body) : undefined
+    });
+
+    const text = await response.text();
+    if (!response.ok) {
+        throw new Error(`${method} ${path} -> ${response.status} ${text.slice(0, 200)}`);
+    }
+    return text ? JSON.parse(text) : null;
+};
+
+const run = async () => {
     const { commit, projectId, limit } = parseArgs();
 
     if (!projectId) {
@@ -129,218 +98,121 @@ async function main() {
         process.exit(1);
     }
 
-    const source = resolveSource();
-    if (!source) {
-        console.error('❌ Diga onde estão os fornecedores no legado. Para trazer nomes e vínculos:');
-        console.error('   LEGACY_PRODUTOS_TABLE, LEGACY_PRODUTO_NOME_COLUNA,');
-        console.error('   LEGACY_FORNECEDOR_PRINCIPAL_COLUNA e LEGACY_FORNECEDOR_SECUNDARIOS_COLUNAS');
-        console.error('   Para trazer só a lista de nomes: LEGACY_FORNECEDOR_COLUNAS ou LEGACY_FORNECEDORES_QUERY');
-        process.exit(1);
-    }
+    requireEnv([
+        'LEGACY_DB_HOST', 'LEGACY_DB_USER', 'LEGACY_DB_PASSWORD', 'LEGACY_DB_DATABASE',
+        'CASH_API_URL', 'CASH_EMAIL', 'CASH_PASSWORD'
+    ]);
 
-    const missing = ['LEGACY_DB_HOST', 'LEGACY_DB_USER', 'LEGACY_DB_DATABASE']
-        .filter(key => !process.env[key]);
-    if (missing.length > 0) {
-        console.error(`❌ Variáveis de ambiente faltando: ${missing.join(', ')}`);
-        process.exit(1);
-    }
+    const table = safeIdentifier(process.env.LEGACY_FORNECEDORES_TABLE || 'saron_stg_suppliers');
 
-    console.log(`\n${commit ? '🚚 IMPORTANDO' : '🔍 SIMULAÇÃO (use --commit para gravar)'} — projeto ${projectId}`);
-    console.log(`   Modo: ${source.mode === 'links' ? 'nomes + vínculo com produtos' : 'somente a lista de nomes'}\n`);
+    const legacy = await mysql.createConnection({
+        host: process.env.LEGACY_DB_HOST,
+        port: parseInt(process.env.LEGACY_DB_PORT || '3306'),
+        user: process.env.LEGACY_DB_USER,
+        password: process.env.LEGACY_DB_PASSWORD,
+        database: process.env.LEGACY_DB_DATABASE,
+        charset: 'utf8mb4'
+    });
 
-    let legacy;
     try {
-        legacy = await mysql.createConnection({
-            host: process.env.LEGACY_DB_HOST,
-            port: parseInt(process.env.LEGACY_DB_PORT) || 3306,
-            user: process.env.LEGACY_DB_USER,
-            password: process.env.LEGACY_DB_PASSWORD || '',
-            database: process.env.LEGACY_DB_DATABASE
-        });
-    } catch (error) {
-        console.error('❌ Não foi possível conectar no banco do legado:', error.message);
-        process.exit(1);
-    }
+        console.log(`\n🔎 Lendo ${process.env.LEGACY_FORNECEDORES_TABLE || 'saron_stg_suppliers'} do legado...`);
 
-    let legacyRows;
-    try {
-        [legacyRows] = await legacy.query(source.query);
-    } catch (error) {
-        console.error('❌ A consulta ao legado falhou:', error.message);
-        await legacy.end();
-        process.exit(1);
-    }
-    await legacy.end();
-
-    const rows = limit ? legacyRows.slice(0, limit) : legacyRows;
-    console.log(`Legado retornou ${legacyRows.length} linha(s).${limit ? ` Processando ${rows.length} (--limit).` : ''}`);
-
-    // ---------- 1) Supplier registry ----------
-
-    const nomesLegado = new Map(); // normalized -> original spelling
-
-    const registrarNome = (valor) => {
-        const nome = clean(valor);
-        if (!nome) return null;
-        const chave = normalize(nome);
-        if (!nomesLegado.has(chave)) nomesLegado.set(chave, nome);
-        return chave;
-    };
-
-    const produtosLegado = [];
-
-    for (const row of rows) {
-        if (source.mode === 'names') {
-            registrarNome(row.name);
-            continue;
-        }
-
-        const produto = clean(row.produto);
-        const principal = registrarNome(row.principal);
-        const secundarios = [];
-        for (let i = 0; i < source.secundariasCount; i += 1) {
-            const chave = registrarNome(row[`secundario_${i}`]);
-            if (chave && chave !== principal && !secundarios.includes(chave)) secundarios.push(chave);
-        }
-
-        if (produto && (principal || secundarios.length > 0)) {
-            produtosLegado.push({ produto, principal, secundarios });
-        }
-    }
-
-    const [existentes] = await db.query(
-        'SELECT id, name FROM fornecedores WHERE project_id = ?',
-        [projectId]
-    );
-
-    const porNome = new Map();
-    for (const row of existentes) {
-        porNome.set(normalize(row.name), row);
-    }
-
-    const aCriar = [];
-    for (const [chave, nome] of nomesLegado) {
-        if (!porNome.has(chave)) aCriar.push({ chave, name: nome });
-    }
-
-    console.log(`\n  Fornecedores distintos no legado: ${nomesLegado.size}`);
-    console.log(`  Já existentes no CASH:            ${nomesLegado.size - aCriar.length}`);
-    console.log(`  Novos a criar:                    ${aCriar.length}`);
-
-    if (aCriar.length > 0) {
-        console.log('\n  Exemplos de novos fornecedores:');
-        aCriar.slice(0, 10).forEach(f => console.log(`    • ${f.name}`));
-        if (aCriar.length > 10) console.log(`    ... e mais ${aCriar.length - 10}`);
-    }
-
-    // ---------- 2) Product links ----------
-
-    let vinculos = [];
-    let semCorrespondencia = [];
-
-    if (source.mode === 'links') {
-        const [tipos] = await db.query(
-            'SELECT id, label FROM tipo_producao_revenda WHERE project_id = ? AND active = 1',
-            [projectId]
+        const [rows] = await legacy.query(
+            `SELECT name, cnpj, is_own_supplier
+             FROM ${table}
+             WHERE is_deleted = 0 AND name IS NOT NULL AND TRIM(name) <> ''
+             ORDER BY name`
         );
 
-        const tipoPorLabel = new Map();
-        for (const tipo of tipos) {
-            // Ambiguous labels are skipped rather than linked to an arbitrary node.
-            const chave = normalize(tipo.label);
-            if (tipoPorLabel.has(chave)) tipoPorLabel.set(chave, 'AMBIGUO');
-            else tipoPorLabel.set(chave, tipo.id);
-        }
-
-        const ambiguos = new Set();
-        for (const item of produtosLegado) {
-            const achado = tipoPorLabel.get(normalize(item.produto));
-            if (achado === 'AMBIGUO') {
-                ambiguos.add(item.produto);
-                continue;
-            }
-            if (!achado) {
-                semCorrespondencia.push(item.produto);
-                continue;
-            }
-            vinculos.push({ tipoId: achado, produto: item.produto, principal: item.principal, secundarios: item.secundarios });
-        }
-
-        console.log(`\n  Produtos do legado com fornecedor: ${produtosLegado.length}`);
-        console.log(`  Casados com a árvore do CASH:      ${vinculos.length}`);
-        console.log(`  Sem correspondência no CASH:       ${semCorrespondencia.length}`);
-        if (ambiguos.size > 0) console.log(`  Nome repetido na árvore (pulados): ${ambiguos.size}`);
-
-        if (semCorrespondencia.length > 0) {
-            console.log('\n  Produtos que não existem na árvore do CASH (nada será vinculado):');
-            semCorrespondencia.slice(0, 15).forEach(p => console.log(`    • ${p}`));
-            if (semCorrespondencia.length > 15) console.log(`    ... e mais ${semCorrespondencia.length - 15}`);
-        }
-        if (ambiguos.size > 0) {
-            console.log('\n  Produtos com nome repetido na árvore (ajuste antes de vincular):');
-            Array.from(ambiguos).slice(0, 10).forEach(p => console.log(`    • ${p}`));
-        }
-    }
-
-    if (!commit) {
-        console.log('\n✅ Simulação concluída. Nada foi gravado. Rode de novo com --commit para aplicar.\n');
-        process.exit(0);
-    }
-
-    // ---------- 3) Write ----------
-
-    const connection = await db.getConnection();
-    try {
-        await connection.beginTransaction();
-
-        for (const f of aCriar) {
-            const [result] = await connection.query(
-                'INSERT INTO fornecedores (name, project_id) VALUES (?, ?)',
-                [f.name, projectId]
-            );
-            porNome.set(f.chave, { id: result.insertId, name: f.name });
-        }
-
-        let linksCriados = 0;
-        for (const vinculo of vinculos) {
-            const entradas = [];
-
-            const principalRow = vinculo.principal ? porNome.get(vinculo.principal) : null;
-            if (principalRow) entradas.push({ id: principalRow.id, principal: 1 });
-
-            for (const chave of vinculo.secundarios) {
-                const row = porNome.get(chave);
-                if (row && !entradas.some(e => e.id === row.id)) entradas.push({ id: row.id, principal: 0 });
-            }
-
-            if (entradas.length === 0) continue;
-            // Without a main supplier in the legacy row, the first one takes that role.
-            if (!entradas.some(e => e.principal)) entradas[0].principal = 1;
-
-            await connection.query('DELETE FROM produto_fornecedores WHERE tipo_id = ?', [vinculo.tipoId]);
-            for (const entrada of entradas) {
-                await connection.query(
-                    'INSERT INTO produto_fornecedores (tipo_id, fornecedor_id, principal) VALUES (?, ?, ?)',
-                    [vinculo.tipoId, entrada.id, entrada.principal]
-                );
-                linksCriados += 1;
+        // The legacy table repeats a supplier once per ERP record, so collapse by name.
+        // The first non-empty CNPJ wins; the rest of the duplicates add nothing.
+        const porNome = new Map();
+        for (const row of rows) {
+            const chave = normalize(row.name);
+            if (!chave) continue;
+            const atual = porNome.get(chave);
+            if (!atual) {
+                porNome.set(chave, {
+                    name: String(row.name).trim(),
+                    cnpj: cleanCnpj(row.cnpj),
+                    proprio: row.is_own_supplier === 1
+                });
+            } else if (!atual.cnpj) {
+                atual.cnpj = cleanCnpj(row.cnpj);
             }
         }
 
-        await connection.commit();
-        console.log(`\n✅ Importação concluída: ${aCriar.length} fornecedores criados, ${linksCriados} vínculo(s) em ${vinculos.length} produto(s).\n`);
-    } catch (error) {
-        await connection.rollback();
-        console.error('❌ Importação revertida por erro:', error.message);
-        process.exitCode = 1;
+        const candidatos = [...porNome.values()];
+        console.log(`   ${rows.length} registros no legado -> ${candidatos.length} fornecedores distintos`);
+
+        console.log('\n🔐 Autenticando na API do CASH...');
+        const auth = await api('/auth/login', {
+            method: 'POST',
+            body: { email: process.env.CASH_EMAIL, projectId, password: process.env.CASH_PASSWORD }
+        });
+        console.log(`   Projeto: ${auth.project?.name} (id ${auth.project?.id})`);
+
+        const existentes = await api(`/fornecedores?projectId=${projectId}`, { token: auth.token });
+        const jaExiste = new Set(existentes.map((f) => normalize(f.name)));
+        console.log(`   ${existentes.length} fornecedor(es) já cadastrado(s) no CASH`);
+
+        let novos = candidatos.filter((c) => !jaExiste.has(normalize(c.name)));
+        if (limit) novos = novos.slice(0, limit);
+
+        const semCnpj = novos.filter((c) => !c.cnpj).length;
+
+        console.log('\n📋 Resumo');
+        console.log(`   A criar .............. ${novos.length}`);
+        console.log(`   Já no CASH ........... ${candidatos.filter((c) => jaExiste.has(normalize(c.name))).length}`);
+        console.log(`   Sem CNPJ válido ...... ${semCnpj} (campo fica vazio, o nome é o que importa)`);
+
+        const proprios = novos.filter((c) => c.proprio);
+        if (proprios.length > 0) {
+            console.log(`   ⚠️  Marcados no legado como empresa própria: ${proprios.map((p) => p.name).join(', ')}`);
+        }
+
+        console.log('\n   Fornecedores a criar:');
+        novos.forEach((c) => console.log(`     - ${c.name}${c.cnpj ? ` (${c.cnpj})` : ''}`));
+
+        if (!commit) {
+            console.log('\n🔍 SIMULAÇÃO: nada foi gravado. Rode de novo com --commit para aplicar.\n');
+            return;
+        }
+
+        console.log('\n💾 Gravando no CASH...');
+        let criados = 0;
+        const falhas = [];
+
+        for (const c of novos) {
+            try {
+                await api('/fornecedores', {
+                    method: 'POST',
+                    token: auth.token,
+                    body: {
+                        name: c.name,
+                        cnpj: c.cnpj,
+                        observacoes: 'Importado do sistema legado',
+                        projectId
+                    }
+                });
+                criados += 1;
+            } catch (error) {
+                falhas.push({ name: c.name, error: error.message });
+            }
+        }
+
+        console.log(`\n✅ ${criados} fornecedor(es) criado(s).`);
+        if (falhas.length > 0) {
+            console.log(`❌ ${falhas.length} falha(s):`);
+            falhas.forEach((f) => console.log(`     - ${f.name}: ${f.error}`));
+        }
+        console.log('');
     } finally {
-        connection.release();
+        await legacy.end();
     }
+};
 
-    process.exit(process.exitCode || 0);
-}
-
-main().catch(error => {
-    console.error('❌ Falha na importação:', error);
+run().catch((error) => {
+    console.error('❌ Erro na importação:', error.message);
     process.exit(1);
 });
