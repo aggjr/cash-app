@@ -155,7 +155,7 @@ export const Sidebar = () => {
         </a>
       </div>
       <div style="padding: 0.5rem; text-align: center; font-size: 0.7rem; color: #64748b; opacity: 0.8;">
-        v0.9.20
+        v0.9.21
       </div>
     </aside>
   `;

@@ -64,7 +64,7 @@ export const ProdutoFornecedoresModal = {
                 const checked = selecionados.has(Number(f.id));
                 const principal = selecionados.get(Number(f.id)) === true;
                 return `
-                    <div style="display: flex; align-items: center; gap: 0.75rem; padding: 0.4rem 0; border-bottom: 1px solid var(--color-border-light);">
+                    <div class="pf-row" data-nome="${String(f.name).toLowerCase()}" style="display: flex; align-items: center; gap: 0.75rem; padding: 0.4rem 0; border-bottom: 1px solid var(--color-border-light);">
                         <input type="checkbox" class="pf-check" data-id="${f.id}" ${checked ? 'checked' : ''}
                             style="width: 16px; height: 16px; cursor: pointer;" />
                         <span style="flex: 1;">${f.name}</span>
@@ -83,9 +83,20 @@ export const ProdutoFornecedoresModal = {
                         <strong>${label || ''}</strong><br/>
                         Marque quem fornece este produto e indique o principal. Na compra você escolhe quem realmente vendeu.
                     </p>
-                    <div style="max-height: 45vh; overflow-y: auto;">
+                    ${fornecedores.length > 0 ? `
+                        <input type="text" id="pf-busca" class="form-input" placeholder="🔎 Buscar fornecedor..."
+                            style="margin-bottom: 0.5rem;" />
+                        <label style="display: flex; align-items: center; gap: 0.4rem; font-weight: normal; margin: 0 0 0.5rem 0; cursor: pointer; font-size: 0.85rem; color: var(--color-text-muted);">
+                            <input type="checkbox" id="pf-so-marcados" style="cursor: pointer;" />
+                            <span>Mostrar só os marcados</span>
+                        </label>
+                    ` : ''}
+                    <div id="pf-lista" style="max-height: 45vh; overflow-y: auto;">
                         ${fornecedores.length > 0 ? rows : emptyState}
                     </div>
+                    <p id="pf-vazio" style="display: none; color: var(--color-text-muted); font-size: 0.85rem; padding: 0.5rem 0;">
+                        Nenhum fornecedor encontrado com esse termo.
+                    </p>
                 </div>
                 <div class="account-modal-footer">
                     <button class="btn-secondary" id="pf-cancel">Cancelar</button>
@@ -114,6 +125,35 @@ export const ProdutoFornecedoresModal = {
                 }
             };
             document.addEventListener('keydown', handleKeydown);
+
+            // With the registry imported from the legacy system this list is long, so it is
+            // searchable and can be narrowed to what is already linked to the product.
+            const buscaInput = modal.querySelector('#pf-busca');
+            const soMarcadosCheck = modal.querySelector('#pf-so-marcados');
+            const vazioAviso = modal.querySelector('#pf-vazio');
+
+            const aplicarBusca = () => {
+                const termo = (buscaInput?.value || '').trim().toLowerCase();
+                const soMarcados = !!soMarcadosCheck?.checked;
+                let visiveis = 0;
+
+                modal.querySelectorAll('.pf-row').forEach(row => {
+                    const check = row.querySelector('.pf-check');
+                    const casaTermo = !termo || row.dataset.nome.includes(termo);
+                    const casaMarcado = !soMarcados || (check && check.checked);
+                    const mostrar = casaTermo && casaMarcado;
+                    row.style.display = mostrar ? 'flex' : 'none';
+                    if (mostrar) visiveis += 1;
+                });
+
+                if (vazioAviso) vazioAviso.style.display = visiveis === 0 ? 'block' : 'none';
+            };
+
+            if (buscaInput) {
+                buscaInput.addEventListener('input', aplicarBusca);
+                setTimeout(() => buscaInput.focus(), 100);
+            }
+            if (soMarcadosCheck) soMarcadosCheck.addEventListener('change', aplicarBusca);
 
             // "Principal" only makes sense for a supplier that actually serves the product.
             modal.querySelectorAll('.pf-check').forEach(check => {

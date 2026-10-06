@@ -118,6 +118,8 @@ export const ProducaoRevendaModal = {
 
                             <div class="form-group" style="grid-column: span 2;">
                                 <label for="producao-revenda-fornecedor">Fornecedor</label>
+                                <input type="text" id="producao-revenda-fornecedor-busca" class="form-input"
+                                    placeholder="🔎 Buscar..." style="margin-bottom: 0.25rem; font-size: 0.85rem; padding: 0.3rem 0.5rem;" />
                                 <select id="producao-revenda-fornecedor" class="form-input">
                                     <option value="">Selecione...</option>
                                 </select>
@@ -318,24 +320,43 @@ export const ProducaoRevendaModal = {
                 const treeContainer = modal.querySelector('#tree-selector-container');
                 const companySelect = modal.querySelector('#producao-revenda-company');
                 const fornecedorSelect = modal.querySelector('#producao-revenda-fornecedor');
+                const fornecedorBusca = modal.querySelector('#producao-revenda-fornecedor-busca');
                 const accountSelect = modal.querySelector('#producao-revenda-account');
 
+                let vinculadosAtuais = [];
+
                 const renderFornecedorOptions = (vinculados, selectedId) => {
+                    vinculadosAtuais = vinculados;
+
+                    // The registry comes from the legacy system and is long, so the box above
+                    // narrows it. The selected supplier always stays visible.
+                    const termo = (fornecedorBusca.value || '').trim().toLowerCase();
+                    const visivel = (nome, id) => String(selectedId) === String(id)
+                        || !termo
+                        || String(nome).toLowerCase().includes(termo);
+
                     const vinculadoIds = new Set(vinculados.map(v => Number(v.fornecedor_id)));
-                    const outros = fornecedores.filter(f => !vinculadoIds.has(Number(f.id)));
+                    const doProduto = vinculados.filter(v => visivel(v.name, v.fornecedor_id));
+                    const outros = fornecedores
+                        .filter(f => !vinculadoIds.has(Number(f.id)))
+                        .filter(f => visivel(f.name, f.id));
+
                     const option = (id, label) =>
                         `<option value="${id}" ${String(selectedId) === String(id) ? 'selected' : ''}>${label}</option>`;
 
                     let html = '<option value="">Selecione...</option>';
-                    if (vinculados.length > 0) {
+                    if (doProduto.length > 0) {
                         html += '<optgroup label="Fornecedores do produto">'
-                            + vinculados.map(v => option(v.fornecedor_id, v.principal ? `${v.name} (principal)` : v.name)).join('')
+                            + doProduto.map(v => option(v.fornecedor_id, v.principal ? `${v.name} (principal)` : v.name)).join('')
                             + '</optgroup>';
                     }
                     if (outros.length > 0) {
-                        html += `<optgroup label="${vinculados.length > 0 ? 'Outros fornecedores' : 'Fornecedores'}">`
+                        html += `<optgroup label="${doProduto.length > 0 ? 'Outros fornecedores' : 'Fornecedores'}">`
                             + outros.map(f => option(f.id, f.name)).join('')
                             + '</optgroup>';
+                    }
+                    if (doProduto.length === 0 && outros.length === 0) {
+                        html += '<option value="" disabled>Nenhum fornecedor encontrado</option>';
                     }
                     fornecedorSelect.innerHTML = html;
                 };
@@ -369,6 +390,9 @@ export const ProducaoRevendaModal = {
                 };
 
                 fornecedorSelect.addEventListener('change', markAsDirty);
+                fornecedorBusca.addEventListener('input', () => {
+                    renderFornecedorOptions(vinculadosAtuais, fornecedorSelect.value);
+                });
                 const descricaoInput = modal.querySelector('#producao-revenda-descricao');
                 const saveBtn = modal.querySelector('#modal-save');
                 const cancelBtn = modal.querySelector('#modal-cancel');
