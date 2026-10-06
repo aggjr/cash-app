@@ -15,13 +15,20 @@
  * Required environment variables:
  *   LEGACY_DB_HOST, LEGACY_DB_USER, LEGACY_DB_PASSWORD, LEGACY_DB_DATABASE
  *   LEGACY_DB_PORT                 (optional, default 3306)
- *   LEGACY_FORNECEDORES_QUERY      SELECT returning the columns below
  *
- * The query must alias its columns to: name (required), cnpj, contato, telefone,
- * email, observacoes. Example:
+ * Then pick ONE of the two ways to say where the suppliers are:
  *
- *   LEGACY_FORNECEDORES_QUERY="SELECT razao_social AS name, cnpj, responsavel AS contato,
- *     fone AS telefone, email, obs AS observacoes FROM cad_fornecedor WHERE ativo = 1"
+ * A) Suppliers live in columns of the products table (the usual case here: one main
+ *    supplier column plus the secondary ones). The script collects the distinct names
+ *    across all listed columns:
+ *
+ *      LEGACY_PRODUTOS_TABLE=produtos
+ *      LEGACY_FORNECEDOR_COLUNAS=fornecedor_principal,fornecedor_sec1,fornecedor_sec2
+ *
+ * B) Any other shape, via a free SELECT aliased to name (required), cnpj, contato,
+ *    telefone, email, observacoes:
+ *
+ *      LEGACY_FORNECEDORES_QUERY="SELECT razao_social AS name, cnpj FROM cad_fornecedor"
  */
 require('dotenv').config();
 const mysql = require('mysql2/promise');
@@ -56,6 +63,45 @@ const clean = (value) => {
 
 const FIELDS = ['cnpj', 'contato', 'telefone', 'email', 'observacoes'];
 
+/** Rejects anything that is not a plain identifier, since these go straight into SQL. */
+const safeIdentifier = (value) => {
+    const name = String(value ?? '').trim();
+    if (!/^[A-Za-z_][A-Za-z0-9_$]*$/.test(name)) {
+        console.error(`❌ Nome de tabela/coluna inválido: "${name}"`);
+        process.exit(1);
+    }
+    return `\`${name}\``;
+};
+
+/**
+ * In the legacy system the suppliers are not a registry: each product row carries its
+ * main supplier and the secondary ones in separate columns. This collects the distinct
+ * names across all of those columns.
+ */
+const buildQuery = () => {
+    if (process.env.LEGACY_FORNECEDORES_QUERY) {
+        return process.env.LEGACY_FORNECEDORES_QUERY;
+    }
+
+    const table = process.env.LEGACY_PRODUTOS_TABLE;
+    const colunas = (process.env.LEGACY_FORNECEDOR_COLUNAS || '')
+        .split(',')
+        .map(c => c.trim())
+        .filter(Boolean);
+
+    if (!table || colunas.length === 0) return null;
+
+    const safeTable = safeIdentifier(table);
+    const selects = colunas.map(coluna => {
+        const safeColuna = safeIdentifier(coluna);
+        return `SELECT DISTINCT TRIM(${safeColuna}) AS name FROM ${safeTable}
+                WHERE ${safeColuna} IS NOT NULL AND TRIM(${safeColuna}) <> ''`;
+    });
+
+    // UNION already removes the duplicates across columns.
+    return selects.join('\nUNION\n');
+};
+
 async function main() {
     const { commit, projectId, limit } = parseArgs();
 
@@ -64,10 +110,11 @@ async function main() {
         process.exit(1);
     }
 
-    const query = process.env.LEGACY_FORNECEDORES_QUERY;
+    const query = buildQuery();
     if (!query) {
-        console.error('❌ Defina LEGACY_FORNECEDORES_QUERY com o SELECT do sistema legado.');
-        console.error('   As colunas devem vir como: name, cnpj, contato, telefone, email, observacoes.');
+        console.error('❌ Diga onde estão os fornecedores no legado, de uma destas formas:');
+        console.error('   A) LEGACY_PRODUTOS_TABLE=produtos e LEGACY_FORNECEDOR_COLUNAS=col_principal,col_sec1,col_sec2');
+        console.error('   B) LEGACY_FORNECEDORES_QUERY com um SELECT aliasado para name, cnpj, contato, telefone, email, observacoes');
         process.exit(1);
     }
 
