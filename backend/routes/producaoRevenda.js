@@ -6,6 +6,7 @@ const auth = require('../middleware/auth');
 router.use(auth);
 
 router.get('/', controller.listProducaoRevenda);
+router.get('/distinct-values', controller.getDistinctValues);
 router.post('/', controller.createProducaoRevenda);
 router.put('/:id', controller.updateProducaoRevenda);
 router.delete('/:id', controller.deleteProducaoRevenda);

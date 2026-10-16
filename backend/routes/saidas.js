@@ -9,6 +9,9 @@ router.use(authMiddleware);
 // GET /api/saidas - List all saidas for a project
 router.get('/', saidaController.listSaidas);
 
+// GET /api/saidas/distinct-values?projectId=X&field=Y - Distinct values for table filters (whole project)
+router.get('/distinct-values', saidaController.getDistinctValues);
+
 // POST /api/saidas - Create a new saida
 router.post('/', saidaController.createSaida);
 

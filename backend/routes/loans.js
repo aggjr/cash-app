@@ -11,6 +11,9 @@ router.post('/', loanController.createLoan);
 // List loan installments (as Payables)
 router.get('/installments', loanController.listInstallments);
 
+// Distinct values for table filters
+router.get('/distinct-values', loanController.getDistinctValues);
+
 // Suggest category for fees/interest
 router.get('/suggest-category', loanController.suggestCategory);
 

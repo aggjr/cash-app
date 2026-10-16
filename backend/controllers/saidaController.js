@@ -1316,3 +1316,61 @@ exports.bulkEditSaidas = async (req, res, next) => {
 };
 
 
+
+// Distinct values for the table filters. Always read from the database for the
+// whole project (not from the rows currently on screen / paginated).
+exports.getDistinctValues = async (req, res, next) => {
+    try {
+        const { projectId, field } = req.query;
+
+        if (!projectId || !field) {
+            return res.status(400).json({ error: 'Missing projectId or field parameter' });
+        }
+
+        const dateColumns = [
+            'data_fato',
+            'data_prevista_pagamento',
+            'data_prevista_atraso',
+            'data_real_pagamento'
+        ];
+
+        let query = '';
+        let params = [projectId];
+
+        if (field === 'tipo_saida_name') {
+            query = `
+                WITH RECURSIVE TypeHierarchy AS (
+                    SELECT id, label, parent_id, CAST(label AS CHAR(255)) as full_path
+                    FROM tipo_saida
+                    WHERE parent_id IS NULL
+                    UNION ALL
+                    SELECT t.id, t.label, t.parent_id, CONCAT(th.full_path, ' / ', t.label)
+                    FROM tipo_saida t
+                    INNER JOIN TypeHierarchy th ON t.parent_id = th.id
+                )
+                SELECT DISTINCT th.full_path AS val
+                FROM saidas s
+                JOIN TypeHierarchy th ON s.tipo_saida_id = th.id
+                WHERE s.project_id = ? AND s.active = 1
+                ORDER BY val`;
+        } else if (field === 'company_name') {
+            query = `SELECT DISTINCT emp.name AS val FROM saidas s JOIN empresas emp ON s.company_id = emp.id WHERE s.project_id = ? AND s.active = 1 ORDER BY val`;
+        } else if (field === 'account_name') {
+            query = `SELECT DISTINCT c.name AS val FROM saidas s JOIN contas c ON s.account_id = c.id WHERE s.project_id = ? AND s.active = 1 ORDER BY val`;
+        } else if (field === 'descricao') {
+            query = `SELECT DISTINCT s.descricao AS val FROM saidas s WHERE s.project_id = ? AND s.active = 1 ORDER BY val`;
+        } else if (field === 'valor') {
+            query = `SELECT DISTINCT s.valor AS val FROM saidas s WHERE s.project_id = ? AND s.active = 1 ORDER BY val DESC`;
+        } else if (dateColumns.includes(field)) {
+            // Formatted in SQL so the day never shifts with timezone conversion.
+            query = `SELECT DISTINCT DATE_FORMAT(s.${field}, '%Y-%m-%d') AS val FROM saidas s WHERE s.project_id = ? AND s.active = 1 AND s.${field} IS NOT NULL AND s.${field} <> '0000-00-00' ORDER BY val DESC`;
+        } else {
+            return res.json([]);
+        }
+
+        const [rows] = await db.query(query, params);
+        res.json(rows.map(r => r.val));
+    } catch (error) {
+        next(error);
+    }
+};

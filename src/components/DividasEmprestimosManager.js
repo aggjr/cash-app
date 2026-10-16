@@ -134,8 +134,54 @@ export const DividasEmprestimosManager = (project) => {
             const filter = activeFilters[key];
             if (!filter) return;
 
-            if (key === 'valor' && filter.min) params.append('minValue', filter.min);
-            else if (key === 'company_name' && filter.text) params.append('search', filter.text);
+            if (key === 'valor') {
+                if (filter.operator && filter.val1) {
+                    if (filter.operator === 'eq') { params.append('minValue', filter.val1); params.append('maxValue', filter.val1); }
+                    else if (filter.operator === 'gt' || filter.operator === 'gte') params.append('minValue', filter.val1);
+                    else if (filter.operator === 'lt' || filter.operator === 'lte') params.append('maxValue', filter.val1);
+                    else if (filter.operator === 'between' && filter.val2) { params.append('minValue', filter.val1); params.append('maxValue', filter.val2); }
+                } else if (filter.min || filter.max) {
+                    if (filter.min) params.append('minValue', filter.min);
+                    if (filter.max) params.append('maxValue', filter.max);
+                }
+            } else if (key.startsWith('data')) {
+                let useAdvanced = false;
+                if (filter.operator) {
+                    useAdvanced = true;
+                    if (filter.operator === 'eq' && filter.val1) {
+                        params.append(`${key}Start`, filter.val1);
+                        params.append(`${key}End`, filter.val1);
+                    } else if (filter.operator === 'before' && filter.val1) {
+                        params.append(`${key}End`, filter.val1);
+                    } else if (filter.operator === 'after' && filter.val1) {
+                        params.append(`${key}Start`, filter.val1);
+                    } else if (filter.operator === 'between' && filter.val1 && filter.val2) {
+                        params.append(`${key}Start`, filter.val1);
+                        params.append(`${key}End`, filter.val2);
+                    }
+                } else if (filter.start || filter.end) {
+                    useAdvanced = true;
+                    if (filter.start) params.append(`${key}Start`, filter.start);
+                    if (filter.end) params.append(`${key}End`, filter.end);
+                }
+
+                if (!useAdvanced && filter.dateIn && filter.dateIn.length > 0 && !filter.dateIn.includes('__NONE__')) {
+                    filter.dateIn.forEach(d => params.append(`${key}List`, d));
+                }
+            } else {
+                if (key === 'descricao' && filter.text) params.append('description', filter.text);
+                if (key === 'account_name' && filter.text) params.append('account', filter.text);
+                if (key === 'company_name' && filter.text) params.append('company', filter.text);
+
+                if (filter.val1 && filter.operator === 'contains') {
+                    if (key === 'descricao') params.append('description', filter.val1);
+                    else if (key === 'account_name') params.append('account', filter.val1);
+                    else if (key === 'company_name') params.append('company', filter.val1);
+                    else params.append('search', filter.val1);
+                } else if (filter.text && !['descricao', 'account_name', 'company_name'].includes(key)) {
+                    params.append('search', filter.text);
+                }
+            }
         });
 
         return params;
@@ -335,6 +381,7 @@ export const DividasEmprestimosManager = (project) => {
         container: tableContainer,
         columns: columns,
         projectId: project.id,
+        endpointPrefix: '/loans', // Server-side distinct values (all records)
         onFilterChange: (f) => { activeFilters = f; loadData(1); },
         onSortChange: (s) => { sortConfig = s; loadData(1); }
     });

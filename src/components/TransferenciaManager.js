@@ -488,7 +488,7 @@ export const TransferenciaManager = (project) => {
         container: tableContainer,
         columns: columns,
         projectId: project.id,
-        endpointPrefix: null, // Client-side distinct values
+        endpointPrefix: '/transferencias', // Server-side distinct values (all records)
         onFilterChange: (filters) => {
             activeFilters = filters;
             loadTransferencias(1);

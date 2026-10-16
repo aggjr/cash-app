@@ -672,3 +672,62 @@ exports.deleteProducaoRevenda = async (req, res, next) => {
         if (connection) connection.release();
     }
 };
+
+// Distinct values for table filters (all records for the project, server-side)
+exports.getDistinctValues = async (req, res, next) => {
+    try {
+        const { projectId, field } = req.query;
+
+        if (!projectId || !field) {
+            return res.status(400).json({ error: 'Missing projectId or field parameter' });
+        }
+
+        const dateColumns = [
+            'data_fato',
+            'data_prevista_pagamento',
+            'data_prevista_atraso',
+            'data_real_pagamento'
+        ];
+
+        let query = '';
+        let params = [projectId];
+
+        if (field === 'tipo_name') {
+            query = `
+                WITH RECURSIVE TypeHierarchy AS (
+                    SELECT id, label, parent_id, CAST(label AS CHAR(255)) as full_path
+                    FROM tipo_producao_revenda
+                    WHERE parent_id IS NULL
+                    UNION ALL
+                    SELECT t.id, t.label, t.parent_id, CONCAT(th.full_path, ' / ', t.label)
+                    FROM tipo_producao_revenda t
+                    INNER JOIN TypeHierarchy th ON t.parent_id = th.id
+                )
+                SELECT DISTINCT th.full_path AS val
+                FROM producao_revenda p
+                JOIN TypeHierarchy th ON p.tipo_id = th.id
+                WHERE p.project_id = ? AND p.active = 1
+                ORDER BY val`;
+        } else if (field === 'company_name') {
+            query = `SELECT DISTINCT emp.name AS val FROM producao_revenda p JOIN empresas emp ON p.company_id = emp.id WHERE p.project_id = ? AND p.active = 1 ORDER BY val`;
+        } else if (field === 'fornecedor_name') {
+            query = `SELECT DISTINCT forn.name AS val FROM producao_revenda p JOIN fornecedores forn ON p.fornecedor_id = forn.id WHERE p.project_id = ? AND p.active = 1 ORDER BY val`;
+        } else if (field === 'account_name') {
+            query = `SELECT DISTINCT c.name AS val FROM producao_revenda p JOIN contas c ON p.account_id = c.id WHERE p.project_id = ? AND p.active = 1 ORDER BY val`;
+        } else if (field === 'descricao') {
+            query = `SELECT DISTINCT p.descricao AS val FROM producao_revenda p WHERE p.project_id = ? AND p.active = 1 ORDER BY val`;
+        } else if (field === 'valor') {
+            query = `SELECT DISTINCT p.valor AS val FROM producao_revenda p WHERE p.project_id = ? AND p.active = 1 ORDER BY val DESC`;
+        } else if (dateColumns.includes(field)) {
+            query = `SELECT DISTINCT DATE_FORMAT(p.${field}, '%Y-%m-%d') AS val FROM producao_revenda p WHERE p.project_id = ? AND p.active = 1 AND p.${field} IS NOT NULL AND p.${field} <> '0000-00-00' ORDER BY val DESC`;
+        } else {
+            return res.json([]);
+        }
+
+        const [rows] = await db.query(query, params);
+        res.json(rows.map(r => (field === 'valor' && r.val !== null ? Number(r.val) : r.val)));
+    } catch (error) {
+        next(error);
+    }
+};
+

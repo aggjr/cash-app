@@ -7,6 +7,7 @@ router.get('/debug-probe', retiradaController.debugProbe);
 router.use(auth);
 
 router.get('/', retiradaController.listRetiradas);
+router.get('/distinct-values', retiradaController.getDistinctValues);
 router.post('/', retiradaController.createRetirada);
 router.put('/:id', retiradaController.updateRetirada);
 router.delete('/:id', retiradaController.deleteRetirada);

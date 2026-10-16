@@ -2,6 +2,7 @@ const db = require('../config/database');
 const AppError = require('../utils/AppError');
 const { logAudit } = require('../utils/auditLogger');
 const { calculateInstallments, calculateDates } = require('../utils/financialCalculations');
+const { createDistinctValuesHandler } = require('../utils/distinctValues');
 
 // Reuse sort logic from saidaController or similar
 const getOrderByClause = (sortBy, order) => {
@@ -296,12 +297,59 @@ exports.listInstallments = async (req, res, next) => {
             where += ' AND s.data_prevista_pagamento <= ?';
             params.push(req.query.data_prevista_pagamentoEnd);
         }
+        if (req.query.data_prevista_pagamentoList) {
+            const dates = Array.isArray(req.query.data_prevista_pagamentoList) ? req.query.data_prevista_pagamentoList : [req.query.data_prevista_pagamentoList];
+            if (dates.length > 0) {
+                where += ' AND DATE(s.data_prevista_pagamento) IN (?)';
+                params.push(dates);
+            }
+        }
+
+        // Date Filters (Real)
+        if (req.query.data_real_pagamentoStart) {
+            where += ' AND s.data_real_pagamento >= ?';
+            params.push(req.query.data_real_pagamentoStart);
+        }
+        if (req.query.data_real_pagamentoEnd) {
+            where += ' AND s.data_real_pagamento <= ?';
+            params.push(req.query.data_real_pagamentoEnd);
+        }
+        if (req.query.data_real_pagamentoList) {
+            const dates = Array.isArray(req.query.data_real_pagamentoList) ? req.query.data_real_pagamentoList : [req.query.data_real_pagamentoList];
+            if (dates.length > 0) {
+                where += ' AND DATE(s.data_real_pagamento) IN (?)';
+                params.push(dates);
+            }
+        }
+
+        // Text & Value Filters
+        if (req.query.company) {
+            where += ' AND emp.name LIKE ?';
+            params.push(`%${req.query.company}%`);
+        }
+        if (req.query.account) {
+            where += ' AND c.name LIKE ?';
+            params.push(`%${req.query.account}%`);
+        }
+        if (req.query.description) {
+            where += ' AND s.descricao LIKE ?';
+            params.push(`%${req.query.description}%`);
+        }
+        if (req.query.minValue) {
+            where += ' AND s.valor >= ?';
+            params.push(req.query.minValue);
+        }
+        if (req.query.maxValue) {
+            where += ' AND s.valor <= ?';
+            params.push(req.query.maxValue);
+        }
 
         // Count
         const [countResult] = await db.query(
             `SELECT COUNT(*) as total 
              FROM saidas s 
              LEFT JOIN empresas emp ON s.company_id = emp.id
+             LEFT JOIN contas c ON s.account_id = c.id
              WHERE ${where}`,
             params
         );
@@ -374,4 +422,19 @@ exports.suggestCategory = async (req, res, next) => {
         if (connection) connection.release();
     }
 };
+
+exports.getDistinctValues = createDistinctValuesHandler({
+    from: 'saidas',
+    alias: 's',
+    extraWhere: 's.loan_id IS NOT NULL',
+    fields: {
+        data_prevista_pagamento: { expr: 's.data_prevista_pagamento', type: 'date' },
+        data_real_pagamento: { expr: 's.data_real_pagamento', type: 'date' },
+        descricao: { expr: 's.descricao' },
+        company_name: { expr: 'emp.name', join: 'LEFT JOIN empresas emp ON s.company_id = emp.id' },
+        account_name: { expr: 'c.name', join: 'LEFT JOIN contas c ON s.account_id = c.id' },
+        valor: { expr: 's.valor', type: 'number' }
+    }
+});
+
 

@@ -2,6 +2,7 @@ const db = require('../config/database');
 const AppError = require('../utils/AppError');
 const { logAudit } = require('../utils/auditLogger');
 const { wrapConnectionWithAudit } = require('../utils/connectionWrapper');
+const { createDistinctValuesHandler } = require('../utils/distinctValues');
 
 exports.listTransferencias = async (req, res, next) => {
     try {
@@ -405,3 +406,17 @@ exports.deleteTransferencia = async (req, res, next) => {
         connection.release();
     }
 };
+
+exports.getDistinctValues = createDistinctValuesHandler({
+    from: 'transferencias',
+    alias: 't',
+    fields: {
+        data_prevista: { expr: 't.data_prevista', type: 'date' },
+        data_real: { expr: 't.data_real', type: 'date' },
+        descricao: { expr: 't.descricao' },
+        source_account_name: { expr: 's.name', join: 'LEFT JOIN contas s ON t.source_account_id = s.id' },
+        destination_account_name: { expr: 'd.name', join: 'LEFT JOIN contas d ON t.destination_account_id = d.id' },
+        valor: { expr: 't.valor', type: 'number' }
+    }
+});
+

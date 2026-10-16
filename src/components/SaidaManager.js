@@ -739,7 +739,7 @@ export const SaidaManager = (project) => {
         container: tableContainer,
         columns: columns,
         projectId: project.id,
-        endpointPrefix: null, // Client-side distinct values for now
+        endpointPrefix: '/saidas', // Server-side distinct values (all records, not just the current page)
         onFilterChange: (filters) => {
             activeFilters = filters;
             loadSaidas(1);

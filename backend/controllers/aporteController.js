@@ -3,6 +3,7 @@ const AppError = require('../utils/AppError');
 const { logAudit } = require('../utils/auditLogger');
 const { validateDateWithinRange } = require('../utils/dateValidation');
 const { wrapConnectionWithAudit } = require('../utils/connectionWrapper');
+const { createDistinctValuesHandler } = require('../utils/distinctValues');
 
 // Helper for Sorting
 const getOrderByClause = (sortBy, order) => {
@@ -408,3 +409,17 @@ exports.deleteAporte = async (req, res, next) => {
         if (connection) connection.release();
     }
 };
+
+exports.getDistinctValues = createDistinctValuesHandler({
+    from: 'aportes',
+    alias: 'a',
+    fields: {
+        data_fato: { expr: 'a.data_fato', type: 'date' },
+        data_real: { expr: 'a.data_real', type: 'date' },
+        descricao: { expr: 'a.descricao' },
+        company_name: { expr: 'emp.name', join: 'INNER JOIN empresas emp ON a.company_id = emp.id' },
+        account_name: { expr: 'c.name', join: 'LEFT JOIN contas c ON a.account_id = c.id' },
+        valor: { expr: 'a.valor', type: 'number' }
+    }
+});
+

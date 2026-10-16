@@ -479,8 +479,12 @@ export const RetiradaManager = (project) => {
         container: tableContainer,
         columns: columns,
         projectId: project.id,
-        endpointPrefix: null, // Client-side distinct or add backend support later
-        onSortChange: (sort) => { sortConfig = sort; loadRetiradas(pagination.page); },
+        endpointPrefix: '/retiradas', // Server-side distinct values (all records)
+        onFilterChange: (filters) => {
+            activeFilters = filters;
+            loadRetiradas(1);
+        },
+        onSortChange: (sort) => { sortConfig = sort; loadRetiradas(1); },
         enableSelection: true,
         onSelectionChange: (items, ids) => {
             selectedItems = ids;

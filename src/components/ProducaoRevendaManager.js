@@ -613,8 +613,7 @@ export const ProducaoRevendaManager = (project) => {
         container: tableContainer,
         columns: columns,
         projectId: project.id,
-        endpointPrefix: null, // Client-side distinct values for now
-        getDistinctSource: () => pagedItems.getAllRows(),
+        endpointPrefix: '/producao-revenda', // Server-side distinct values (all records)
         onFilterChange: (filters) => {
             activeFilters = filters;
             loadItems(1);

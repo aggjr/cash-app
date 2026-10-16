@@ -483,7 +483,7 @@ export const AporteManager = (project) => {
         container: tableContainer,
         columns: columns,
         projectId: project.id,
-        endpointPrefix: null,
+        endpointPrefix: '/aportes', // Server-side distinct values (all records)
         onFilterChange: (filters) => {
             activeFilters = filters;
             loadAportes(1);

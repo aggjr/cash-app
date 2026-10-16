@@ -3,6 +3,7 @@ const AppError = require('../utils/AppError');
 const { logAudit } = require('../utils/auditLogger');
 const fileLogger = require('../utils/fileLogger');
 const { wrapConnectionWithAudit } = require('../utils/connectionWrapper');
+const { createDistinctValuesHandler } = require('../utils/distinctValues');
 
 // Helper for Sorting
 const getOrderByClause = (sortBy, order) => {
@@ -416,3 +417,18 @@ exports.deleteRetirada = async (req, res, next) => {
         connection.release();
     }
 };
+
+exports.getDistinctValues = createDistinctValuesHandler({
+    from: 'retiradas',
+    alias: 'r',
+    fields: {
+        data_fato: { expr: 'r.data_fato', type: 'date' },
+        data_prevista: { expr: 'r.data_prevista', type: 'date' },
+        data_real: { expr: 'r.data_real', type: 'date' },
+        descricao: { expr: 'r.descricao' },
+        company_name: { expr: 'e.name', join: 'LEFT JOIN empresas e ON r.company_id = e.id' },
+        account_name: { expr: 'c.name', join: 'LEFT JOIN contas c ON r.account_id = c.id' },
+        valor: { expr: 'r.valor', type: 'number' }
+    }
+});
+

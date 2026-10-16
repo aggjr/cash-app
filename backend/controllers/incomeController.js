@@ -814,7 +814,7 @@ exports.getDistinctValues = async (req, res, next) => {
         let query = '';
         let params = [projectId];
 
-        if (field === 'tipo_name') {
+        if (field === 'tipo_name' || field === 'tipo_entrada_name') {
             query = `
              WITH RECURSIVE TypeHierarchy AS (
                 SELECT id, label, parent_id, CAST(label AS CHAR(255)) as full_path
@@ -839,26 +839,26 @@ exports.getDistinctValues = async (req, res, next) => {
             query = `SELECT DISTINCT c.name as val FROM entradas e JOIN contas c ON e.account_id = c.id WHERE e.project_id = ? AND e.active = 1 ORDER BY val`;
         }
         else {
-            const map = {
-                'descricao': 'descricao',
-                'data_prevista_recebimento': 'data_prevista_recebimento',
-                'data_fato': 'data_fato',
-                'data_atraso': 'data_atraso',
-                'data_real_recebimento': 'data_real_recebimento',
-                'valor': 'valor'
-            };
-            const dbCol = map[field];
+            const dateColumns = [
+                'data_fato',
+                'data_prevista_recebimento',
+                'data_atraso',
+                'data_real_recebimento'
+            ];
 
-            if (dbCol) {
-                query = `SELECT DISTINCT ${dbCol} as val FROM entradas e WHERE e.project_id = ? AND e.active = 1 ORDER BY val DESC`;
+            if (dateColumns.includes(field)) {
+                query = `SELECT DISTINCT DATE_FORMAT(e.${field}, '%Y-%m-%d') as val FROM entradas e WHERE e.project_id = ? AND e.active = 1 AND e.${field} IS NOT NULL AND e.${field} <> '0000-00-00' ORDER BY val DESC`;
+            } else if (field === 'descricao') {
+                query = `SELECT DISTINCT e.descricao as val FROM entradas e WHERE e.project_id = ? AND e.active = 1 ORDER BY val`;
+            } else if (field === 'valor') {
+                query = `SELECT DISTINCT e.valor as val FROM entradas e WHERE e.project_id = ? AND e.active = 1 ORDER BY val DESC`;
             } else {
                 return res.json([]);
             }
         }
 
         const [rows] = await db.query(query, params);
-        // Allow distinct values to include null/empty (for "(Vazias)" filter)
-        res.json(rows.map(r => r.val));
+        res.json(rows.map(r => (field === 'valor' && r.val !== null ? Number(r.val) : r.val)));
 
     } catch (error) {
         next(error);

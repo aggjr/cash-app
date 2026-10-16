@@ -6,6 +6,7 @@ const authMiddleware = require('../middleware/auth');
 router.use(authMiddleware);
 
 router.get('/', transferenciaController.listTransferencias);
+router.get('/distinct-values', transferenciaController.getDistinctValues);
 router.post('/', transferenciaController.createTransferencia);
 router.put('/:id', transferenciaController.updateTransferencia);
 router.delete('/:id', transferenciaController.deleteTransferencia);
