@@ -65,14 +65,14 @@ exports.listProducaoRevenda = async (req, res, next) => {
 
                 if (dates.length > 0) {
                     if (hasEmpty) {
-                        whereClauses.push(`(DATE(p.${field}) IN (?) OR p.${field} IS NULL OR p.${field} = '0000-00-00' OR p.${field} = '' OR DATE(p.${field}) IS NULL)`);
+                        whereClauses.push(`(DATE(p.${field}) IN (?) OR p.${field} IS NULL OR CAST(p.${field} AS CHAR) = '0000-00-00' OR CAST(p.${field} AS CHAR) = '' OR DATE(p.${field}) IS NULL)`);
                         params.push(dates);
                     } else {
                         whereClauses.push(`DATE(p.${field}) IN (?)`);
                         params.push(dates);
                     }
                 } else if (hasEmpty) {
-                    whereClauses.push(`(p.${field} IS NULL OR p.${field} = '0000-00-00' OR p.${field} = '' OR DATE(p.${field}) IS NULL)`);
+                    whereClauses.push(`(p.${field} IS NULL OR CAST(p.${field} AS CHAR) = '0000-00-00' OR CAST(p.${field} AS CHAR) = '' OR DATE(p.${field}) IS NULL)`);
                 }
             }
         };
@@ -719,13 +719,13 @@ exports.getDistinctValues = async (req, res, next) => {
         } else if (field === 'valor') {
             query = `SELECT DISTINCT p.valor AS val FROM producao_revenda p WHERE p.project_id = ? AND p.active = 1 ORDER BY val DESC`;
         } else if (dateColumns.includes(field)) {
-            query = `SELECT DISTINCT DATE_FORMAT(p.${field}, '%Y-%m-%d') AS val FROM producao_revenda p WHERE p.project_id = ? AND p.active = 1 AND p.${field} IS NOT NULL AND p.${field} <> '0000-00-00' ORDER BY val DESC`;
+            query = `SELECT DISTINCT DATE_FORMAT(p.${field}, '%Y-%m-%d') AS val FROM producao_revenda p WHERE p.project_id = ? AND p.active = 1 ORDER BY val DESC`;
         } else {
             return res.json([]);
         }
 
         const [rows] = await db.query(query, params);
-        res.json(rows.map(r => (field === 'valor' && r.val !== null ? Number(r.val) : r.val)));
+        res.json(rows.map(r => (r.val === '0000-00-00' ? null : (field === 'valor' && r.val !== null ? Number(r.val) : r.val))));
     } catch (error) {
         next(error);
     }

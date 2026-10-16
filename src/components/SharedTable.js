@@ -1166,7 +1166,13 @@ export class SharedTable {
                     let values = [];
                     if (this.endpointPrefix) {
                         const r = await fetch(`${this.API_BASE_URL}${this.endpointPrefix}/distinct-values?projectId=${this.projectId}&field=${colKey}`, { headers: this.getHeaders() });
-                        values = await r.json();
+                        const data = r.ok ? await r.json() : null;
+                        if (Array.isArray(data)) {
+                            values = data;
+                        } else {
+                            const source = await this.getDistinctRows();
+                            values = [...new Set(source.map(item => item[colKey]))].sort((a, b) => a - b);
+                        }
                     } else {
                         // Client Side Distinct
                         const source = await this.getDistinctRows();
@@ -1519,7 +1525,13 @@ export class SharedTable {
                     let values = [];
                     if (this.endpointPrefix) {
                         const r = await fetch(`${this.API_BASE_URL}${this.endpointPrefix}/distinct-values?projectId=${this.projectId}&field=${colKey}`, { headers: this.getHeaders() });
-                        values = await r.json();
+                        const data = r.ok ? await r.json() : null;
+                        if (Array.isArray(data)) {
+                            values = data;
+                        } else {
+                            const source = await this.getDistinctRows();
+                            values = [...new Set(source.map(item => item[colKey]))].sort();
+                        }
                     } else {
                         const source = await this.getDistinctRows();
                         values = [...new Set(source.map(item => item[colKey]))].sort();
@@ -1697,7 +1709,13 @@ export class SharedTable {
                     try {
                         if (this.endpointPrefix) {
                             const r = await fetch(`${this.API_BASE_URL}${this.endpointPrefix}/distinct-values?projectId=${this.projectId}&field=${colKey}`, { headers: this.getHeaders() });
-                            values = await r.json();
+                            const data = r.ok ? await r.json() : null;
+                            if (Array.isArray(data)) {
+                                values = data;
+                            } else {
+                                const source = await this.getDistinctRows();
+                                values = [...new Set(source.map(item => item[colKey]))].filter(d => d).sort();
+                            }
                         } else {
                             const source = await this.getDistinctRows();
                             values = [...new Set(source.map(item => item[colKey]))].filter(d => d).sort();

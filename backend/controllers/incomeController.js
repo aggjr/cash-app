@@ -847,7 +847,7 @@ exports.getDistinctValues = async (req, res, next) => {
             ];
 
             if (dateColumns.includes(field)) {
-                query = `SELECT DISTINCT DATE_FORMAT(e.${field}, '%Y-%m-%d') as val FROM entradas e WHERE e.project_id = ? AND e.active = 1 AND e.${field} IS NOT NULL AND e.${field} <> '0000-00-00' ORDER BY val DESC`;
+                query = `SELECT DISTINCT DATE_FORMAT(e.${field}, '%Y-%m-%d') as val FROM entradas e WHERE e.project_id = ? AND e.active = 1 ORDER BY val DESC`;
             } else if (field === 'descricao') {
                 query = `SELECT DISTINCT e.descricao as val FROM entradas e WHERE e.project_id = ? AND e.active = 1 ORDER BY val`;
             } else if (field === 'valor') {
@@ -858,7 +858,7 @@ exports.getDistinctValues = async (req, res, next) => {
         }
 
         const [rows] = await db.query(query, params);
-        res.json(rows.map(r => (field === 'valor' && r.val !== null ? Number(r.val) : r.val)));
+        res.json(rows.map(r => (r.val === '0000-00-00' ? null : (field === 'valor' && r.val !== null ? Number(r.val) : r.val))));
 
     } catch (error) {
         next(error);

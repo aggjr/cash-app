@@ -9,7 +9,7 @@ const db = require('../config/database');
  * config.alias      : table alias used in every expression (e.g. 'a')
  * config.extraWhere : optional extra SQL WHERE string (e.g. 's.loan_id IS NOT NULL')
  * config.fields     : { [fieldKey]: { expr, join?, type? } }
- *                     type: 'date' (formatted YYYY-MM-DD, nulls removed),
+ *                     type: 'date' (formatted YYYY-MM-DD),
  *                           'number' (returned as Number, ordered desc) or text (default)
  */
 const createDistinctValuesHandler = ({ from, alias, extraWhere: globalExtraWhere, fields }) => async (req, res, next) => {
@@ -24,13 +24,13 @@ const createDistinctValuesHandler = ({ from, alias, extraWhere: globalExtraWhere
         if (!def) return res.json([]);
 
         let select = def.expr;
-        let extraWhere = globalExtraWhere ? ` AND ${globalExtraWhere}` : '';
+        const extraWhere = globalExtraWhere ? ` AND ${globalExtraWhere}` : '';
         let order = 'val';
 
         if (def.type === 'date') {
             // Formatted in SQL so the day never shifts with timezone conversion.
+            // Do not compare DATE column with '0000-00-00' literal in SQL (fails in MySQL 8 NO_ZERO_DATE).
             select = `DATE_FORMAT(${def.expr}, '%Y-%m-%d')`;
-            extraWhere += ` AND ${def.expr} IS NOT NULL AND ${def.expr} <> '0000-00-00'`;
             order = 'val DESC';
         } else if (def.type === 'number') {
             order = 'val DESC';
@@ -44,7 +44,11 @@ const createDistinctValuesHandler = ({ from, alias, extraWhere: globalExtraWhere
             ORDER BY ${order}`;
 
         const [rows] = await db.query(query, [projectId]);
-        res.json(rows.map(r => (def.type === 'number' && r.val !== null ? Number(r.val) : r.val)));
+        res.json(rows.map(r => {
+            if (r.val === '0000-00-00') return null;
+            if (def.type === 'number' && r.val !== null) return Number(r.val);
+            return r.val;
+        }));
     } catch (error) {
         next(error);
     }

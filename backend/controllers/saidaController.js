@@ -61,14 +61,14 @@ exports.listSaidas = async (req, res, next) => {
 
                 if (dates.length > 0) {
                     if (hasEmpty) {
-                        whereClauses.push(`(DATE(s.${field}) IN (?) OR s.${field} IS NULL OR s.${field} = '0000-00-00' OR s.${field} = '' OR DATE(s.${field}) IS NULL)`);
+                        whereClauses.push(`(DATE(s.${field}) IN (?) OR s.${field} IS NULL OR CAST(s.${field} AS CHAR) = '0000-00-00' OR CAST(s.${field} AS CHAR) = '' OR DATE(s.${field}) IS NULL)`);
                         params.push(dates);
                     } else {
                         whereClauses.push(`DATE(s.${field}) IN (?)`);
                         params.push(dates);
                     }
                 } else if (hasEmpty) {
-                    whereClauses.push(`(s.${field} IS NULL OR s.${field} = '0000-00-00' OR s.${field} = '' OR DATE(s.${field}) IS NULL)`);
+                    whereClauses.push(`(s.${field} IS NULL OR CAST(s.${field} AS CHAR) = '0000-00-00' OR CAST(s.${field} AS CHAR) = '' OR DATE(s.${field}) IS NULL)`);
                 }
             }
         };
@@ -1363,13 +1363,13 @@ exports.getDistinctValues = async (req, res, next) => {
             query = `SELECT DISTINCT s.valor AS val FROM saidas s WHERE s.project_id = ? AND s.active = 1 ORDER BY val DESC`;
         } else if (dateColumns.includes(field)) {
             // Formatted in SQL so the day never shifts with timezone conversion.
-            query = `SELECT DISTINCT DATE_FORMAT(s.${field}, '%Y-%m-%d') AS val FROM saidas s WHERE s.project_id = ? AND s.active = 1 AND s.${field} IS NOT NULL AND s.${field} <> '0000-00-00' ORDER BY val DESC`;
+            query = `SELECT DISTINCT DATE_FORMAT(s.${field}, '%Y-%m-%d') AS val FROM saidas s WHERE s.project_id = ? AND s.active = 1 ORDER BY val DESC`;
         } else {
             return res.json([]);
         }
 
         const [rows] = await db.query(query, params);
-        res.json(rows.map(r => r.val));
+        res.json(rows.map(r => (r.val === '0000-00-00' ? null : (field === 'valor' && r.val !== null ? Number(r.val) : r.val))));
     } catch (error) {
         next(error);
     }
