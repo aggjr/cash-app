@@ -24,4 +24,47 @@ router.post('/fix-initial-balance', async (req, res) => {
     }
 });
 
+const bcrypt = require('bcryptjs');
+
+// Temporary endpoint to reset a user password
+router.post('/reset-password', async (req, res) => {
+    try {
+        const { email, projectId, newPassword } = req.body;
+        if (!email || !newPassword) {
+            return res.status(400).json({ success: false, message: 'Email and newPassword are required' });
+        }
+
+        const [users] = await db.query('SELECT id, name, email FROM users WHERE email = ?', [email]);
+        if (users.length === 0) {
+            return res.status(404).json({ success: false, message: 'Usuário não encontrado' });
+        }
+
+        const userId = users[0].id;
+        const hashedPassword = await bcrypt.hash(newPassword, 10);
+
+        let result;
+        if (projectId) {
+            [result] = await db.query(
+                'UPDATE project_users SET password = ?, password_reset_required = FALSE WHERE user_id = ? AND project_id = ?',
+                [hashedPassword, userId, projectId]
+            );
+        } else {
+            [result] = await db.query(
+                'UPDATE project_users SET password = ?, password_reset_required = FALSE WHERE user_id = ?',
+                [hashedPassword, userId]
+            );
+        }
+
+        res.json({
+            success: true,
+            message: 'Senha atualizada com sucesso!',
+            affectedRows: result.affectedRows,
+            user: { id: userId, email: users[0].email, name: users[0].name, projectId: projectId || 'all' }
+        });
+    } catch (error) {
+        console.error('Password reset failed:', error);
+        res.status(500).json({ success: false, message: 'Erro ao redefinir senha: ' + error.message });
+    }
+});
+
 module.exports = router;
